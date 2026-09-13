@@ -117,6 +117,25 @@ curl -I https://laravel.qjwykj.com/admin/        # 期望 HTTP 200
 
 > 服务器 `/root/.ssh/authorized_keys` 中已加入对应公钥。若更换服务器，需同步更新这 3 个值。
 
+### 部署密钥轮换（安全加固，建议执行一次）
+
+仓库曾短暂公开可读，部署密钥名 `github-actions-deploy-v2` 与用途已外泄（私钥本身未入库，但建议轮换）：
+
+```bash
+# 1. 生成新密钥对
+ssh-keygen -t ed25519 -C "github-actions-deploy-v3" -f ~/.ssh/github-actions-deploy-v3
+
+# 2. 公钥追加到服务器（在服务器上执行）
+cat ~/.ssh/github-actions-deploy-v3.pub >> /root/.ssh/authorized_keys
+
+# 3. 更新 GitHub Secrets：SERVER_SSH_KEY 改为新私钥全文
+#    （Settings → Secrets and variables → Actions → SERVER_SSH_KEY → Update）
+
+# 4. 验证部署正常后，删除旧公钥行，作废旧私钥
+```
+
+> 切勿把新旧私钥写入本仓库或 `.env`。
+
 ---
 
 ## 七、重要注意事项（必读）
@@ -155,7 +174,7 @@ systemctl restart laravels          # 重启服务
 对外访问说明页（`/docs/deploy-guide.html`）已去除运维敏感信息；团队内部如需「网页随时可看」的完整版，仓库已提供：
 
 - 内部页面：`public/docs/deploy-guide-internal.html`（部署后位于 `https://laravel.qjwykj.com/docs/deploy-guide-internal.html`）
-- nginx Basic Auth 配置片段：`public/docs/deploy-guide-internal.nginx.conf.example`
+- nginx Basic Auth 配置片段：`deploy/nginx-internal-docs.conf.example`（在仓库 `deploy/` 目录，不放 web 根目录，避免被公网访问）
 
 **启用步骤（服务器上一次性执行）：**
 
@@ -166,7 +185,7 @@ htpasswd -c /etc/nginx/.htpasswd-laradmin ops         # 回车后输入两遍强
 chown root:www /etc/nginx/.htpasswd-laradmin          # www = 宝塔 nginx 运行用户（系统自装多为 www-data）
 chmod 640 /etc/nginx/.htpasswd-laradmin
 
-# 2. 把 public/docs/deploy-guide-internal.nginx.conf.example 中的 location 段放进站点 server 块
+# 2. 把 deploy/nginx-internal-docs.conf.example 中的 location 段放进站点 server 块
 
 # 3. 校验并重载
 nginx -t && systemctl reload nginx

@@ -83,15 +83,23 @@ LarAdmin 是一个进销存（ERP）后台管理系统：商品资料与分类�
 laradmin/
 ├── app/                              # Auth 认证 / System 系统 / Business 业务
 │   ├── Http/Controllers/             # Admin 后台控制器 / Api 公开接口
+│   ├── Http/Middleware/              # 中间件（鉴权 / 日志 / 限流 / 库存快照）
 │   ├── Models/                       # 数据模型
 │   ├── Services/                     # 业务服务层
 │   ├── Exports/ Imports/             # Excel 导入导出
-│   └── Middleware/                   # 中间件（鉴权 / 日志 / 限流 / 库存快照）
+│   └── Support/                      # mbstring 兜底 shim 等
 ├── frontend/                         # 管理后台 SPA（Vue 3 + Element Plus + Vite）
+├── resources/
+│   ├── mobile/                       # 移动端（UniApp，商品拜访/移动办公）
+│   ├── web/                          # 前台 Web 应用
+│   └── views/                        # Laravel Blade 视图
 ├── routes/                           # web.php / api.php / admin.php
 ├── config/                           # laravels / jwt 等
 ├── database/migrations/business/     # 业务迁移
+├── deploy/                           # 服务器运维配置（如内部手册 nginx Basic Auth 片段）
 ├── public/admin/                     # 前端构建产物（CI 生成，不入库）
+├── public/docs/                      # 文档页（deploy-guide.html 对外 / -internal.html 内部加口令）
+├── .env.example                      # 环境变量模板（克隆后复制为 .env 再填值）
 └── DEPLOY.md                         # 部署说明（GitHub Actions 云端构建）
 ```
 
