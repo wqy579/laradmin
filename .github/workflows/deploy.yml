@@ -20,6 +20,7 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         run: |
+          mkdir -p ../public/admin
           npm install --no-audit --no-fund
           npm run build
 
