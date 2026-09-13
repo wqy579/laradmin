@@ -19,6 +19,9 @@
         "phpunit/phpunit": "^11.0"
     },
     "autoload": {
+        "files": [
+            "app/Support/mb_polyfill.php"
+        ],
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
