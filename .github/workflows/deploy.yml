@@ -21,7 +21,7 @@ jobs:
         working-directory: frontend
         run: |
           mkdir -p ../public/admin
-          npm install --no-audit --no-fund
+          npm ci --no-audit --no-fund
           npm run build
 
       # ========== 打包源码 + 产物（放 workspace 内，scp 容器可见） ==========
@@ -57,21 +57,30 @@ jobs:
             set -e
             cd /www/wwwroot/laradmin
 
+            # 0. 备份当前前端产物（storage 不参与 rsync --delete，可安全存放上一版，
+            #    健康检查失败时回滚用）
+            rm -rf storage/admin.prev
+            if [ -d public/admin ]; then cp -r public/admin storage/admin.prev; fi
+
             # 1. 同步源码（排除运行态目录；--delete 保持与仓库一致）
             rsync -a --delete --exclude .env --exclude storage --exclude vendor \
               --exclude node_modules --exclude .git \
               /tmp/laradmin-deploy/source/ /www/wwwroot/laradmin/
 
-            # 2. 后端依赖（composer 较轻且依赖服务器 PHP 扩展，放服务器跑；加超时保护）
-            timeout 180 composer install --no-dev --no-interaction --optimize-autoloader || true
-            timeout 120 composer dump-autoload -o || true
+            # 2. 后端依赖：显式用 php8.4 执行 composer，避免 PATH 上其他 PHP 版本
+            #    干扰平台校验（swoole/pcntl 需求已在 composer.json config.platform
+            #    伪造，解析不依赖执行 composer 的 PHP 是否带这些扩展）
+            COMPOSER_BIN="$(command -v composer || echo composer)"
+            timeout 180 php8.4 "$COMPOSER_BIN" install --no-dev --no-interaction --optimize-autoloader || true
+            timeout 120 php8.4 "$COMPOSER_BIN" dump-autoload -o || true
 
-            # 3. 迁移 + 清缓存（路由含闭包，只能 clear）
+            # 3. 迁移 + 缓存（路由已全部为控制器类，可安全缓存）
             php8.4 artisan migrate --force || true
-            php8.4 artisan route:clear 2>/dev/null || true
             php8.4 artisan config:clear 2>/dev/null || true
+            php8.4 artisan route:clear 2>/dev/null || true
             php8.4 artisan view:clear 2>/dev/null || true
             php8.4 artisan cache:clear 2>/dev/null || true
+            php8.4 artisan route:cache 2>/dev/null || true
 
             # 4. 替换前端产物（云端构建好的）
             rm -rf public/admin
@@ -79,9 +88,25 @@ jobs:
             cp -r /tmp/laradmin-deploy/dist/* public/admin/
             chown -R root:root public/admin
 
-            # 5. 重启 LaravelS
-            systemctl restart laravels || php8.4 bin/laravels restart
+            # 5. 平滑重载优先：reload 仅重启 worker 加载新代码，master 不动、连接不中断；
+            #    失败再退回 restart
+            php8.4 bin/laravels reload || systemctl restart laravels || php8.4 bin/laravels restart
 
-            # 6. 健康检查
+            # 6. 深度健康检查：登录接口能应答（422 校验错误也算存活）才算部署成功
             sleep 3
-            curl -s -o /dev/null -w "health:%{http_code}\n" https://laravel.qjwykj.com/admin/ || true
+            ok=0
+            for i in 1 2 3 4 5; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+                -X POST https://laravel.qjwykj.com/admin/auth/login \
+                -H "Content-Type: application/json" -d '{}' || echo 000)
+              if [ "$code" != "000" ]; then echo "health: ok (HTTP $code)"; ok=1; break; fi
+              echo "health: retry $i (HTTP $code)"; sleep 5
+            done
+
+            if [ "$ok" != "1" ]; then
+              echo "health: FAILED — 回滚前端产物并重启服务"
+              rm -rf public/admin
+              if [ -d storage/admin.prev ]; then mv storage/admin.prev public/admin; fi
+              php8.4 bin/laravels reload || systemctl restart laravels || true
+              exit 1
+            fi
