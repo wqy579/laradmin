@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use App\Services\Auth\PermissionCacheService;
+use Modules\Auth\Services\PermissionCacheService;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthCheckMiddleware

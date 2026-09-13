@@ -148,7 +148,7 @@ return [
 
     'websocket' => [
         'enable' => env('LARAVELS_WEBSOCKET', true),
-        'handler' => \App\Services\WebSocket\WebSocketHandler::class,
+        'handler' => \Modules\System\Services\WebSocket\WebSocketHandler::class,
     ],
 
     /*
@@ -178,7 +178,7 @@ return [
 
     'processes' => [
         [
-            'class'    => \App\Services\QueueWorkerProcess::class,
+            'class'    => \Modules\System\Services\QueueWorkerProcess::class,
             'num'      => 1,
             'redirect' => false,
             'pipe'     => 0,
@@ -202,7 +202,7 @@ return [
         // The list of cron job
         'jobs'            => [
             // 秒级调度定时器，每秒检查到期任务
-            \App\Services\System\ScheduledTimerJob::class,
+            \Modules\System\Services\ScheduledTimerJob::class,
         ],
 
         // Max waiting time of reloading

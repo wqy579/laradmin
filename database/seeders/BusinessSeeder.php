@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\Auth\Permission;
+use Modules\Auth\Models\Permission;
 use Illuminate\Database\Seeder;
 
 class BusinessSeeder extends Seeder

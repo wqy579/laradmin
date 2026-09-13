@@ -24,6 +24,7 @@
         ],
         "psr-4": {
             "App\\": "app/",
+            "Modules\\": "modules/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/",
             "Hhxsv5\\LaravelS\\": "vendor/hhxsv5/laravel-s/src"

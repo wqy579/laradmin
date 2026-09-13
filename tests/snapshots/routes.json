@@ -1,0 +1,3227 @@
+[
+    {
+        "method": "GET",
+        "uri": "/",
+        "name": null,
+        "action": "App\\Http\\Controllers\\HomeController@index",
+        "middleware": [
+            "web"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/change-password",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@changePassword",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/departments",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/departments",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/departments/all",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@getAll",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/departments/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/departments/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/departments/tree",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@tree",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/auth/departments/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/departments/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/auth/departments/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/login",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@login",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "rate.limit:login"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/logout",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@logout",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/me",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@me",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/auth/me",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@updateMe",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/permissions",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/permissions",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/permissions/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/permissions/menu",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@menu",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/permissions/tree",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@tree",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/permissions/update-icons",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@updateIcons",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/auth/permissions/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/auth/permissions/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/refresh",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@refresh",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/roles",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/roles",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/roles/all",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@getAll",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/roles/assign-permissions",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@assignPermissions",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/roles/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/roles/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/auth/roles/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/roles/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/auth/roles/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/users",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/users",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/users/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/users/batch-department",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@batchAssignDepartment",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/users/batch-roles",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@batchAssignRoles",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/users/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/users/export",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/users/import",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@import",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/auth/users/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/auth/users/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/auth/users/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/auth/users/{id}/reset-password",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@resetPassword",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/attendance",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/attendance",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/attendance/{attendance}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/attendance/{attendance}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/attendance/{attendance}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/cost-price",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CostPriceController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/cost-price/batch",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CostPriceController@batchUpdate",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/cost-price/{product}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CostPriceController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/customers",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/customers",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/customers/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/customers/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/customers/{customer}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/customers/{customer}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/customers/{customer}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/delivery/{delivery}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery/{delivery}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/delivery/{delivery}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery/{delivery}/complete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@complete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery/{delivery}/dispatch",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@dispatch",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/employee",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/employee",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/employee/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/employee/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/employee/{employee}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/employee/{employee}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/employee/{employee}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/expense",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/expense",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/expense/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/expense/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/expense/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/expense/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/expense/{id}/approve",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/liankai-stock-check",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\LiankaiStockCheckController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/liankai-stock-check/sync",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\LiankaiStockCheckController@sync",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/liankai-stock-monitor",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\LiankaiStockCheckController@monitor",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/liankai-stock-monitor/sync",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\LiankaiStockCheckController@sync",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/pay",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/pay",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/pay/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/pay/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/pay/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/pay/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/pay/{id}/approve",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/product",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/product",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/product/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/product/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/product/categories",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@categories",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/product/categories",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@storeCategory",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/product/categories/{category}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@destroyCategory",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/product/categories/{category}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@updateCategory",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/product/units",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@units",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/product/{product}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/product/{product}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/product/{product}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/purchase-order",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/purchase-order",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/purchase-order/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/purchase-order/{purchaseOrder}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/purchase-order/{purchaseOrder}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/purchase-order/{purchaseOrder}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/purchase-order/{purchaseOrder}/approve",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/purchase-order/{purchaseOrder}/receive",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@receive",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/receive",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/receive",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/receive/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/receive/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/receive/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/receive/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/receive/{id}/approve",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/return",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/return",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/return/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/return/{return}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/return/{return}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/return/{return}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/return/{return}/approve",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/return/{return}/process",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@process",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/route",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/route",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/route/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/route/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/route/export",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/route/import",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@import",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/route/{route}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/route/{route}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/route/{route}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/route/{route}/customers",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@removeCustomer",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/route/{route}/customers",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@customers",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/route/{route}/customers",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@addCustomer",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/sales-order",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/sales-order",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/sales-order/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/sales-order/{salesOrder}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/sales-order/{salesOrder}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/sales-order/{salesOrder}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/sales-order/{salesOrder}/approve",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock-in",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stock-in",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/stock-in/{stockIn}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock-in/{stockIn}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/stock-in/{stockIn}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stock-in/{stockIn}/approve",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock-out",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stock-out",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/stock-out/{stockOut}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock-out/{stockOut}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/stock-out/{stockOut}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stock-out/{stockOut}/approve",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock/{stock}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\StockController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/supplier",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/supplier",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/supplier/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/supplier/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/supplier/export",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/supplier/import",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@import",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/supplier/{supplier}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/supplier/{supplier}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/supplier/{supplier}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/transfer",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/transfer",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/transfer/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/transfer/{transfer}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/transfer/{transfer}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/transfer/{transfer}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/transfer/{transfer}/execute",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@execute",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/vehicle",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/vehicle",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/vehicle/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/vehicle/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/vehicle/{vehicle}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/vehicle/{vehicle}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/vehicle/{vehicle}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/visit/achievement",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@achievement",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/visit/logs",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/visit/logs",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/visit/logs/{visitLog}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/visit/logs/{visitLog}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/visit/logs/{visitLog}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/visit/schedule",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@schedule",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/warehouse",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/warehouse",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/warehouse/{warehouse}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/warehouse/{warehouse}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/warehouse/{warehouse}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/import/old-system",
+        "name": "admin.",
+        "action": "Closure",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth:sanctum"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/remote/migrate",
+        "name": "admin.",
+        "action": "Closure",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/attachment",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/attachment/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/attachment/directories",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@directories",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/attachment/get-by-ids",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@getByIds",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/attachment/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/attachment/type-distribution",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@typeDistribution",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/system/attachment/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/attachment/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/system/attachment/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/dictionary",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/dictionary",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/dictionary-item",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@getItemsList",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/dictionary-item",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@storeItem",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/dictionary-item/all",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@getAllItems",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/dictionary-item/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@batchDeleteItems",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/dictionary-item/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@batchUpdateItemsStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/system/dictionary-item/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@destroyItem",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/dictionary-item/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@showItem",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/system/dictionary-item/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@updateItem",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/dictionary/all",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@all",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/dictionary/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/dictionary/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/system/dictionary/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/dictionary/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/system/dictionary/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/log",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Log@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/log/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Log@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/log/clear",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Log@clear",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/log/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Log@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/system/log/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Log@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/log/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Log@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/scheduled",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/scheduled",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/scheduled/all",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@all",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/scheduled/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/scheduled/statistics",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/system/scheduled/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/scheduled/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/system/scheduled/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/system/scheduled/{id}/logs",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@clearLogs",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/scheduled/{id}/logs",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@logs",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/scheduled/{id}/pause",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@pause",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/scheduled/{id}/resume",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@resume",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/scheduled/{id}/run",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@run",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/scheduled/{id}/start",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@start",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/scheduled/{id}/stop",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@stop",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/setting",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/setting",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/setting/all",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@all",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/setting/batch-delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/setting/batch-save",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@batchSave",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/setting/batch-status",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/setting/groups",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@groups",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/setting/tree",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@tree",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/system/setting/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/setting/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/system/setting/{id}",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Config@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/upload",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@upload",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/upload/base64",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@uploadBase64",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/upload/chunk/cancel",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@cancelChunk",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/upload/chunk/init",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@initChunk",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/upload/chunk/merge",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@mergeChunks",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/upload/chunk/upload",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@uploadChunk",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/upload/chunk/uploaded",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@getUploadedChunks",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/upload/delete",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@delete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/upload/multiple",
+        "name": "admin.",
+        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@uploadMultiple",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "api/deploy",
+        "name": null,
+        "action": "App\\Http\\Controllers\\System\\Api\\PingController@deployNotice",
+        "middleware": [
+            "api"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "api/import/status",
+        "name": null,
+        "action": "App\\Http\\Controllers\\System\\Api\\PingController@importStatus",
+        "middleware": [
+            "api"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "api/system/upload",
+        "name": null,
+        "action": "App\\Http\\Controllers\\System\\Api\\Upload@upload",
+        "middleware": [
+            "api"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "api/test",
+        "name": null,
+        "action": "App\\Http\\Controllers\\System\\Api\\PingController@ping",
+        "middleware": [
+            "api"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "storage/{path}",
+        "name": "storage.local",
+        "action": "Closure",
+        "middleware": []
+    },
+    {
+        "method": "GET",
+        "uri": "up",
+        "name": null,
+        "action": "Closure",
+        "middleware": []
+    }
+]

@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\System\Api\PingController;
-use App\Http\Controllers\System\Api\Upload;
+use Modules\System\Http\Controllers\Api\PingController;
+use Modules\System\Http\Controllers\Api\Upload;
 use Illuminate\Support\Facades\Route;
 
 // 测试接口 / 导入状态 / 部署占位提示（均为无副作用的 JSON 返回）

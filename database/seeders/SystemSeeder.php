@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\System\Config;
-use App\Models\System\Dictionary;
-use App\Models\System\DictionaryItem;
-use App\Models\Auth\Permission;
+use Modules\System\Models\Config;
+use Modules\System\Models\Dictionary;
+use Modules\System\Models\DictionaryItem;
+use Modules\Auth\Models\Permission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 

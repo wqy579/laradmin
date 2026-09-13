@@ -6,7 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log as LaravelLog;
-use App\Services\System\LogService;
+use Modules\System\Services\LogService;
 use Throwable;
 
 class LogRequestMiddleware

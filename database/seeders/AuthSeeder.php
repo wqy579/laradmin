@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\Auth\User;
-use App\Models\Auth\Role;
-use App\Models\Auth\Permission;
-use App\Models\Auth\Department;
+use Modules\Auth\Models\User;
+use Modules\Auth\Models\Role;
+use Modules\Auth\Models\Permission;
+use Modules\Auth\Models\Department;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;

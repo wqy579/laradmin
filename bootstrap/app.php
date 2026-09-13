@@ -25,7 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
 			'auth.check' => \App\Http\Middleware\AuthCheckMiddleware::class,
 			'log.request' => \App\Http\Middleware\LogRequestMiddleware::class,
 			'rate.limit' => \App\Http\Middleware\RateLimitMiddleware::class,
-			'stock.snapshot' => \App\Http\Middleware\StockSnapshotMiddleware::class,
+			'stock.snapshot' => \Modules\Business\Http\Middleware\StockSnapshotMiddleware::class,
 		]);
 	})
 	->withExceptions(function (Exceptions $exceptions): void {

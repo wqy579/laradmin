@@ -2,14 +2,14 @@
 
 namespace Database\Seeders;
 
-use App\Models\Business\Product;
-use App\Models\Business\ProductCategory;
-use App\Models\Business\Warehouse;
-use App\Models\Business\Supplier;
-use App\Models\Business\Customer;
-use App\Models\Business\Vehicle;
-use App\Models\Business\Route;
-use App\Models\Business\Employee;
+use Modules\Business\Models\Product;
+use Modules\Business\Models\ProductCategory;
+use Modules\Business\Models\Warehouse;
+use Modules\Business\Models\Supplier;
+use Modules\Business\Models\Customer;
+use Modules\Business\Models\Vehicle;
+use Modules\Business\Models\Route;
+use Modules\Business\Models\Employee;
 use Illuminate\Database\Seeder;
 
 class BusinessDataSeeder extends Seeder
