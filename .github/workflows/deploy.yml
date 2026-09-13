@@ -27,9 +27,11 @@ jobs:
       # ========== 打包源码 + 产物（放 workspace 内，scp 容器可见） ==========
       - name: Package source & dist
         run: |
+          rm -rf deploy_pkg
           mkdir -p deploy_pkg/source deploy_pkg/dist
           rsync -a --exclude vendor --exclude node_modules --exclude .git \
             --exclude storage --exclude .env --exclude public/admin \
+            --exclude deploy_pkg \
             ./ deploy_pkg/source/
           cp -r frontend/dist/* deploy_pkg/dist/
 
