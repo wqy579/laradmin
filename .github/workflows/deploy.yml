@@ -111,6 +111,14 @@ jobs:
             #    失败再退回 restart
             php8.4 bin/laravels reload || systemctl restart laravels || php8.4 bin/laravels restart
 
+            # 5.5 运行时诊断：worker 实际运行于 php8.5（系统 CLI，扩展与 php8.4 不同）。
+            #     直接用 php8.5 验证 mb 兜底函数是否已随 autoload 生效
+            PHP85="$(command -v php8.5 || echo /usr/bin/php8.5)"
+            "$PHP85" -v 2>/dev/null | head -n 1 || echo "php8.5 not found"
+            "$PHP85" -m 2>/dev/null | grep -ci "^mbstring$" || echo "php8.5: mbstring NOT loaded"
+            "$PHP85" -r "require 'vendor/autoload.php'; var_dump(function_exists('mb_split'), function_exists('mb_strimwidth'), function_exists('mb_strlen'));" 2>&1 | tail -n 4
+            grep -c "mb_polyfill" vendor/composer/autoload_files.php 2>/dev/null || echo "shim NOT in autoload_files"
+
             # 6. 深度健康检查：登录接口返回 2xx-4xx（422 校验错误=应用健康）才算存活；
             #    5xx 或无响应视为失败（500 曾被误判为存活，导致坏部署标绿——教训）
             sleep 3
@@ -128,6 +136,8 @@ jobs:
             if [ "$ok" != "1" ]; then
               echo "health: FAILED — 输出应用错误日志以便定位"
               tail -n 60 storage/logs/laravel.log 2>/dev/null || true
+              echo "--- swoole log（worker fatal 写在这里）---"
+              tail -n 40 "storage/logs/swoole-$(date +%Y-%m).log" 2>/dev/null || true
               echo "health: FAILED — 回滚前端产物并重启服务"
               rm -rf public/admin
               if [ -d storage/admin.prev ]; then mv storage/admin.prev public/admin; fi
