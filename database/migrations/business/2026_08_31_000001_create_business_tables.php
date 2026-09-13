@@ -22,7 +22,6 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('parent_id')->nullable()->comment('父级分类ID');
             $table->string('name', 100)->comment('分类/品牌名称');
-            $table->integer('product_count')->default(0)->comment('商品数量');
             $table->integer('sort_order')->default(0)->comment('排序');
             $table->boolean('is_active')->default(true)->comment('是否启用');
             $table->timestamps();
@@ -30,9 +29,10 @@ return new class extends Migration
         });
 
         // 产品
+        // 说明：旧版 category_id 列与 product_categories.product_count 冗余列已废弃移除，
+        // 分类归属使用 main_category_id / sub_category_id（见 2026_09_14_000001）
         Schema::create('products', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('category_id')->nullable()->constrained('product_categories')->nullOnDelete();
             $table->string('name', 200)->comment('产品名称');
             $table->string('spec', 100)->nullable()->comment('规格');
             $table->string('code', 50)->nullable()->index()->comment('产品编码');

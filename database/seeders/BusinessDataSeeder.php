@@ -27,11 +27,11 @@ class BusinessDataSeeder extends Seeder
 
         // 产品分类
         $categories = [
-            ['name' => '饮料', 'product_count' => 0],
-            ['name' => '食品', 'product_count' => 0],
-            ['name' => '日用品', 'product_count' => 0],
-            ['name' => '电子产品', 'product_count' => 0],
-            ['name' => '服装', 'product_count' => 0],
+            ['name' => '饮料'],
+            ['name' => '食品'],
+            ['name' => '日用品'],
+            ['name' => '电子产品'],
+            ['name' => '服装'],
         ];
         foreach ($categories as $cat) {
             ProductCategory::firstOrCreate(['name' => $cat['name']], $cat);
@@ -76,7 +76,7 @@ class BusinessDataSeeder extends Seeder
         // 产品
         $products = [
             [
-                'category_id' => 1,
+                'main_category_id' => 1,
                 'name' => '矿泉水 550ml',
                 'code' => 'P001',
                 'spec' => '550ml/瓶',
@@ -88,7 +88,7 @@ class BusinessDataSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'category_id' => 1,
+                'main_category_id' => 1,
                 'name' => '可乐 330ml',
                 'code' => 'P002',
                 'spec' => '330ml/罐',
@@ -100,7 +100,7 @@ class BusinessDataSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'category_id' => 2,
+                'main_category_id' => 2,
                 'name' => '巧克力饼干',
                 'code' => 'P003',
                 'spec' => '100g/包',
@@ -112,7 +112,7 @@ class BusinessDataSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'category_id' => 3,
+                'main_category_id' => 3,
                 'name' => '洗衣液 2kg',
                 'code' => 'P004',
                 'spec' => '2kg/瓶',
@@ -124,7 +124,7 @@ class BusinessDataSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'category_id' => 4,
+                'main_category_id' => 4,
                 'name' => 'USB数据线',
                 'code' => 'P005',
                 'spec' => '1m',
@@ -138,11 +138,6 @@ class BusinessDataSeeder extends Seeder
         ];
         foreach ($products as $prod) {
             Product::firstOrCreate(['code' => $prod['code']], $prod);
-        }
-
-        // 更新产品分类数量
-        foreach (ProductCategory::all() as $category) {
-            $category->update(['product_count' => $category->products()->count()]);
         }
 
         $this->command->info('Business test data seeded successfully.');
