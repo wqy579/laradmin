@@ -1,0 +1,3 @@
+code,name,category,contact,phone,address,route,credit_limit,balance,level,remark
+C001,示例客户1,零售客户,张三,13800138001,示例地址1,路线1,10000,0,1,备注信息
+C002,示例客户2,批发客户,李四,13800138002,示例地址2,路线2,20000,500,2,备注信息

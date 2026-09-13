@@ -1,0 +1,63 @@
+#!/bin/bash
+# pre-push hook: 阻止推送包含前端构建产物的提交
+# 启用方式: git config core.hooksPath .githooks
+# (仓库内已放置 .githooks/pre-push，clone 后执行一次该命令即可)
+
+echo "== [pre-push] 检查是否包含前端构建产物... =="
+
+# 构建产物路径（与 .gitignore 保持一致）
+FORBIDDEN_PATTERNS=(
+  "frontend/dist/"
+  "public/admin/"
+  "public/assets/"
+  "public/assets.bak.*"
+  "public/index.html"
+)
+
+BLOCKED=""
+for ref in "$@"; do
+  # 只处理推送的分支引用：<local> <remote> <remote-url>
+  # 提取要推送的本地提交范围
+  z40=0000000000000000000000000000000000000000
+  local_ref=$(echo "$ref" | awk '{print $1}')
+  remote_ref=$(echo "$ref" | awk '{print $2}')
+  [ "$local_ref" = "$z40" ] && continue  # 删除远程分支，跳过
+
+  # 检查自远端已存在提交以来的本地新提交中是否含构建产物
+  RANGE="${remote_ref}..${local_ref}"
+  FILES=$(git diff --name-only "$RANGE" 2>/dev/null)
+  for f in $FILES; do
+    for pat in "${FORBIDDEN_PATTERNS[@]}"; do
+      case "$f" in
+        $pat)
+          BLOCKED="$BLOCKED $f"
+          ;;
+      esac
+    done
+  done
+done
+
+if [ -n "$BLOCKED" ]; then
+  echo ""
+  echo "============================================================"
+  echo "  ❌ 推送已阻止：检测到前端构建产物！"
+  echo "============================================================"
+  echo "  以下文件属于部署时自动生成的构建产物，禁止直接上传到仓库："
+  for f in $BLOCKED; do
+    echo "    - $f"
+  done
+  echo ""
+  echo "  原因：构建产物由服务器部署脚本（webhook）自动生成，"
+  echo "  直接上传会被仓库拦截，导致部署拿到的是旧代码却提示成功。"
+  echo ""
+  echo "  正确处理方式："
+  echo "    1. 只提交源代码（frontend/src、后端代码等）"
+  echo "    2. 构建由服务器部署时自动完成"
+  echo "    3. 如需立即构建，请 push 源码后触发 webhook 部署"
+  echo "============================================================"
+  echo ""
+  exit 1
+fi
+
+echo "== [pre-push] 未发现构建产物，放行 =="
+exit 0

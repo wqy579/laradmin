@@ -1,0 +1,128 @@
+/* ===== Element Plus el-tree 样式修复 ===== */
+
+html .el-tree-node__content {
+	height: 32px !important;
+	padding-right: 8px;
+}
+
+html .el-tree-node__expand-icon {
+	font-size: 14px;
+	padding: 6px;
+}
+
+html .el-tree-node__expand-icon.is-leaf {
+	color: transparent;
+}
+
+html .el-tree-node.is-current > .el-tree-node__content {
+	background-color: var(--el-color-primary-light-9);
+	color: var(--el-color-primary);
+	font-weight: 500;
+}
+
+html .el-tree-node__content:hover {
+	background-color: var(--el-fill-color-light);
+}
+
+html .el-tree-node__label {
+	font-size: 13px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+html .el-tree {
+	--el-tree-node-content-height: 32px;
+}
+
+/* ===== sTable / VxeTable 暗色模式适配 ===== */
+
+html.dark .sTable {
+	background-color: var(--layout-surface);
+	color: var(--layout-text);
+}
+
+/* 表格主体 */
+html.dark .vxe-table,
+html.dark .vxe-table--body-wrapper,
+html.dark .vxe-table--header-wrapper {
+	background-color: var(--layout-surface);
+	color: var(--layout-text);
+}
+
+/* 表头 */
+html.dark .vxe-header--column {
+	background-color: var(--el-bg-color-overlay);
+	color: var(--layout-text);
+}
+
+/* 行 hover */
+html.dark .vxe-body--row:hover .vxe-body--column {
+	background-color: var(--layout-fill-hover) !important;
+}
+
+/* 斑马纹 */
+html.dark .vxe-body--row.row--stripe .vxe-body--column {
+	background-color: var(--el-fill-color-lighter);
+}
+
+/* 单元格边框 */
+html.dark .vxe-table--border .vxe-body--column,
+html.dark .vxe-table--border .vxe-header--column {
+	border-color: var(--layout-border-light);
+}
+
+/* 底部分页栏 */
+html.dark .sTable-page {
+	background-color: var(--layout-surface);
+	border-color: var(--layout-border-light);
+}
+
+/* 表格底部工具栏 */
+html.dark .sTable-do .el-button {
+	--el-button-bg-color: var(--el-bg-color-overlay);
+	--el-button-border-color: var(--el-border-color);
+	--el-button-text-color: var(--el-text-color-regular);
+	--el-button-hover-bg-color: var(--el-fill-color);
+	--el-button-hover-border-color: var(--el-border-color-light);
+	--el-button-hover-text-color: var(--el-text-color-primary);
+}
+
+/* checkbox 样式 */
+html.dark .vxe-checkbox--icon,
+html.dark .vxe-radio--icon {
+	border-color: var(--el-border-color);
+}
+
+html.dark .vxe-checkbox--icon.is--checked,
+html.dark .vxe-radio--icon.is--checked {
+	border-color: var(--el-color-primary);
+	background-color: var(--el-color-primary);
+}
+
+/* 排序图标 */
+html.dark .vxe-cell--sort .vxe-sort--asc-btn,
+html.dark .vxe-cell--sort .vxe-sort--desc-btn {
+	color: var(--layout-text-muted);
+}
+
+html.dark .vxe-cell--sort .vxe-sort--asc-btn.is--active,
+html.dark .vxe-cell--sort .vxe-sort--desc-btn.is--active {
+	color: var(--el-color-primary);
+}
+
+/* 空数据 */
+html.dark .vxe-table--empty-content {
+	color: var(--layout-text-muted);
+}
+
+/* 固定列阴影 */
+html.dark .vxe-table--fixed-left-wrapper,
+html.dark .vxe-table--fixed-right-wrapper {
+	background-color: var(--layout-surface);
+}
+
+/* loading 遮罩 */
+html.dark .vxe-table--loading {
+	background-color: rgba(0, 0, 0, 0.5);
+}

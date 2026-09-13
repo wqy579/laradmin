@@ -1,0 +1,84 @@
+# UniApp 移动端项目 .gitignore
+
+# 依赖
+node_modules/
+.pnp
+.pnp.js
+
+# 构建产物
+unpackage/
+dist/
+build/
+
+# 本地环境配置
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 编辑器
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 日志文件
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# 运行时
+*.pid
+*.seed
+*.pid.lock
+
+# 覆盖率报告
+coverage/
+*.lcov
+.nyc_output
+
+# 测试
+.nyc_output/
+test-results/
+
+# 锁文件（根据包管理器选择保留或忽略）
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# HBuilderX 配置
+.hbuilderx/
+
+# 微信小程序
+miniprogram_npm/
+
+# 支付宝小程序
+.alipay/
+
+# 百度小程序
+baidu/
+
+# 字节跳动小程序
+toutiao/
+
+# QQ小程序
+qq/
+
+# 快手小程序
+ks/
+
+# 京东小程序
+jd/

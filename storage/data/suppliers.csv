@@ -1,0 +1,3 @@
+code,name,contact,phone,address,bank_name,bank_account,balance,remark
+S001,示例供应商1,王五,13900139001,示例地址1,示例银行,1234567890,0,备注信息
+S002,示例供应商2,赵六,13900139002,示例地址2,示例银行,0987654321,1000,备注信息

@@ -1,0 +1,153 @@
+/* 移动端响应式工具类和全局覆盖 */
+
+@media (max-width: 768px) {
+	/* 工具类 */
+	.hide-on-mobile {
+		display: none !important;
+	}
+	.mobile-full-width {
+		width: 100% !important;
+	}
+	.mobile-stack {
+		flex-direction: column !important;
+	}
+
+	/* Dialog 全屏化 */
+	.el-dialog {
+		--el-dialog-width: 95vw !important;
+		width: 95vw !important;
+		margin: 5vh auto !important;
+	}
+	.el-dialog__body {
+		max-height: 70vh;
+		overflow-y: auto;
+	}
+
+	/* Drawer 宽度 */
+	.el-drawer {
+		width: 85vw !important;
+	}
+
+	/* 触控目标最小尺寸 */
+	button,
+	.el-button,
+	[role='button'],
+	.el-menu-item,
+	.el-tabs__item {
+		min-height: 44px;
+	}
+	.el-button--small {
+		min-height: 36px;
+	}
+
+	/* 通用 tool-bar：移动端垂直堆叠 */
+	.tool-bar {
+		flex-direction: column;
+		align-items: stretch;
+	}
+	.tool-bar .left-panel {
+		width: 100%;
+	}
+	/* 搜索字段：mobile 下两两并排（每个约 50%），避免每个字段独占一行 */
+	.tool-bar .left-panel .el-input,
+	.tool-bar .left-panel .el-select,
+	.tool-bar .left-panel .el-date-editor {
+		flex: 1 1 calc(50% - 8px);
+		min-width: 0;
+		width: auto !important;
+	}
+	.tool-bar .left-panel .el-button {
+		flex: 0 0 auto;
+	}
+	.tool-bar .right-panel {
+		width: 100%;
+		justify-content: flex-end;
+	}
+
+	/* sTable 底部分页：简化布局 */
+	.sTable-page .el-pagination {
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+
+	/* 页面侧边栏布局 */
+	.page-sidebar-layout {
+		flex-direction: column !important;
+	}
+	.page-sidebar-layout .left-box {
+		width: 100% !important;
+		max-height: 40vh;
+		border-right: none !important;
+		border-bottom: 1px solid var(--el-border-color-lighter);
+	}
+
+	/* Footer bar safe-area */
+	.footer-bar {
+		padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+	}
+
+	/* El-form label 堆叠 */
+	.el-form--inline .el-form-item {
+		display: block;
+		width: 100%;
+	}
+	.el-form:not(.el-form--inline) .el-form-item__label {
+		float: none;
+		display: block;
+		text-align: left;
+		padding-bottom: 4px;
+	}
+	.el-form:not(.el-form--inline) .el-form-item__content {
+		margin-left: 0 !important;
+	}
+
+	/* El-descriptions 单列 */
+	.el-descriptions {
+		--el-descriptions-table-border: 0;
+	}
+	.el-descriptions :deep(.el-descriptions__body) {
+		table-layout: fixed;
+	}
+
+	/* El-input-number 全宽 */
+	.el-input-number {
+		width: 100% !important;
+	}
+
+	/* El-date-editor 全宽 */
+	.el-date-editor {
+		width: 100% !important;
+	}
+}
+
+@media (min-width: 769px) {
+	.show-on-mobile {
+		display: none !important;
+	}
+}
+
+/* ==================== 平板（769–1024）==================== */
+@media (min-width: 769px) and (max-width: 1024px) {
+	/* 通用 tool-bar：搜索区独占一行，操作区独占一行靠右 */
+	.tool-bar {
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.tool-bar .left-panel {
+		flex: 1 1 100%;
+	}
+	.tool-bar .right-panel {
+		flex: 1 1 100%;
+		justify-content: flex-end;
+	}
+
+	/* 页面左右结构：侧栏默认收窄（具体宽度由 sPageSplit 组件控制），这里只做兜底 */
+	.page-sidebar-layout .left-box {
+		width: 180px !important;
+	}
+
+	/* sTable 底部分页：隐藏 jumper，保留 sizes/pager */
+	.sTable-pagination .el-pagination .el-pagination__jump {
+		display: none;
+	}
+}

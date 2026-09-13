@@ -1,0 +1,61 @@
+/* ==================== 公共页面结构样式 ==================== */
+/* 从各页面 <style scoped> 抽取的重复样式：                            */
+/*   .page-container / .tool-bar / .left-panel / .right-panel / .table-content */
+/* 各页面删除自身的同名 scoped 样式即可命中这里。                       */
+
+/* 页面根容器：纵向占满，内部按 tool-bar / table-content 流式排列 */
+.page-container {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	padding: 0;
+}
+
+/* 工具栏：左侧搜索 + 右侧操作，窄屏自适应换行 */
+.tool-bar {
+	padding: 12px 16px;
+	background: var(--layout-surface, var(--el-bg-color));
+	border-bottom: 1px solid var(--layout-border-light, var(--el-border-color-lighter));
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.left-panel {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 1;
+	min-width: 0;
+	flex-wrap: wrap;
+}
+
+/* 搜索字段：默认按 style 属性宽度，但允许在窄屏收缩 */
+.left-panel .el-input,
+.left-panel .el-select,
+.left-panel .el-date-editor {
+	flex: 0 1 auto;
+	min-width: 120px;
+}
+
+.right-panel {
+	display: flex;
+	gap: 8px;
+	flex-shrink: 0;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+}
+
+/* tool-bar 内按钮统一用 small 尺寸（24px），更紧凑 */
+.tool-bar .el-button {
+	min-height: var(--el-component-size-small, 24px);
+	padding: var(--el-button-padding-vertical, 5px) var(--el-button-padding-horizontal, 11px);
+	font-size: var(--el-font-size-base, 13px);
+}
+
+.table-content {
+	flex: 1;
+	overflow: hidden;
+	min-height: 0;
+}

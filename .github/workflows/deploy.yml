@@ -1,0 +1,84 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # ========== 云端构建前端（不占服务器内存） ==========
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
+      # ========== 打包源码 + 产物 ==========
+      - name: Package source & dist
+        run: |
+          mkdir -p /tmp/deploy/source /tmp/deploy/dist
+          rsync -a --exclude vendor --exclude node_modules --exclude .git \
+            --exclude storage --exclude .env --exclude public/admin \
+            ./ /tmp/deploy/source/
+          cp -r frontend/dist/* /tmp/deploy/dist/
+
+      # ========== 上传到服务器 ==========
+      - name: Upload to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "/tmp/deploy/*"
+          target: /tmp/laradmin-deploy
+          strip_components: 2
+
+      # ========== 服务器端：收产物 + 重启（零构建） ==========
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            set -e
+            cd /www/wwwroot/laradmin
+
+            # 1. 同步源码（排除运行态目录；--delete 保持与仓库一致）
+            rsync -a --delete --exclude .env --exclude storage --exclude vendor \
+              --exclude node_modules --exclude .git \
+              /tmp/laradmin-deploy/source/ /www/wwwroot/laradmin/
+
+            # 2. 后端依赖（composer 较轻且依赖服务器 PHP 扩展，放服务器跑；加超时保护）
+            timeout 180 composer install --no-dev --no-interaction --optimize-autoloader || true
+            timeout 120 composer dump-autoload -o || true
+
+            # 3. 迁移 + 清缓存（路由含闭包，只能 clear）
+            php8.4 artisan migrate --force || true
+            php8.4 artisan route:clear 2>/dev/null || true
+            php8.4 artisan config:clear 2>/dev/null || true
+            php8.4 artisan view:clear 2>/dev/null || true
+            php8.4 artisan cache:clear 2>/dev/null || true
+
+            # 4. 替换前端产物（云端构建好的）
+            rm -rf public/admin
+            mkdir -p public/admin
+            cp -r /tmp/laradmin-deploy/dist/* public/admin/
+            chown -R root:root public/admin
+
+            # 5. 重启 LaravelS
+            systemctl restart laravels || php8.4 bin/laravels restart
+
+            # 6. 健康检查
+            sleep 3
+            curl -s -o /dev/null -w "health:%{http_code}\n" https://laravel.qjwykj.com/admin/ || true

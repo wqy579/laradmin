@@ -1,0 +1,11 @@
+@import './style.css';
+@import './fix.css';
+@import './components.css';
+@import './responsive.css';
+
+/* 业务列表页公共容器：撑满父容器高度，内部纵向排列（route/vehicle/sales-order/warehouse 共用） */
+.biz-list {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}

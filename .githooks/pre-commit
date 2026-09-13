@@ -1,0 +1,26 @@
+#!/bin/sh
+# ============================================================
+# LarAdmin 提交钩子：禁止提交构建产物
+# 本仓库采用「源码入库 + 服务器自动构建」模式
+# 请勿提交：public/admin、dist、node_modules 等构建产物
+# ============================================================
+files=$(git diff --cached --name-only)
+error=0
+for f in $files; do
+    case "$f" in
+        node_modules/*|*/node_modules/*)
+            echo "  [BLOCKED] 构建产物: $f (node_modules 不应提交)"; error=1 ;;
+        public/admin/*)
+            echo "  [BLOCKED] 构建产物: $f (public/admin 由服务器自动构建，禁止提交)"; error=1 ;;
+        */dist/*)
+            echo "  [BLOCKED] 构建产物: $f (dist 打包产物不应提交)"; error=1 ;;
+    esac
+done
+if [ $error -ne 0 ]; then
+    echo ""
+    echo "提交被拒绝：检测到构建产物！请执行以下命令移除后再提交："
+    echo "  git rm -r --cached <file>   # 或从暂存区移除：git restore --staged <file>"
+    echo "仓库只允许提交源代码，服务器会自动构建部署。"
+    exit 1
+fi
+exit 0
