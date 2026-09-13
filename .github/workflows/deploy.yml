@@ -35,6 +35,18 @@ jobs:
             ./ deploy_pkg/source/
           cp -r frontend/dist/* deploy_pkg/dist/
 
+      # ========== 清理服务器上的 staging 目录 ==========
+      # scp 只增不删：上个部署遗留的文件（如已从仓库删除的 config/modules.php、
+      # Return.php）会一直留在 /tmp/laradmin-deploy/source，被 rsync 原样还原进
+      # 线上目录，导致应用 boot 崩溃（2026-09-13 生产 500 事故根因）。必须先清空。
+      - name: Clean staging on server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: rm -rf /tmp/laradmin-deploy && mkdir -p /tmp/laradmin-deploy
+
       # ========== 上传到服务器 ==========
       - name: Upload to server
         uses: appleboy/scp-action@v0.1.7
@@ -74,6 +86,11 @@ jobs:
             timeout 180 php8.4 "$COMPOSER_BIN" install --no-dev --no-interaction --optimize-autoloader || true
             timeout 120 php8.4 "$COMPOSER_BIN" dump-autoload -o || true
 
+            # 2.5 硬性门槛：应用必须能完整 boot（package:discover 会加载全部包提供者）。
+            #     此步失败说明 vendor/配置不一致（如残留已删除的包引用），此时继续部署
+            #     只会全线 500 —— 立即中止，worker 未 reload 仍在跑旧代码，站点不受影响。
+            php8.4 artisan package:discover --ansi
+
             # 3. 迁移 + 缓存（路由已全部为控制器类，可安全缓存）
             php8.4 artisan migrate --force || true
             php8.4 artisan config:clear 2>/dev/null || true
@@ -92,14 +109,17 @@ jobs:
             #    失败再退回 restart
             php8.4 bin/laravels reload || systemctl restart laravels || php8.4 bin/laravels restart
 
-            # 6. 深度健康检查：登录接口能应答（422 校验错误也算存活）才算部署成功
+            # 6. 深度健康检查：登录接口返回 2xx-4xx（422 校验错误=应用健康）才算存活；
+            #    5xx 或无响应视为失败（500 曾被误判为存活，导致坏部署标绿——教训）
             sleep 3
             ok=0
             for i in 1 2 3 4 5; do
               code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
                 -X POST https://laravel.qjwykj.com/admin/auth/login \
                 -H "Content-Type: application/json" -d '{}' || echo 000)
-              if [ "$code" != "000" ]; then echo "health: ok (HTTP $code)"; ok=1; break; fi
+              if [ "$code" != "000" ] && [ "$code" -lt 500 ]; then
+                echo "health: ok (HTTP $code)"; ok=1; break
+              fi
               echo "health: retry $i (HTTP $code)"; sleep 5
             done
 
