@@ -303,7 +303,9 @@ return [
     'swoole' => [
         'daemonize'          => env('LARAVELS_DAEMONIZE', false),
         'dispatch_mode'      => env('LARAVELS_DISPATCH_MODE', 2),
-        'worker_num'         => env('LARAVELS_WORKER_NUM', 30),
+        // 服务器仅 2G 内存，每个 worker 常驻一份 Laravel 应用实例（约 50-100MB）。
+        // 原默认 30 会把内存吃满导致 swap 抖动；如需调整用环境变量 LARAVELS_WORKER_NUM。
+        'worker_num'         => env('LARAVELS_WORKER_NUM', 4),
         //'task_worker_num'    => env('LARAVELS_TASK_WORKER_NUM', 10),
         'task_ipc_mode'      => 1,
         'task_max_request'   => env('LARAVELS_TASK_MAX_REQUEST', 5000),
