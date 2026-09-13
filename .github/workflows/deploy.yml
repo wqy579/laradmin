@@ -91,13 +91,15 @@ jobs:
             #     只会全线 500 —— 立即中止，worker 未 reload 仍在跑旧代码，站点不受影响。
             php8.4 artisan package:discover --ansi
 
-            # 3. 迁移 + 缓存（路由已全部为控制器类，可安全缓存）
+            # 3. 迁移 + 清缓存
+            # 注意：route:cache 在本环境被禁用——生成的缓存路由在 laravel-s worker
+            # 内 dispatch 即 fatal（2026-09-13 生产 500 事故，/up 404 + 其余路由空
+            # body 500），worker 的运行时与 CLI 不一致，未定位前不得开启
             php8.4 artisan migrate --force || true
             php8.4 artisan config:clear 2>/dev/null || true
             php8.4 artisan route:clear 2>/dev/null || true
             php8.4 artisan view:clear 2>/dev/null || true
             php8.4 artisan cache:clear 2>/dev/null || true
-            php8.4 artisan route:cache 2>/dev/null || true
 
             # 4. 替换前端产物（云端构建好的）
             rm -rf public/admin
@@ -124,6 +126,8 @@ jobs:
             done
 
             if [ "$ok" != "1" ]; then
+              echo "health: FAILED — 输出应用错误日志以便定位"
+              tail -n 60 storage/logs/laravel.log 2>/dev/null || true
               echo "health: FAILED — 回滚前端产物并重启服务"
               rm -rf public/admin
               if [ -d storage/admin.prev ]; then mv storage/admin.prev public/admin; fi
