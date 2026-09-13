@@ -1,6 +1,5 @@
 # Backend
 vendor/
-composer.lock
 
 # Frontend
 frontend/node_modules/
