@@ -44,7 +44,7 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           source: "deploy_pkg/*"
           target: /tmp/laradmin-deploy
-          strip_components: 2
+          strip_components: 1
 
       # ========== 服务器端：收产物 + 重启（零构建） ==========
       - name: Deploy on server
