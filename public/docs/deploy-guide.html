@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>laradmin 项目 - GitHub 代码托管与自动构建部署说明</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif; background: #f6f8fa; color: #1f2328; line-height: 1.7; padding: 24px 16px; }
+  .container { max-width: 900px; margin: 0 auto; background: #fff; border: 1px solid #d0d7de; border-radius: 10px; padding: 32px 36px; }
+  h1 { font-size: 26px; border-bottom: 2px solid #24292f; padding-bottom: 12px; margin-bottom: 8px; }
+  .status { display: inline-block; background: #dafbe1; color: #1a7f37; border: 1px solid #1a7f37; border-radius: 999px; padding: 2px 12px; font-size: 13px; font-weight: 600; margin: 8px 0 4px; }
+  .updated { color: #57606a; font-size: 13px; margin-bottom: 24px; }
+  h2 { font-size: 19px; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid #d8dee4; }
+  h3 { font-size: 16px; margin: 18px 0 8px; }
+  p { margin: 8px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+  th { background: #f6f8fa; font-weight: 600; }
+  code { background: #f0f2f5; border: 1px solid #e4e8ec; border-radius: 4px; padding: 1px 6px; font-family: "SF Mono", Consolas, "Courier New", monospace; font-size: 13px; }
+  pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 14px 16px; overflow-x: auto; margin: 12px 0; font-size: 13px; line-height: 1.6; }
+  pre code { background: none; border: none; padding: 0; }
+  .warn { background: #fff8c5; border: 1px solid #d4a72c; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 14px; }
+  .danger { background: #ffebe9; border: 1px solid #cf222e; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 14px; }
+  .ok { background: #dafbe1; border: 1px solid #1a7f37; border-radius: 6px; padding: 12px 16px; margin: 14px 0; font-size: 14px; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 4px 0; }
+  a { color: #0969da; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  @media (max-width: 640px) { .container { padding: 20px 16px; } table { font-size: 13px; } th, td { padding: 6px 8px; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>laradmin 项目 - GitHub 代码托管与自动构建部署说明</h1>
+<span class="status">✅ 全链路已跑通（云端构建 → 自动部署 → 服务器验证 200）</span>
+<div class="updated">最后更新：2026-09-14</div>
+
+<h2>一、仓库地址</h2>
+<table>
+  <tr><th>用途</th><th>地址</th></tr>
+  <tr><td><b>GitHub（主仓库，触发自动构建）</b></td><td><code>https://github.com/wqy579/laradmin.git</code></td></tr>
+  <tr><td>服务器</td><td><code>115.191.21.67</code>（root，项目目录 <code>/www/wwwroot/laradmin</code>）</td></tr>
+</table>
+<p><b>规则：所有代码提交以 GitHub 为准。</b>推送到 GitHub main 分支会自动触发云端构建 + 部署到服务器。</p>
+
+<p><b>仓库补充说明：</b></p>
+<ul>
+  <li><code>wqy579/laradmin</code>：主仓库（代码已在，含自动构建 workflow）</li>
+  <li><code>wqy579/laradmin-legacy</code>：旧版代码备份（可忽略）</li>
+  <li><code>wqy579/laradmin-import</code>：导入中转仓库（可忽略）</li>
+</ul>
+
+<h2>二、克隆仓库（第一次拿代码）</h2>
+<pre><code>git clone https://github.com/wqy579/laradmin.git
+cd laradmin</code></pre>
+<p><b>注意：</b></p>
+<ul>
+  <li>仓库是<b>私有仓库</b>，克隆时需登录 GitHub 账号（或用私人令牌）。</li>
+  <li>代码包含前端（<code>frontend/</code>）+ 后端（Laravel）。<code>vendor/</code>（PHP 依赖）、<code>node_modules/</code>、<code>.env</code>、<code>storage/</code> 均<b>不入库</b>，克隆后需要自行安装。</li>
+</ul>
+
+<h2>三、上传代码（日常提交）</h2>
+<h3>1. 修改代码后提交</h3>
+<pre><code>git add .
+git commit -m "描述这次改了什么"</code></pre>
+
+<h3>2. 推送到 GitHub（触发自动构建）</h3>
+<pre><code>git push origin main</code></pre>
+<div class="warn"><b>⚠️ 重要：</b>如果本次修改涉及 <code>.github/workflows/</code> 目录（构建流程本身），普通 Token 推送会被 GitHub 拒绝（提示需要 <code>workflow</code> 权限）。两种解决：<br>
+1. 在 GitHub 网页直接编辑 workflow 文件（Settings → 进入文件 → 编辑 → Commit）；或<br>
+2. 使用<b>勾选了 <code>workflow</code> 权限</b>的 Personal Access Token 推送。<br><br>
+只改普通业务代码（app/、frontend/、routes/、database/ 等）不受此限制。</div>
+
+<h3>3. 注意事项</h3>
+<ul>
+  <li><b>不要把构建产物提交上去</b>：<code>public/admin/</code> 目录由自动构建生成，手工修改会被覆盖。</li>
+  <li><b>不要提交敏感信息</b>：<code>.env</code>（数据库密码、密钥）永远不要 <code>git add</code>。</li>
+  <li>提交前养成 <code>git status</code> 看一眼的习惯，避免把无关文件带进去。</li>
+  <li>本地直接 push 大代码包偶尔会断（国内到 GitHub 网络不稳定），小改动推送基本稳定；失败就重试一次即可。</li>
+</ul>
+
+<h2>四、自动构建部署流程（GitHub Actions）</h2>
+<h3>触发方式</h3>
+<p><b>推送代码到 <code>main</code> 分支</b>即自动触发，无需手动操作。</p>
+<h3>流程</h3>
+<pre><code>你 git push → GitHub Actions 云端执行：
+  1. 安装 Node.js 20
+  2. 云端构建前端（npm install + npm run build）
+  3. 打包源码（排除 vendor/node_modules/.env/storage/public/admin）
+  4. 通过 SSH 上传到服务器 /tmp/laradmin-deploy
+  5. 服务器执行：
+     - 同步源码到 /www/wwwroot/laradmin
+     - composer install（后端依赖，在服务器装）
+     - php artisan migrate（数据库迁移）
+     - 清缓存、替换 public/admin 前端产物
+     - 重启 laravels（网站无缝切换）
+  6. 健康检查（curl 首页，期望 HTTP 200）</code></pre>
+
+<h3>查看构建结果</h3>
+<ol>
+  <li>打开 <code>https://github.com/wqy579/laradmin/actions</code></li>
+  <li>点最新一次运行 → 可看每一步日志</li>
+  <li>绿色对勾 = 成功；红色叉 = 失败（点开看哪一步报错）</li>
+</ol>
+
+<h3>手动触发</h3>
+<p>在 Actions 页面 → 左侧 <code>Build &amp; Deploy</code> → 右侧 <b>Run workflow</b> 下拉 → 点 <b>Run workflow</b>（适合改完配置想立即部署，或跳过代码推送）。</p>
+
+<h2>五、服务器部署后的验证</h2>
+<p>部署完成后自动检查首页，你也可以手动验证：</p>
+<pre><code>curl -I https://laravel.qjwykj.com/admin/        # 期望 HTTP 200</code></pre>
+<p>登录后台：<code>https://laravel.qjwykj.com/admin/</code></p>
+
+<h2>六、GitHub 仓库需要配置的 Secrets（一次性）</h2>
+<p>在 GitHub 仓库 <b>Settings → Secrets and variables → Actions</b> 中配置以下 3 个（值由部署人员提供，切勿外泄）：</p>
+<table>
+  <tr><th>名称</th><th>值</th></tr>
+  <tr><td><code>SERVER_HOST</code></td><td><code>115.191.21.67</code></td></tr>
+  <tr><td><code>SERVER_USER</code></td><td><code>root</code></td></tr>
+  <tr><td><code>SERVER_SSH_KEY</code></td><td>部署用的 SSH 私钥（<code>github-actions-deploy-v2</code> 的私钥全文）</td></tr>
+</table>
+<p>服务器 <code>/root/.ssh/authorized_keys</code> 中已加入对应公钥。若更换服务器，需同步更新这 3 个值。</p>
+
+<h2>七、重要注意事项（必读）</h2>
+<h3>1. 服务器上不要手动构建</h3>
+<div class="danger">现在构建全部在 GitHub 云端完成。<b>不要在服务器上运行 <code>npm run build</code></b>——2G 内存机器跑 vite 会卡死整机（历史教训）。服务器只需要：
+<pre><code>cd /www/wwwroot/laradmin
+php8.4 artisan migrate --force      # 数据库迁移
+php8.4 artisan config:clear         # 清缓存
+systemctl restart laravels          # 重启服务</code></pre>
+</div>
+
+<h3>2. 服务器上不要改源码</h3>
+<p>服务器上的代码由部署自动同步，<b>手工改动会被下一次部署覆盖</b>。需要改代码 → 在本地改 → push GitHub。</p>
+
+<h3>3. 数据库与上传文件（服务器保留，不入库）</h3>
+<ul>
+  <li>数据库：<code>laradmin</code> / <code>jxc_system</code> / <code>q_qjwykj_com</code> 三个库在服务器 MySQL，代码里不含数据。</li>
+  <li>上传文件：<code>/www/wwwroot/laradmin/storage/app/public/</code>（商品图片等），部署时<b>不会被覆盖</b>（已在部署脚本中排除）。</li>
+  <li>换服务器/重装系统前，务必先备份：数据库（mysqldump）+ <code>.env</code> + <code>storage</code> 上传目录 + nginx/SSL 配置。</li>
+</ul>
+
+<h3>4. 回滚</h3>
+<p>如果某次部署后网站异常：</p>
+<ul>
+  <li>简单回滚：去 GitHub Actions 找到上一次成功的运行，点 <b>Re-run</b>。</li>
+  <li>代码回滚：本地 <code>git log</code> 找到上一个正常版本号，<code>git reset --hard &lt;版本号&gt;</code> 后 <code>git push origin main --force</code>。</li>
+</ul>
+
+<h3>5. 其他</h3>
+<ul>
+  <li>路由含闭包，<b>不要执行 <code>php artisan route:cache</code></b>（会失败），部署脚本用的是 <code>route:clear</code>。</li>
+  <li>PHP 命令用 <code>php8.4</code>（默认 <code>php8.5</code> 缺 mbstring）。</li>
+  <li>若修改了 <code>.github/workflows/deploy.yml</code>（构建流程），直接 push 即可生效。</li>
+</ul>
+
+</div>
+</body>
+</html>
