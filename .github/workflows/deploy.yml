@@ -118,6 +118,14 @@ jobs:
             "$PHP85" -m 2>/dev/null | grep -ci "^mbstring$" || echo "php8.5: mbstring NOT loaded"
             "$PHP85" -r "require 'vendor/autoload.php'; var_dump(function_exists('mb_split'), function_exists('mb_strimwidth'), function_exists('mb_strlen'));" 2>&1 | tail -n 4
             grep -c "mb_polyfill" vendor/composer/autoload_files.php 2>/dev/null || echo "shim NOT in autoload_files"
+            echo "--- php8.5 完整 boot 测试（真实 worker 环境）---"
+            "$PHP85" artisan route:list --path=api 2>&1 | head -n 15 || true
+            echo "--- php8.5 扩展清单 ---"
+            "$PHP85" -m 2>/dev/null | tr '\n' ' ' | head -c 800; echo
+            echo "--- worker 配置来源 ---"
+            grep -E "LARAVELS_WORKER_NUM|LARAVELS_TASK" .env 2>/dev/null || echo ".env 无 worker 配置"
+            echo "--- systemd 日志中的 worker fatal ---"
+            journalctl -u laravels -n 25 --no-pager 2>/dev/null | tail -n 25 || true
 
             # 6. 深度健康检查：登录接口返回 2xx-4xx（422 校验错误=应用健康）才算存活；
             #    5xx 或无响应视为失败（500 曾被误判为存活，导致坏部署标绿——教训）
