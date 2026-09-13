@@ -4,11 +4,10 @@
     "description": "The skeleton application for the Laravel framework.",
     "require": {
         "php": "^8.2",
-        "intervention/image": "^4.3",
+        "hhxsv5/laravel-s": "^3.8",
         "laravel/framework": "^11.0",
         "laravel/tinker": "^2.9",
         "maatwebsite/excel": "^3.1",
-        "nwidart/laravel-modules": "^13.0",
         "tymon/jwt-auth": "^2.3"
     },
     "require-dev": {
@@ -40,21 +39,23 @@
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ]
     },
-    "extra": {
-        "laravel": {
-            "dont-discover": [
-                "nwidart/laravel-modules"
-            ]
-        }
-    },
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
         "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true,
-            "php-http/discovery": true,
-            "wikimedia/composer-merge-plugin": true
+            "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.2.0",
+            "ext-swoole": "4.8.0",
+            "ext-pcntl": "8.2.0"
+        },
+        "policy": {
+            "advisories": {
+                "block": false
+            }
         }
     },
     "minimum-stability": "stable",
