@@ -107,9 +107,14 @@ jobs:
             cp -r /tmp/laradmin-deploy/dist/* public/admin/
             chown -R root:root public/admin
 
-            # 5. 平滑重载优先：reload 仅重启 worker 加载新代码，master 不动、连接不中断；
-            #    失败再退回 restart
-            php8.4 bin/laravels reload || systemctl restart laravels || php8.4 bin/laravels restart
+            # 5. 完整重启（不用 reload）。
+            #    关键教训：worker/timer/task 进程由 master fork 而来，继承 master 的
+            #    内存状态——包括启动时加载的 Composer autoloader。凡涉及依赖变更
+            #    （composer install / autoload files 调整）的部署，reload 后 fork 出的
+            #    子进程仍携带旧 autoloader，新加的 autoload files（如 mb_polyfill）永远
+            #    不生效，且无任何报错。必须重启 master 才能拿到全新运行时。
+            #    journal 实证 restart 为秒级操作，中断窗口可接受。
+            systemctl restart laravels || php8.4 bin/laravels restart
 
             # 5.5 运行时诊断：worker 实际运行于 php8.5（系统 CLI，扩展与 php8.4 不同）。
             #     直接用 php8.5 验证 mb 兜底函数是否已随 autoload 生效
