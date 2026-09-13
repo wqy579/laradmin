@@ -79,27 +79,26 @@ jobs:
               --exclude node_modules --exclude .git \
               /tmp/laradmin-deploy/source/ /www/wwwroot/laradmin/
 
-            # 2. 后端依赖：显式用 php8.4 执行 composer，避免 PATH 上其他 PHP 版本
-            #    干扰平台校验（swoole/pcntl 需求已在 composer.json config.platform
-            #    伪造，解析不依赖执行 composer 的 PHP 是否带这些扩展）
+            # 2. 后端依赖：显式用 php8.5 执行 composer——部署 CLI 与 laravels worker 统一运行时
+            #    （swoole/pcntl 需求已在 composer.json config.platform 伪造，解析不依赖执行 composer 的 PHP 是否带这些扩展）
             COMPOSER_BIN="$(command -v composer || echo composer)"
-            timeout 180 php8.4 "$COMPOSER_BIN" install --no-dev --no-interaction --optimize-autoloader || true
-            timeout 120 php8.4 "$COMPOSER_BIN" dump-autoload -o || true
+            timeout 180 php8.5 "$COMPOSER_BIN" install --no-dev --no-interaction --optimize-autoloader || true
+            timeout 120 php8.5 "$COMPOSER_BIN" dump-autoload -o || true
 
             # 2.5 硬性门槛：应用必须能完整 boot（package:discover 会加载全部包提供者）。
             #     此步失败说明 vendor/配置不一致（如残留已删除的包引用），此时继续部署
             #     只会全线 500 —— 立即中止，worker 未 reload 仍在跑旧代码，站点不受影响。
-            php8.4 artisan package:discover --ansi
+            php8.5 artisan package:discover --ansi
 
             # 3. 迁移 + 清缓存
             # 注意：route:cache 在本环境被禁用——生成的缓存路由在 laravel-s worker
             # 内 dispatch 即 fatal（2026-09-13 生产 500 事故，/up 404 + 其余路由空
             # body 500），worker 的运行时与 CLI 不一致，未定位前不得开启
-            php8.4 artisan migrate --force || true
-            php8.4 artisan config:clear 2>/dev/null || true
-            php8.4 artisan route:clear 2>/dev/null || true
-            php8.4 artisan view:clear 2>/dev/null || true
-            php8.4 artisan cache:clear 2>/dev/null || true
+            php8.5 artisan migrate --force || true
+            php8.5 artisan config:clear 2>/dev/null || true
+            php8.5 artisan route:clear 2>/dev/null || true
+            php8.5 artisan view:clear 2>/dev/null || true
+            php8.5 artisan cache:clear 2>/dev/null || true
 
             # 4. 替换前端产物（云端构建好的）
             rm -rf public/admin
@@ -114,9 +113,9 @@ jobs:
             #    子进程仍携带旧 autoloader，新加的 autoload files（如 mb_polyfill）永远
             #    不生效，且无任何报错。必须重启 master 才能拿到全新运行时。
             #    journal 实证 restart 为秒级操作，中断窗口可接受。
-            systemctl restart laravels || php8.4 bin/laravels restart
+            systemctl restart laravels || php8.5 bin/laravels restart
 
-            # 5.5 运行时诊断：worker 实际运行于 php8.5（系统 CLI，扩展与 php8.4 不同）。
+            # 5.5 部署后诊断：CLI 与 worker 已统一为 php8.5，此处验证 mb 兜底仍然生效
             #     直接用 php8.5 验证 mb 兜底函数是否已随 autoload 生效
             PHP85="$(command -v php8.5 || echo /usr/bin/php8.5)"
             "$PHP85" -v 2>/dev/null | head -n 1 || echo "php8.5 not found"
@@ -154,6 +153,6 @@ jobs:
               echo "health: FAILED — 回滚前端产物并重启服务"
               rm -rf public/admin
               if [ -d storage/admin.prev ]; then mv storage/admin.prev public/admin; fi
-              php8.4 bin/laravels reload || systemctl restart laravels || true
+              php8.5 bin/laravels reload || systemctl restart laravels || true
               exit 1
             fi
