@@ -167,6 +167,21 @@ systemctl restart laravels          # 重启服务
 - PHP 命令统一用 `php8.5`（mbstring 缺口由 `app/Support/mb_polyfill.php` 兜底补齐，见 `composer.json` 的 autoload files）。
 - 若修改了 `.github/workflows/deploy.yml`（构建流程），直接 push 即可生效。
 
+### 6. 推送前必须本地验证（硬规则）
+
+**禁止推送到主分支未经本地验证的代码，禁止推送构建产物。** 流水线只做确认，不做排查。
+
+推送前必须全部通过：
+
+```bash
+php artisan migrate:fresh --force    # 迁移链可重放
+php artisan test                     # 测试全绿
+php -l <改动的每个文件>              # 语法检查
+```
+
+构建产物永不入库：`public/admin/`、`frontend/dist/`、`node_modules/`、`vendor/`、`.env`。
+`.githooks/pre-commit` 会拦截误提交，克隆后执行 `git config core.hooksPath .githooks`。
+
 ---
 
 ## 八、内部部署手册网页版（可选，口令访问）
@@ -194,3 +209,59 @@ nginx -t && systemctl reload nginx
 > - 口令文件只存在于服务器 `/etc/nginx/`（不在 web 根目录、也不入库），不会被下载。
 > - 站点已 HTTPS，Basic Auth 口令走 TLS 加密，可安全使用。
 > - 口令请用强随机值，且不要与任何 Git 凭据相同。
+
+---
+
+## 九、运行时版本与环境要求
+
+> 服务器与 CI 的实际版本对照。应用层的完整说明（含 PHP 扩展清单）见 [README.md](README.md#环境要求)。
+
+| 组件 | 版本 | 位置 | 说明 |
+|------|------|------|------|
+| **PHP（部署 CLI + worker）** | **8.5** | 服务器 `/usr/bin/php8.5` | CLI 与 laravels worker 统一运行时，全链路命令均写死 `php8.5` |
+| PHP（代码下限） | 8.2 | `composer.json` `"php": "^8.2"` | CI 按 `['8.2', '8.5']` 双矩阵跑；本地 8.2.33 实测可启动、71 测试全绿 |
+| Laravel | 11.56.1 | `composer.lock` 锁版 | — |
+| hhxsv5/laravel-s | 3.8.8 | `composer.lock` 锁版 | 声明 `php >=8.2` |
+| Swoole | ≥ 4.8 | 服务器扩展 | `composer.json` 的 platform 下限 |
+| MySQL | 8.x（**生产实际版本待确认**） | 服务器 | 三个库 `laradmin` / `jxc_system` / `q_qjwykj_com` |
+| Redis | 可选 | 服务器 | `.env` 默认启用，见下 |
+| Node.js | 20 | 仅 GitHub Actions | 服务器**不构建**前端（2G 内存跑 Vite 会拖死整机） |
+
+### 1. 为什么统一 php8.5（而不是 php8.2）
+
+不是代码需要 8.5，而是**部署策略选择**：laravels worker 一直跑在系统 CLI `php8.5` 上，此前部署脚本用 `php8.4` 跑 composer/artisan，双运行时并存导致语法兼容问题难以排查。统一为 `php8.5` 后服务器上的 `php8.4` 不再被本项目使用（卸载前需在宝塔面板确认没有其他站点绑定 8.4-fpm，见提交 `a97422e`）。
+
+若需降级回 8.2：改 `deploy.yml` 中全部 `php8.5` 为对应命令，并同步改 `DEPLOY.md`、`public/docs/deploy-guide-internal.html` 三处。
+
+### 2. 服务器必须装的 PHP 扩展
+
+`swoole` `pdo_mysql` `pcntl` `sockets` `json` `openssl` `ctype` `filter` `hash` `iconv` `session` `tokenizer` `dom` `xml` `xmlwriter` `xmlreader` `libxml` `fileinfo` `zip` `zlib` `phar` `pcre`
+
+建议：`opcache` `posix` `bcmath`。可选：`redis`（phpredis）、`gd`（Excel 内嵌图片）、`intl`（未使用）。
+
+**mbstring 缺口**：生产 php8.5 **未装** `ext-mbstring`，由 `symfony/polyfill-mbstring` + `app/Support/mb_polyfill.php` 补齐。Laravel 11.56 的 `Str.php` 用到 `mb_split` / `mb_strimwidth`，而 symfony polyfill 不覆盖这两个函数——缺了它们 worker 一启动即 `Call to undefined function Illuminate\Support\mb_split()`，全线 500（2026-09-13 生产事故根因）。`deploy.yml` 第 5.5 步会持续验证该兜底生效。
+
+> 建议：给 php8.5 装上 `ext-mbstring` 后 polyfill 会零影响失效（文件内是 `if (!function_exists(...))` 守卫），届时诊断输出里 `mbstring NOT loaded` 应消失。
+
+### 3. `composer.json` 的 `config.platform` 是刻意为之
+
+```json
+"platform": { "php": "8.2.0", "ext-swoole": "4.8.0", "ext-pcntl": "8.2.0" }
+```
+
+- `php: 8.2.0`：让 composer 按 8.2.0 解析依赖。`phpoffice/phpspreadsheet` 1.30.6 声明 `php >=7.4.0 <8.5.0`，据此才能在 php8.5 上安装成功。⚠️ 代价是 worker 实际以 php8.5 运行该库，处于其声明范围之外（当前实测 Excel 导入导出正常，升级该依赖前请留意）。
+- `ext-swoole` / `ext-pcntl`：让 `composer install` 在**未装**这两个扩展的机器上也能通过解析。扩展本身仍需另行安装。
+
+### 4. Redis：默认启用但非必需
+
+`.env` 默认 `CACHE_STORE=redis`、`QUEUE_CONNECTION=redis`、`REDIS_CLIENT=phpredis`，但应用代码**没有** `Redis::` 调用，`config/` 默认驱动是 `database`。不用 Redis 时把这两项改成 `database` 即可正常运行（`SESSION_DRIVER=file` 已默认走文件）。装了 redis 且要启用时，需同时安装 phpredis 扩展。
+
+### 5. 数据库迁移
+
+- 迁移共 32 个，可完整重放（`migrate:fresh` 已实测）。全库必须 `utf8mb4` / `utf8mb4_unicode_ci`。
+- **模块化后迁移按模块归位**：`database/migrations/`（仅框架表 `jobs`）+ `modules/{Auth,System,Business}/database/migrations/`，由各模块 Provider 的 `loadMigrationsFrom` 注册。`migrate` 会跨路径按文件名排序，顺序不受影响。
+- **应用代码不能跑 SQLite**：`modules/Business/Services/StockSnapshotService.php` 里是硬编码的 `ON DUPLICATE KEY UPDATE` 原生 SQL（MySQL 专用），另有 20 处 `updateOrCreate` / `updateOrInsert` / `upsert`。
+- **但迁移链可以跑 SQLite**：`tests/Feature/MigrationSmokeTest.php` 就在 SQLite 上跑 `migrate:fresh --seed` 并断言关键表齐全；`phpunit.xml` 默认 `sqlite :memory:`，本地无需额外配置。
+- ⚠️ **CI 与本地的口径不一致**：CI 的 `phpunit` job 起 MySQL 容器（贴近生产），本地默认 SQLite。SQLite 下 71 个用例全绿；MySQL 下当前 7 个失败，其中 2 个是 `StockSnapshotServiceTest` 里名字带 `_on_sqlite`、断言「SQLite 上必然抛异常」的用例，切到 MySQL 就不抛。定口径前不要只看 CI 绿灯。
+- `deploy.yml` 中 `php8.5 artisan migrate --force` **不再带 `|| true`**：此前该静默吞错掩盖了建表顺序与遗留列缺失两处硬错误（生产库因表早已存在而未暴露，仅全新环境会踩）。现在迁移失败会让部署明确失败。
+- 路由含闭包，**禁止执行 `php artisan route:cache`**（worker 内 dispatch 即 fatal）。`routes/admin.php` 与 `modules/*/routes/*.php` 里仍有 2 个跨模块运维闭包路由。

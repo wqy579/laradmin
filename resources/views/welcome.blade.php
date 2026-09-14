@@ -541,6 +541,14 @@
             font-weight: 600;
         }
 
+        .tech-version {
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 400;
+            line-height: 1.5;
+            margin-top: 8px;
+        }
+
         /* Architecture Section */
         .architecture {
             padding: 120px 0;
@@ -986,27 +994,27 @@
         <div class="container hero-content">
             <div class="hero-badge">✨ 全新升级 · 高性能架构</div>
             <h1>新一代<br><span class="gradient-text">高性能后台管理系统</span></h1>
-            <p>基于 Laravel 12 + Swoole + Vue3 构建的现代化后台管理系统，提供卓越的性能和开发效率，为企业级应用提供坚实的技术支撑</p>
+            <p>基于 Laravel 11 + Swoole + Vue 3 构建的进销存（ERP）后台管理系统，覆盖商品资料、采购销售、库存盘点、客户供应商、车辆路线与财务收支，为企业级应用提供坚实的技术支撑</p>
             <div class="hero-buttons">
                 <a href="/admin" class="btn btn-primary">立即开始</a>
                 <a href="#features" class="btn btn-secondary">了解更多</a>
             </div>
             <div class="stats-section">
                 <div class="stat-item">
-                    <div class="stat-number">10x</div>
-                    <div class="stat-label">性能提升</div>
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">业务域（Auth / System / Business）</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">99.9%</div>
-                    <div class="stat-label">系统可用性</div>
+                    <div class="stat-number">32</div>
+                    <div class="stat-label">数据库迁移（可重放）</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number"><100ms</div>
-                    <div class="stat-label">响应时间</div>
+                    <div class="stat-number">71</div>
+                    <div class="stat-label">自动化测试（420 断言）</div>
                 </div>
                 <div class="stat-item">
-                    <div class="stat-number">10000+</div>
-                    <div class="stat-label">并发支持</div>
+                    <div class="stat-number">4</div>
+                    <div class="stat-label">CI 门禁（防泄漏 / 静态 / 测试 / 构建）</div>
                 </div>
             </div>
         </div>
@@ -1027,15 +1035,15 @@
                     <div class="feature-icon-wrapper">
                         <span class="feature-icon">⚡</span>
                     </div>
-                    <h3>超高性能</h3>
-                    <p>基于 Swoole 协程框架，提供卓越的并发处理能力，轻松应对高并发场景，性能提升10倍以上</p>
+                    <h3>常驻内存服务</h3>
+                    <p>基于 Swoole 的长生命周期运行时，跳过每次请求的框架引导开销；worker 数量经 LARAVELS_WORKER_NUM 配置（默认 4）</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon-wrapper">
                         <span class="feature-icon">🧩</span>
                     </div>
                     <h3>模块化架构</h3>
-                    <p>采用 Laravel Modules 实现模块化架构，业务模块独立管理，易于扩展和维护，支持团队协作开发</p>
+                    <p>按 Auth / System / Business 三域划分命名空间（app/ 下独立目录），认证、系统与业务代码物理隔离，易于扩展和维护</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon-wrapper">
@@ -1049,7 +1057,7 @@
                         <span class="feature-icon">🎨</span>
                     </div>
                     <h3>现代化前端</h3>
-                    <p>基于 Vue 3 + Ant Design Vue + Vite 构建的现代化管理界面，提供优秀的用户体验</p>
+                    <p>基于 Vue 3 + Element Plus + VXE Table + Vite 构建的现代化管理界面，支持暗色模式与中英双语</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon-wrapper">
@@ -1063,7 +1071,7 @@
                         <span class="feature-icon">🌐</span>
                     </div>
                     <h3>实时通信</h3>
-                    <p>内置 WebSocket 支持，实现实时消息推送和在线状态同步，提升用户体验</p>
+                    <p>基于 Laravel-S 的 WebSocket 服务推送站内通知，通知未读状态可实时同步（modules/System/Services/WebSocket）</p>
                 </div>
             </div>
         </div>
@@ -1080,34 +1088,42 @@
                 <div class="tech-item">
                     <div class="tech-icon">🐘</div>
                     <h4>PHP 8.2+</h4>
+                    <p class="tech-version">生产运行时 8.5</p>
                 </div>
                 <div class="tech-item">
                     <div class="tech-icon">🔷</div>
-                    <h4>Laravel 12</h4>
+                    <h4>Laravel 11</h4>
+                    <p class="tech-version">11.56</p>
                 </div>
                 <div class="tech-item">
                     <div class="tech-icon">🚀</div>
                     <h4>Swoole</h4>
+                    <p class="tech-version">常驻内存服务</p>
                 </div>
                 <div class="tech-item">
                     <div class="tech-icon">⚡</div>
-                    <h4>Laravel-S</h4>
+                    <h4>Laravel-S 3.8</h4>
+                    <p class="tech-version">hhxsv5/laravel-s</p>
                 </div>
                 <div class="tech-item">
                     <div class="tech-icon">💚</div>
-                    <h4>Vue 3</h4>
+                    <h4>Vue 3.5</h4>
+                    <p class="tech-version">Composition API</p>
                 </div>
                 <div class="tech-item">
                     <div class="tech-icon">🎨</div>
-                    <h4>Ant Design</h4>
+                    <h4>Element Plus</h4>
+                    <p class="tech-version">2.14 + VXE Table</p>
                 </div>
                 <div class="tech-item">
                     <div class="tech-icon">💾</div>
-                    <h4>MySQL 8.0+</h4>
+                    <h4>MySQL 8.x</h4>
+                    <p class="tech-version">MariaDB 10.x 亦可</p>
                 </div>
                 <div class="tech-item">
-                    <div class="tech-icon">🔴</div>
-                    <h4>Redis 6.0+</h4>
+                    <div class="tech-icon">🟢</div>
+                    <h4>Node 20</h4>
+                    <p class="tech-version">前端云端构建</p>
                 </div>
             </div>
         </div>
@@ -1125,14 +1141,14 @@
                     <h3>模块化分层架构</h3>
                     <p>项目采用清晰的分层架构，将业务逻辑合理划分，便于团队协作和代码维护：</p>
                     <ul class="architecture-list">
-                        <li>基础模块（Auth、System）：核心功能模块，提供认证、系统配置等基础服务</li>
-                        <li>业务模块：使用 Laravel Modules 独立管理，实现业务解耦</li>
-                        <li>Controller 层：负责处理 HTTP 请求和响应</li>
-                        <li>Service 层：处理核心业务逻辑</li>
+                        <li>三域划分：modules/Auth（认证）、modules/System（系统与权限）、modules/Business（进销存业务）各自独立命名空间</li>
+                        <li>Controller 层：负责参数校验与响应封装，保持薄控制器</li>
+                        <li>Service 层：核心业务逻辑（如 StockService 统一收敛库存出入库规则）</li>
                         <li>Model 层：定义数据模型和数据库交互</li>
+                        <li>Exports / Imports：基于 maatwebsite/excel 的批量导入导出</li>
+                        <li>Middleware：鉴权、日志、限流、库存快照（stock.snapshot）</li>
                         <li>统一的 API 响应格式，便于前端处理</li>
-                        <li>完整的权限控制系统，保障系统安全</li>
-                        <li>WebSocket 实时通信支持，提升用户体验</li>
+                        <li>JWT 认证（tymon/jwt-auth）+ RBAC 权限体系</li>
                     </ul>
                 </div>
                 <div class="code-block">
@@ -1143,25 +1159,26 @@
                         <span class="code-title">快速开始</span>
                     </div>
                     <div class="code-content">
-                        <pre><code><span class="comment"># 一键安装（推荐）</span>
-<span class="command">composer run setup</span>
-
-<span class="comment"># 或手动安装</span>
+                        <pre><code><span class="comment"># 环境：PHP 8.2+（生产运行时 8.5）+ MySQL 8.x / MariaDB 10.x</span>
 <span class="command">composer install</span>
 <span class="command">cp .env.example .env</span>
 <span class="command">php artisan key:generate</span>
-<span class="command">php artisan migrate</span>
-<span class="command">php artisan db:seed</span>
 <span class="command">php artisan jwt:secret</span>
 
-<span class="comment"># 启动开发服务</span>
-<span class="command">composer run dev</span>
+<span class="comment"># 数据库迁移（32 个；需 MySQL，SQLite 无法执行迁移链）</span>
+<span class="command">php artisan migrate</span>
+<span class="command">php artisan db:seed</span>
 
-<span class="comment"># 或启动 Swoole（生产环境）</span>
+<span class="comment"># 前端：frontend/ 下构建（Node 20），产物输出到 public/admin</span>
+<span class="command">cd frontend && npm ci && npm run build</span>
+
+<span class="comment"># 本地开发（PHP 内置服务器，无需 swoole）</span>
+<span class="command">php artisan serve</span>
+
+<span class="comment"># 生产（Swoole 常驻服务，需 swoole 扩展）</span>
 <span class="command">php bin/laravels start</span>
 
-<span class="comment"># 访问后台</span>
-<span class="comment"># http://localhost:8000/admin</span></code></pre>
+<span class="comment"># 访问后台：http://localhost:8000/admin</span></code></pre>
                     </div>
                 </div>
             </div>
@@ -1203,7 +1220,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 LarAdmin. Built with ❤️ using Laravel & Swoole & Vue3</p>
+                <p>&copy; 2026 LarAdmin. Built with ❤️ using Laravel 11 & Swoole & Vue 3</p>
             </div>
         </div>
     </footer>

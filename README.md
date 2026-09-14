@@ -38,6 +38,65 @@ LarAdmin 是一个进销存（ERP）后台管理系统：商品资料与分类�
 - **管理后台 SPA**：Vue 3 + Element Plus + VXE Table，源码位于 `frontend/`，构建产物部署到 `public/admin/`
 - **运行时**：Laravel 11 + `hhxsv5/laravel-s`（Swoole 长生命周期服务）
 
+## 环境要求
+
+> 版本均来自 `composer.json` / `composer.lock` / `.github/workflows/` 与实际依赖，非估算。
+
+| 组件 | 版本要求 | 说明 |
+|------|----------|------|
+| **PHP** | 代码最低 **8.2**；生产运行时 **8.5** | 见下方「PHP 版本说明」 |
+| **Laravel** | 11.x（当前锁版 11.56.1） | `composer.lock` 实际锁定版本 |
+| **MySQL** | 8.x（MariaDB 10.x 亦可） | 生产运行时；应用代码不能跑 SQLite，见「SQLite 的适用边界」 |
+| **Redis** | 可选（6.x+） | `.env.example` 默认启用，但代码未直接调用，见下 |
+| **Node.js** | 20（CI 矩阵 20 + 22） | 仅云端构建前端用，服务器不构建 |
+| **Swoole** | ≥ 4.8 | `composer.json` 的 platform 下限 |
+
+### PHP 版本说明
+
+- **代码最低 8.2**：`composer.json` 声明 `"php": "^8.2"`，CI（`.github/workflows/tests.yml`）按 `['8.2', '8.5']` 双矩阵跑静态检查与 PHPUnit。本地 PHP 8.2.33 实测可正常启动并全量通过 71 个测试。
+- **生产运行时统一 8.5**：服务器系统 CLI 为 `php8.5`，部署脚本（`deploy.yml`）与 laravels worker 全部走 `php8.5`，避免双运行时并存带来的排查成本（见提交 `a97422e`）。
+- **`composer.json` 的 `config.platform` 是刻意为之**：`"php": "8.2.0"`、`"ext-swoole": "4.8.0"`、`"ext-pcntl": "8.2.0"`。前两个让 composer 按 8.2.0 解析依赖（`phpoffice/phpspreadsheet` 1.30.6 声明 `php <8.5.0`，据此才能在 php8.5 上安装）；后两个是让 `composer install` 在**未装** swoole/pcntl 的机器上也能通过，扩展本身仍需另行安装。
+- ⚠️ 注意：因上述 platform 锁定，worker 实际以 php8.5 运行 `phpoffice/phpspreadsheet` 1.30.6，处于其声明支持范围之外。当前实测正常（Excel 导入导出通过测试），升级该依赖前请留意。
+
+### PHP 扩展
+
+**必须**（缺失即无法运行）：
+
+| 扩展 | 依赖来源 |
+|------|----------|
+| `swoole` | `hhxsv5/laravel-s`，应用内 22 处 `Swoole\` API |
+| `pdo_mysql`（含 `mysqlnd`） | 数据库驱动 |
+| `pcntl` | swoole 进程 / worker 管理 |
+| `sockets` | swoole 网络层 |
+| `mbstring` | 19 个依赖声明需要，Laravel `Str` 依赖 |
+| `json` `openssl` `ctype` `filter` `hash` `iconv` `session` `tokenizer` | Laravel / Composer 基础 |
+| `dom` `xml` `xmlwriter` `xmlreader` `libxml` | `maatwebsite/excel` + 框架 |
+| `fileinfo` `zip` `zlib` | 文件上传、PhpSpreadsheet 读写 xlsx |
+| `phar` `pcre` | Composer、正则 |
+
+**强烈建议**：`opcache`（常驻内存服务性能）、`posix`（swoole daemon）、`bcmath`（金额/库存高精度计算，当前代码未直接调用但 Laravel 生态常用）
+
+**可选**：
+- `redis`（phpredis）：`.env.example` 默认 `CACHE_STORE=redis` / `QUEUE_CONNECTION=redis` / `REDIS_CLIENT=phpredis`，但应用代码**没有** `Redis::` 调用，`config/` 默认驱动是 `database`。不用 Redis 时把这两项改为 `database` 即可，属于可选的性能优化。
+- `gd`：仅 PhpSpreadsheet 处理 Excel 内嵌图片时需要
+- `intl`：应用代码未使用，可不安装
+
+**mbstring 兜底**：生产 php8.5 未装 `ext-mbstring`，由 `symfony/polyfill-mbstring` + `app/Support/mb_polyfill.php` 补齐（后者专门补 `mb_split` / `mb_strimwidth`，这两个函数 symfony polyfill 不覆盖）。详见该文件头注释。
+
+### 数据库字符集
+
+`config/database.php` 中 mysql 连接默认 `utf8mb4` / `utf8mb4_unicode_ci`，可用 `DB_CHARSET` / `DB_COLLATION` 覆盖。建库时请显式指定，避免中文与 emoji 乱码：
+
+```sql
+CREATE DATABASE laradmin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+### SQLite 的适用边界
+
+- **迁移链可以跑 SQLite**：`tests/Feature/MigrationSmokeTest.php` 就在 SQLite 上跑 `migrate:fresh --seed` 并断言关键表齐全。`phpunit.xml` 默认 `sqlite :memory:`，本地无需额外配置。
+- **应用代码不能跑 SQLite**：`modules/Business/Services/StockSnapshotService.php` 里有硬编码的 `ON DUPLICATE KEY UPDATE` 原生 SQL（MySQL 专用），另有 20 处 `updateOrCreate` / `updateOrInsert` / `upsert`。
+- **CI 与本地口径不一致**：CI 的 `phpunit` job 起 MySQL 容器（贴近生产），本地默认 SQLite。SQLite 下 71 个用例全绿；MySQL 下当前 7 个失败，含 2 个名字带 `_on_sqlite`、断言「SQLite 上必然抛异常」的用例。见 DEPLOY.md 第九章第 5 节。
+
 ## 核心特性
 
 - **高性能运行时**：Swoole 常驻内存服务，worker 数量可经 `LARAVELS_WORKER_NUM` 调整（默认 4）
@@ -144,9 +203,11 @@ laradmin/
 项目此前**没有任何测试**（`phpunit.xml` 已配置，但 `tests/` 目录缺失），现已补上。
 
 ```bash
-# 需要一个 MySQL 测试库（迁移含 MySQL 专有语法，SQLite 无法执行）
-mysql -uroot -p -e "CREATE DATABASE laradmin_test"
+# phpunit.xml 默认用 SQLite 内存库，本地无需额外配置：
+./vendor/bin/phpunit
 
+# 贴近生产验证时用 MySQL 覆盖（迁移链两边都能跑，应用代码只能跑 MySQL，
+# 见上方「SQLite 的适用边界」一节）：
 DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_DATABASE=laradmin_test php artisan test
 ```
 
