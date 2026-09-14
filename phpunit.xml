@@ -15,6 +15,8 @@
     <source>
         <include>
             <directory>app</directory>
+            <!-- 模块化改造后业务代码在 modules/，覆盖率必须跟上 -->
+            <directory>modules</directory>
         </include>
     </source>
     <php>

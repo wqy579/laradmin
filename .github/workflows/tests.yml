@@ -186,11 +186,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for d in app bootstrap config database public resources routes stubs tests; do
+          for d in app bootstrap config database modules public resources routes stubs tests; do
             [ -d "$d" ] || { echo "::error title=Missing directory::$d"; exit 1; }
           done
-          mapfile -d '' files < <(find app bootstrap config database public \
-                                  resources routes stubs tests -name '*.php' -print0)
+          # modules 是模块化改造后的业务代码主体，漏掉它等于最大一块不检查
+          mapfile -d '' files < <(find app bootstrap config database modules \
+                                  public resources routes stubs tests -name '*.php' -print0)
           if [ "${#files[@]}" -eq 0 ]; then
             echo "::error title=Nothing to lint::没扫到任何 PHP 文件，find 参数可能错了"
             exit 1

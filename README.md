@@ -79,29 +79,55 @@ LarAdmin 是一个进销存（ERP）后台管理系统：商品资料与分类�
 
 ## 项目结构
 
+**全模块化**：业务代码全部在 `modules/` 下，`app/` 只保留跨模块共享的内核。
+
 ```
 laradmin/
-├── app/                              # Auth 认证 / System 系统 / Business 业务
-│   ├── Http/Controllers/             # Admin 后台控制器 / Api 公开接口
-│   ├── Http/Middleware/              # 中间件（鉴权 / 日志 / 限流 / 库存快照）
-│   ├── Models/                       # 数据模型
-│   ├── Services/                     # 业务服务层
-│   ├── Exports/ Imports/             # Excel 导入导出
-│   └── Support/                      # mbstring 兜底 shim 等
+├── modules/                          # 业务模块（每个模块自持路由 + 迁移 + 模型 + 服务）
+│   ├── Auth/                         # 权限：用户 / 角色 / 权限 / 部门
+│   ├── System/                       # 系统：配置 / 日志 / 字典 / 定时任务 / 附件 / 上传
+│   └── Business/                     # 进销存：产品 / 客户 / 订单 / 库存 / 财务 / 拜访
+│       └── （每个模块内部）
+│       ├── Http/                     # Controllers / Requests / Middleware
+│       ├── Models/  Services/        # 数据模型与业务服务层
+│       ├── Providers/                # 模块 ServiceProvider（注册迁移、命令、事件）
+│       ├── routes/admin.php          # 本模块管理端路由（由内核统一套信封加载）
+│       └── database/migrations/      # 本模块迁移（Provider 里 loadMigrationsFrom）
+├── app/                              # 共享内核（不放任何单一模块的业务逻辑）
+│   ├── Http/Controllers/             # Controller 基类 / HomeController
+│   ├── Http/Middleware/              # 鉴权 / 请求日志 / 限流
+│   ├── Http/Requests/                # BaseFormRequest / LogRequest
+│   ├── Exports/                      # GenericExport（Auth、System 共用）
+│   ├── Traits/                       # ModelTrait / ResponseTrait
+│   └── Support/                      # mbstring 兜底 shim
+├── bootstrap/app.php                 # 模块路由发现 + 统一信封 + 中间件别名
+├── routes/                           # web.php / console.php / admin.php（仅内核级路由）
+├── database/migrations/              # 内核迁移（仅框架表，如 jobs）
 ├── frontend/                         # 管理后台 SPA（Vue 3 + Element Plus + Vite）
 ├── resources/
 │   ├── mobile/                       # 移动端（UniApp，商品拜访/移动办公）
 │   ├── web/                          # 前台 Web 应用
 │   └── views/                        # Laravel Blade 视图
-├── routes/                           # web.php / api.php / admin.php
 ├── config/                           # laravels / jwt 等
-├── database/migrations/business/     # 业务迁移
 ├── deploy/                           # 服务器运维配置（如内部手册 nginx Basic Auth 片段）
 ├── public/admin/                     # 前端构建产物（CI 生成，不入库）
 ├── public/docs/                      # 文档页（deploy-guide.html 对外 / -internal.html 内部加口令）
 ├── .env.example                      # 环境变量模板（克隆后复制为 .env 再填值）
 └── DEPLOY.md                         # 部署说明（GitHub Actions 云端构建）
 ```
+
+### 模块约定
+
+| 归属 | 放哪 |
+| --- | --- |
+| 路由声明 | `modules/<Module>/routes/{api,admin}.php`，只写 `Route::` 声明 |
+| 信封（前缀 / 命名 / 横切中间件） | `bootstrap/app.php`，**不要在模块里复制信封**——信封是全局决策，改了要同时改三处 |
+| 迁移 | `modules/<Module>/database/migrations/`，在模块 Provider 的 `boot()` 里 `loadMigrationsFrom` |
+| 命令 / 事件 / 监听器 / Facade | 模块内同名目录，在模块 Provider 注册 |
+| 跨模块共享的工具类 | `app/`（Traits、Support、Exports、基类 Request） |
+
+`bootstrap/app.php` 用 `glob` 自动发现模块路由文件，新增模块放好 `routes/admin.php` 即被加载，
+无需改内核。路由表由 `tests/Feature/RouteBaselineTest.php` 的快照逐条比对兜底。
 
 ## 部署机制（GitHub Actions）
 
