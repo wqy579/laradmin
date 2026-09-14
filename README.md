@@ -188,6 +188,8 @@ laradmin/
 `bootstrap/app.php` 用 `glob` 自动发现模块路由文件，新增模块放好 `routes/admin.php` 即被加载，
 无需改内核。路由表由 `tests/Feature/RouteBaselineTest.php` 的快照逐条比对兜底。
 
+模块化的当前进度、剩余缺口与阶段计划见 [docs/MODULARIZATION.md](docs/MODULARIZATION.md)。
+
 ## 部署机制（GitHub Actions）
 
 **push 到 `main` 即自动部署**，完整流程与故障排查见 [DEPLOY.md](DEPLOY.md)。概要：
