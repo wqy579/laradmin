@@ -94,7 +94,7 @@ jobs:
             # 注意：route:cache 在本环境被禁用——生成的缓存路由在 laravel-s worker
             # 内 dispatch 即 fatal（2026-09-13 生产 500 事故，/up 404 + 其余路由空
             # body 500），worker 的运行时与 CLI 不一致，未定位前不得开启
-            php8.5 artisan migrate --force || true
+            php8.5 artisan migrate --force
             php8.5 artisan config:clear 2>/dev/null || true
             php8.5 artisan route:clear 2>/dev/null || true
             php8.5 artisan view:clear 2>/dev/null || true
