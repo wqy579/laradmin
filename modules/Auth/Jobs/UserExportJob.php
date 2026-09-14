@@ -2,8 +2,8 @@
 
 namespace Modules\Auth\Jobs;
 
+use App\Contracts\TaskNotification;
 use Modules\Auth\Services\ImportExportService;
-use Modules\System\Services\NotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -34,22 +34,16 @@ class UserExportJob implements ShouldQueue
         return $this->uniqueId . ':' . $this->userId;
     }
 
-    public function handle(ImportExportService $importExportService, NotificationService $notificationService): void
+    public function handle(ImportExportService $importExportService, TaskNotification $notificationService): void
     {
-        // 防止重复执行：检查是否已存在相同任务ID的通知
-        if (!empty($this->taskId)) {
-            $existingNotification = \Modules\System\Models\Notification::where('title', '用户数据导出完成')
-                ->whereJsonContains('user_ids', $this->userId)
-                ->where('created_at', '>=', now()->subMinutes(5))
-                ->first();
-            if ($existingNotification) {
-                \Illuminate\Support\Facades\Log::info('跳过重复的导出任务', [
-                    'task_id' => $this->taskId,
-                    'user_id' => $this->userId,
-                    'existing_notification_id' => $existingNotification->id,
-                ]);
-                return;
-            }
+        // 防止重复执行：检查是否已存在相同任务的通知
+        // 查询下沉到 System 的 NotificationService，Auth 不再直接读 system_notification 表
+        if (!empty($this->taskId) && $notificationService->hasRecent('用户数据导出完成', $this->userId)) {
+            \Illuminate\Support\Facades\Log::info('跳过重复的导出任务', [
+                'task_id' => $this->taskId,
+                'user_id' => $this->userId,
+            ]);
+            return;
         }
 
         $fields = $this->params['fields'] ?? [];
@@ -66,23 +60,25 @@ class UserExportJob implements ShouldQueue
             'action_data' => [
                 [
                     'label' => '下载文件',
-                    'type' => 'download',
+                    'type' => TaskNotification::ACTION_DOWNLOAD,
                     'url' => $downloadUrl,
                 ]
             ],
-            'type' => 'success',
-            'category' => 'task',
+            'type' => TaskNotification::TYPE_SUCCESS,
+            'category' => TaskNotification::CATEGORY_TASK,
         ]);
     }
 
     public function failed(\Throwable $exception): void
     {
-        $notificationService = app(NotificationService::class);
+        // 必须用复数 user_ids：实现方的 validateRecipients 只认 user_ids / department_ids，
+        // 传单数 user_id 会抛 InvalidArgumentException，把原始异常一起吞掉（此前一直是坏的）
+        $notificationService = app(TaskNotification::class);
         $notificationService->create([
-            'user_id' => $this->userId,
+            'user_ids' => [$this->userId],
             'title' => '用户数据导出失败',
             'content' => '导出过程中发生错误：' . $exception->getMessage(),
-            'type' => 'error',
+            'type' => TaskNotification::TYPE_ERROR,
             'is_read' => 0,
         ]);
     }

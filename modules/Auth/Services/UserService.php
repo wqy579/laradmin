@@ -4,8 +4,7 @@ namespace Modules\Auth\Services;
 
 use Modules\Auth\Jobs\UserImportJob;
 use Modules\Auth\Models\User;
-use Modules\System\Models\Notification;
-use Modules\System\Services\NotificationService;
+use App\Contracts\TaskNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -18,9 +17,9 @@ class UserService
 {
     protected $departmentService;
 
-    protected $notificationService;
+    protected TaskNotification $notificationService;
 
-    public function __construct(DepartmentService $departmentService, NotificationService $notificationService)
+    public function __construct(DepartmentService $departmentService, TaskNotification $notificationService)
     {
         $this->departmentService = $departmentService;
         $this->notificationService = $notificationService;
@@ -431,12 +430,12 @@ class UserService
             $user->id,
             '个人信息已更新',
             $content,
-            Notification::TYPE_INFO,
-            Notification::CATEGORY_SYSTEM,
+            TaskNotification::TYPE_INFO,
+            TaskNotification::CATEGORY_SYSTEM,
             [
                 'user_id' => $user->id,
                 'updated_fields' => $changes,
-                'action_type' => Notification::ACTION_NONE,
+                'action_type' => TaskNotification::ACTION_NONE,
             ]
         );
     }

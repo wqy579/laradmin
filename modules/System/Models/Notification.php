@@ -2,6 +2,7 @@
 
 namespace Modules\System\Models;
 
+use App\Contracts\TaskNotification;
 use App\Traits\ModelTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -42,31 +43,29 @@ class Notification extends Model
     ];
 
     /**
-     * 通知类型常量
+     * 通知词汇表常量。
+     *
+     * 全部委托给 App\Contracts\TaskNotification —— 该契约是共享内核里的
+     * consumer-defined port，Auth 等模块通过它引用这些常量而无需依赖本模型。
+     * 唯一来源放在契约上，这里不重复写字面量，避免两处漂移。
      */
-    const TYPE_INFO = 'info';
-    const TYPE_SUCCESS = 'success';
-    const TYPE_WARNING = 'warning';
-    const TYPE_ERROR = 'error';
-    const TYPE_TASK = 'task';
-    const TYPE_SYSTEM = 'system';
+    const TYPE_INFO = TaskNotification::TYPE_INFO;
+    const TYPE_SUCCESS = TaskNotification::TYPE_SUCCESS;
+    const TYPE_WARNING = TaskNotification::TYPE_WARNING;
+    const TYPE_ERROR = TaskNotification::TYPE_ERROR;
+    const TYPE_TASK = TaskNotification::TYPE_TASK;
+    const TYPE_SYSTEM = TaskNotification::TYPE_SYSTEM;
 
-    /**
-     * 通知分类常量
-     */
-    const CATEGORY_SYSTEM = 'system';
-    const CATEGORY_TASK = 'task';
-    const CATEGORY_MESSAGE = 'message';
-    const CATEGORY_REMINDER = 'reminder';
-    const CATEGORY_ANNOUNCEMENT = 'announcement';
+    const CATEGORY_SYSTEM = TaskNotification::CATEGORY_SYSTEM;
+    const CATEGORY_TASK = TaskNotification::CATEGORY_TASK;
+    const CATEGORY_MESSAGE = TaskNotification::CATEGORY_MESSAGE;
+    const CATEGORY_REMINDER = TaskNotification::CATEGORY_REMINDER;
+    const CATEGORY_ANNOUNCEMENT = TaskNotification::CATEGORY_ANNOUNCEMENT;
 
-    /**
-     * 操作类型常量
-     */
-    const ACTION_LINK = 'link';
-    const ACTION_DOWNLOAD = 'download';
-    const ACTION_MODAL = 'modal';
-    const ACTION_NONE = 'none';
+    const ACTION_LINK = TaskNotification::ACTION_LINK;
+    const ACTION_DOWNLOAD = TaskNotification::ACTION_DOWNLOAD;
+    const ACTION_MODAL = TaskNotification::ACTION_MODAL;
+    const ACTION_NONE = TaskNotification::ACTION_NONE;
 
     /**
      * 获取通知目标用户ID列表

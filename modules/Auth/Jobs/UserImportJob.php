@@ -10,9 +10,9 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use App\Contracts\TaskNotification;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Auth\Imports\UserImport;
-use Modules\System\Services\NotificationService;
 
 class UserImportJob implements ShouldQueue
 {
@@ -25,7 +25,7 @@ class UserImportJob implements ShouldQueue
         $this->path = $path;
     }
 
-    public function handle(NotificationService $notificationService): void
+    public function handle(TaskNotification $notificationService): void
     {
         $import = new UserImport();
         Excel::import($import, $this->path, 'local');
@@ -44,8 +44,8 @@ class UserImportJob implements ShouldQueue
             'user_ids' => [Auth::id() ?: 1],
             'title' => '用户数据导入完成',
             'content' => $content,
-            'type' => empty($errors) ? 'success' : 'warning',
-            'category' => 'task',
+            'type' => empty($errors) ? TaskNotification::TYPE_SUCCESS : TaskNotification::TYPE_WARNING,
+            'category' => TaskNotification::CATEGORY_TASK,
         ]);
 
         Storage::disk('local')->delete($this->path);
@@ -55,11 +55,11 @@ class UserImportJob implements ShouldQueue
     {
         Log::error('用户导入失败', ['path' => $this->path, 'error' => $exception->getMessage()]);
 
-        app(NotificationService::class)->create([
+        app(TaskNotification::class)->create([
             'user_ids' => [Auth::id() ?: 1],
             'title' => '用户数据导入失败',
             'content' => '导入过程中发生错误：' . $exception->getMessage(),
-            'type' => 'error',
+            'type' => TaskNotification::TYPE_ERROR,
             'is_read' => 0,
         ]);
     }

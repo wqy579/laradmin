@@ -2,13 +2,20 @@
 
 namespace Modules\System\Services;
 
+use App\Contracts\TaskNotification;
 use Modules\System\Events\NotificationCreated;
 use Modules\System\Models\Notification;
 use Modules\System\Services\WebSocket\WebSocketService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class NotificationService
+/**
+ * System 模块的通知实现，同时实现内核契约 App\Contracts\TaskNotification。
+ *
+ * 契约让其他模块（当前是 Auth）在不依赖 Modules\System 的前提下发送通知，
+ * 见 SystemServiceProvider 里的绑定。
+ */
+class NotificationService implements TaskNotification
 {
     /**
      * @var WebSocketService
@@ -165,6 +172,21 @@ class NotificationService
         $this->pushNotificationToTargets($notification);
 
         return $notification;
+    }
+
+    /**
+     * 近 $minutes 分钟内是否已存在同名、且目标包含该用户的通知。
+     *
+     * 供导出任务做幂等去重。此前这段查询写在 modules/Auth 的 Job 里直接查
+     * system_notification 表，属跨模块数据访问；收回 System 后消费方只需
+     * 通过契约问一句「有没有」，不需要知道表和列。
+     */
+    public function hasRecent(string $title, int $userId, int $minutes = 5): bool
+    {
+        return Notification::where('title', $title)
+            ->whereJsonContains('user_ids', $userId)
+            ->where('created_at', '>=', now()->subMinutes($minutes))
+            ->exists();
     }
 
     /**
