@@ -1,51 +1,391 @@
-
+# =============================================================================
+# Tests — CI 质量门禁
+#
+# 设计目标：把 deploy.yml 里才暴露的问题提前拦下来。目前共 4 个 job，全部并行：
+#   secrets   防泄漏（秒级，最快的失败信号）
+#   static    PHP 静态检查（不连数据库）
+#   phpunit   单元 + 功能测试（MySQL 服务容器）
+#   frontend  前端构建（与 deploy.yml 同一条命令，行为不漂移）
+#
+# 分支保护建议：Required checks 勾 secrets / static / phpunit 三项（frontend 会随
+# 前端依赖波动，先不作硬门槛）。
+#
+# ⚠️ 改动本文件前必读：job 的 id（secrets / static / phpunit / frontend）就是分支
+# 保护里勾的 required check 名。改 id 会让已经配好的分支保护失效、甚至把 main
+# 锁死（required check 永远处于 missing 状态）。只改 name: 那一行的显示名。
+# 同理，push 本文件需要带 workflow 权限的 Token（见 DEPLOY.md 三.2），或者直接在
+# GitHub 网页上编辑——这两条是「改不动 tests.yml」时最可能的原因。
+# =============================================================================
 name: Tests
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
 
+# 默认只读权限：workflow 本身不做任何写操作。显式收窄比留空更安全——留空时按仓库
+# settings 拿 permissions，一旦有人把 Actions 权限放宽就会被动继承。
+# upload-artifact 走 ACTIONS_RUNTIME_TOKEN，不需要 contents:write。
+permissions:
+  contents: read
+
+# 整个 workflow 的总超时兜底（各 job 另有更紧的 timeout-minutes）
+timeout-minutes: 25
+
+# 同一分支的旧运行直接取消，避免排队空跑。deploy.yml 也是 main 触发的，用独立的
+# group 名，互不等待。
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  # ========== 防泄漏门禁 ==========
+  # 历史上这个仓库出过两件事：.env.testing 一度被提交（.gitignore 里 .env.* 挡不住
+  # git add -f），以及工作区里长期存在含 Gitee token / 数据库密码的 red.md。这里做成
+  # 机器检查，靠人看 git status 迟早会漏。
+  #
+  # 第二组检查（构建产物）守的是同一个洞：git add -f 一样能绕过 .gitignore 把
+  # public/admin 塞进仓库。而 pre-commit / pre-push 钩子是 opt-in 的（要手动执行
+  # git config core.hooksPath .githooks），CI 里根本没有本地钩子，所以这份名单必须
+  # 在流水线里再落一份，否则「产物入库」只能靠每个人本地都配好了钩子来保证。
+  secrets:
+    name: Leak guard
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse tracked secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # .env / .env.testing / .env.ci-check … 一律不许入库，.env.example 除外。
+          # git ls-files 输出的根目录文件没有前导斜杠，排除 .env.example 时也要用
+          # (^|/) 前缀，否则根目录的 .env.example 自己会把这一步打成红。
+          hits=$(git ls-files | grep -E '(^|/)\.env(\.|$)' | grep -vE '(^|/)\.env\.example$' || true)
+          if [ -n "$hits" ]; then
+            echo "::error title=Sensitive file tracked::$(echo "$hits" | tr '\n' ' ')"
+            echo "以下文件已纳入版本控制（.env.example 除外）："
+            echo "$hits"
+            echo "修复：git rm --cached <file> 并确认 .gitignore 覆盖它"
+            exit 1
+          fi
+
+          # 密钥文件、凭据文件与本地运维笔记
+          hits=$(git ls-files | grep -Ei '(^|/)(red\.md|id_rsa|\.netrc|\.pgpass|\.npmrc|\.envrc)$|\.pem$|\.p12$|\.pfx$|\.jks$' || true)
+          if [ -n "$hits" ]; then
+            echo "::error title=Secret-looking file tracked::$(echo "$hits" | tr '\n' ' ')"
+            echo "$hits"
+            exit 1
+          fi
+
+      - name: Refuse tracked build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 「源码入库 + 云端构建」是本仓库的地基（见 DEPLOY.md 七.1）：public/admin
+          # 由 workflow 云端 build 出来后 scp 到线上。产物一旦入库，deploy.yml 会把它
+          # 原样 cp 到服务器——源码改了，线上跑的仍是旧产物，而且不会有任何报错。
+          #
+          # 名单与 .gitignore、.githooks/pre-push 三处保持一致，改一处必须同步另两处。
+          # 故意不含 storage/：仓库里有 14 个被跟踪的 storage 骨架文件（各子目录的
+          # .gitignore 占位 + storage/data/*.csv 种子数据 + modules_statuses.json）。
+          hits=$(git ls-files | grep -E '^(public/admin/|public/assets/|public/index\.html$|frontend/dist/|node_modules/|vendor/)' || true)
+          if [ -n "$hits" ]; then
+            echo "::error title=Build artifact tracked::$(printf '%s\n' "$hits" | wc -l) 个构建产物已入库"
+            echo "本仓库只收源码，产物由云端 workflow 生成。已入库的产物："
+            echo "$hits"
+            echo "修复：git rm -r --cached <path>   # 保留本地文件，仅从版本控制移除"
+            echo "      然后确认 .gitignore 覆盖该路径，再重新提交"
+            exit 1
+          fi
+
+      - name: Verify .gitignore still covers env files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for pat in '.env' '.env.*' '!.env.example'; do
+            if ! grep -qxF "$pat" .gitignore; then
+              echo "::error title=gitignore gap::.gitignore 缺少 \"$pat\"，.env 类文件可能被提交"
+              exit 1
+            fi
+          done
+
+      - name: Verify .gitignore still covers build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 上面两步是「现在有没有漏」，这一步是「以后会不会漏」：有人为了排查问题
+          # 临时放宽 .gitignore，下次就会真的把产物提上去。用 qxF 做整行匹配，
+          # 避免被注释或行内空格骗过。
+          for pat in 'vendor/' 'frontend/node_modules/' 'frontend/dist/' 'public/admin/'; do
+            if ! grep -qxF "$pat" .gitignore; then
+              echo "::error title=gitignore gap::.gitignore 缺少 \"$pat\"，构建产物可能被提交"
+              exit 1
+            fi
+          done
+
+  # ========== 静态检查：不连数据库，与 phpunit 并行，失败定位更快 ==========
+  static:
+    name: Static checks (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # 生产运行时是 8.5（见 deploy.yml），composer.json config.platform 又是 8.2.0
+        # ——两个都测，才能同时挡住「新版本 API 变化」和「依赖解析漂移」。
+        php: ['8.2', '8.5']
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
-          extensions: mbstring, dom, fileinfo, mysql, redis
-          coverage: xdebug
-
-      - name: Get composer cache directory
-        id: composer-cache
-        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
-
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
+          php-version: ${{ matrix.php }}
+          # mbstring/pdo_mysql：框架与 maatwebsite/excel 依赖；
+          # intl/zip：phpspreadsheet 强依赖；opcache：贴近 LaravelS 常驻 worker 的加载方式
+          extensions: mbstring, pdo_mysql, intl, zip, opcache, bcmath
+          coverage: none
+          tools: composer:v2
+          # setup-php 内置缓存（key 含 PHP 版本，两个矩阵各自命中），
+          # 不需要再单独挂 actions/cache
+          cache: composer
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        # --no-scripts：跳过 package:discover（需要 boot 应用 + APP_KEY），
+        # 静态检查用不上，省一次 artisan 冷启动
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
 
-      - name: Run test suite
-        run: vendor/bin/pest --parallel
+      - name: Verify composer.lock is in sync
+        # 只改 composer.json 不提交 lock：install 会静默改写 lock 并给一句 warning，
+        # 线上却会装到另一套依赖。看工作区有没有被改动是最直接的证据。
+        shell: bash
+        run: |
+          set -euo pipefail
+          composer validate --no-check-publish
+          if ! git diff --exit-code -- composer.lock; then
+            echo "::error title=Lockfile out of sync::composer.json 改了但 composer.lock 没提交，线上会装到另一套依赖"
+            git diff -- composer.lock | head -n 40
+            exit 1
+          fi
+
+      - name: Check platform requirements
+        # 上一版这里挂着 `|| true`，是一条永远绿的假门禁（步骤名还写着 lockfile）。
+        # 去掉 || true，让它真的能拦住「本地缺扩展但 CI 没发现」。
+        # 注意 composer.json 的 config.platform 已把 php/ext-swoole/ext-pcntl 伪造成
+        # 固定值，所以这里验的是上面 extensions 装没装上。
+        run: composer check-platform-reqs --no-dev
+
+      - name: Lint PHP syntax
+        # 目录清单必须与仓库实际结构一致。上一版 find 的报错会被管道后的 xargs 吞掉
+        # 退出码，目录不存在时只刷屏不失败。这里显式断言目录存在，且断言真的扫到了文件。
+        shell: bash
+        run: |
+          set -euo pipefail
+          for d in app bootstrap config database public resources routes stubs tests; do
+            [ -d "$d" ] || { echo "::error title=Missing directory::$d"; exit 1; }
+          done
+          mapfile -d '' files < <(find app bootstrap config database public \
+                                  resources routes stubs tests -name '*.php' -print0)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error title=Nothing to lint::没扫到任何 PHP 文件，find 参数可能错了"
+            exit 1
+          fi
+          printf '%s\0' "${files[@]}" | xargs -0 -n1 php -l
+          echo "linted ${#files[@]} files"
+
+      # 代码风格：目前全仓库未按 PSR-12 对齐（约 150 个文件命中，主要是 concat_space /
+      # ordered_imports）。先只告警不阻断，否则合码全卡在这一项上；
+      # 等本地跑一次 `vendor/bin/pint` 全量格式化后，去掉下面这行让它变硬门槛。
+      - name: Check code style (Pint, informational)
+        continue-on-error: true
+        run: vendor/bin/pint --test --parallel
+
+      # 依赖漏洞：composer.json 里 policy.advisories.block 是 false（解析时不阻断，
+      # 保证 composer install 永不因漏洞退出），所以门禁得单独挂一条命令。
+      # 先只告警：一次性把历史遗留的高危依赖全拦住，只会让整个 static job 长期亮黄。
+      # 有实际可用的修复版本后再考虑去掉 continue-on-error。
+      - name: Audit dependencies (Composer, informational)
+        continue-on-error: true
+        run: composer audit --no-interaction --no-ansi
+
+  # ========== 单元测试 / 功能测试 ==========
+  phpunit:
+    name: PHPUnit (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.5']
+
+    # 迁移含 MySQL 专有语法（ON DUPLICATE KEY UPDATE / updateOrInsert 大量使用等），
+    # SQLite 无法执行，因此测试库必须是 MySQL。
+    # 想覆盖 8.4（生产 MySQL 版本待确认）时，把下面 image 提成 matrix 即可：
+    #   strategy.matrix.mysql: ['8.0', '8.4']  +  image: mysql:${{ matrix.mysql }}
+    # 这里先只跑 8.0，避免 8.4 默认关闭 mysql_native_password 带来的认证差异制造噪音。
+    services:
+      mysql:
+        image: mysql:8.0
+        # --health-*：确保 php artisan migrate 运行时服务已就绪，避免随机连不上
+        # --character-set-server=utf8mb4：与生产保持一致，否则 CI 绿但线上中文/emoji 写入报错
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+          --character-set-server=utf8mb4
+          --collation-server=utf8mb4_unicode_ci
         env:
-          APP_ENV: testing
-          DB_CONNECTION: sqlite
-          DB_DATABASE: ":memory:"
+          # 用专用账号而不是 root：root 默认只允许 localhost，宿主机经 3306 端口连过去
+          # 是 root@10.x.x.x，会直接 Access denied
+          MYSQL_ROOT_PASSWORD: rootp…2026
+          MYSQL_DATABASE: laradmin_test
+          MYSQL_USER: laradmin
+          MYSQL_PASSWORD: secret
+        ports:
+          - 3306:3306
 
-      - name: Upload test results
+    # 整个 job 统一的环境变量：
+    # phpunit.xml 的 <env> 节点里 DB_CONNECTION 写的是 sqlite，但 force 默认 false——
+    # 已存在的真实环境变量优先，所以上面这份会覆盖成 MySQL。这里显式重复 CACHE/SESSION/
+    # QUEUE 等值，是防止有人删掉 phpunit.xml 的 <env> 后测试悄悄开始连 Redis/文件队列。
+    # 下面几行全是 CI 专用的测试库凭据（容器里现建现删），不是生产密钥。
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_DATABASE: laradmin_test
+      DB_USERNAME: laradmin
+      DB_PASSWORD: secret
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      # .env.example 里 JWT_SECRET 是空值，任何走 JWT 签名的路由都会失败
+      JWT_SECRET: 8jWhmZ…DsPD
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, pdo_mysql, intl, zip, opcache, bcmath
+          coverage: none
+          tools: composer:v2
+          cache: composer
+
+      # 先准备好测试环境，再装依赖：composer 的 post-autoload-dump 会跑 package:discover，
+      # 需要 APP_KEY，此时 .env.testing 必须已经存在（.env.testing 被 .gitignore 忽略）
+      - name: Prepare test env
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .env.example \
+            || { echo "::error title=Missing .env.example::测试环境依赖 .env.example，但它不在仓库里"; exit 1; }
+          cp .env.example .env.testing
+          # .env.example 里 APP_KEY= 是空值。不能靠 append：dotenv 不覆盖已存在的键，
+          # 末尾再加一行等于没写，任何做加解密/签名签名的测试都会抛
+          # "No application encryption key has been specified"。这里直接改那一行。
+          # 分隔符用 # 而不是 /：base64 字符集里含 /，用 / 作分隔符时随机命中的
+          # 密钥会让 sed 直接报 "unknown option to `s'"
+          sed -i "s#^APP_KEY=.*#APP_KEY=base64:$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
+          grep -q '^APP_KEY=base64:' .env.testing || {
+            echo "::error title=Missing APP_KEY::.env.testing 没有生成 APP_KEY"
+            exit 1
+          }
+          mkdir -p build
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      # 独立于测试的迁移冒烟检查：RefreshDatabase 只在测试真的碰数据库时才会跑迁移，
+      # 一旦有人新加迁移但没写测试，只有这一步能兜住「迁移写崩但 CI 全绿」的情况
+      - name: Migration smoke test
+        run: php artisan migrate:fresh --force
+
+      - name: Run PHPUnit
+        # --log-junit：即使测试通过也留一份机器可读的结果，便于以后接测试报告
+        run: php artisan test --colors=always --log-junit=junit.xml
+
+      # 失败时留证据：swoole/worker 的 fatal 不会打到 stdout，只能翻日志
+      - name: Upload test artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
-          path: storage/logs/
+          name: test-artifacts-php${{ matrix.php }}
+          path: |
+            junit.xml
+            build/*
+            storage/logs/*.log
+            bootstrap/cache/*.php
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ========== 前端构建：deploy.yml 目前把 build 塞在部署 job 里，
+  # 构建失败只能在部署阶段才暴露，这里提前拦截 ==========
+  frontend:
+    name: Frontend build (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # 生产用 20（见 deploy.yml）；22 一并跑，防止升级后被依赖引擎范围绊住
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      # package.json 的 build 脚本会顺带把产物拷进 ../public/admin，
+      # 与 deploy.yml 的云端构建步骤完全同一条命令，行为不会漂移。
+      # 注意 mkdir -p 必须保留：public/admin 被 gitignore，CI 里 clone 下来是不存在的，
+      # 而 cp -r dist/* 的目标目录不存在会直接报 "No such file or directory"。
+      - name: Build
+        working-directory: frontend
+        run: |
+          mkdir -p ../public/admin
+          npm run build
+
+      # deploy.yml 把 public/admin 原样 cp 到线上；构建产物为空（vite 配置回归）时
+      # 部署依然会成功，只是站点变成白屏。这里直接断言产物存在且非空。
+      - name: Verify build output
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f public/admin/index.html \
+            || { echo "::error title=No build output::public/admin/index.html 不存在"; exit 1; }
+          kb=$(du -sk public/admin | cut -f1)
+          echo "public/admin = ${kb}KB"
+          [ "$kb" -gt 10 ] \
+            || { echo "::error title=Build output too small::疑似空构建"; exit 1; }
+
+      # 格式化：仓库里已有 format 脚本但没人跑，先只告警
+      - name: Check formatting (Prettier, informational)
+        continue-on-error: true
+        working-directory: frontend
+        run: npx prettier --check "src/**/*.{js,vue,css,json}" "*.{js,json}"
+
+      # 依赖漏洞：npm ci 时故意用 --no-audit（省时间 + 避免注册表抖动把构建打红）。
+      # 想真正挡住高危依赖，去掉 --no-audit 并把这条改成硬门槛（去掉下面这行）。
+      - name: Audit dependencies (npm, informational)
+        continue-on-error: true
+        working-directory: frontend
+        run: npm audit --audit-level=high --json --omit=dev
