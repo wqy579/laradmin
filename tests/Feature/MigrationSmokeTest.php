@@ -18,6 +18,21 @@ class MigrationSmokeTest extends TestCase
 {
     public function test_full_migrate_and_seed_from_scratch_on_sqlite(): void
     {
+        // 只在 SQLite 上跑，不是省事的限定，而是隔离约束：
+        // 本用例要在测试进程内执行 migrate:fresh，即 drop 掉所有表。SQLite 用的是
+        // phpunit.xml 里的 :memory:，每连接一份私有副本，跑完不影响同批用例；
+        // MySQL 在 CI 里是全 job 共享的同一个库，这里一跑就会抹掉其它用例的 schema。
+        //
+        // MySQL 侧的建库覆盖由 CI 的「Migration smoke test」步骤负责（php artisan
+        // migrate:fresh --force）。但注意那一步不带 --seed，所以 seeders 里
+        // 「非 sqlite 则 SET FOREIGN_KEY_CHECKS=0」那条分支在 CI 中没有直接覆盖——
+        // 改 seeder 时值得在 MySQL 上手动跑一次 migrate:fresh --seed。
+        if (DB::getDriverName() !== 'sqlite') {
+            $this->markTestSkipped(
+                '本用例会 drop 全部表，需要 SQLite :memory: 的隔离；当前驱动 '.DB::getDriverName()
+            );
+        }
+
         // 1) 从零建库 + 全量种子，命令必须成功退出
         $exitCode = Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
         $this->assertSame(0, $exitCode, "migrate:fresh --seed 失败：\n".Artisan::output());

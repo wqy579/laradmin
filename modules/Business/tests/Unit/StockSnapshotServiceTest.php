@@ -23,6 +23,18 @@ class StockSnapshotServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * 这两个用例断言的是「快照 SQL 不可移植」这个已知缺陷本身。
+     * 在 MySQL 上该 SQL 合法、不抛异常，断言失去意义，跳过；
+     * 必须放在 expectException 之前，否则跳不过去。
+     */
+    private function skipUnlessSqlite(): void
+    {
+        if (\DB::getDriverName() !== 'sqlite') {
+            $this->markTestSkipped('本用例钉住 SQLite 上的不可移植缺陷，当前驱动 '.\DB::getDriverName());
+        }
+    }
+
     public function test_check_and_snapshot_skips_when_today_already_processed(): void
     {
         Cache::put('stock_snapshot_last_date', now()->toDateString(), now()->addDays(2));
@@ -35,6 +47,7 @@ class StockSnapshotServiceTest extends TestCase
 
     public function test_snapshot_write_sql_is_mysql_specific_on_sqlite(): void
     {
+        $this->skipUnlessSqlite();
         // 已知缺陷（本用例钉住现状）：snapshotToday() 使用 CURDATE()/NOW()/ON DUPLICATE KEY UPDATE，
         // 这是 MySQL 专用语法，在 SQLite 上必然抛 QueryException。
         // 若本用例失败（不再抛异常），说明快照 SQL 已改为可移植写法 —— 请把该用例改写为正向断言
@@ -58,6 +71,7 @@ class StockSnapshotServiceTest extends TestCase
 
     public function test_first_check_of_day_raises_on_sqlite(): void
     {
+        $this->skipUnlessSqlite();
         // 已知缺陷（本用例钉住现状）：缓存没有当日标记时（例如每天第一个请求、或缓存被清），
         // checkAndSnapshot() 会走到快照写入并在 SQLite 上抛异常。
         // 由于中间件不捕获异常，这意味着在非 MySQL 环境（测试/本地 CI）下所有 /admin/* 请求都会 500。

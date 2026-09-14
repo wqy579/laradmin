@@ -112,7 +112,7 @@ class StockService
             'total_products' => Stock::count(),
             'total_quantity' => (int) Stock::sum('quantity'),
             'total_amount' => (float) Stock::sum('total_amount'),
-            'low_stock_count' => Stock::whereColumn('quantity', '<', 10)->count(),
+            'low_stock_count' => Stock::where('quantity', '<', 10)->count(),
         ];
 
         $topProducts = Stock::with('product')
