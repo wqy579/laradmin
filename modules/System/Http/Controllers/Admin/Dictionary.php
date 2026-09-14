@@ -133,6 +133,24 @@ class Dictionary extends Controller
         ]);
     }
 
+    public function showItem(int $id)
+    {
+        $item = $this->dictionaryService->getItem($id);
+        if (!$item) {
+            return response()->json([
+                'code' => 404,
+                'message' => '字典项不存在',
+                'data' => null
+            ], 404);
+        }
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'success',
+            'data' => $item
+        ]);
+    }
+
     public function getItemsList(Request $request)
     {
         $result = $this->dictionaryService->getItemsList($request->all());

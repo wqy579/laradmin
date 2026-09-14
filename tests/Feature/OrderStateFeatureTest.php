@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Business\Stock;
+use Modules\Business\Models\Stock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;

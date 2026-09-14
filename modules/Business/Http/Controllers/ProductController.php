@@ -238,7 +238,7 @@ class ProductController extends Controller
         if ($category->is_main) {
             $childIds = ProductCategory::where('parent_id', $category->id)->pluck('id');
             if ($childIds->isNotEmpty()) {
-                Product::where('sub_category_id', $childIds)->update(['sub_category_id' => null]);
+                Product::whereIn('sub_category_id', $childIds)->update(['sub_category_id' => null]);
                 ProductCategory::whereIn('id', $childIds)->delete();
             }
         }

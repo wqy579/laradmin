@@ -196,6 +196,15 @@ class DictionaryService
         }
     }
 
+    public function getItem(int $id): ?array
+    {
+        $item = DictionaryItem::query()->find($id);
+        if (!$item) {
+            return null;
+        }
+        return $item->toArray();
+    }
+
     public function getItemsList(array $params): array
     {
         $query = DictionaryItem::query();

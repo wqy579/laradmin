@@ -56,9 +56,8 @@ class StockOutController extends Controller
                 return response()->json(['message' => '库存不足'], 422);
             }
             
-            $stock->quantity = DB::raw('quantity - ' . $validated['quantity']);
-            $stock->touch();
-            $stock->save();
+            $stock->decrement('quantity', $validated['quantity']);
+            $stock->refresh();
             
             DB::commit();
             

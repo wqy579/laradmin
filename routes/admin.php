@@ -76,20 +76,17 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 业务模块：供应商
     Route::prefix('business/supplier')->group(function () {
         Route::get('/', [\Modules\Business\Http\Controllers\SupplierController::class, 'index']);
-        Route::get('/export', [\Modules\Business\Http\Controllers\SupplierController::class, 'export']);
         Route::get('/{supplier}', [\Modules\Business\Http\Controllers\SupplierController::class, 'show']);
         Route::post('/', [\Modules\Business\Http\Controllers\SupplierController::class, 'store']);
         Route::put('/{supplier}', [\Modules\Business\Http\Controllers\SupplierController::class, 'update']);
         Route::delete('/{supplier}', [\Modules\Business\Http\Controllers\SupplierController::class, 'destroy']);
         Route::post('/batch-delete', [\Modules\Business\Http\Controllers\SupplierController::class, 'batchDelete']);
         Route::post('/batch-status', [\Modules\Business\Http\Controllers\SupplierController::class, 'batchUpdateStatus']);
-        Route::post('/import', [\Modules\Business\Http\Controllers\SupplierController::class, 'import']);
     });
 
     // 业务模块：线路
     Route::prefix('business/route')->group(function () {
         Route::get('/', [\Modules\Business\Http\Controllers\RouteController::class, 'index']);
-        Route::get('/export', [\Modules\Business\Http\Controllers\RouteController::class, 'export']);
         Route::get('/{route}', [\Modules\Business\Http\Controllers\RouteController::class, 'show']);
         Route::post('/', [\Modules\Business\Http\Controllers\RouteController::class, 'store']);
         Route::put('/{route}', [\Modules\Business\Http\Controllers\RouteController::class, 'update']);
@@ -99,7 +96,6 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/{route}/customers', [\Modules\Business\Http\Controllers\RouteController::class, 'customers']);
         Route::post('/{route}/customers', [\Modules\Business\Http\Controllers\RouteController::class, 'addCustomer']);
         Route::delete('/{route}/customers', [\Modules\Business\Http\Controllers\RouteController::class, 'removeCustomer']);
-        Route::post('/import', [\Modules\Business\Http\Controllers\RouteController::class, 'import']);
     });
 
     // 业务模块：销售订单
@@ -133,6 +129,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/', [\Modules\Business\Http\Controllers\TransferController::class, 'store']);
         Route::put('/{transfer}', [\Modules\Business\Http\Controllers\TransferController::class, 'update']);
         Route::delete('/{transfer}', [\Modules\Business\Http\Controllers\TransferController::class, 'destroy']);
+        Route::post('/{transfer}/approve', [\Modules\Business\Http\Controllers\TransferController::class, 'approve']);
         Route::post('/{transfer}/execute', [\Modules\Business\Http\Controllers\TransferController::class, 'execute']);
     });
 
@@ -183,21 +180,13 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 业务模块：入库单
     Route::prefix('business/stock-in')->group(function () {
         Route::get('/', [\Modules\Business\Http\Controllers\StockInController::class, 'index']);
-        Route::get('/{stockIn}', [\Modules\Business\Http\Controllers\StockInController::class, 'show']);
         Route::post('/', [\Modules\Business\Http\Controllers\StockInController::class, 'store']);
-        Route::put('/{stockIn}', [\Modules\Business\Http\Controllers\StockInController::class, 'update']);
-        Route::delete('/{stockIn}', [\Modules\Business\Http\Controllers\StockInController::class, 'destroy']);
-        Route::post('/{stockIn}/approve', [\Modules\Business\Http\Controllers\StockInController::class, 'approve']);
     });
 
     // 业务模块：出库单
     Route::prefix('business/stock-out')->group(function () {
         Route::get('/', [\Modules\Business\Http\Controllers\StockOutController::class, 'index']);
-        Route::get('/{stockOut}', [\Modules\Business\Http\Controllers\StockOutController::class, 'show']);
         Route::post('/', [\Modules\Business\Http\Controllers\StockOutController::class, 'store']);
-        Route::put('/{stockOut}', [\Modules\Business\Http\Controllers\StockOutController::class, 'update']);
-        Route::delete('/{stockOut}', [\Modules\Business\Http\Controllers\StockOutController::class, 'destroy']);
-        Route::post('/{stockOut}/approve', [\Modules\Business\Http\Controllers\StockOutController::class, 'approve']);
     });
 
     // 业务模块：拜访管理
@@ -229,11 +218,11 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 系统模块：日志
     Route::prefix('system/log')->group(function () {
         Route::get('/', [\Modules\System\Http\Controllers\Admin\Log::class, 'index']);
-        Route::get('/statistics', [\Modules\System\Http\Controllers\Admin\Log::class, 'statistics']);
+        Route::get('/statistics', [\Modules\System\Http\Controllers\Admin\Log::class, 'getStatistics']);
         Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\Log::class, 'show']);
         Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\Log::class, 'destroy']);
         Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\Log::class, 'batchDelete']);
-        Route::post('/clear', [\Modules\System\Http\Controllers\Admin\Log::class, 'clear']);
+        Route::post('/clear', [\Modules\System\Http\Controllers\Admin\Log::class, 'clearLogs']);
     });
 
     // 系统模块：字典
@@ -274,8 +263,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/pause', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'pause']);
         Route::post('/{id}/resume', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'resume']);
         Route::post('/{id}/stop', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'stop']);
-        Route::post('/{id}/run', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'run']);
-        Route::get('/{id}/logs', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'logs']);
+        Route::post('/{id}/run', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'runNow']);
+        Route::get('/{id}/logs', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'executionLogs']);
         Route::delete('/{id}/logs', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'clearLogs']);
     });
 

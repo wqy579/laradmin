@@ -12,7 +12,7 @@
         "method": "POST",
         "uri": "admin/auth/change-password",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@changePassword",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@changePassword",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -24,7 +24,7 @@
         "method": "GET",
         "uri": "admin/auth/departments",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@index",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -36,7 +36,7 @@
         "method": "POST",
         "uri": "admin/auth/departments",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@store",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -48,7 +48,7 @@
         "method": "GET",
         "uri": "admin/auth/departments/all",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@getAll",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@getAll",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -60,7 +60,7 @@
         "method": "POST",
         "uri": "admin/auth/departments/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@batchDelete",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -72,7 +72,7 @@
         "method": "POST",
         "uri": "admin/auth/departments/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@batchUpdateStatus",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -84,7 +84,7 @@
         "method": "GET",
         "uri": "admin/auth/departments/tree",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@tree",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@tree",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -96,7 +96,7 @@
         "method": "DELETE",
         "uri": "admin/auth/departments/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@destroy",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -108,7 +108,7 @@
         "method": "GET",
         "uri": "admin/auth/departments/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@show",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -120,7 +120,7 @@
         "method": "PUT",
         "uri": "admin/auth/departments/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Department@update",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -132,7 +132,7 @@
         "method": "POST",
         "uri": "admin/auth/login",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@login",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@login",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -143,7 +143,7 @@
         "method": "POST",
         "uri": "admin/auth/logout",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@logout",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@logout",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -155,7 +155,7 @@
         "method": "GET",
         "uri": "admin/auth/me",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@me",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@me",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -167,7 +167,7 @@
         "method": "PUT",
         "uri": "admin/auth/me",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@updateMe",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@updateMe",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -179,7 +179,7 @@
         "method": "GET",
         "uri": "admin/auth/permissions",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@index",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -191,7 +191,7 @@
         "method": "POST",
         "uri": "admin/auth/permissions",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@store",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -203,7 +203,7 @@
         "method": "POST",
         "uri": "admin/auth/permissions/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@batchDelete",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -215,7 +215,7 @@
         "method": "GET",
         "uri": "admin/auth/permissions/menu",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@menu",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@menu",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -227,7 +227,7 @@
         "method": "GET",
         "uri": "admin/auth/permissions/tree",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@tree",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@tree",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -239,7 +239,7 @@
         "method": "POST",
         "uri": "admin/auth/permissions/update-icons",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@updateIcons",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@updateIcons",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -251,7 +251,7 @@
         "method": "DELETE",
         "uri": "admin/auth/permissions/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@destroy",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -263,7 +263,7 @@
         "method": "PUT",
         "uri": "admin/auth/permissions/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Permission@update",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -275,7 +275,7 @@
         "method": "POST",
         "uri": "admin/auth/refresh",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Auth@refresh",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@refresh",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -287,7 +287,7 @@
         "method": "GET",
         "uri": "admin/auth/roles",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@index",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -299,7 +299,7 @@
         "method": "POST",
         "uri": "admin/auth/roles",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@store",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -311,7 +311,7 @@
         "method": "GET",
         "uri": "admin/auth/roles/all",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@getAll",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@getAll",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -323,7 +323,7 @@
         "method": "POST",
         "uri": "admin/auth/roles/assign-permissions",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@assignPermissions",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@assignPermissions",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -335,7 +335,7 @@
         "method": "POST",
         "uri": "admin/auth/roles/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@batchDelete",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -347,7 +347,7 @@
         "method": "POST",
         "uri": "admin/auth/roles/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@batchUpdateStatus",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -359,7 +359,7 @@
         "method": "DELETE",
         "uri": "admin/auth/roles/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@destroy",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -371,7 +371,7 @@
         "method": "GET",
         "uri": "admin/auth/roles/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@show",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -383,7 +383,7 @@
         "method": "PUT",
         "uri": "admin/auth/roles/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\Role@update",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -395,7 +395,7 @@
         "method": "GET",
         "uri": "admin/auth/users",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@index",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -407,7 +407,7 @@
         "method": "POST",
         "uri": "admin/auth/users",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@store",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -419,7 +419,7 @@
         "method": "POST",
         "uri": "admin/auth/users/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@batchDelete",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -431,7 +431,7 @@
         "method": "POST",
         "uri": "admin/auth/users/batch-department",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@batchAssignDepartment",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@batchAssignDepartment",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -443,7 +443,7 @@
         "method": "POST",
         "uri": "admin/auth/users/batch-roles",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@batchAssignRoles",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@batchAssignRoles",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -455,7 +455,7 @@
         "method": "POST",
         "uri": "admin/auth/users/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@batchUpdateStatus",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -467,7 +467,7 @@
         "method": "GET",
         "uri": "admin/auth/users/export",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@export",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@export",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -479,7 +479,7 @@
         "method": "POST",
         "uri": "admin/auth/users/import",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@import",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@import",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -491,7 +491,7 @@
         "method": "DELETE",
         "uri": "admin/auth/users/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@destroy",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -503,7 +503,7 @@
         "method": "GET",
         "uri": "admin/auth/users/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@show",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -515,7 +515,7 @@
         "method": "PUT",
         "uri": "admin/auth/users/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@update",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -527,7 +527,7 @@
         "method": "POST",
         "uri": "admin/auth/users/{id}/reset-password",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Auth\\Admin\\User@resetPassword",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@resetPassword",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -539,7 +539,7 @@
         "method": "GET",
         "uri": "admin/business/attendance",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -551,7 +551,7 @@
         "method": "POST",
         "uri": "admin/business/attendance",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -563,7 +563,7 @@
         "method": "DELETE",
         "uri": "admin/business/attendance/{attendance}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -575,7 +575,7 @@
         "method": "GET",
         "uri": "admin/business/attendance/{attendance}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -587,7 +587,7 @@
         "method": "PUT",
         "uri": "admin/business/attendance/{attendance}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\AttendanceController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -599,7 +599,7 @@
         "method": "GET",
         "uri": "admin/business/cost-price",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CostPriceController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\CostPriceController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -611,7 +611,7 @@
         "method": "POST",
         "uri": "admin/business/cost-price/batch",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CostPriceController@batchUpdate",
+        "action": "Modules\\Business\\Http\\Controllers\\CostPriceController@batchUpdate",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -623,7 +623,7 @@
         "method": "PUT",
         "uri": "admin/business/cost-price/{product}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CostPriceController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\CostPriceController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -635,7 +635,7 @@
         "method": "GET",
         "uri": "admin/business/customers",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\CustomerController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -647,7 +647,7 @@
         "method": "POST",
         "uri": "admin/business/customers",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\CustomerController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -659,7 +659,7 @@
         "method": "POST",
         "uri": "admin/business/customers/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@batchDelete",
+        "action": "Modules\\Business\\Http\\Controllers\\CustomerController@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -671,7 +671,7 @@
         "method": "POST",
         "uri": "admin/business/customers/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@batchUpdateStatus",
+        "action": "Modules\\Business\\Http\\Controllers\\CustomerController@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -683,7 +683,7 @@
         "method": "DELETE",
         "uri": "admin/business/customers/{customer}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\CustomerController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -695,7 +695,7 @@
         "method": "GET",
         "uri": "admin/business/customers/{customer}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\CustomerController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -707,7 +707,7 @@
         "method": "PUT",
         "uri": "admin/business/customers/{customer}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\CustomerController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\CustomerController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -719,7 +719,7 @@
         "method": "GET",
         "uri": "admin/business/delivery",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\DeliveryController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -731,7 +731,7 @@
         "method": "POST",
         "uri": "admin/business/delivery",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\DeliveryController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -743,7 +743,7 @@
         "method": "GET",
         "uri": "admin/business/delivery/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\DeliveryController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -755,7 +755,7 @@
         "method": "DELETE",
         "uri": "admin/business/delivery/{delivery}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\DeliveryController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -767,7 +767,7 @@
         "method": "GET",
         "uri": "admin/business/delivery/{delivery}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\DeliveryController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -779,7 +779,7 @@
         "method": "PUT",
         "uri": "admin/business/delivery/{delivery}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\DeliveryController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -791,7 +791,7 @@
         "method": "POST",
         "uri": "admin/business/delivery/{delivery}/complete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@complete",
+        "action": "Modules\\Business\\Http\\Controllers\\DeliveryController@complete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -803,7 +803,7 @@
         "method": "POST",
         "uri": "admin/business/delivery/{delivery}/dispatch",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\DeliveryController@dispatch",
+        "action": "Modules\\Business\\Http\\Controllers\\DeliveryController@dispatch",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -815,7 +815,7 @@
         "method": "GET",
         "uri": "admin/business/employee",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -827,7 +827,7 @@
         "method": "POST",
         "uri": "admin/business/employee",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -839,7 +839,7 @@
         "method": "POST",
         "uri": "admin/business/employee/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@batchDelete",
+        "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -851,7 +851,7 @@
         "method": "POST",
         "uri": "admin/business/employee/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@batchUpdateStatus",
+        "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -863,7 +863,7 @@
         "method": "DELETE",
         "uri": "admin/business/employee/{employee}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -875,7 +875,7 @@
         "method": "GET",
         "uri": "admin/business/employee/{employee}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -887,7 +887,7 @@
         "method": "PUT",
         "uri": "admin/business/employee/{employee}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\EmployeeController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -899,7 +899,7 @@
         "method": "GET",
         "uri": "admin/business/expense",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -911,7 +911,7 @@
         "method": "POST",
         "uri": "admin/business/expense",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -923,7 +923,7 @@
         "method": "GET",
         "uri": "admin/business/expense/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -935,7 +935,7 @@
         "method": "DELETE",
         "uri": "admin/business/expense/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -947,7 +947,7 @@
         "method": "GET",
         "uri": "admin/business/expense/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -959,7 +959,7 @@
         "method": "PUT",
         "uri": "admin/business/expense/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -971,7 +971,7 @@
         "method": "POST",
         "uri": "admin/business/expense/{id}/approve",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ExpenseController@approve",
+        "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -983,7 +983,7 @@
         "method": "GET",
         "uri": "admin/business/liankai-stock-check",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\LiankaiStockCheckController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\LiankaiStockCheckController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -995,7 +995,7 @@
         "method": "POST",
         "uri": "admin/business/liankai-stock-check/sync",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\LiankaiStockCheckController@sync",
+        "action": "Modules\\Business\\Http\\Controllers\\LiankaiStockCheckController@sync",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1007,7 +1007,7 @@
         "method": "GET",
         "uri": "admin/business/liankai-stock-monitor",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\LiankaiStockCheckController@monitor",
+        "action": "Modules\\Business\\Http\\Controllers\\LiankaiStockCheckController@monitor",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1019,7 +1019,7 @@
         "method": "POST",
         "uri": "admin/business/liankai-stock-monitor/sync",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\LiankaiStockCheckController@sync",
+        "action": "Modules\\Business\\Http\\Controllers\\LiankaiStockCheckController@sync",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1031,7 +1031,7 @@
         "method": "GET",
         "uri": "admin/business/pay",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\PayController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1043,7 +1043,7 @@
         "method": "POST",
         "uri": "admin/business/pay",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\PayController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1055,7 +1055,7 @@
         "method": "GET",
         "uri": "admin/business/pay/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\PayController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1067,7 +1067,7 @@
         "method": "DELETE",
         "uri": "admin/business/pay/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\PayController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1079,7 +1079,7 @@
         "method": "GET",
         "uri": "admin/business/pay/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\PayController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1091,7 +1091,7 @@
         "method": "PUT",
         "uri": "admin/business/pay/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\PayController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1103,7 +1103,7 @@
         "method": "POST",
         "uri": "admin/business/pay/{id}/approve",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PayController@approve",
+        "action": "Modules\\Business\\Http\\Controllers\\PayController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1115,7 +1115,7 @@
         "method": "GET",
         "uri": "admin/business/product",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1127,7 +1127,7 @@
         "method": "POST",
         "uri": "admin/business/product",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1139,7 +1139,7 @@
         "method": "POST",
         "uri": "admin/business/product/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@batchDelete",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1151,7 +1151,7 @@
         "method": "POST",
         "uri": "admin/business/product/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@batchUpdateStatus",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1163,7 +1163,7 @@
         "method": "GET",
         "uri": "admin/business/product/categories",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@categories",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@categories",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1175,7 +1175,7 @@
         "method": "POST",
         "uri": "admin/business/product/categories",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@storeCategory",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@storeCategory",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1187,7 +1187,7 @@
         "method": "DELETE",
         "uri": "admin/business/product/categories/{category}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@destroyCategory",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@destroyCategory",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1199,7 +1199,7 @@
         "method": "PUT",
         "uri": "admin/business/product/categories/{category}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@updateCategory",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@updateCategory",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1211,7 +1211,7 @@
         "method": "GET",
         "uri": "admin/business/product/units",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@units",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@units",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1223,7 +1223,7 @@
         "method": "DELETE",
         "uri": "admin/business/product/{product}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1235,7 +1235,7 @@
         "method": "GET",
         "uri": "admin/business/product/{product}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1247,7 +1247,7 @@
         "method": "PUT",
         "uri": "admin/business/product/{product}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ProductController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\ProductController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1259,7 +1259,7 @@
         "method": "GET",
         "uri": "admin/business/purchase-order",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1271,7 +1271,7 @@
         "method": "POST",
         "uri": "admin/business/purchase-order",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1283,7 +1283,7 @@
         "method": "GET",
         "uri": "admin/business/purchase-order/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1295,7 +1295,7 @@
         "method": "DELETE",
         "uri": "admin/business/purchase-order/{purchaseOrder}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1307,7 +1307,7 @@
         "method": "GET",
         "uri": "admin/business/purchase-order/{purchaseOrder}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1319,7 +1319,7 @@
         "method": "PUT",
         "uri": "admin/business/purchase-order/{purchaseOrder}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1331,7 +1331,7 @@
         "method": "POST",
         "uri": "admin/business/purchase-order/{purchaseOrder}/approve",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@approve",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1343,7 +1343,7 @@
         "method": "POST",
         "uri": "admin/business/purchase-order/{purchaseOrder}/receive",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\PurchaseOrderController@receive",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@receive",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1355,7 +1355,7 @@
         "method": "GET",
         "uri": "admin/business/receive",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\ReceiveController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1367,7 +1367,7 @@
         "method": "POST",
         "uri": "admin/business/receive",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\ReceiveController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1379,7 +1379,7 @@
         "method": "GET",
         "uri": "admin/business/receive/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\ReceiveController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1391,7 +1391,7 @@
         "method": "DELETE",
         "uri": "admin/business/receive/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\ReceiveController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1403,7 +1403,7 @@
         "method": "GET",
         "uri": "admin/business/receive/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\ReceiveController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1415,7 +1415,7 @@
         "method": "PUT",
         "uri": "admin/business/receive/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\ReceiveController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1427,7 +1427,7 @@
         "method": "POST",
         "uri": "admin/business/receive/{id}/approve",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReceiveController@approve",
+        "action": "Modules\\Business\\Http\\Controllers\\ReceiveController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1439,7 +1439,7 @@
         "method": "GET",
         "uri": "admin/business/return",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\ReturnController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1451,7 +1451,7 @@
         "method": "POST",
         "uri": "admin/business/return",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\ReturnController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1463,7 +1463,7 @@
         "method": "GET",
         "uri": "admin/business/return/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\ReturnController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1475,7 +1475,7 @@
         "method": "DELETE",
         "uri": "admin/business/return/{return}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\ReturnController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1487,7 +1487,7 @@
         "method": "GET",
         "uri": "admin/business/return/{return}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\ReturnController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1499,7 +1499,7 @@
         "method": "PUT",
         "uri": "admin/business/return/{return}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\ReturnController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1511,7 +1511,7 @@
         "method": "POST",
         "uri": "admin/business/return/{return}/approve",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@approve",
+        "action": "Modules\\Business\\Http\\Controllers\\ReturnController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1523,7 +1523,7 @@
         "method": "POST",
         "uri": "admin/business/return/{return}/process",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\ReturnController@process",
+        "action": "Modules\\Business\\Http\\Controllers\\ReturnController@process",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1535,7 +1535,7 @@
         "method": "GET",
         "uri": "admin/business/route",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1547,7 +1547,7 @@
         "method": "POST",
         "uri": "admin/business/route",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1559,7 +1559,7 @@
         "method": "POST",
         "uri": "admin/business/route/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@batchDelete",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1571,31 +1571,7 @@
         "method": "POST",
         "uri": "admin/business/route/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@batchUpdateStatus",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/route/export",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@export",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/route/import",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@import",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1607,7 +1583,7 @@
         "method": "DELETE",
         "uri": "admin/business/route/{route}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1619,7 +1595,7 @@
         "method": "GET",
         "uri": "admin/business/route/{route}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1631,7 +1607,7 @@
         "method": "PUT",
         "uri": "admin/business/route/{route}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1643,7 +1619,7 @@
         "method": "DELETE",
         "uri": "admin/business/route/{route}/customers",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@removeCustomer",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@removeCustomer",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1655,7 +1631,7 @@
         "method": "GET",
         "uri": "admin/business/route/{route}/customers",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@customers",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@customers",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1667,7 +1643,7 @@
         "method": "POST",
         "uri": "admin/business/route/{route}/customers",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\RouteController@addCustomer",
+        "action": "Modules\\Business\\Http\\Controllers\\RouteController@addCustomer",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1679,7 +1655,7 @@
         "method": "GET",
         "uri": "admin/business/sales-order",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\SalesOrderController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1691,7 +1667,7 @@
         "method": "POST",
         "uri": "admin/business/sales-order",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\SalesOrderController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1703,7 +1679,7 @@
         "method": "GET",
         "uri": "admin/business/sales-order/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\SalesOrderController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1715,7 +1691,7 @@
         "method": "DELETE",
         "uri": "admin/business/sales-order/{salesOrder}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\SalesOrderController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1727,7 +1703,7 @@
         "method": "GET",
         "uri": "admin/business/sales-order/{salesOrder}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\SalesOrderController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1739,7 +1715,7 @@
         "method": "PUT",
         "uri": "admin/business/sales-order/{salesOrder}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\SalesOrderController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1751,7 +1727,7 @@
         "method": "POST",
         "uri": "admin/business/sales-order/{salesOrder}/approve",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SalesOrderController@approve",
+        "action": "Modules\\Business\\Http\\Controllers\\SalesOrderController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1763,7 +1739,7 @@
         "method": "GET",
         "uri": "admin/business/stock",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\StockController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1775,7 +1751,7 @@
         "method": "GET",
         "uri": "admin/business/stock-in",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\StockInController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1787,55 +1763,7 @@
         "method": "POST",
         "uri": "admin/business/stock-in",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@store",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "DELETE",
-        "uri": "admin/business/stock-in/{stockIn}",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@destroy",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/stock-in/{stockIn}",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@show",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "PUT",
-        "uri": "admin/business/stock-in/{stockIn}",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@update",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/stock-in/{stockIn}/approve",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockInController@approve",
+        "action": "Modules\\Business\\Http\\Controllers\\StockInController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1847,7 +1775,7 @@
         "method": "GET",
         "uri": "admin/business/stock-out",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\StockOutController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1859,55 +1787,7 @@
         "method": "POST",
         "uri": "admin/business/stock-out",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@store",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "DELETE",
-        "uri": "admin/business/stock-out/{stockOut}",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@destroy",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/stock-out/{stockOut}",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@show",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "PUT",
-        "uri": "admin/business/stock-out/{stockOut}",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@update",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/stock-out/{stockOut}/approve",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockOutController@approve",
+        "action": "Modules\\Business\\Http\\Controllers\\StockOutController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1919,7 +1799,7 @@
         "method": "GET",
         "uri": "admin/business/stock/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\StockController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1931,7 +1811,7 @@
         "method": "GET",
         "uri": "admin/business/stock/{stock}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\StockController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\StockController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1943,7 +1823,7 @@
         "method": "GET",
         "uri": "admin/business/supplier",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1955,7 +1835,7 @@
         "method": "POST",
         "uri": "admin/business/supplier",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1967,7 +1847,7 @@
         "method": "POST",
         "uri": "admin/business/supplier/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@batchDelete",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierController@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1979,31 +1859,7 @@
         "method": "POST",
         "uri": "admin/business/supplier/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@batchUpdateStatus",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/supplier/export",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@export",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/supplier/import",
-        "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@import",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierController@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2015,7 +1871,7 @@
         "method": "DELETE",
         "uri": "admin/business/supplier/{supplier}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2027,7 +1883,7 @@
         "method": "GET",
         "uri": "admin/business/supplier/{supplier}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2039,7 +1895,7 @@
         "method": "PUT",
         "uri": "admin/business/supplier/{supplier}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\SupplierController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2051,7 +1907,7 @@
         "method": "GET",
         "uri": "admin/business/transfer",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\TransferController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2063,7 +1919,7 @@
         "method": "POST",
         "uri": "admin/business/transfer",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\TransferController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2075,7 +1931,7 @@
         "method": "GET",
         "uri": "admin/business/transfer/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@statistics",
+        "action": "Modules\\Business\\Http\\Controllers\\TransferController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2087,7 +1943,7 @@
         "method": "DELETE",
         "uri": "admin/business/transfer/{transfer}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\TransferController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2099,7 +1955,7 @@
         "method": "GET",
         "uri": "admin/business/transfer/{transfer}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\TransferController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2111,7 +1967,19 @@
         "method": "PUT",
         "uri": "admin/business/transfer/{transfer}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\TransferController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/transfer/{transfer}/approve",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\TransferController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2123,7 +1991,7 @@
         "method": "POST",
         "uri": "admin/business/transfer/{transfer}/execute",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\TransferController@execute",
+        "action": "Modules\\Business\\Http\\Controllers\\TransferController@execute",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2135,7 +2003,7 @@
         "method": "GET",
         "uri": "admin/business/vehicle",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\VehicleController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2147,7 +2015,7 @@
         "method": "POST",
         "uri": "admin/business/vehicle",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\VehicleController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2159,7 +2027,7 @@
         "method": "POST",
         "uri": "admin/business/vehicle/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@batchDelete",
+        "action": "Modules\\Business\\Http\\Controllers\\VehicleController@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2171,7 +2039,7 @@
         "method": "POST",
         "uri": "admin/business/vehicle/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@batchUpdateStatus",
+        "action": "Modules\\Business\\Http\\Controllers\\VehicleController@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2183,7 +2051,7 @@
         "method": "DELETE",
         "uri": "admin/business/vehicle/{vehicle}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\VehicleController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2195,7 +2063,7 @@
         "method": "GET",
         "uri": "admin/business/vehicle/{vehicle}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\VehicleController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2207,7 +2075,7 @@
         "method": "PUT",
         "uri": "admin/business/vehicle/{vehicle}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VehicleController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\VehicleController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2219,7 +2087,7 @@
         "method": "GET",
         "uri": "admin/business/visit/achievement",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@achievement",
+        "action": "Modules\\Business\\Http\\Controllers\\VisitLogController@achievement",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2231,7 +2099,7 @@
         "method": "GET",
         "uri": "admin/business/visit/logs",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\VisitLogController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2243,7 +2111,7 @@
         "method": "POST",
         "uri": "admin/business/visit/logs",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\VisitLogController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2255,7 +2123,7 @@
         "method": "DELETE",
         "uri": "admin/business/visit/logs/{visitLog}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\VisitLogController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2267,7 +2135,7 @@
         "method": "GET",
         "uri": "admin/business/visit/logs/{visitLog}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\VisitLogController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2279,7 +2147,7 @@
         "method": "PUT",
         "uri": "admin/business/visit/logs/{visitLog}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\VisitLogController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2291,7 +2159,7 @@
         "method": "GET",
         "uri": "admin/business/visit/schedule",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\VisitLogController@schedule",
+        "action": "Modules\\Business\\Http\\Controllers\\VisitLogController@schedule",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2303,7 +2171,7 @@
         "method": "GET",
         "uri": "admin/business/warehouse",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@index",
+        "action": "Modules\\Business\\Http\\Controllers\\WarehouseController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2315,7 +2183,7 @@
         "method": "POST",
         "uri": "admin/business/warehouse",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@store",
+        "action": "Modules\\Business\\Http\\Controllers\\WarehouseController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2327,7 +2195,7 @@
         "method": "DELETE",
         "uri": "admin/business/warehouse/{warehouse}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@destroy",
+        "action": "Modules\\Business\\Http\\Controllers\\WarehouseController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2339,7 +2207,7 @@
         "method": "GET",
         "uri": "admin/business/warehouse/{warehouse}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@show",
+        "action": "Modules\\Business\\Http\\Controllers\\WarehouseController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2351,7 +2219,7 @@
         "method": "PUT",
         "uri": "admin/business/warehouse/{warehouse}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\Admin\\Business\\WarehouseController@update",
+        "action": "Modules\\Business\\Http\\Controllers\\WarehouseController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2386,7 +2254,7 @@
         "method": "GET",
         "uri": "admin/system/attachment",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@index",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2398,7 +2266,7 @@
         "method": "POST",
         "uri": "admin/system/attachment/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@batchDelete",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2410,7 +2278,7 @@
         "method": "GET",
         "uri": "admin/system/attachment/directories",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@directories",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@directories",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2422,7 +2290,7 @@
         "method": "POST",
         "uri": "admin/system/attachment/get-by-ids",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@getByIds",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@getByIds",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2434,7 +2302,7 @@
         "method": "GET",
         "uri": "admin/system/attachment/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@statistics",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2446,7 +2314,7 @@
         "method": "GET",
         "uri": "admin/system/attachment/type-distribution",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@typeDistribution",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@typeDistribution",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2458,7 +2326,7 @@
         "method": "DELETE",
         "uri": "admin/system/attachment/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@destroy",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2470,7 +2338,7 @@
         "method": "GET",
         "uri": "admin/system/attachment/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@show",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2482,7 +2350,7 @@
         "method": "PUT",
         "uri": "admin/system/attachment/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Attachment@update",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2494,7 +2362,7 @@
         "method": "GET",
         "uri": "admin/system/dictionary",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@index",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2506,7 +2374,7 @@
         "method": "POST",
         "uri": "admin/system/dictionary",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@store",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2518,7 +2386,7 @@
         "method": "GET",
         "uri": "admin/system/dictionary-item",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@getItemsList",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@getItemsList",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2530,7 +2398,7 @@
         "method": "POST",
         "uri": "admin/system/dictionary-item",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@storeItem",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@storeItem",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2542,7 +2410,7 @@
         "method": "GET",
         "uri": "admin/system/dictionary-item/all",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@getAllItems",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@getAllItems",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2554,7 +2422,7 @@
         "method": "POST",
         "uri": "admin/system/dictionary-item/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@batchDeleteItems",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@batchDeleteItems",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2566,7 +2434,7 @@
         "method": "POST",
         "uri": "admin/system/dictionary-item/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@batchUpdateItemsStatus",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@batchUpdateItemsStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2578,7 +2446,7 @@
         "method": "DELETE",
         "uri": "admin/system/dictionary-item/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@destroyItem",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@destroyItem",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2590,7 +2458,7 @@
         "method": "GET",
         "uri": "admin/system/dictionary-item/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@showItem",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@showItem",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2602,7 +2470,7 @@
         "method": "PUT",
         "uri": "admin/system/dictionary-item/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@updateItem",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@updateItem",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2614,7 +2482,7 @@
         "method": "GET",
         "uri": "admin/system/dictionary/all",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@all",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@all",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2626,7 +2494,7 @@
         "method": "POST",
         "uri": "admin/system/dictionary/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@batchDelete",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2638,7 +2506,7 @@
         "method": "POST",
         "uri": "admin/system/dictionary/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@batchUpdateStatus",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2650,7 +2518,7 @@
         "method": "DELETE",
         "uri": "admin/system/dictionary/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@destroy",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2662,7 +2530,7 @@
         "method": "GET",
         "uri": "admin/system/dictionary/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@show",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2674,7 +2542,7 @@
         "method": "PUT",
         "uri": "admin/system/dictionary/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Dictionary@update",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2686,7 +2554,7 @@
         "method": "GET",
         "uri": "admin/system/log",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Log@index",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2698,7 +2566,7 @@
         "method": "POST",
         "uri": "admin/system/log/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Log@batchDelete",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2710,7 +2578,7 @@
         "method": "POST",
         "uri": "admin/system/log/clear",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Log@clear",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@clearLogs",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2722,7 +2590,7 @@
         "method": "GET",
         "uri": "admin/system/log/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Log@statistics",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@getStatistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2734,7 +2602,7 @@
         "method": "DELETE",
         "uri": "admin/system/log/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Log@destroy",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2746,7 +2614,7 @@
         "method": "GET",
         "uri": "admin/system/log/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Log@show",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2758,7 +2626,7 @@
         "method": "GET",
         "uri": "admin/system/scheduled",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@index",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2770,7 +2638,7 @@
         "method": "POST",
         "uri": "admin/system/scheduled",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@store",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2782,7 +2650,7 @@
         "method": "GET",
         "uri": "admin/system/scheduled/all",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@all",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@all",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2794,7 +2662,7 @@
         "method": "POST",
         "uri": "admin/system/scheduled/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@batchDelete",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2806,7 +2674,7 @@
         "method": "GET",
         "uri": "admin/system/scheduled/statistics",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@statistics",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2818,7 +2686,7 @@
         "method": "DELETE",
         "uri": "admin/system/scheduled/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@destroy",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2830,7 +2698,7 @@
         "method": "GET",
         "uri": "admin/system/scheduled/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@show",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2842,7 +2710,7 @@
         "method": "PUT",
         "uri": "admin/system/scheduled/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@update",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2854,7 +2722,7 @@
         "method": "DELETE",
         "uri": "admin/system/scheduled/{id}/logs",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@clearLogs",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@clearLogs",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2866,7 +2734,7 @@
         "method": "GET",
         "uri": "admin/system/scheduled/{id}/logs",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@logs",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@executionLogs",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2878,7 +2746,7 @@
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/pause",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@pause",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@pause",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2890,7 +2758,7 @@
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/resume",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@resume",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@resume",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2902,7 +2770,7 @@
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/run",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@run",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@runNow",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2914,7 +2782,7 @@
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/start",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@start",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@start",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2926,7 +2794,7 @@
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/stop",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\ScheduledController@stop",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@stop",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2938,7 +2806,7 @@
         "method": "GET",
         "uri": "admin/system/setting",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@index",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2950,7 +2818,7 @@
         "method": "POST",
         "uri": "admin/system/setting",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@store",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2962,7 +2830,7 @@
         "method": "GET",
         "uri": "admin/system/setting/all",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@all",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@all",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2974,7 +2842,7 @@
         "method": "POST",
         "uri": "admin/system/setting/batch-delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@batchDelete",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@batchDelete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2986,7 +2854,7 @@
         "method": "POST",
         "uri": "admin/system/setting/batch-save",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@batchSave",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@batchSave",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2998,7 +2866,7 @@
         "method": "POST",
         "uri": "admin/system/setting/batch-status",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@batchUpdateStatus",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@batchUpdateStatus",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3010,7 +2878,7 @@
         "method": "GET",
         "uri": "admin/system/setting/groups",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@groups",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@groups",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3022,7 +2890,7 @@
         "method": "GET",
         "uri": "admin/system/setting/tree",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@tree",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@tree",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3034,7 +2902,7 @@
         "method": "DELETE",
         "uri": "admin/system/setting/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@destroy",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3046,7 +2914,7 @@
         "method": "GET",
         "uri": "admin/system/setting/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@show",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3058,7 +2926,7 @@
         "method": "PUT",
         "uri": "admin/system/setting/{id}",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Config@update",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3070,7 +2938,7 @@
         "method": "POST",
         "uri": "admin/system/upload",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@upload",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@upload",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3082,7 +2950,7 @@
         "method": "POST",
         "uri": "admin/system/upload/base64",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@uploadBase64",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@uploadBase64",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3094,7 +2962,7 @@
         "method": "POST",
         "uri": "admin/system/upload/chunk/cancel",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@cancelChunk",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@cancelChunk",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3106,7 +2974,7 @@
         "method": "POST",
         "uri": "admin/system/upload/chunk/init",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@initChunk",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@initChunk",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3118,7 +2986,7 @@
         "method": "POST",
         "uri": "admin/system/upload/chunk/merge",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@mergeChunks",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@mergeChunks",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3130,7 +2998,7 @@
         "method": "POST",
         "uri": "admin/system/upload/chunk/upload",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@uploadChunk",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@uploadChunk",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3142,7 +3010,7 @@
         "method": "GET",
         "uri": "admin/system/upload/chunk/uploaded",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@getUploadedChunks",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@getUploadedChunks",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3154,7 +3022,7 @@
         "method": "POST",
         "uri": "admin/system/upload/delete",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@delete",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@delete",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3166,7 +3034,7 @@
         "method": "POST",
         "uri": "admin/system/upload/multiple",
         "name": "admin.",
-        "action": "App\\Http\\Controllers\\System\\Admin\\Upload@uploadMultiple",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@uploadMultiple",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3178,7 +3046,7 @@
         "method": "POST",
         "uri": "api/deploy",
         "name": null,
-        "action": "App\\Http\\Controllers\\System\\Api\\PingController@deployNotice",
+        "action": "Modules\\System\\Http\\Controllers\\Api\\PingController@deployNotice",
         "middleware": [
             "api"
         ]
@@ -3187,7 +3055,7 @@
         "method": "GET",
         "uri": "api/import/status",
         "name": null,
-        "action": "App\\Http\\Controllers\\System\\Api\\PingController@importStatus",
+        "action": "Modules\\System\\Http\\Controllers\\Api\\PingController@importStatus",
         "middleware": [
             "api"
         ]
@@ -3196,7 +3064,7 @@
         "method": "POST",
         "uri": "api/system/upload",
         "name": null,
-        "action": "App\\Http\\Controllers\\System\\Api\\Upload@upload",
+        "action": "Modules\\System\\Http\\Controllers\\Api\\Upload@upload",
         "middleware": [
             "api"
         ]
@@ -3205,7 +3073,7 @@
         "method": "GET",
         "uri": "api/test",
         "name": null,
-        "action": "App\\Http\\Controllers\\System\\Api\\PingController@ping",
+        "action": "Modules\\System\\Http\\Controllers\\Api\\PingController@ping",
         "middleware": [
             "api"
         ]

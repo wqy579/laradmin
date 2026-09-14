@@ -116,14 +116,37 @@ class TransferController extends Controller
         return response()->json(['message' => '删除成功']);
     }
 
+    public function approve(Transfer $transfer)
+    {
+        if ($transfer->status !== 'draft') {
+            return response()->json(['message' => '只有草稿状态的调拨单可以审批'], 422);
+        }
+        $transfer->update(['status' => 'approved']);
+        return response()->json(['message' => '审批成功']);
+    }
+
     public function execute(Transfer $transfer)
     {
+        // 不变量 I2：任何情况下不允许把源仓库库存扣成负数
         if ($transfer->status !== 'approved') {
             return response()->json(['message' => '只有已审批的调拨单可以执行'], 422);
         }
         DB::beginTransaction();
         try {
             foreach ($transfer->items as $item) {
+                // 先校验源库存充足，不足则整体回滚并保持单据原状态
+                $source = DB::table('stocks')
+                    ->where('product_id', $item->product_id)
+                    ->where('warehouse_id', $transfer->from_warehouse_id)
+                    ->lockForUpdate()
+                    ->first();
+                $available = (int) ($source->quantity ?? 0);
+                if ($available < $item->quantity) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "库存不足：源仓库该商品现有 {$available} 件，无法调拨 {$item->quantity} 件",
+                    ], 422);
+                }
                 // 减少源仓库库存
                 DB::table('stocks')
                     ->where('product_id', $item->product_id)

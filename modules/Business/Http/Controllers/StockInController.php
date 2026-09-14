@@ -48,18 +48,15 @@ class StockInController extends Controller
         
         DB::beginTransaction();
         try {
-            $stock = Stock::updateOrCreate(
-                [
-                    'product_id' => $validated['product_id'],
-                    'warehouse_id' => $validated['warehouse_id'],
-                ],
-                [
-                    'quantity' => DB::raw('quantity + ' . $validated['quantity']),
-                    'cost_price' => $validated['cost_price'] ?? 0,
-                ]
-            );
-            
-            $stock->touch();
+            // firstOrNew + 显式赋值：DB::raw 在 updateOrCreate 的 INSERT 路径会生成
+            // insert into stocks (..., quantity) values (..., quantity + N)，新品首次入库必炸
+            $stock = Stock::firstOrNew([
+                'product_id' => $validated['product_id'],
+                'warehouse_id' => $validated['warehouse_id'],
+            ]);
+            $stock->quantity = ($stock->quantity ?? 0) + $validated['quantity'];
+            $stock->cost_price = $validated['cost_price'] ?? ($stock->cost_price ?? 0);
+            $stock->save();
             
             DB::commit();
             

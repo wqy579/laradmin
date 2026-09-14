@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Services\Business\StockSnapshotService;
+use Modules\Business\Services\StockSnapshotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Database\QueryException;

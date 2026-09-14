@@ -16,6 +16,15 @@ class Config extends Controller
         $this->configService = $configService;
     }
 
+    public function groups()
+    {
+        return response()->json([
+            'code' => 200,
+            'message' => 'success',
+            'data' => $this->configService->getGroups()
+        ]);
+    }
+
     public function index(Request $request)
     {
         $result = $this->configService->getList($request->all());

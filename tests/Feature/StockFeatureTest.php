@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Business\Product;
-use App\Models\Business\Stock;
-use App\Models\Business\Warehouse;
+use Modules\Business\Models\Product;
+use Modules\Business\Models\Stock;
+use Modules\Business\Models\Warehouse;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -275,11 +275,10 @@ class StockFeatureTest extends TestCase
 
         $transferId = $this->createTransferViaApi($product, $from, $to, 1);
 
-        // API 提供的调拨动作只有：创建(draft) / 编辑(draft) / 删除(draft) / execute(要求 approved)。
-        // 没有任何端点能把单据推进到 approved —— 状态机是死路，调拨功能经 API 永远无法执行。
-        // 期望：正常创建后能够通过 API 流程执行成功（需要补审批端点）。
+        // 状态机必须可经 API 驱动：创建(draft) -> approve(approved) -> execute(completed)。
+        // 此前没有 approve 端点，状态机死路（已补审批端点）。
+        $this->postJson("/admin/business/transfer/{$transferId}/approve")->assertStatus(200);
         $response = $this->postJson("/admin/business/transfer/{$transferId}/execute");
-
         $response->assertStatus(200);
         $this->assertSame('completed', \DB::table('transfers')->where('id', $transferId)->value('status'));
     }

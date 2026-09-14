@@ -2,13 +2,13 @@
 
 namespace Tests;
 
-use App\Models\Auth\Role;
-use App\Models\Auth\User;
-use App\Models\Business\Customer;
-use App\Models\Business\Product;
-use App\Models\Business\ProductCategory;
-use App\Models\Business\Supplier;
-use App\Models\Business\Warehouse;
+use Modules\Auth\Models\Role;
+use Modules\Auth\Models\User;
+use Modules\Business\Models\Customer;
+use Modules\Business\Models\Product;
+use Modules\Business\Models\ProductCategory;
+use Modules\Business\Models\Supplier;
+use Modules\Business\Models\Warehouse;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;

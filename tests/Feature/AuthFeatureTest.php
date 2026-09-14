@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Auth\User;
+use Modules\Auth\Models\User;
 use Database\Seeders\AuthSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
