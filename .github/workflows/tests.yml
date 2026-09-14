@@ -224,8 +224,17 @@ jobs:
       matrix:
         php: ['8.2', '8.5']
 
-    # 迁移含 MySQL 专有语法（ON DUPLICATE KEY UPDATE / updateOrInsert 大量使用等），
-    # SQLite 无法执行，因此测试库必须是 MySQL。
+    # 测试库是 MySQL，理由是严格度，不是迁移语法。
+    # 曾记录的理由「迁移含 MySQL 专有语法、SQLite 无法执行」已核实为假：
+    # 全量迁移里搜不到 ON DUPLICATE KEY UPDATE / ENGINE= / FULLTEXT / MODIFY COLUMN 等
+    # 任何 MySQL 专有构造，SQLite 跑全量测试是 76/76 全绿的。
+    #
+    # 真正需要 MySQL 的是严格模式。实测抓过一个只有 MySQL 会暴露的缺陷：
+    # StockService::statistics() 里 whereColumn('quantity', '<', 10) 把 10 当列名，
+    # MySQL 报 SQLSTATE[42S22] Unknown column '10'（接口直接 500），
+    # SQLite 因类型亲和性把 10 当字面量、照常通过。换成 SQLite 当门槛会把这个漏掉。
+    # 所以别把主门槛改成 SQLite——它快，适合本地迭代，但不适合当唯一门禁。
+    #
     # 想覆盖 8.4（生产 MySQL 版本待确认）时，把下面 image 提成 matrix 即可：
     #   strategy.matrix.mysql: ['8.0', '8.4']  +  image: mysql:${{ matrix.mysql }}
     # 这里先只跑 8.0，避免 8.4 默认关闭 mysql_native_password 带来的认证差异制造噪音。

@@ -12,10 +12,11 @@
 | **Phase 2a seeders 归位** | ✅ 完成 |
 | **Phase 2b tests 归位** | ✅ 完成（见该节「已知缺口」） |
 | Phase 2c config 分区 | ⬜ 只评估，未动 |
-| Phase 3 前后端边界对齐 | ⬜ 未开始 |
-| Phase 4 测试与 CI 口径 | ⬜ 未开始 |
+| Phase 3 前后端边界对齐 | ✅ 完成（`notification.js` 并入 `system.js`） |
+| Phase 4 测试与 CI 口径 | ✅ 完成（实测结果推翻了原「主跑 SQLite」的建议，见该节） |
 
 第三节是 `7c15d04` 时点的实测基线，保留原样供对照；已完成的阶段在原节内标注了现状。
+当前基线：`./vendor/bin/phpunit` → 76 用例 / 426 断言；260 条路由。
 
 ## 一、目标
 
@@ -286,16 +287,38 @@ $ ls frontend/src/api/*.js    # 与 modules/ 下的模块一一对应
 
 ### Phase 4：测试与 CI 口径统一
 
-当前 SQLite 全绿、MySQL 7 个失败，CI 用 MySQL 但 `phpunit.xml` 写 SQLite，两套口径互相打架。
+原判断：SQLite 全绿、MySQL 7 个失败，CI 用 MySQL 但 `phpunit.xml` 写 SQLite，两套口径互相打架。
 
-建议：
+**实测后这条建议不成立，主门槛应保持 MySQL。** 理由是实测抓到了一个只有 MySQL 会暴露的缺陷：
 
-1. **主跑 SQLite**：快、无外部依赖、本地与 CI 一致
-2. **MySQL 独立成 job**：只做迁移冒烟（`migrate:fresh --seed`），贴近生产但不阻塞日常
-3. **那 2 个 `_on_sqlite` 用例**改成条件执行：`if (DB::getDriverName() !== 'sqlite') $this->markTestSkipped()`，名字里的 `_on_sqlite` 就名副其实了
-4. **另外 5 个在 MySQL 上失败的用例**（`ProductCategoryFeatureTest` ×4、`StockServiceTest` ×1）单独排查——失败形态是计数断言不符（如 `2 is identical to 1`），怀疑数据隔离问题，与模块化无关，属既有缺陷
+```
+StockService::statistics()  里  Stock::whereColumn('quantity', '<', 10)
+```
 
-验收：CI 四个 job 全绿，且 SQLite 与 MySQL 的失败集合有明确解释。
+`whereColumn` 的第三个参数是「另一列」而非字面量，于是拼成 `where quantity < 10`，
+把 10 当列名。MySQL 报 `SQLSTATE[42S22] Unknown column '10'`，统计接口直接 500；
+SQLite 因类型亲和性把 10 当字面量、照常通过。**换成 SQLite 当唯一门禁会把这类缺陷放过去。**
+
+顺带核实：原注释里「迁移含 MySQL 专有语法、SQLite 无法执行」是错的——全量迁移搜不到
+`ON DUPLICATE KEY UPDATE` / `ENGINE=` / `FULLTEXT` / `MODIFY COLUMN` 等任何专有构造，
+SQLite 跑全量是 76/76 全绿。`tests.yml` 里那两行注释已改写。
+
+实际做了的：
+
+1. ~~主跑 SQLite~~ **不做**。SQLite 快、无外部依赖，适合本地迭代，但不适合当唯一门禁。
+   CI 保持 MySQL 主跑，理由已写进 `tests.yml` 的服务容器注释。
+2. ~~MySQL 独立成 job~~ **不做**。MySQL 主跑本身已绿，拆 job 没有收益。
+   MySQL 侧的建库覆盖仍由 phpunit job 里的 `Migration smoke test` 步骤承担。
+3. ✅ **`_on_sqlite` 用例加驱动条件跳过**，共 3 个（不是原估的 2 个）：
+   `MigrationSmokeTest` 的建库用例，以及 `StockSnapshotServiceTest` 的 2 个钉住
+   「快照 SQL 不可移植」的缺陷用例。后两者的跳过必须放在 `expectException` 之前。
+4. ✅ **MySQL 失败集合查清了**，与推测的「数据隔离」无关：
+   - `StockServiceTest` ×1 → 上述 `whereColumn` 真 bug，已修。
+   - `StockSnapshotServiceTest` ×2 → 用例本身按设计只该在 SQLite 上跑，已跳过。
+   - `ProductCategoryFeatureTest` ×4 → 早已不复现，当前 MySQL 上通过。
+
+验收（本地 MariaDB 10.11 实测）：SQLite 76/426 全绿；MySQL 76 用例 363 断言
+0 失败 0 错误、3 个跳过。两个驱动的跳过集合各有明确解释，不是「凑绿的跳过」。
 
 ## 六、守卫：CI 新增三道断言
 
@@ -312,6 +335,27 @@ hits=$(grep -rn 'Modules\\' app --include='*.php' || true)
 
 第 2 项需要脚本解析互引（两个模块互相引用即判环）。Phase 1 完成后此断言会开始生效。
 
+**实际落地方式：没往 `static` job 里加 shell 断言，改由 `tests/Unit/ArchitectureTest.php`
+在 phpunit job 里承担，三道都已覆盖。** 原因是第 1 项的朴素 `grep` 在这个仓库里会误判：
+`app/Contracts/TaskNotification.php` 的 PHPDoc 注释里写着 `Modules\System\Services\NotificationService`
+来解释契约的设计（注释是 `app/` 唯一提到模块命名空间的地方），
+`grep -rn 'Modules\\' app` 会直接判红。所以扫描必须剥注释——那就是 PHP 了，
+而 phpunit 本来就在跑 ArchitectureTest，没必要再写一份 shell 版。
+
+已覆盖的三道：
+
+| 断言 | 对应用例 |
+|---|---|
+| 1 内核纯净 | `test_kernel_does_not_depend_on_modules`（tokenizer 剥注释后扫 `app/`） |
+| 2 无环依赖 | `test_module_dependencies_stay_within_allowlist`（白名单差集，结构上不可能成环）+ 两条定向用例 |
+| 3 模块完备性 | `test_every_module_owns_routes_and_migrations` |
+
+第 3 项故意不含 `tests/`：`modules/System/tests/` 目前只有空的 `Feature/` 目录，
+断言会让 CI 因为一个已登记的已知缺口而长期亮红（见 2b 节）。
+想让 `static` job 也快速失败的话，正确做法是抽一个不启动框架的扫描类
+（`tests/support/`，靠 `autoload-dev` 的 `Tests\` 映射），
+让脚本和 ArchitectureTest 共用——那样只有一份实现，不用维护两套。
+
 ## 七、执行顺序与风险
 
 | 顺序 | 阶段 | 改动量 | 风险 | 前置 | 状态 |
@@ -319,9 +363,9 @@ hits=$(grep -rn 'Modules\\' app --include='*.php' || true)
 | 1 | 1a 断环 | 3 文件 + 2 新类 + 2 新监听器 | 低 | — | ✅ |
 | 2 | 1b 中间件归位 | 2 文件迁移 + 2 Provider | **中**（别名解析时机） | 1a | ✅ |
 | 3 | 2a seeders 归位 | 5 文件迁移 | 低 | — | ✅ |
-| 4 | 2b tests 归位 | 6 文件迁移 + 配置 | 中（快照路径引用） | — | ✅（下一个：Phase 4 或 Phase 3） |
-| 5 | Phase 4 测试口径 | CI + 用例改造 | 中 | 4 | ⬜ |
-| 6 | 3 前后端对齐 | 1 文件合并 | 低 | — | ⬜ |
+| 4 | 2b tests 归位 | 6 文件迁移 + 配置 | 中（快照路径引用） | — | ✅ |
+| 5 | Phase 4 测试口径 | 修 1 个真 bug + 3 用例加跳过 + 注释纠偏 | 中 | 4 | ✅ |
+| 6 | 3 前后端对齐 | 1 文件合并 + 2 引用点改写 | 低 | — | ✅ |
 | — | 1c / 2c | 只登记不动 | — | — | ✅ 已登记 |
 
 **不要并行做 1a 和 1b**：都改 Provider 和中间件链路，混在一起出问题难以定位。
@@ -329,7 +373,7 @@ hits=$(grep -rn 'Modules\\' app --include='*.php' || true)
 每一步都跑：
 
 ```bash
-./vendor/bin/phpunit                    # 71/420
+./vendor/bin/phpunit                    # 76/426
 php artisan route:list --json | wc -l   # 260
 ```
 
@@ -340,21 +384,19 @@ php artisan route:list --json | wc -l   # 260
 全部做完的判定条件：
 
 ```bash
-# 1. 无环                                              ✅ 已过
-! grep -rq 'Modules\\System' modules/Auth --include='*.php'
+# 1-3 架构三道（无环 / 内核纯净 / 模块完备性）          ✅ 已过
+./vendor/bin/phpunit tests/Unit/ArchitectureTest.php   # 5 tests, 6 assertions
+#   别用 grep 手验：app/Contracts/TaskNotification.php 的 PHPDoc 里提到
+#   Modules\System 来解释设计，朴素 grep 会误判，必须剥注释（见第六节）
 
-# 2. 内核纯净（例外见注）                              ✅ 已过（按注中的排除口径）
-! grep -rn 'Modules\\' app --include='*.php' | grep -vE ':\s*\*' | grep -v '^$'
-
-# 3. 资源随模块                                        ✅ 已过
-[ "$(find database/seeders -name '*.php' | wc -l)" -eq 1 ]
-[ -d modules/Auth/tests ] && [ -d modules/Business/tests ]
-
-# 4. 前后端边界一致                                    ⬜ Phase 3
-ls frontend/src/api/*.js    # 期望 auth.js business.js system.js（现为 4 个，多 notification.js）
+# 4. 前后端边界一致                                    ✅ 已过
+ls frontend/src/api/*.js    # auth.js business.js system.js ↔ modules/{Auth,Business,System}
 
 # 5. 不变量                                            ✅ 已过
 ./vendor/bin/phpunit && [ "$(git diff --stat tests/snapshots/routes.json)" = "" ]
+
+# 6. 两个驱动的失败集合都有解释                        ✅ 已过
+DB_CONNECTION=mysql DB_DATABASE=laradmin_test ./vendor/bin/phpunit   # 0 失败 0 错误 3 跳过
 ```
 
 注：
