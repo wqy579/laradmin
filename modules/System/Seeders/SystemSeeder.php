@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Modules\System\Seeders;
 
 use Modules\System\Models\Config;
 use Modules\System\Models\Dictionary;

@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace Modules\Business\Seeders;
 
 use Modules\Business\Models\Product;
 use Modules\Business\Models\ProductCategory;
