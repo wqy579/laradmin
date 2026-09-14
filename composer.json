@@ -1,68 +1,71 @@
 {
-    "name": "laravel/laravel",
-    "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "require": {
-        "php": "^8.2",
-        "hhxsv5/laravel-s": "^3.8",
-        "laravel/framework": "^11.0",
-        "laravel/tinker": "^2.9",
-        "maatwebsite/excel": "^3.1",
-        "symfony/polyfill-mbstring": "^1.38",
-        "tymon/jwt-auth": "^2.3"
+  "name": "laravel/laravel",
+  "type": "project",
+  "description": "The skeleton application for the Laravel framework.",
+  "require": {
+    "php": "^8.2",
+    "hhxsv5/laravel-s": "^3.8",
+    "laravel/framework": "^11.0",
+    "laravel/tinker": "^2.9",
+    "maatwebsite/excel": "^3.1",
+    "symfony/polyfill-mbstring": "^1.38",
+    "tymon/jwt-auth": "^2.3"
+  },
+  "require-dev": {
+    "fakerphp/faker": "^1.23",
+    "laravel/pint": "^1.13",
+    "mockery/mockery": "^1.6",
+    "nunomaduro/collision": "^8.0",
+    "phpunit/phpunit": "^11.0"
+  },
+  "autoload": {
+    "files": [
+      "app/Support/mb_polyfill.php"
+    ],
+    "psr-4": {
+      "App\\": "app/",
+      "Modules\\": "modules/",
+      "Database\\Factories\\": "database/factories/",
+      "Database\\Seeders\\": "database/seeders/",
+      "Hhxsv5\\LaravelS\\": "vendor/hhxsv5/laravel-s/src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/",
+      "Tests\\Auth\\": "modules/Auth/tests/",
+      "Tests\\Business\\": "modules/Business/tests/",
+      "Tests\\System\\": "modules/System/tests/"
+    }
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+      "@php artisan package:discover --ansi"
+    ],
+    "post-update-cmd": [
+      "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+    ]
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true,
+      "php-http/discovery": true
     },
-    "require-dev": {
-        "fakerphp/faker": "^1.23",
-        "laravel/pint": "^1.13",
-        "mockery/mockery": "^1.6",
-        "nunomaduro/collision": "^8.0",
-        "phpunit/phpunit": "^11.0"
+    "platform": {
+      "php": "8.2.0",
+      "ext-swoole": "4.8.0",
+      "ext-pcntl": "8.2.0"
     },
-    "autoload": {
-        "files": [
-            "app/Support/mb_polyfill.php"
-        ],
-        "psr-4": {
-            "App\\": "app/",
-            "Modules\\": "modules/",
-            "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/",
-            "Hhxsv5\\LaravelS\\": "vendor/hhxsv5/laravel-s/src"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Tests\\": "tests/"
-        }
-    },
-    "scripts": {
-        "post-autoload-dump": [
-            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi"
-        ],
-        "post-update-cmd": [
-            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
-        ]
-    },
-    "config": {
-        "optimize-autoloader": true,
-        "preferred-install": "dist",
-        "sort-packages": true,
-        "allow-plugins": {
-            "pestphp/pest-plugin": true,
-            "php-http/discovery": true
-        },
-        "platform": {
-            "php": "8.2.0",
-            "ext-swoole": "4.8.0",
-            "ext-pcntl": "8.2.0"
-        },
-        "policy": {
-            "advisories": {
-                "block": false
-            }
-        }
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true
+    "policy": {
+      "advisories": {
+        "block": false
+      }
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
 }

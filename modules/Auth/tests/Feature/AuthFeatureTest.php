@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Modules\Auth\Models\User;
-use Database\Seeders\AuthSeeder;
+use Modules\Auth\Seeders\AuthSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
