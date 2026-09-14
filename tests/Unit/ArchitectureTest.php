@@ -17,6 +17,9 @@ class ArchitectureTest extends TestCase
 {
     /**
      * 扫描目录下所有 PHP 文件，返回引用了 Modules\<module>\ 的文件路径
+     *
+     * 先剥掉注释再匹配：契约与文档注释里会提到模块命名空间来解释设计，
+     * 那不是真实依赖。用 tokenizer 而不是正则，避免被字符串字面量误判。
      */
     private function refsTo(string $dir, string $module): array
     {
@@ -32,7 +35,7 @@ class ArchitectureTest extends TestCase
                 continue;
             }
 
-            $content = (string) file_get_contents($file->getPathname());
+            $content = $this->stripComments((string) file_get_contents($file->getPathname()));
 
             if (str_contains($content, $needle)) {
                 $hits[] = $file->getPath();
@@ -40,6 +43,22 @@ class ArchitectureTest extends TestCase
         }
 
         return array_values(array_unique($hits));
+    }
+
+    /** 剥掉单行注释与文档注释，保留字符串字面量 */
+    private function stripComments(string $source): string
+    {
+        $out = '';
+
+        foreach (token_get_all($source) as $token) {
+            if (is_array($token) && in_array($token[0], [T_COMMENT, T_DOC_COMMENT], true)) {
+                continue;
+            }
+
+            $out .= is_array($token) ? $token[1] : $token;
+        }
+
+        return $out;
     }
 
     /**
@@ -69,6 +88,33 @@ class ArchitectureTest extends TestCase
             [],
             $this->refsTo(base_path('modules/Business'), 'System'),
             'modules/Business 依赖了 Modules\System，模块间出现横向耦合。'
+        );
+    }
+
+    /**
+     * 共享内核不得依赖任何模块（依赖方向只能向内）。
+     *
+     * 已登记的例外：bootstrap/app.php 的 stock.snapshot 别名指向 Business 的
+     * StockSnapshotMiddleware，但作用域是「全部管理端请求」，属横切关注点，
+     * 留在内核信封更诚实——所以本用例只查 app/，不含 bootstrap/。
+     */
+    public function test_kernel_does_not_depend_on_modules(): void
+    {
+        $bad = [];
+
+        foreach (['Auth', 'Business', 'System'] as $module) {
+            foreach ($this->refsTo(base_path('app'), $module) as $file) {
+                $bad[] = "Modules\\$module  ←  $file";
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $bad,
+            'app/ 依赖了模块代码（依赖倒置）。共享内核不得 import Modules\\：'
+            ."\n".implode("\n", $bad)
+            .'模块自有中间件请放到 modules/<M>/Http/Middleware/，'
+            .'别名在该模块 Provider 的 boot() 里 Route::middlewareAliases() 注册。'
         );
     }
 

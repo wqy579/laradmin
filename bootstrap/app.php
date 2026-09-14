@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\AuthCheckMiddleware;
 use App\Http\Middleware\RateLimitMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -56,9 +55,19 @@ return Application::configure(basePath: dirname(__DIR__))
 		health: '/up',
 	)
 	->withMiddleware(function (Middleware $middleware): void {
+		// 中间件别名集中声明在这一个地方。
+		//
+		// 这是「app/ 不依赖模块」规则的唯一登记例外：别名表是全局中间件词汇表，
+		// 属配置而非代码耦合。中间件类的**代码**都在各自模块里
+		// （modules/Auth、modules/System、modules/Business），内核这里只做映射。
+		//
+		// 曾试过把别名注册挪到各模块 Provider 的 boot() 里（Route::aliasMiddleware），
+		// 功能正常但 route:list 会把这些别名解析成完整类名、而 withMiddleware 注册的
+		// 仍显示别名名——同一份快照里两种表示法，且依赖 afterResolving(HttpKernel)
+		// 的注册时机。集中声明更直观，快照也稳定。
 		$middleware->alias([
-			'auth.check' => AuthCheckMiddleware::class,
-			'log.request' => \App\Http\Middleware\LogRequestMiddleware::class,
+			'auth.check' => \Modules\Auth\Http\Middleware\AuthCheckMiddleware::class,
+			'log.request' => \Modules\System\Http\Middleware\LogRequestMiddleware::class,
 			'rate.limit' => RateLimitMiddleware::class,
 			'stock.snapshot' => \Modules\Business\Http\Middleware\StockSnapshotMiddleware::class,
 		]);
