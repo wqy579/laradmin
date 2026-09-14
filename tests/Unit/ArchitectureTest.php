@@ -16,6 +16,19 @@ use Tests\TestCase;
 class ArchitectureTest extends TestCase
 {
     /**
+     * 模块间允许的依赖边（自底向上，key 形如 "System->Auth"）
+     *
+     * Auth 是底层身份模块，不出边；Business / System 只准指向 Auth。
+     * 名单里只有指向 Auth 的单向边，结构上不可能成环。
+     *
+     * 名单是动态发现模块后按边校验的：新增模块若不带任何模块依赖则直接通过，
+     * 一旦引用了别的模块就必须显式登记这条边并写明理由，不会静默放行。
+     */
+    private const ALLOWED_MODULE_EDGES = [
+        'Business->Auth',
+        'System->Auth',
+    ];
+    /**
      * 扫描目录下所有 PHP 文件，返回引用了 Modules\<module>\ 的文件路径
      *
      * 先剥掉注释再匹配：契约与文档注释里会提到模块命名空间来解释设计，
@@ -62,6 +75,50 @@ class ArchitectureTest extends TestCase
     }
 
     /**
+     * 模块 → 模块的依赖边：key 形如 "System->Auth"，value 为引用源文件路径
+     *
+     * 模块清单由 glob 动态发现，因此新增模块时本用例会自动覆盖它，
+     * 而不用同步改这份测试。
+     */
+    private function moduleEdges(): array
+    {
+        $modules = array_values(array_map(
+            'basename',
+            glob(base_path('modules/*'), GLOB_ONLYDIR) ?: []
+        ));
+        $edges = [];
+
+        $it = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator(base_path('modules'), RecursiveDirectoryIterator::SKIP_DOTS)
+        );
+
+        foreach ($it as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $path = str_replace(base_path().'/', '', $file->getPath());
+            $content = $this->stripComments((string) file_get_contents($file->getPathname()));
+
+            foreach ($modules as $from) {
+                if (!str_starts_with($path, "modules/$from/")) {
+                    continue;
+                }
+
+                foreach ($modules as $to) {
+                    if ($from === $to || !str_contains($content, "Modules\\$to\\")) {
+                        continue;
+                    }
+
+                    $edges["$from->$to"][] = $path;
+                }
+            }
+        }
+
+        return $edges;
+    }
+
+    /**
      * Auth 是底层身份模块，不得反向依赖 System。
      *
      * 历史上 modules/Auth 的导入导出 Job 直接调用 System 的 NotificationService，
@@ -92,6 +149,29 @@ class ArchitectureTest extends TestCase
     }
 
     /**
+     * 所有模块间依赖边都必须落在白名单内。
+     *
+     * 上面两条只点名了 Auth↔System、Business↔System 两条边，本用例兜住其余所有
+     * 组合（含 System→Business、任何指向 Auth 的反向边），并在结构上保证无环。
+     * 两条定向用例保留不动：它们的提示更具体，指出该走哪个内核契约。
+     */
+    public function test_module_dependencies_stay_within_allowlist(): void
+    {
+        $edges = $this->moduleEdges();
+        $unknown = array_values(array_diff(array_keys($edges), self::ALLOWED_MODULE_EDGES));
+
+        $this->assertSame(
+            [],
+            $unknown,
+            '模块间出现了不在白名单里的依赖边。'
+            .'当前边：'.implode(', ', array_keys($edges))
+            .'；允许：'.implode(', ', self::ALLOWED_MODULE_EDGES)
+            ."\n有模块引用了另一模块，先问一句：能不能改走 App\Contracts 里的内核契约？"
+            ."不能时在 ALLOWED_MODULE_EDGES 里登记这条边并写明理由。"
+        );
+    }
+
+    /**
      * 共享内核不得依赖任何模块（依赖方向只能向内）。
      *
      * 已登记的例外：bootstrap/app.php 的 stock.snapshot 别名指向 Business 的
@@ -113,8 +193,10 @@ class ArchitectureTest extends TestCase
             $bad,
             'app/ 依赖了模块代码（依赖倒置）。共享内核不得 import Modules\\：'
             ."\n".implode("\n", $bad)
-            .'模块自有中间件请放到 modules/<M>/Http/Middleware/，'
-            .'别名在该模块 Provider 的 boot() 里 Route::middlewareAliases() 注册。'
+            ."模块自有中间件请放到 modules/<M>/Http/Middleware/；"
+            ."中间件别名仍统一在 bootstrap/app.php 的 middlewareAliases() 里注册"
+            ."（别名表是全局中间件词汇表，属配置而非代码耦合，"
+            ."该处已登记为「app/ 不依赖模块」的唯一例外）。"
         );
     }
 
