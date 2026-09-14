@@ -113,6 +113,21 @@ laradmin/
 
 **禁止在服务器上手动执行 `npm run build`**：服务器仅 2G 内存，跑 Vite 会把整机拖死（历史教训，详见 DEPLOY.md）。
 
+## 测试
+
+项目此前**没有任何测试**（`phpunit.xml` 已配置，但 `tests/` 目录缺失），现已补上。
+
+```bash
+# 需要一个 MySQL 测试库（迁移含 MySQL 专有语法，SQLite 无法执行）
+mysql -uroot -p -e "CREATE DATABASE laradmin_test"
+
+DB_CONNECTION=mysql DB_HOST=127.0.0.1 DB_DATABASE=laradmin_test php artisan test
+```
+
+- 测试在每次 push / PR 时由 GitHub Actions 自动运行（`.github/workflows/tests.yml`）
+- 约定：**先写测试，再重构**，测试与被重构模块同目录对应（见 `tests/Feature/Business/`）
+- 目前覆盖：库存核心服务（入库累加 / 出库扣减 / 库存不足 / 失败回滚 / 列表筛选 / 统计）
+
 ## 开源协议
 
 本项目采用 [MIT](LICENSE) 协议开源。
