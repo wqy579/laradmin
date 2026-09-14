@@ -1,0 +1,42 @@
+# ============================================================================
+# LarAdmin 内部部署手册 —— nginx Basic Auth 配置片段（示例）
+#
+# 用途：让团队能「网页随时打开」完整部署手册，但公网扫不到。
+# 做法：仅给内部版页面 deploy-guide-internal.html 加口令，公开的
+#       deploy-guide.html（对外访问说明）保持无口令、不含敏感信息。
+#
+# 前提：站点已走 HTTPS（https://laravel.qjwykj.com），Basic Auth 的账号口令
+#       才会被 TLS 加密，不会被明文抓包。
+# ============================================================================
+
+# —— 把下面这段 location 放进站点的 server 块内 ——
+location = /docs/deploy-guide-internal.html {
+    auth_basic "LarAdmin Internal Docs";
+    auth_basic_user_file /etc/nginx/.htpasswd-laradmin;
+}
+
+# ============================================================================
+# 服务器端一次性准备口令文件（不在 web 根目录、也不入库）
+# ============================================================================
+#
+# 1) 安装 htpasswd 工具
+#    Ubuntu/Debian:  apt-get install -y apache2-utils
+#    CentOS/RHEL:    yum install -y httpd-tools
+#
+# 2) 生成口令文件（首次用 -c；之后新增/覆盖用户去掉 -c）
+#    htpasswd -c /etc/nginx/.htpasswd-laradmin ops
+#    （回车后输入两遍强口令，避免与任何 Git 凭据相同）
+#
+#    无 htpasswd 时可用 openssl 代替（-apr1 即 Apache MD5，nginx 支持）：
+#    echo "ops:$(openssl passwd -apr1)" >> /etc/nginx/.htpasswd-laradmin
+#
+# 3) 收紧权限：让 nginx 运行用户可读即可
+#    chown root:www /etc/nginx/.htpasswd-laradmin    # www = 宝塔 nginx 运行用户；
+#    chmod 640 /etc/nginx/.htpasswd-laradmin          # 系统自装 nginx 则多为 www-data
+#
+# 4) 校验并重载
+#    nginx -t && systemctl reload nginx
+#
+# 验证：浏览器打开 https://laravel.qjwykj.com/docs/deploy-guide-internal.html
+#       应弹出账号口令框；输入错误口令应被拒绝（401）。
+# ============================================================================

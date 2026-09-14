@@ -24,16 +24,22 @@ return new class extends Migration
             $table->string('name', 100)->comment('分类/品牌名称');
             $table->integer('sort_order')->default(0)->comment('排序');
             $table->boolean('is_active')->default(true)->comment('是否启用');
+            // 遗留列：2026_09_14_000001 会删除。必须保留以让历史迁移链可重放。
+            $table->integer('product_count')->default(0)->comment('商品数量');
             $table->timestamps();
             $table->index('parent_id');
         });
 
         // 产品
-        // 说明：旧版 category_id 列与 product_categories.product_count 冗余列已废弃移除，
-        // 分类归属使用 main_category_id / sub_category_id（见 2026_09_14_000001）
+        // 注意：category_id 是 2026-08-31 的原始列，后续 2026_09_03 追加
+        // main_category_id / sub_category_id，再由 2026_09_14_000001 删除。
+        // 不能在本处提前移除——否则 2026_09_03 的 ->after('category_id') 在全新
+        // 环境会报 1054 Unknown column，导致 migrate:fresh 中断。
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->string('name', 200)->comment('产品名称');
+            // 遗留列（外键），由 2026_09_14_000001 删除；保留以支撑历史迁移链
+            $table->foreignId('category_id')->nullable()->constrained('product_categories')->nullOnDelete();
             $table->string('spec', 100)->nullable()->comment('规格');
             $table->string('code', 50)->nullable()->index()->comment('产品编码');
             $table->string('barcode_large', 50)->nullable()->comment('大码条码');
@@ -70,6 +76,19 @@ return new class extends Migration
             $table->string('contact', 50)->nullable()->comment('联系人');
             $table->string('phone', 20)->nullable()->comment('电话');
             $table->boolean('is_active')->default(true)->comment('是否启用');
+            $table->timestamps();
+        });
+
+        // 路线（必须先于 customers 创建：customers.route_id 外键指向本表）
+        Schema::create('routes', function (Blueprint $table) {
+            $table->id();
+            $table->string('code', 30)->unique()->comment('路线编码');
+            $table->string('name', 100)->comment('路线名称');
+            $table->string('area', 100)->nullable()->comment('区域');
+            $table->foreignId('employee_id')->nullable()->constrained('auth_user')->nullOnDelete();
+            $table->integer('sort_order')->default(0)->comment('排序');
+            $table->boolean('is_active')->default(true)->comment('是否启用');
+            $table->text('remark')->nullable()->comment('备注');
             $table->timestamps();
         });
 
@@ -123,19 +142,6 @@ return new class extends Migration
             $table->string('driver_phone', 20)->nullable()->comment('司机电话');
             $table->string('vehicle_type', 50)->nullable()->comment('车辆类型');
             $table->decimal('load_capacity', 10, 2)->nullable()->comment('载重');
-            $table->boolean('is_active')->default(true)->comment('是否启用');
-            $table->text('remark')->nullable()->comment('备注');
-            $table->timestamps();
-        });
-
-        // 路线
-        Schema::create('routes', function (Blueprint $table) {
-            $table->id();
-            $table->string('code', 30)->unique()->comment('路线编码');
-            $table->string('name', 100)->comment('路线名称');
-            $table->string('area', 100)->nullable()->comment('区域');
-            $table->foreignId('employee_id')->nullable()->constrained('auth_user')->nullOnDelete();
-            $table->integer('sort_order')->default(0)->comment('排序');
             $table->boolean('is_active')->default(true)->comment('是否启用');
             $table->text('remark')->nullable()->comment('备注');
             $table->timestamps();

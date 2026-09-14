@@ -83,3 +83,6 @@ public/config.js
 resources/admin/
 workspace/
 scripts/
+
+# PHPUnit
+.phpunit.result.cache

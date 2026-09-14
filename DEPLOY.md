@@ -2,7 +2,7 @@
 
 > 最后更新：2026-09-14
 > 状态：✅ 全链路已跑通（云端构建 → 自动部署 → 服务器验证 200）
-> 网页版：`https://laravel.qjwykj.com/docs/deploy-guide.html`（部署后可直接访问）
+> 对外访问说明页：`https://laravel.qjwykj.com/docs/deploy-guide.html`（面向协作方，已去除运维敏感信息；完整部署手册以本文件为准）
 
 ---
 
@@ -117,6 +117,25 @@ curl -I https://laravel.qjwykj.com/admin/        # 期望 HTTP 200
 
 > 服务器 `/root/.ssh/authorized_keys` 中已加入对应公钥。若更换服务器，需同步更新这 3 个值。
 
+### 部署密钥轮换（安全加固，建议执行一次）
+
+仓库曾短暂公开可读，部署密钥名 `github-actions-deploy-v2` 与用途已外泄（私钥本身未入库，但建议轮换）：
+
+```bash
+# 1. 生成新密钥对
+ssh-keygen -t ed25519 -C "github-actions-deploy-v3" -f ~/.ssh/github-actions-deploy-v3
+
+# 2. 公钥追加到服务器（在服务器上执行）
+cat ~/.ssh/github-actions-deploy-v3.pub >> /root/.ssh/authorized_keys
+
+# 3. 更新 GitHub Secrets：SERVER_SSH_KEY 改为新私钥全文
+#    （Settings → Secrets and variables → Actions → SERVER_SSH_KEY → Update）
+
+# 4. 验证部署正常后，删除旧公钥行，作废旧私钥
+```
+
+> 切勿把新旧私钥写入本仓库或 `.env`。
+
 ---
 
 ## 七、重要注意事项（必读）
@@ -125,8 +144,8 @@ curl -I https://laravel.qjwykj.com/admin/        # 期望 HTTP 200
 现在构建全部在 GitHub 云端完成。**不要在服务器上运行 `npm run build`**——2G 内存机器跑 vite 会卡死整机（历史教训）。服务器只需要：
 ```bash
 cd /www/wwwroot/laradmin
-php8.4 artisan migrate --force      # 数据库迁移
-php8.4 artisan config:clear         # 清缓存
+php8.5 artisan migrate --force      # 数据库迁移
+php8.5 artisan config:clear         # 清缓存
 systemctl restart laravels          # 重启服务
 ```
 
@@ -145,5 +164,33 @@ systemctl restart laravels          # 重启服务
 
 ### 5. 其他
 - 路由含闭包，**不要执行 `php artisan route:cache`**（会失败），部署脚本用的是 `route:clear`。
-- PHP 命令用 `php8.4`（默认 `php8.5` 缺 mbstring）。
+- PHP 命令统一用 `php8.5`（mbstring 缺口由 `app/Support/mb_polyfill.php` 兜底补齐，见 `composer.json` 的 autoload files）。
 - 若修改了 `.github/workflows/deploy.yml`（构建流程），直接 push 即可生效。
+
+---
+
+## 八、内部部署手册网页版（可选，口令访问）
+
+对外访问说明页（`/docs/deploy-guide.html`）已去除运维敏感信息；团队内部如需「网页随时可看」的完整版，仓库已提供：
+
+- 内部页面：`public/docs/deploy-guide-internal.html`（部署后位于 `https://laravel.qjwykj.com/docs/deploy-guide-internal.html`）
+- nginx Basic Auth 配置片段：`deploy/nginx-internal-docs.conf.example`（在仓库 `deploy/` 目录，不放 web 根目录，避免被公网访问）
+
+**启用步骤（服务器上一次性执行）：**
+
+```bash
+# 1. 生成口令文件（首次用 -c；换口令直接重新执行并覆盖）
+apt-get install -y apache2-utils                      # Ubuntu/Debian；CentOS 用 httpd-tools
+htpasswd -c /etc/nginx/.htpasswd-laradmin ops         # 回车后输入两遍强口令
+chown root:www /etc/nginx/.htpasswd-laradmin          # www = 宝塔 nginx 运行用户（系统自装多为 www-data）
+chmod 640 /etc/nginx/.htpasswd-laradmin
+
+# 2. 把 deploy/nginx-internal-docs.conf.example 中的 location 段放进站点 server 块
+
+# 3. 校验并重载
+nginx -t && systemctl reload nginx
+```
+
+> - 口令文件只存在于服务器 `/etc/nginx/`（不在 web 根目录、也不入库），不会被下载。
+> - 站点已 HTTPS，Basic Auth 口令走 TLS 加密，可安全使用。
+> - 口令请用强随机值，且不要与任何 Git 凭据相同。
