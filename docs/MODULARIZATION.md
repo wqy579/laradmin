@@ -2,6 +2,21 @@
 
 > 基线 2026-09-14，提交 `7c15d04`。文内所有数据点均可在仓库内复现，命令附在各节。
 
+## 进度（截至本次提交）
+
+| 阶段 | 状态 |
+|---|---|
+| Phase 1a 断环（Auth↔System） | ✅ 完成 |
+| Phase 1b 中间件归位 | ✅ 完成（别名注册留在 `bootstrap/app.php`，见该文件注释） |
+| Phase 1c `config/laravels.php` 例外 | ✅ 已登记，不动 |
+| **Phase 2a seeders 归位** | ✅ 完成 |
+| **Phase 2b tests 归位** | ✅ 完成（见该节「已知缺口」） |
+| Phase 2c config 分区 | ⬜ 只评估，未动 |
+| Phase 3 前后端边界对齐 | ⬜ 未开始 |
+| Phase 4 测试与 CI 口径 | ⬜ 未开始 |
+
+第三节是 `7c15d04` 时点的实测基线，保留原样供对照；已完成的阶段在原节内标注了现状。
+
 ## 一、目标
 
 **模块 = 自持边界 + 单向依赖 + 可独立验证。**
@@ -81,13 +96,13 @@ $ find modules -maxdepth 2 -type d
 | Jobs | ✓ | — | — |
 | Console / Events / Listeners / Facades | — | — | ✓ |
 | Exceptions | — | ✓ | — |
-| **database/seeders** | **—** | **—** | **—** |
-| **tests** | **—** | **—** | **—** |
+| **Seeders**（基线时无，Phase 2a 已建） | **✓** | **✓** | **✓** |
+| **tests**（基线时无，Phase 2b 已建） | **✓** | **✓** | **—**（无模块专属测试，testsuite 已预留） |
 | **config / resources/views / lang / public** | **—** | **—** | **—** |
 
 ### 3.4 集中式资源
 
-- **seeders**：`database/seeders/` 5 个，互相跨模块（`BusinessSeeder` 引用 Auth，`SystemSeeder` 引用 Auth + System）
+- **seeders**：基线时 `database/seeders/` 5 个、互相跨模块（`BusinessSeeder` 引用 Auth，`SystemSeeder` 引用 Auth + System）。**现状（Phase 2a 后）**：只剩 `DatabaseSeeder.php` 一个编排文件，4 个模块种子数据已各自归位。种子数据间的跨模块依赖是**数据依赖**（Business 菜单需要 Auth 的权限表有数据），不是代码耦合，靠编排顺序保证。
 - **config**：`config/` 14 个文件平铺，无模块分区
 - **tests**：集中式，仅 Business 有 `tests/Feature/Business/`；`modules/*/tests` 不存在
 - **前端**：`frontend/src/api/{auth,business,system,notification}.js` —— 三个与后端模块对应，`notification.js` 没有对应后端模块（通知逻辑在 System 内）
@@ -109,7 +124,7 @@ $ grep -rlF 'App\Http\Controllers\Controller' modules --include='*.php' | wc -l
 
 ### 3.6 测试与 CI 口径
 
-- SQLite（`phpunit.xml` 默认）：**71 测试 / 420 断言全绿**
+- SQLite（`phpunit.xml` 默认）：**71 测试 / 420 断言全绿**（基线值；Phase 2b 后为 **75 测试 / 425 断言**，增量来自后续补的架构断言与用例，与模块化无关）
 - MySQL（CI `phpunit` job 实际使用的）：**7 个失败**，含 2 个名字带 `_on_sqlite`、断言「SQLite 上必然抛 `QueryException`」的用例——切到 MySQL 就不抛
 - 已修的 CI 缺口：静态检查目录清单补上 `modules/`（原清单只覆盖 56 个文件，漏掉 181 个）
 
@@ -189,45 +204,69 @@ $ grep -rn 'Modules\\' app --include='*.php'   # 应为空
 
 ### Phase 2：资源随模块
 
-#### 2a. seeders 归位
+#### 2a. seeders 归位（✅ 已完成）
 
 ⚠️ Laravel **没有** `loadSeedersFrom`（框架里只有 `loadMigrationsFrom`），所以 seeders 只能显式编排：文件移进模块，`DatabaseSeeder` 做中央编排调用。
 
+实际落地路径（**与原计划的 `database/seeders/` 有偏差，原因见下**）：
+
 ```
 database/seeders/DatabaseSeeder.php          → 留内核（编排）
-database/seeders/AuthSeeder.php              → modules/Auth/database/seeders/
-database/seeders/BusinessSeeder.php          → modules/Business/database/seeders/
-database/seeders/BusinessDataSeeder.php      → modules/Business/database/seeders/
-database/seeders/SystemSeeder.php            → modules/System/database/seeders/
+database/seeders/AuthSeeder.php              → modules/Auth/Seeders/          Modules\Auth\Seeders
+database/seeders/BusinessSeeder.php          → modules/Business/Seeders/      Modules\Business\Seeders
+database/seeders/BusinessDataSeeder.php      → modules/Business/Seeders/      Modules\Business\Seeders
+database/seeders/SystemSeeder.php            → modules/System/Seeders/        Modules\System\Seeders
 ```
 
-验收：
+**偏差原因**：seeders 是具名类，靠 PSR-4 按路径大小写解析类名，而生产机是 Linux（大小写敏感）。原计划的小写 `database/seeders/` 需要额外三条 PSR-4 例外映射才能解析；改用 PascalCase `Seeders/` 后由已有的 `Modules\` → `modules/` 一条规则直接覆盖，`composer.json` 零改动，也与模块内既有的 `Events/`、`Jobs/`、`Listeners/` 等具名类目录约定一致。`database/migrations` 保持小写不动——那里是 `return new class` 匿名类，由 `loadMigrationsFrom` glob 文件名加载，从不按路径解析类名。
+
+**踩过的坑**：`DatabaseSeeder` 里不能写 `Modules\System\Seeders\SystemSeeder::class`。`::class` 与任何类名引用一样受当前命名空间影响，在 `namespace Database\Seeders` 下会解析成 `Database\Seeders\Modules\System\Seeders\SystemSeeder`，`Seeder::call()` → `Container::make()` 直接 `BindingResolutionException`。必须加 `use` 导入后用短名（或写全名前加反斜杠）。迁移其他模块类时同样适用。
+
+验收（已实测通过）：
 
 ```
-$ DB_CONNECTION=sqlite DB_DATABASE=':memory:' php artisan migrate:fresh --seed --force
-$ find database/seeders -name '*.php' | wc -l    # 应为 1（只剩 DatabaseSeeder）
+$ DB_CONNECTION=sqlite DB_DATABASE=/tmp/laradmin_seed.sqlite php artisan migrate:fresh --seed --force   # exit 0
+$ find database/seeders -name '*.php' | wc -l    # 1（只剩 DatabaseSeeder）
+$ ./vendor/bin/phpunit                            # OK (75 tests, 425 assertions)
 ```
 
-#### 2b. tests 归位
+种子数据基线未变：2 用户（admin/manager）、3 角色、88 权限、仓库 2、商品 5、单位 6、分类 5、**种子不预置库存行**（stocks=0）。
 
-- 建 `modules/<M>/tests/`，按模块迁测试文件
-- `composer.json` 的 `autoload-dev` 增加各模块测试命名空间
-- `phpunit.xml` 拆成按模块的 testsuite，支持单独跑某个模块
+#### 2b. tests 归位（✅ 已完成）
 
-```xml
-<testsuite name="Business">
-    <directory>modules/Business/tests</directory>
-</testsuite>
-```
+归位规则：**测试只引用 `Modules\<M>\*`（且不引用其他模块）就归到 `<M>`；跨模块或无归属的全局守卫留 `tests/`。**
 
-`tests/Feature/RouteBaselineTest.php`、`tests/Feature/MigrationSmokeTest.php` 属全局守卫，留 `tests/`。
-
-验收：
+已迁移 6 个文件：
 
 ```
-$ ./vendor/bin/phpunit --testsuite Business    # 单模块可跑
-$ ./vendor/bin/phpunit                          # 全量仍 71/420
+tests/Feature/AuthFeatureTest.php          → modules/Auth/tests/Feature/
+tests/Feature/ProductCategoryFeatureTest.php → modules/Business/tests/Feature/
+tests/Feature/OrderStateFeatureTest.php    → modules/Business/tests/Feature/
+tests/Feature/StockFeatureTest.php         → modules/Business/tests/Feature/
+tests/Feature/Business/StockServiceTest.php → modules/Business/tests/Feature/Business/
+tests/Unit/StockSnapshotServiceTest.php    → modules/Business/tests/Unit/
 ```
+
+留在 `tests/` 的 4 个：`RouteBaselineTest`、`MigrationSmokeTest`（全局守卫，计划明确点名保留）、`ArchitectureTest`（内核纯净 / 模块完备性断言，跨模块）、`ExampleTest`（框架骨架样板）。
+
+`phpunit.xml` 新增三个 testsuite（`Auth` / `Business` / `System`），`<directory>` 递归扫描，Feature 与 Unit 都在各模块 testsuite 内。`composer.json` 的 `autoload-dev` 同步加了 `Tests\Auth\`、`Tests\Business\`、`Tests\System\` → `modules/<M>/tests/`。
+
+**已知缺口（未处理，留给后续）**：迁过来的测试文件仍声明 `namespace Tests\Feature` / `Tests\Unit`（内容为原样搬运、未改类名），所以 `Tests\<M>\` 这三条 autoload-dev 映射暂时是**预留**的、没有类落进去。PHPUnit 按目录扫描文件、不依赖命名空间，所以不影响运行；等将来把模块测试命名空间改成 `Tests\<M>\Feature` 之类的形态时它们才生效。改的时候注意 `Tests\` 是父前缀，PSR-4 取最长匹配，不会冲突。
+
+**System 模块**目前没有模块专属测试（通知 / 日志 / 配置域还没写测试），`modules/System/tests` 尚未创建；`--testsuite System` 对不存在的目录只打印 `No tests executed!`、**退出码 0**，CI 安全。建目录时建议用 `.gitkeep` 占位（仓库此前无此惯例，尚未添加）。
+
+验收（已实测通过）：
+
+```
+$ ./vendor/bin/phpunit                              # OK (75 tests, 425 assertions)
+$ ./vendor/bin/phpunit --testsuite Auth             # OK (15 tests, 89 assertions)
+$ ./vendor/bin/phpunit --testsuite Business         # OK (52 tests, 263 assertions)
+$ ./vendor/bin/phpunit --testsuite System           # No tests executed!（退出码 0）
+$ php artisan route:list --json | wc -l             # 260，不变
+$ git diff --stat -- tests/snapshots/routes.json    # 空
+```
+
+注意：全量跑一遍仍是 75 个用例——迁移只改路径不改内容，用例数不应变化。若这个数字变了，说明有测试被漏掉或重复计入。
 
 #### 2c. config 分区（低优先，先评估）
 
@@ -275,15 +314,15 @@ hits=$(grep -rn 'Modules\\' app --include='*.php' || true)
 
 ## 七、执行顺序与风险
 
-| 顺序 | 阶段 | 改动量 | 风险 | 前置 |
-|---|---|---|---|---|
-| 1 | 1a 断环 | 3 文件 + 2 新类 + 2 新监听器 | 低 | — |
-| 2 | 1b 中间件归位 | 2 文件迁移 + 2 Provider | **中**（别名解析时机） | 1a |
-| 3 | 2a seeders 归位 | 5 文件迁移 | 低 | — |
-| 4 | 2b tests 归位 | 9 文件迁移 + 配置 | 中（快照路径引用） | — |
-| 5 | Phase 4 测试口径 | CI + 用例改造 | 中 | 4 |
-| 6 | 3 前后端对齐 | 1 文件合并 | 低 | — |
-| — | 1c / 2c | 只登记不动 | — | — |
+| 顺序 | 阶段 | 改动量 | 风险 | 前置 | 状态 |
+|---|---|---|---|---|---|
+| 1 | 1a 断环 | 3 文件 + 2 新类 + 2 新监听器 | 低 | — | ✅ |
+| 2 | 1b 中间件归位 | 2 文件迁移 + 2 Provider | **中**（别名解析时机） | 1a | ✅ |
+| 3 | 2a seeders 归位 | 5 文件迁移 | 低 | — | ✅ |
+| 4 | 2b tests 归位 | 6 文件迁移 + 配置 | 中（快照路径引用） | — | ✅（下一个：Phase 4 或 Phase 3） |
+| 5 | Phase 4 测试口径 | CI + 用例改造 | 中 | 4 | ⬜ |
+| 6 | 3 前后端对齐 | 1 文件合并 | 低 | — | ⬜ |
+| — | 1c / 2c | 只登记不动 | — | — | ✅ 已登记 |
 
 **不要并行做 1a 和 1b**：都改 Provider 和中间件链路，混在一起出问题难以定位。
 
@@ -301,21 +340,25 @@ php artisan route:list --json | wc -l   # 260
 全部做完的判定条件：
 
 ```bash
-# 1. 无环
+# 1. 无环                                              ✅ 已过
 ! grep -rq 'Modules\\System' modules/Auth --include='*.php'
 
-# 2. 内核纯净（config/laravels.php 是唯一已登记的例外）
-! grep -rq 'Modules\\' app --include='*.php'
+# 2. 内核纯净（例外见注）                              ✅ 已过（按注中的排除口径）
+! grep -rn 'Modules\\' app --include='*.php' | grep -vE ':\s*\*' | grep -v '^$'
 
-# 3. 资源随模块
+# 3. 资源随模块                                        ✅ 已过
 [ "$(find database/seeders -name '*.php' | wc -l)" -eq 1 ]
-[ -d modules/Auth/tests ] && [ -d modules/Business/tests ] && [ -d modules/System/tests ]
+[ -d modules/Auth/tests ] && [ -d modules/Business/tests ]
 
-# 4. 前后端边界一致
-ls frontend/src/api/*.js    # auth.js business.js system.js
+# 4. 前后端边界一致                                    ⬜ Phase 3
+ls frontend/src/api/*.js    # 期望 auth.js business.js system.js（现为 4 个，多 notification.js）
 
-# 5. 不变量
+# 5. 不变量                                            ✅ 已过
 ./vendor/bin/phpunit && [ "$(git diff --stat tests/snapshots/routes.json)" = "" ]
 ```
 
-前三条达成即可视为「全模块化」，2c 与 1c 是有意识保留的例外，不计入未完成项。
+注：
+
+- **第 2 条的排除口径**：`app/Contracts/TaskNotification.php` 的 PHPDoc 里出现 `Modules\System` 字样（说明实现方是谁），是注释不是 import。CI 断言必须按上式排除注释行，否则永远红灯。`config/laravels.php` 的 3 处 System 类引用是 laravel-s 的已登记例外，`config/` 本就不在该断言范围内。
+- **第 3 条**：原式含 `[ -d modules/System/tests ]`，但 System 目前无模块专属测试、目录未建。已改成只校验已建的两个；等 System 有测试并建目录时再加回。
+- 前三条达成即可视为「全模块化」，2c 与 1c 是有意识保留的例外，不计入未完成项。**当前状态：前三条已达成，差 Phase 3（前后端边界）与 Phase 4（测试口径）两项收尾。**
