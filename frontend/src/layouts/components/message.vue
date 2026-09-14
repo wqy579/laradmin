@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import { useResponsive } from '../../hooks/useResponsive'
 import { useNotificationStore } from '../../stores/modules/notification'
 import { useDictionaryStore } from '../../stores/modules/dictionary'
-import notificationApi from '../../api/notification'
+import systemApi from '@/api/system'
 import service from '../../utils/request'
 
 const { isMobile } = useResponsive()
@@ -99,7 +99,7 @@ async function fetchData(append = false) {
 		if (activeTab.value !== 'all') {
 			params.category = activeTab.value
 		}
-		const res = await notificationApi.notification.list.get(params)
+		const res = await systemApi.notification.list.get(params)
 		if (res.code === 200) {
 			if (append) {
 				allList.value.push(...res.data.list)

@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import notificationApi from '../../api/notification'
+import systemApi from '@/api/system'
 
 export const useNotificationStore = defineStore(
 	'notification',
@@ -15,7 +15,7 @@ export const useNotificationStore = defineStore(
 
 		async function fetchUnreadCount() {
 			try {
-				const res = await notificationApi.notification.unreadCount.get()
+				const res = await systemApi.notification.unreadCount.get()
 				if (res.code === 200) {
 					unreadCount.value = res.data.count ?? 0
 				}
@@ -29,7 +29,7 @@ export const useNotificationStore = defineStore(
 			unreadLoading.value = true
 			try {
 				if (!append) unreadPage.value = 1
-				const res = await notificationApi.notification.unread.get({
+				const res = await systemApi.notification.unread.get({
 					page: unreadPage.value,
 					page_size: unreadPageSize.value,
 				})
@@ -56,7 +56,7 @@ export const useNotificationStore = defineStore(
 
 		async function markAsRead(id) {
 			try {
-				const res = await notificationApi.notification.markRead.post(id)
+				const res = await systemApi.notification.markRead.post(id)
 				if (res.code === 200) {
 					const idx = unreadList.value.findIndex((n) => n.id === id)
 					if (idx > -1) unreadList.value.splice(idx, 1)
@@ -69,7 +69,7 @@ export const useNotificationStore = defineStore(
 
 		async function markAllAsRead() {
 			try {
-				const res = await notificationApi.notification.readAll.post()
+				const res = await systemApi.notification.readAll.post()
 				if (res.code === 200) {
 					unreadList.value = []
 					unreadCount.value = 0
@@ -81,7 +81,7 @@ export const useNotificationStore = defineStore(
 
 		async function deleteNotification(id) {
 			try {
-				const res = await notificationApi.notification.delete.delete(id)
+				const res = await systemApi.notification.delete.delete(id)
 				if (res.code === 200) {
 					unreadList.value = unreadList.value.filter((n) => n.id !== id)
 					await fetchUnreadCount()
@@ -93,7 +93,7 @@ export const useNotificationStore = defineStore(
 
 		async function clearRead() {
 			try {
-				const res = await notificationApi.notification.clearRead.post()
+				const res = await systemApi.notification.clearRead.post()
 				if (res.code === 200) {
 					await fetchUnreadList()
 				}
