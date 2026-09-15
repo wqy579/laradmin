@@ -29,29 +29,20 @@ syncVxeTheme()
 const observer = new MutationObserver(() => syncVxeTheme())
 observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
 
-// 按需引入 Element Plus 图标：原先 import * 全量引入整个图标库（数百个组件），
-// 是构建内存峰值与主包体积的主要来源。这里只引入实际被模板引用的图标。
-import {
-	Aim, ArrowDown, ArrowLeft, ArrowRight, Back, Bell, Bottom, Box, Check, CircleCheck,
-	CircleClose, Clock, Close, CloseBold, Connection, CopyDocument, DataAnalysis, DataBoard,
-	Delete, Document, Download, Edit, Expand, Files, Fold, Folder, FolderOpened, FullScreen,
-	Grid, Headset, Histogram, Link, List, Location, Lock, Memo, Menu, Message, Minus, Money,
-	Monitor, MoreFilled, OfficeBuilding, Picture, PictureFilled, Platform, Plus, Rank, Refresh,
-	RefreshRight, Right, Search, Setting, ShoppingCart, Sort, SwitchButton, Top, TrendCharts,
-	Upload, User, UserFilled, VideoCamera, View, Wallet, Warning, ZoomIn,
-} from '@element-plus/icons-vue'
+// 图标全量注册，不做"只注册模板里用到的"白名单。三个理由：
+// ① 菜单图标存在 auth_permission.meta.icon 里，运行时才拿到名字。白名单靠静态扫模板
+//    得出，永远列不全；漏一个，菜单渲染成空 <el-icon>，且不报任何错。首页图标
+//    （ElIconHomeFilled）就是这么丢的。
+// ② sIconSelect 给出全量名称列表（Element 293 + Ant 790），用户选中的名字原样写进
+//    数据库。注册集合必须 ⊇ 可选项集合，否则"选了就看不见"。
+// ③ 体积上白名单其实没省：sIconSelect 为了取名称列表本来就已 import * 全量引入整库
+//    （见 sIconSelect/index.vue 对 ./element-icons、./ant-icons 的引用），
+//    注册多少不影响打进包里多少。
+import { allIcons as elementIcons } from './components/sIconSelect/element-icons'
+import { allIcons as antIcons } from './components/sIconSelect/ant-icons'
 
-const ELEMENT_ICONS = {
-	Aim, ArrowDown, ArrowLeft, ArrowRight, Back, Bell, Bottom, Box, Check, CircleCheck,
-	CircleClose, Clock, Close, CloseBold, Connection, CopyDocument, DataAnalysis, DataBoard,
-	Delete, Document, Download, Edit, Expand, Files, Fold, Folder, FolderOpened, FullScreen,
-	Grid, Headset, Histogram, Link, List, Location, Lock, Memo, Menu, Message, Minus, Money,
-	Monitor, MoreFilled, OfficeBuilding, Picture, PictureFilled, Platform, Plus, Rank, Refresh,
-	RefreshRight, Right, Search, Setting, ShoppingCart, Sort, SwitchButton, Top, TrendCharts,
-	Upload, User, UserFilled, VideoCamera, View, Wallet, Warning, ZoomIn,
-}
-
-// @ant-design/icons-vue 由 sIconSelect 内部按需使用，不再全量注册到全局
+// ElIcon* 对应 Element Plus，AIcon* 对应 Ant Design，前缀约定与 sIconSelect 拼
+// fullName 的规则一致，数据库里存的字符串可直接用于 <component :is="...">。
 export default function boot(app) {
 	app.component('sTable', sTable)
 	app.component('sSelect', sSelect)
@@ -60,9 +51,11 @@ export default function boot(app) {
 	app.component('sUpload', sUpload)
 	app.component('sUploadFile', sUploadFile)
 
-	// 注册实际用到的 Element Plus 图标（ElIcon 前缀）
-	for (const [name, component] of Object.entries(ELEMENT_ICONS)) {
+	for (const [name, component] of Object.entries(elementIcons)) {
 		app.component(`ElIcon${name}`, component)
+	}
+	for (const [name, component] of Object.entries(antIcons)) {
+		app.component(`AIcon${name}`, component)
 	}
 
 	app.use(pinia)
