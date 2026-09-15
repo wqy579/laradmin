@@ -75,6 +75,82 @@ class RouteBaselineTest extends TestCase
     }
 
     /**
+     * 闭包路由里调用的 Artisan 命令必须真的注册过。
+     *
+     * 上面那条 test_every_class_based_route_points_to_existing_method 遇到
+     * `$action === 'Closure'` 就直接跳过——闭包路由是它的盲区，而闭包恰恰是「命令名写错」
+     * 最容易发生的地方：字符串拼错了路由照样注册成功，route:list 一切正常，只有被调用
+     * 才抛 "Command ... is not defined"。
+     *
+     * 真实案例：POST /admin/import/old-system 调用 import:old-system，该命令从初始导入
+     * （6b30f8b）起就从未实现过，接口一调必然 500，且快照比对、类方法校验两道防线都放过。
+     */
+    public function test_artisan_commands_referenced_by_routes_are_registered(): void
+    {
+        Artisan::call('list', ['--raw' => true]);
+        $raw = (string) Artisan::output();
+        $this->assertNotEmpty($raw, 'artisan list 输出为空，命令发现可能整体失败');
+
+        // list --raw 每行是「命令名 + 空白 + 描述」，只取第一个词才是命令名
+        $registered = array_values(array_unique(
+            array_map(
+                fn (string $line) => strtok(trim($line), " \t"),
+                preg_split('/\r?\n/', trim($raw)) ?: []
+            )
+        ));
+
+        // Artisan::call('cmd') 与 app(Kernel::class)->call('cmd') 两种写法都要扫
+        $patterns = [
+            "/Artisan::call\(\s*['\"]([A-Za-z][\w:-]*)['\"]/",
+            "/->call\(\s*['\"]([A-Za-z][\w:-]*)['\"]/",
+        ];
+
+        $refs = [];
+        foreach ($this->routeFiles() as $file) {
+            $source = (string) file_get_contents($file);
+            $origin = str_replace(base_path().'/', '', $file);
+
+            foreach ($patterns as $pattern) {
+                if (preg_match_all($pattern, $source, $matches) === false) {
+                    continue;
+                }
+
+                foreach ($matches[1] as $command) {
+                    $refs[$command][] = $origin;
+                }
+            }
+        }
+
+        $missing = [];
+        foreach ($refs as $command => $files) {
+            if (!in_array($command, $registered, true)) {
+                $missing[] = "$command  →  ".implode(', ', array_unique($files));
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $missing,
+            "以下路由调用的 Artisan 命令未注册，调用必然抛 Command ... is not defined：\n"
+            .implode("\n", $missing)
+            ."\n新增闭包路由时，先确认 artisan list 里有该命令，或者在 modules/*/Console/Commands 下实现它。"
+        );
+    }
+
+    /**
+     * 所有路由定义文件：内核 routes/ + 各模块 routes/。
+     */
+    private function routeFiles(): array
+    {
+        $files = glob(base_path('routes/*.php')) ?: [];
+        foreach (glob(base_path('modules/*/routes/*.php')) ?: [] as $moduleFile) {
+            $files[] = $moduleFile;
+        }
+
+        return $files;
+    }
+
+    /**
      * 前后端契约：前端 API 层声明过的接口，后端必须真的存在，而且必须要求管理员鉴权。
      *
      * frontend/src/api/*.js 是「调用方契约」，后端路由表是实现。两边不一致时

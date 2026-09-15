@@ -2265,18 +2265,6 @@
     },
     {
         "method": "POST",
-        "uri": "admin/import/old-system",
-        "name": "admin.",
-        "action": "Closure",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
         "uri": "admin/remote/migrate",
         "name": "admin.",
         "action": "Closure",
