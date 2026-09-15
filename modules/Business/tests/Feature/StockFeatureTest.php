@@ -37,11 +37,12 @@ class StockFeatureTest extends TestCase
             'cost_price' => 1.5,
         ]);
 
-        // 已知缺陷（测试当前为红）：updateOrCreate 的 values 里使用 DB::raw('quantity + 5')，
-        // 在“该 (商品,仓库) 组合还没有库存行”的插入路径上生成
+        // 回归保护：新品首单入库。早期实现用
+        //   Stock::updateOrCreate([...], ['quantity' => DB::raw('quantity + 5')])
+        // 在「该 (商品,仓库) 组合还没有库存行」的插入路径上生成
         //   insert into stocks (..., quantity, ...) values (..., quantity + 5, ...)
-        // SQLite 报 no such column: quantity，MySQL 也会报 1054 —— 新品首次入库必然失败。
-        // 期望正确行为：HTTP 200 且创建 quantity=5 的库存行。
+        // SQLite 报 no such column: quantity，MySQL 也报 1054——新品首次入库必然失败。
+        // 现已收敛到 StockService::stockIn()（查无则 create、有则累加），此处守住这条路径。
         $response->assertStatus(200);
 
         $this->assertDatabaseHas('stocks', [

@@ -65,6 +65,13 @@ return Application::configure(basePath: dirname(__DIR__))
 		// 功能正常但 route:list 会把这些别名解析成完整类名、而 withMiddleware 注册的
 		// 仍显示别名名——同一份快照里两种表示法，且依赖 afterResolving(HttpKernel)
 		// 的注册时机。集中声明更直观，快照也稳定。
+
+		// 常驻进程（laravel-s）下必须：容器单例跨请求复用，不清就会把上一个用户的
+		// JWT 身份漏给下一个请求。prepend 让它排在全局栈最前（TrustProxies 之前），
+		// 任何中间件读到状态之前先被清空。
+		// 这是全局中间件、不进路由栈，所以 route:list 的路由表快照不受影响。
+		$middleware->prepend(\App\Http\Middleware\FlushRequestState::class);
+
 		$middleware->alias([
 			'auth.check' => \Modules\Auth\Http\Middleware\AuthCheckMiddleware::class,
 			'log.request' => \Modules\System\Http\Middleware\LogRequestMiddleware::class,

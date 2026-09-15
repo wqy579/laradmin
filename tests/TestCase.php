@@ -20,14 +20,10 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
-        // 用例间隔离：清空进程内缓存（包含登录限流计数、幂等标记），避免用例串扰
+        // 用例间隔离：清空进程内缓存（包含登录限流计数、幂等标记），避免用例串扰。
+        // 顺带清掉「今日已快照」标记：StockSnapshotService 现在是可移植写法，
+        // 中间件不再需要在测试里被预先短路。
         Cache::flush();
-
-        // StockSnapshotService::snapshotToday() 使用 MySQL 专用 SQL（CURDATE()/NOW()/ON DUPLICATE KEY），
-        // 在 SQLite 测试库上会抛 QueryException，且 StockSnapshotMiddleware 不捕获该异常，
-        // 导致所有 /admin/* 请求直接 500。这里预热“今日已快照”标记让中间件短路；
-        // 快照服务自身的行为在 Unit\StockSnapshotServiceTest 中单独验证。
-        Cache::put('stock_snapshot_last_date', now()->toDateString(), now()->addDays(2));
     }
 
     /**
@@ -52,14 +48,46 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * 创建并以 admin guard 身份登录
+     * 创建一个绑定 super_admin 角色的后台用户，并以真实 JWT 身份登录
+     *
+     * 保留 actingAsAdmin() 这个名字是为了不改 50 多处调用点，但实现必须走真实 token：
+     * 生产是常驻进程（laravel-s），身份只可能来自请求上的 Authorization 头，
+     * FlushRequestState 中间件会主动清掉 actingAs() 注入的 guard 身份，
+     * 用 actingAs() 在这里必然拿到 401——那不是测试写错，是它在假装一条不存在的链路。
      */
     protected function actingAsAdmin(array $attributes = []): User
     {
         $user = $this->makeAdmin($attributes);
-        $this->actingAs($user, 'admin');
+        $this->withToken($this->loginToken($user));
 
         return $user;
+    }
+
+    /**
+     * 为指定用户签发一枚真实 JWT（等价于走 login 端点，但不占登录限流计数）
+     */
+    protected function loginToken(User $user): string
+    {
+        return auth('admin')->login($user);
+    }
+
+    /**
+     * 重置 tymon/jwt 的进程内状态，让下一个 HTTP 请求重新走一遍鉴权。
+     *
+     * 测试进程里所有 $this->getJson() 复用同一个 app 实例，而 tymon/jwt 有两处
+     * 跨请求残留：
+     *  - `tymon.jwt` 单例缓存着上一次请求的 token，getToken() 不再解析本次
+     *    Authorization 头；
+     *  - JWTGuard 缓存着上一次请求解析出的 user，user() 直接返回缓存而不校验。
+     *
+     * 后果：refresh/登出后旧 token 本应被黑名单拦下，却因命中上一轮的缓存而
+     * 返回 200（黑名单完全没被问到）。生产环境每个请求都是新进程，不受影响。
+     * 凡是「同一用例里换 token 再请求」的地方，请求前调一次本方法。
+     */
+    protected function resetJwtState(): void
+    {
+        app('tymon.jwt')->unsetToken();
+        app('auth')->forgetGuards();
     }
 
     protected function makeCategory(array $attributes = []): ProductCategory

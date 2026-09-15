@@ -5,7 +5,7 @@ namespace Tests\Unit;
 use Modules\Business\Services\StockSnapshotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Database\QueryException;
+use Mockery;
 use Tests\TestCase;
 
 /**
@@ -14,25 +14,39 @@ use Tests\TestCase;
  * StockSnapshotMiddleware 挂在所有 /admin/* 路由上，每次请求调用
  * StockSnapshotService::checkAndSnapshot()。本类验证：
  *  1) 当日已处理过时中间件开销为零（缓存短路）；
- *  2) 快照写入 SQL 的可移植性现状（当前为 MySQL 专用语法）。
+ *  2) 快照写入可移植、幂等（MySQL 与 SQLite 都能跑，同日重复执行只更新不新增）；
+ *  3) 快照写失败不向外抛异常——它是旁路功能，不能把整个后台打挂。
  *
- * 注意：tests/TestCase.php 里预热了 stock_snapshot_last_date 缓存键，
- * 因此 Feature 用例不会踩到 2) 的 SQL；只有本类直接操作该缓存键。
+ * 快照 SQL 此前是 MySQL 专有语法（CURDATE()/NOW()/ON DUPLICATE KEY UPDATE），
+ * 在 SQLite 上必然抛 QueryException，测试只能在 tests/TestCase.php 里预热缓存键
+ * 把中间件短路绕过。现在已改为可移植写法，本类直接验证真实写入。
  */
 class StockSnapshotServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * 这两个用例断言的是「快照 SQL 不可移植」这个已知缺陷本身。
-     * 在 MySQL 上该 SQL 合法、不抛异常，断言失去意义，跳过；
-     * 必须放在 expectException 之前，否则跳不过去。
-     */
-    private function skipUnlessSqlite(): void
+    /** 往 stocks 表插一行库存，返回商品/仓库 id，供三个用例共用 */
+    private function seedStock(int $quantity = 7, int $frozen = 1): array
     {
-        if (\DB::getDriverName() !== 'sqlite') {
-            $this->markTestSkipped('本用例钉住 SQLite 上的不可移植缺陷，当前驱动 '.\DB::getDriverName());
-        }
+        $product = $this->makeProduct();
+        $warehouse = $this->makeWarehouse();
+
+        \DB::table('stocks')->insert([
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => $quantity,
+            'frozen_qty' => $frozen,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return [$product->id, $warehouse->id];
+    }
+
+    private function clearSnapshotCache(): void
+    {
+        Cache::forget('stock_snapshot_last_date');
+        Cache::forget('stock_snapshot_lock');
     }
 
     public function test_check_and_snapshot_skips_when_today_already_processed(): void
@@ -45,42 +59,71 @@ class StockSnapshotServiceTest extends TestCase
         $this->assertSame(0, (int) \DB::table('stock_snapshots')->count());
     }
 
-    public function test_snapshot_write_sql_is_mysql_specific_on_sqlite(): void
+    public function test_first_check_of_day_writes_today_snapshot(): void
     {
-        $this->skipUnlessSqlite();
-        // 已知缺陷（本用例钉住现状）：snapshotToday() 使用 CURDATE()/NOW()/ON DUPLICATE KEY UPDATE，
-        // 这是 MySQL 专用语法，在 SQLite 上必然抛 QueryException。
-        // 若本用例失败（不再抛异常），说明快照 SQL 已改为可移植写法 —— 请把该用例改写为正向断言
-        // （执行后 stock_snapshots 出现当日快照行），并同步移除 tests/TestCase.php 中的缓存预热补丁。
-        $product = $this->makeProduct();
-        $warehouse = $this->makeWarehouse();
-        \DB::table('stocks')->insert([
-            'product_id' => $product->id,
-            'warehouse_id' => $warehouse->id,
-            'quantity' => 7,
-            'frozen_qty' => 1,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $this->clearSnapshotCache();
+        [$productId, $warehouseId] = $this->seedStock();
 
         $service = new StockSnapshotService();
 
-        $this->expectException(QueryException::class);
-        $service->snapshotToday();
+        $this->assertTrue($service->checkAndSnapshot(), '缓存无今日标记时应生成快照');
+
+        $row = \DB::table('stock_snapshots')
+            ->where('snapshot_date', now()->toDateString())
+            ->where('product_id', $productId)
+            ->where('warehouse_id', $warehouseId)
+            ->first();
+
+        $this->assertNotNull($row, 'stock_snapshots 应出现当日快照行');
+        $this->assertSame(7.0, (float) $row->quantity, '快照可用库存应与 stocks 一致');
+        $this->assertSame(1.0, (float) $row->frozen_qty, '快照冻结库存应与 stocks 一致');
+        $this->assertNotNull($row->created_at);
     }
 
-    public function test_first_check_of_day_raises_on_sqlite(): void
+    public function test_snapshot_is_idempotent_for_same_day(): void
     {
-        $this->skipUnlessSqlite();
-        // 已知缺陷（本用例钉住现状）：缓存没有当日标记时（例如每天第一个请求、或缓存被清），
-        // checkAndSnapshot() 会走到快照写入并在 SQLite 上抛异常。
-        // 由于中间件不捕获异常，这意味着在非 MySQL 环境（测试/本地 CI）下所有 /admin/* 请求都会 500。
-        Cache::forget('stock_snapshot_last_date');
-        Cache::forget('stock_snapshot_lock');
+        [$productId, $warehouseId] = $this->seedStock();
 
         $service = new StockSnapshotService();
 
-        $this->expectException(QueryException::class);
-        $service->checkAndSnapshot();
+        // 同日重复执行只更新，不新增行
+        $this->assertSame(1, $service->snapshotToday(), '首拍应写入 1 行');
+        $this->assertSame(1, $service->snapshotToday(), '同日重拍应返回同样行数');
+        $this->assertSame(1, (int) \DB::table('stock_snapshots')->count(), '同日重复执行不得新增行');
+
+        // 库存变化后快照跟随最新值
+        \DB::table('stocks')->where('product_id', $productId)->update(['quantity' => 3]);
+        $service->snapshotToday();
+
+        $this->assertSame(
+            3.0,
+            (float) \DB::table('stock_snapshots')
+                ->where('snapshot_date', now()->toDateString())
+                ->where('product_id', $productId)
+                ->where('warehouse_id', $warehouseId)
+                ->value('quantity')
+        );
+        $this->assertSame(1, (int) \DB::table('stock_snapshots')->count());
+    }
+
+    public function test_snapshot_today_is_a_noop_when_there_is_no_stock(): void
+    {
+        $this->assertSame(0, (new StockSnapshotService())->snapshotToday());
+        $this->assertSame(0, (int) \DB::table('stock_snapshots')->count());
+    }
+
+    public function test_check_and_snapshot_swallows_write_failure_instead_of_breaking_requests(): void
+    {
+        // 快照中间件挂在所有 /admin/* 路由上。快照写失败时这里必须吞掉异常，
+        // 否则一次快照失败就是整个后台 500（这正是原先 MySQL 专用 SQL 造成的后果）。
+        $this->clearSnapshotCache();
+
+        $service = Mockery::mock(StockSnapshotService::class)->makePartial();
+        $service->shouldReceive('snapshotToday')->once()->andThrow(new \RuntimeException('snapshot failed'));
+
+        $this->assertFalse($service->checkAndSnapshot(), '写入失败应返回 false 而不是抛出异常');
+
+        // 失败后仍打上今日标记：否则每个管理端请求都重打一次这条失败日志
+        $this->assertSame(now()->toDateString(), Cache::get('stock_snapshot_last_date'));
     }
 }

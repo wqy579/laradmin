@@ -3,12 +3,17 @@
 namespace Modules\Business\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Business\Console\Commands\StockSnapshot;
 
 class BusinessServiceProvider extends ServiceProvider
 {
+    protected array $commands = [
+        StockSnapshot::class,
+    ];
+
     public function register(): void
     {
-        //
+        $this->commands($this->commands);
     }
 
     public function boot(): void
