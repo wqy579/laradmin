@@ -247,14 +247,25 @@ jobs:
       mysql:
         image: mysql:8.0
         # --health-*：确保 php artisan migrate 运行时服务已就绪，避免随机连不上
-        # --character-set-server=utf8mb4：与生产保持一致，否则 CI 绿但线上中文/emoji 写入报错
+        #
+        # ⚠️ options 里只能放 docker create 的 flag。这里曾经写过
+        #   --character-set-server=utf8mb4
+        #   --collation-server=utf8mb4_unicode_ci
+        # 那是 mysqld 的启动参数，不是 docker 的 flag。docker 直接报
+        #   unknown flag: --character-set-server   （exit code 125）
+        # 容器建不起来，整个 phpunit job 在「Initialize containers」阶段就死掉，
+        # 一步测试都没跑到。services 没有 command 键，服务端参数无处可传，所以
+        # 只能删掉。
+        #
+        # 删掉不损失 utf8mb4 覆盖：MySQL 8.0 的默认 character_set_server 就是
+        # utf8mb4、默认 collation 是 utf8mb4_0900_ai_ci。原来的「与生产一致」这个
+        # 意图改由下面的 Assert utf8mb4 server charset 一步显式断言——不再依赖
+        # 一条静默失效的 flag。
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
-          --character-set-server=utf8mb4
-          --collation-server=utf8mb4_unicode_ci
         env:
           # 用专用账号而不是 root：root 默认只允许 localhost，宿主机经 3306 端口连过去
           # 是 root@10.x.x.x，会直接 Access denied
@@ -320,6 +331,24 @@ jobs:
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
+
+      # MySQL 8.0 默认字符集断言。services.mysql 的 options 里曾经用
+      # --character-set-server=utf8mb4 来「与生产保持一致」，但那两个 flag 会让 docker
+      # create 直接报 unknown flag、容器根本建不起来（见上方注释），等于这条约束从来没
+      # 生效过。flag 删掉后，「CI 一定是 utf8mb4」从一条静默失效的 flag 变成这里一条
+      # 显式断言——将来若把 image 退回 mysql:5.7（默认 latin1），这一步会立刻变红，
+      # 而不是等到线上中文/emoji 写入才暴露。
+      # 用 PDO 而不是 mysql 客户端：ubuntu runner 不保证装了 mysql client，PHP 必装，
+      # 而且和测试用的是同一条连接路径。
+      - name: Assert utf8mb4 server charset
+        shell: bash
+        run: |
+          set -euo pipefail
+          php -r '$pdo = new PDO(sprintf("mysql:host=%s;port=%s;dbname=%s", getenv("DB_HOST"), getenv("DB_PORT"), getenv("DB_DATABASE")), getenv("DB_USERNAME"), getenv("DB_PASSWORD"));
+            $cs = $pdo->query("SELECT @@character_set_server")->fetchColumn();
+            $col = $pdo->query("SELECT @@collation_server")->fetchColumn();
+            if ($cs !== "utf8mb4") { fwrite(STDERR, "::error title=Wrong server charset::character_set_server={$cs}，期望 utf8mb4\n"); exit(1); }
+            echo "character_set_server={$cs}  collation_server={$col}\n";'
 
       # 独立于测试的迁移冒烟检查：RefreshDatabase 只在测试真的碰数据库时才会跑迁移，
       # 一旦有人新加迁移但没写测试，只有这一步能兜住「迁移写崩但 CI 全绿」的情况
