@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Business\Feature;
 
 use Modules\Business\Models\Stock;
 use Illuminate\Foundation\Testing\RefreshDatabase;

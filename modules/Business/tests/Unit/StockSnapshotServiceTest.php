@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Unit;
+namespace Tests\Business\Unit;
 
 use Modules\Business\Services\StockSnapshotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;

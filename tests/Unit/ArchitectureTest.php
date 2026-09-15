@@ -241,6 +241,71 @@ class ArchitectureTest extends TestCase
     }
 
     /**
+     * 每个测试类的声明命名空间必须能被 composer 解析回它自己所在的那个文件。
+     *
+     * 回归点：测试按模块归位后（Phase 2b）文件挪到了 modules/<M>/tests/，但类里的
+     * namespace 仍是原样搬运的 Tests\Feature / Tests\Unit。结果三条
+     * Tests\<M>\ autoload-dev 映射一直是空转的——composer dump-autoload 每次刷十几个
+     * "does not comply with psr-4 autoloading standard" 警告，而
+     * Tests\Business\Feature\StockFeatureTest 这类 FQCN 根本解析不到文件。
+     *
+     * PHPUnit 按目录扫描、不依赖命名空间，所以测试照跑、套件照绿，问题一直是静默的：
+     * 只有 IDE 导航、覆盖率工具、按类名 filter 才会踩到。所以断言不能只看「类存在」，
+     * 还要看「解析到的是不是这一个文件」——否则只要存在同名类就会假通过。
+     */
+    public function test_test_classes_resolve_through_autoloader(): void
+    {
+        $files = [];
+        $roots = array_merge(
+            [base_path('tests')],
+            glob(base_path('modules/*/tests'), GLOB_ONLYDIR) ?: []
+        );
+
+        foreach ($roots as $root) {
+            $it = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($root)
+            );
+            foreach ($it as $f) {
+                if ($f->isFile() && str_ends_with($f->getFilename(), 'Test.php')) {
+                    $files[] = $f;
+                }
+            }
+        }
+
+        $this->assertNotEmpty($files, '没扫到任何 *Test.php');
+
+        $bad = [];
+        foreach ($files as $file) {
+            $src = (string) file_get_contents($file->getPathname());
+            $ns = preg_match('/^namespace\s+([^;]+);/m', $src, $m) ? $m[1] : '';
+            $cls = preg_match('/^\s*(?:abstract\s+)?class\s+(\w+)/m', $src, $m) ? $m[1] : '';
+
+            $fqcn = ($ns !== '' ? $ns.'\\' : '').$cls;
+
+            if (!class_exists($fqcn)) {
+                $bad[] = "$fqcn  →  无法解析（namespace 与文件路径不符，或 composer.json 缺映射）";
+                continue;
+            }
+
+            $resolved = (new \ReflectionClass($fqcn))->getFileName();
+            if ($resolved !== $file->getPathname()) {
+                $bad[] = "$fqcn  →  解析到 "
+                    .str_replace(base_path().'/', '', $resolved)
+                    ."，不是它自己所在的 "
+                    .str_replace(base_path().'/', '', $file->getPathname());
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $bad,
+            '以下测试类的声明命名空间与 composer 映射不一致：'.implode("\n", $bad)
+            ."\n模块测试的命名空间必须是 Tests\\<M>\\Feature / Tests\\<M>\\Unit，"
+            ."这样 tests/ 与 modules/<M>/tests/ 两处都不会解析到同一个类名。"
+        );
+    }
+
+    /**
      * phpunit.xml 声明的每个 <directory> 必须真实存在。
      *
      * 这是踩过的坑：modules/System/tests 当初只有本地空目录、git 不跟踪，

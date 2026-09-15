@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Business;
+namespace Tests\Business\Feature\Business;
 
 use Modules\Business\Exceptions\BusinessRuleException;
 use Modules\Business\Models\Product;

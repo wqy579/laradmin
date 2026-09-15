@@ -274,7 +274,13 @@ tests/Unit/StockSnapshotServiceTest.php    → modules/Business/tests/Unit/
 
 `phpunit.xml` 新增三个 testsuite（`Auth` / `Business` / `System`），`<directory>` 递归扫描，Feature 与 Unit 都在各模块 testsuite 内。`composer.json` 的 `autoload-dev` 同步加了 `Tests\Auth\`、`Tests\Business\`、`Tests\System\` → `modules/<M>/tests/`。
 
-**已知缺口（未处理，留给后续）**：迁过来的测试文件仍声明 `namespace Tests\Feature` / `Tests\Unit`（内容为原样搬运、未改类名），所以 `Tests\<M>\` 这三条 autoload-dev 映射暂时是**预留**的、没有类落进去。PHPUnit 按目录扫描文件、不依赖命名空间，所以不影响运行；等将来把模块测试命名空间改成 `Tests\<M>\Feature` 之类的形态时它们才生效。改的时候注意 `Tests\` 是父前缀，PSR-4 取最长匹配，不会冲突。
+**✅ 已处理（2026-09-15）**：原缺口是「测试文件挪进 modules/ 后 namespace 仍是原样搬运的 `Tests\Feature` / `Tests\Unit`」，导致 `Tests\<M>\` 三条 autoload-dev 映射一直空转——`composer dump-autoload` 每次刷十几个 `does not comply with psr-4 autoloading standard` 警告，而 `Tests\Business\Feature\StockFeatureTest` 这类 FQCN 根本解析不到文件。
+
+原因分析要写清：**PHPUnit 按目录扫描、不依赖命名空间，所以套件照绿**，这条一直是静默的，只有 `composer dump-autoload` 的警告、IDE 导航、覆盖率工具、按类名 filter 才踩得到。
+
+修法：8 个模块测试文件的命名空间改为 `Tests\<M>\Feature` / `Tests\<M>\Unit`（含 `Tests\Business\Feature\Business\StockServiceTest` 那一层）。`Tests\` 是父前缀、PSR-4 取最长匹配，所以 `Tests\Business\` 永远赢过 `Tests\`，不与 tests/ 下的全局守卫冲突。
+
+守卫已补：`ArchitectureTest::test_test_classes_resolve_through_autoloader` 逐个断言每个 `*Test.php` 的声明命名空间能被 composer 解析**回它自己所在的文件**——只看「类存在」不够，同名类就会假通过。反向验证过：把 NotificationFeatureTest 的命名空间改回 `Tests\Feature`，守卫立刻报「无法解析」。
 
 **System 模块**是三个模块里最后补上专属测试的：`modules/System/tests/Feature/NotificationFeatureTest.php`，6 用例 39 断言（无鉴权 404、未读数与统计可达、show→markRead→delete 生命周期、批量读/删的真实受影响计数、只作用于本人的范围限定）。`Feature/.gitkeep` 占位随之删除——占位当时防的是「空目录让整套测试归零」，那件事现在由两道守卫负责，不靠文件留着。日志与配置域仍未写测试。
 
@@ -460,4 +466,5 @@ DB_CONNECTION=mysql DB_DATABASE=laradmin_test ./vendor/bin/phpunit   # 0 失败 
 - **第 3 条**：原式含 `[ -d modules/System/tests ]`，当时 System 无模块专属测试、目录未建，所以只校验已建的两个。**已补齐**：System 有了 `NotificationFeatureTest.php`；且 PHP 版守卫靠 `glob(modules/*)` 动态发现模块、对每个模块都要求 `routes/` + `database/migrations/` + `tests/`，新模块自动纳入，不需要单独加回。
 - 前三条达成即可视为「全模块化」，2c 与 1c 是有意识保留的例外，不计入未完成项。**当前状态：全部阶段完成**（Phase 3 前后端边界、Phase 4 测试口径均已在 `6b3603d` 前后收尾，本文档原写「差 Phase 3 与 Phase 4 两项收尾」是收尾提交后漏改的残留句，2026-09-15 已更正）。
 - **已修的坑（2026-09-15）**：`phpunit.xml` 声明的 `<directory>modules/System/tests</directory>` 指向 git 不跟踪的空目录，任何干净检出都会让 `./vendor/bin/phpunit` exit 2、零个测试执行。已加 `Feature/.gitkeep` 占位 + 两道守卫（见 2b）。占位后来被真实测试取代、`.gitkeep` 已删，两道守卫保留——它们防的是「声明了不存在的 testsuite 目录」，不是防「缺少测试」。
-- **尚未做的**：模块测试的命名空间仍是 `Tests\Feature`/`Tests\Unit`，`composer.json` 里 `Tests\<M>\` 三条映射暂为空转（见 2b；`Tests\` 是父前缀、PSR-4 取最长匹配，它们永远赢不了，等模块测试改成 `Tests\<M>\Feature` 之类的命名空间才生效）；System 的日志与配置域无模块专属测试（通知模块已补）；`config/` 未分区（2c，评估过不做）。
+- **尚未做的**：System 的日志与配置域无模块专属测试（通知模块已补）；`config/` 未分区（2c，评估过不做）；System 模块的 Log / Config / Dictionary / Scheduled / Attachment / Upload / WebSocket 等控制器、Excel 导入导出、Artisan 命令与 Jobs 全部无测试覆盖。
+- **已做的（2026-09-15）**：模块测试命名空间改为 `Tests\<M>\Feature` / `Tests\<M>\Unit`，`Tests\<M>\` 三条 autoload-dev 映射不再空转，`composer dump-autoload` 的 PSR-4 警告归零；新增 `test_test_classes_resolve_through_autoloader` 守卫（见 2b）。
