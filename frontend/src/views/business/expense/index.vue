@@ -151,7 +151,7 @@ const columns = [
 const fetchData = async () => {
   loading.value = true
   try {
-    const res = await businessApi.expense.list({
+    const res = await businessApi.expense.list.get({
       ...filters,
       page: pagination.page,
       page_size: pagination.page_size
@@ -167,7 +167,7 @@ const fetchData = async () => {
 
 const fetchEmployees = async () => {
   try {
-    const res = await businessApi.employee.list({ page_size: 1000 })
+    const res = await businessApi.employee.list.get({ page_size: 1000 })
     employees.value = res.data.list
   } catch (e) {}
 }
@@ -221,10 +221,10 @@ const handleSubmit = async () => {
   await formRef.value.validate()
   try {
     if (isEdit.value) {
-      await businessApi.expense.update(form.id, form)
+      await businessApi.expense.update.put(form.id, form)
       ElMessage.success('更新成功')
     } else {
-      await businessApi.expense.create(form)
+      await businessApi.expense.create.post(form)
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -237,7 +237,7 @@ const handleSubmit = async () => {
 const handleApprove = async (row) => {
   try {
     await ElMessageBox.confirm('确定审核该费用单?', '提示')
-    await businessApi.expense.approve(row.id)
+    await businessApi.expense.approve.post(row.id)
     ElMessage.success('审核成功')
     fetchData()
   } catch (e) {
@@ -248,7 +248,7 @@ const handleApprove = async (row) => {
 const handleDelete = async (row) => {
   try {
     await ElMessageBox.confirm('确定删除该费用单?', '提示')
-    await businessApi.expense.delete(row.id)
+    await businessApi.expense.delete.delete(row.id)
     ElMessage.success('删除成功')
     fetchData()
   } catch (e) {

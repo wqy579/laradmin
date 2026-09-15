@@ -232,7 +232,7 @@ function handleSubmit() {
         loading.value = true
         try {
             if (isEdit.value) {
-                await businessApi.delivery.edit.post(form.id, form)
+                await businessApi.delivery.edit.put(form.id, form)
                 ElMessage.success('更新成功')
             } else {
                 await businessApi.delivery.add.post(form)

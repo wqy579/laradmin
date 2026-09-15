@@ -62,7 +62,7 @@ const handleSubmit = async () => {
 		const payload = { ...form.value }
 		let res
 		if (props.record?.id) {
-			res = await businessApi.product.category.edit.post(props.record.id, payload)
+			res = await businessApi.product.category.edit.put(props.record.id, payload)
 		} else {
 			res = await businessApi.product.category.add.post(payload)
 		}

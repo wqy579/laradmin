@@ -60,7 +60,7 @@ const statusLabel = (s) => ({ draft: '草稿', approved: '已审批', cancelled:
 const handleAdd = () => { currentOrder.value = null; dialog.order = true }
 const handleEdit = (row) => { currentOrder.value = row; dialog.order = true }
 const handleDelete = async (row) => {
-	const res = await businessApi.purchaseOrder.delete.post(row.id)
+	const res = await businessApi.purchaseOrder.delete.delete(row.id)
 	if (res.code === 200) { ElMessage.success('删除成功'); refresh() }
 }
 const handleApprove = async (row) => {

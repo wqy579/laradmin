@@ -101,7 +101,7 @@ const handleSubmit = async () => {
 	submitting.value = true
 	try {
 		const payload = { ...form.value, items: form.value.items.map(i => ({ product_id: i.product_id, quantity: i.quantity, price: i.price })) }
-		const res = props.record ? await businessApi.salesOrder.edit.post(props.record.id, payload) : await businessApi.salesOrder.add.post(payload)
+		const res = props.record ? await businessApi.salesOrder.edit.put(props.record.id, payload) : await businessApi.salesOrder.add.post(payload)
 		if (res.code === 200) { ElMessage.success(res.message || '操作成功'); emit('success'); visible.value = false }
 	} finally { submitting.value = false }
 }

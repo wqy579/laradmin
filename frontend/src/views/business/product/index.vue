@@ -497,7 +497,7 @@ const handleDelete = async (row) => {
 
 const handleToggleOnline = async (row) => {
 	const newOnline = row.is_online ? 0 : 1
-	const res = await businessApi.product.edit.post(row.id, { ...row, is_online: newOnline })
+	const res = await businessApi.product.edit.put(row.id, { ...row, is_online: newOnline })
 	if (res.code === 200) { row.is_online = newOnline; refreshProduct() }
 }
 
@@ -562,7 +562,7 @@ const handleRenameMain = async (cat) => {
 		inputValidator: v => v ? true : '分类名称不能为空'
 	})
 	if (!newName) return
-	const res = await businessApi.product.category.edit.post(cat.id, { name: newName })
+	const res = await businessApi.product.category.edit.put(cat.id, { name: newName })
 	if (res.code === 200) { ElMessage.success('修改成功'); handleCategorySuccess() }
 }
 
@@ -573,7 +573,7 @@ const handleRenameSub = async (sub) => {
 		inputValidator: v => v ? true : '分类名称不能为空'
 	})
 	if (!newName) return
-	const res = await businessApi.product.category.edit.post(sub.id, { name: newName })
+	const res = await businessApi.product.category.edit.put(sub.id, { name: newName })
 	if (res.code === 200) { ElMessage.success('修改成功'); handleCategorySuccess() }
 }
 

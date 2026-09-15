@@ -7,12 +7,15 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/product/${id}`) },
 		add: { post: (params) => request.post('business/product', params) },
 		edit: { put: (id, params) => request.put(`business/product/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/product/${id}`) },
+		delete: { delete: (id) => request.delete(`business/product/${id}`) },
+	units: { get: (params) => request.get('business/product/units', { params }) },
+	batchDelete: { post: (params) => request.post('business/product/batch-delete', params) },
+	batchUpdateStatus: { post: (params) => request.post('business/product/batch-status', params) },
 		category: {
 			list: { get: (params) => request.get('business/product/categories', { params }) },
 			add: { post: (params) => request.post('business/product/categories', params) },
 			edit: { put: (id, params) => request.put(`business/product/categories/${id}`, params) },
-			delete: { del: (id) => request.delete(`business/product/categories/${id}`) },
+			delete: { delete: (id) => request.delete(`business/product/categories/${id}`) },
 		},
 		categories: {
 			get: (params) => request.get('business/product/categories', { params }),
@@ -25,7 +28,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/customers/${id}`) },
 		add: { post: (params) => request.post('business/customers', params) },
 		edit: { put: (id, params) => request.put(`business/customers/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/customers/${id}`) },
+		delete: { delete: (id) => request.delete(`business/customers/${id}`) },
 	},
 
 	// 供应商
@@ -34,7 +37,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/supplier/${id}`) },
 		add: { post: (params) => request.post('business/supplier', params) },
 		edit: { put: (id, params) => request.put(`business/supplier/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/supplier/${id}`) },
+		delete: { delete: (id) => request.delete(`business/supplier/${id}`) },
 	},
 
 	// 仓库
@@ -43,7 +46,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/warehouse/${id}`) },
 		add: { post: (params) => request.post('business/warehouse', params) },
 		edit: { put: (id, params) => request.put(`business/warehouse/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/warehouse/${id}`) },
+		delete: { delete: (id) => request.delete(`business/warehouse/${id}`) },
 	},
 
 	// 车辆
@@ -52,7 +55,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/vehicle/${id}`) },
 		add: { post: (params) => request.post('business/vehicle', params) },
 		edit: { put: (id, params) => request.put(`business/vehicle/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/vehicle/${id}`) },
+		delete: { delete: (id) => request.delete(`business/vehicle/${id}`) },
 	},
 
 	// 路线
@@ -61,7 +64,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/route/${id}`) },
 		add: { post: (params) => request.post('business/route', params) },
 		edit: { put: (id, params) => request.put(`business/route/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/route/${id}`) },
+		delete: { delete: (id) => request.delete(`business/route/${id}`) },
 	},
 
 	// 员工
@@ -70,7 +73,9 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/employee/${id}`) },
 		add: { post: (params) => request.post('business/employee', params) },
 		edit: { put: (id, params) => request.put(`business/employee/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/employee/${id}`) },
+		delete: { delete: (id) => request.delete(`business/employee/${id}`) },
+	batchDelete: { post: (params) => request.post('business/employee/batch-delete', params) },
+	batchUpdateStatus: { post: (params) => request.post('business/employee/batch-status', params) },
 	},
 
 	// 销售订单
@@ -79,7 +84,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/sales-order/${id}`) },
 		add: { post: (params) => request.post('business/sales-order', params) },
 		edit: { put: (id, params) => request.put(`business/sales-order/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/sales-order/${id}`) },
+		delete: { delete: (id) => request.delete(`business/sales-order/${id}`) },
 		approve: { post: (id) => request.post(`business/sales-order/${id}/approve`) },
 	},
 
@@ -89,7 +94,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/purchase-order/${id}`) },
 		add: { post: (params) => request.post('business/purchase-order', params) },
 		edit: { put: (id, params) => request.put(`business/purchase-order/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/purchase-order/${id}`) },
+		delete: { delete: (id) => request.delete(`business/purchase-order/${id}`) },
 		approve: { post: (id) => request.post(`business/purchase-order/${id}/approve`) },
 		// 入库会把每张明细的数量加进收货仓库；取消仅限草稿/已审批
 		receive: { post: (id) => request.post(`business/purchase-order/${id}/receive`) },
@@ -102,7 +107,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/return/${id}`) },
 		add: { post: (params) => request.post('business/return', params) },
 		edit: { put: (id, params) => request.put(`business/return/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/return/${id}`) },
+		delete: { delete: (id) => request.delete(`business/return/${id}`) },
 	},
 
 	// 配送
@@ -111,7 +116,9 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/delivery/${id}`) },
 		add: { post: (params) => request.post('business/delivery', params) },
 		edit: { put: (id, params) => request.put(`business/delivery/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/delivery/${id}`) },
+		delete: { delete: (id) => request.delete(`business/delivery/${id}`) },
+		dispatch: { post: (id) => request.post(`business/delivery/${id}/dispatch`) },
+		complete: { post: (id) => request.post(`business/delivery/${id}/complete`) },
 	},
 
 	// 库存
@@ -164,9 +171,15 @@ const businessApi = {
 
 	// 拜访
 	visit: {
-		list: { get: (params) => request.get('business/visit/logs', { params }) },
-		detail: { get: (id) => request.get(`business/visit/logs/${id}`) },
-		add: { post: (params) => request.post('business/visit/logs', params) },
+		log: {
+			list: { get: (params) => request.get('business/visit/logs', { params }) },
+			detail: { get: (id) => request.get(`business/visit/logs/${id}`) },
+			add: { post: (params) => request.post('business/visit/logs', params) },
+			edit: { put: (id, params) => request.put(`business/visit/logs/${id}`, params) },
+			delete: { delete: (id) => request.delete(`business/visit/logs/${id}`) },
+		},
+		achievement: { get: (params) => request.get('business/visit/achievement', { params }) },
+		schedule: { get: (params) => request.get('business/visit/schedule', { params }) },
 	},
 
 	// 收款管理
@@ -176,7 +189,7 @@ const businessApi = {
 		create: { post: (params) => request.post('business/receive', params) },
 		update: { put: (id, params) => request.put(`business/receive/${id}`, params) },
 		approve: { post: (id) => request.post(`business/receive/${id}/approve`) },
-		delete: { del: (id) => request.delete(`business/receive/${id}`) },
+		delete: { delete: (id) => request.delete(`business/receive/${id}`) },
 		statistics: { get: (params) => request.get('business/receive/statistics', { params }) },
 	},
 
@@ -187,7 +200,7 @@ const businessApi = {
 		create: { post: (params) => request.post('business/pay', params) },
 		update: { put: (id, params) => request.put(`business/pay/${id}`, params) },
 		approve: { post: (id) => request.post(`business/pay/${id}/approve`) },
-		delete: { del: (id) => request.delete(`business/pay/${id}`) },
+		delete: { delete: (id) => request.delete(`business/pay/${id}`) },
 		statistics: { get: (params) => request.get('business/pay/statistics', { params }) },
 	},
 
@@ -198,7 +211,7 @@ const businessApi = {
 		create: { post: (params) => request.post('business/expense', params) },
 		update: { put: (id, params) => request.put(`business/expense/${id}`, params) },
 		approve: { post: (id) => request.post(`business/expense/${id}/approve`) },
-		delete: { del: (id) => request.delete(`business/expense/${id}`) },
+		delete: { delete: (id) => request.delete(`business/expense/${id}`) },
 		statistics: { get: (params) => request.get('business/expense/statistics', { params }) },
 	},
 
@@ -208,7 +221,7 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/attendance/${id}`) },
 		create: { post: (params) => request.post('business/attendance', params) },
 		update: { put: (id, params) => request.put(`business/attendance/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/attendance/${id}`) },
+		delete: { delete: (id) => request.delete(`business/attendance/${id}`) },
 		statistics: { get: (params) => request.get('business/attendance/statistics', { params }) },
 	},
 }
