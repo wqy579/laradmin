@@ -69,6 +69,42 @@ jobs:
             set -e
             cd /www/wwwroot/laradmin
 
+            # 0.5 生产环境变量强制校验（放在所有 artisan 命令之前：config:clear 只清
+            #     缓存，config:cache 会把当时的 .env 固化进 bootstrap/cache）
+            #
+            # .env 被 rsync 排除、跨部署保留，所以仓库模板里的 APP_DEBUG=true 会一直
+            # 留在线上——线上 .env 实测就是 debug 模式，接口 500 时异常类名、堆栈、
+            # 文件路径和行号会原样回给调用方（/admin/* 与 /api/* 都强制走 JSON 错误页）。
+            # 以前靠人手工改，改不改全凭记得。这里每次都显式钉死。
+            # 只碰 APP_ENV / APP_DEBUG 和两个密钥，不覆盖任何业务配置与凭据。
+            touch .env
+            ensure_env() { # 有则覆盖，无则追加
+              local key="$1" value="$2"
+              if grep -q "^${key}=" .env; then
+                sed -i "s|^${key}=.*|${key}=${value}|" .env
+              else
+                printf '%s=%s\n' "$key" "$value" >> .env
+              fi
+            }
+            ensure_env APP_ENV production
+            ensure_env APP_DEBUG false
+
+            # 缺密钥就直接中止，不在线上一边跑一边生成：APP_KEY 空值会让所有加解密与
+            # 签名抛错，JWT_SECRET 空值会让每条鉴权路由都失败。生成的值写进 .env 后
+            # 就固定在线上，后续部署不再重复生成（不覆盖已存在的非空值）。
+            if ! grep -qE '^APP_KEY=.+$' .env; then
+              ensure_env APP_KEY "base64:$(head -c 32 /dev/urandom | base64)"
+              echo "generated APP_KEY"
+            fi
+            if ! grep -qE '^JWT_SECRET=.+$' .env; then
+              ensure_env JWT_SECRET "$(head -c 32 /dev/urandom | base64)"
+              echo "generated JWT_SECRET"
+            fi
+
+            # 钉错了就让部署明确失败，而不是带着 debug 模式上线
+            grep -q '^APP_ENV=production$' .env   || { echo "APP_ENV 未生效"; exit 1; }
+            grep -q '^APP_DEBUG=false$'  .env     || { echo "APP_DEBUG 未生效"; exit 1; }
+
             # 0. 备份当前前端产物（storage 不参与 rsync --delete，可安全存放上一版，
             #    健康检查失败时回滚用）
             rm -rf storage/admin.prev
