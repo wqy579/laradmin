@@ -260,6 +260,18 @@
         ]
     },
     {
+        "method": "GET",
+        "uri": "admin/auth/permissions/{id}",
+        "name": "admin.",
+        "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "PUT",
         "uri": "admin/auth/permissions/{id}",
         "name": "admin.",
@@ -464,7 +476,7 @@
         ]
     },
     {
-        "method": "GET",
+        "method": "POST",
         "uri": "admin/auth/users/export",
         "name": "admin.",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@export",
@@ -552,6 +564,18 @@
         "uri": "admin/business/attendance",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/attendance/statistics",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1332,6 +1356,18 @@
         "uri": "admin/business/purchase-order/{purchaseOrder}/approve",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/purchase-order/{purchaseOrder}/cancel",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\PurchaseOrderController@cancel",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2235,7 +2271,8 @@
         "middleware": [
             "api",
             "stock.snapshot",
-            "auth:sanctum"
+            "auth.check:admin",
+            "log.request"
         ]
     },
     {
@@ -2615,6 +2652,138 @@
         "uri": "admin/system/log/{id}",
         "name": "admin.",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/notification",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/notification/batch-delete",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@batchDelete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/notification/batch-read",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@batchMarkAsRead",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/notification/clear-read",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@clearRead",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/notification/read-all",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@markAllAsRead",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/notification/statistics",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/notification/unread",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@unread",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/notification/unread-count",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@unreadCount",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/system/notification/{id}",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/system/notification/{id}",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/system/notification/{id}/read",
+        "name": "admin.",
+        "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@markAsRead",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3066,7 +3235,9 @@
         "name": null,
         "action": "Modules\\System\\Http\\Controllers\\Api\\Upload@upload",
         "middleware": [
-            "api"
+            "api",
+            "auth.check:admin",
+            "rate.limit:upload"
         ]
     },
     {

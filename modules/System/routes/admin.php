@@ -98,5 +98,26 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/chunk/uploaded', [\Modules\System\Http\Controllers\Admin\Upload::class, 'getUploadedChunks']);
         Route::post('/chunk/cancel', [\Modules\System\Http\Controllers\Admin\Upload::class, 'cancelChunk']);
     });
+    // 系统模块：站内通知
+    //
+    // 这组接口此前完全没有路由声明——控制器与 Service 都在，前端
+    // frontend/src/api/system.js 的 notification 块也一直按下面的路径调用，
+    // 结果是全线 404，且无任何报错提示。路径与方法名逐条对齐前端声明。
+    // 只补前端实际声明的 11 个接口；send / retryUnsent 目前没有调用方，
+    // 先不暴露（retryUnsent 已有 console 命令与 notifications:retry-unsent 调度）。
+    // 注意 /{id} 必须排在 /unread 等固定路径之后，否则 GET /unread 会被当成 id。
+    Route::prefix('system/notification')->group(function () {
+        Route::get('/', [\Modules\System\Http\Controllers\Admin\Notification::class, 'index']);
+        Route::get('/unread', [\Modules\System\Http\Controllers\Admin\Notification::class, 'unread']);
+        Route::get('/unread-count', [\Modules\System\Http\Controllers\Admin\Notification::class, 'unreadCount']);
+        Route::get('/statistics', [\Modules\System\Http\Controllers\Admin\Notification::class, 'statistics']);
+        Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\Notification::class, 'show']);
+        Route::post('/{id}/read', [\Modules\System\Http\Controllers\Admin\Notification::class, 'markAsRead']);
+        Route::post('/batch-read', [\Modules\System\Http\Controllers\Admin\Notification::class, 'batchMarkAsRead']);
+        Route::post('/read-all', [\Modules\System\Http\Controllers\Admin\Notification::class, 'markAllAsRead']);
+        Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\Notification::class, 'batchDelete']);
+        Route::post('/clear-read', [\Modules\System\Http\Controllers\Admin\Notification::class, 'clearRead']);
+        Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\Notification::class, 'destroy']);
+    });
 });
 

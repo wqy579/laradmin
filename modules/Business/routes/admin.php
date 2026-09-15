@@ -108,6 +108,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::delete('/{purchaseOrder}', [\Modules\Business\Http\Controllers\PurchaseOrderController::class, 'destroy']);
         Route::post('/{purchaseOrder}/approve', [\Modules\Business\Http\Controllers\PurchaseOrderController::class, 'approve']);
         Route::post('/{purchaseOrder}/receive', [\Modules\Business\Http\Controllers\PurchaseOrderController::class, 'receive']);
+        Route::post('/{purchaseOrder}/cancel', [\Modules\Business\Http\Controllers\PurchaseOrderController::class, 'cancel']);
     });
     // 业务模块：调拨管理
     Route::prefix('business/transfer')->group(function () {
@@ -182,6 +183,9 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 业务模块：考勤管理
     Route::prefix('business/attendance')->group(function () {
         Route::get('/', [\Modules\Business\Http\Controllers\AttendanceController::class, 'index']);
+        // 前端 business.js 的 attendance.statistics 声明了它，控制器方法也在，
+        // 唯独漏了路由——与其他业务模块（订单/库存/调拨）的 /statistics 口径不一致。
+        Route::get('/statistics', [\Modules\Business\Http\Controllers\AttendanceController::class, 'statistics']);
         Route::get('/{attendance}', [\Modules\Business\Http\Controllers\AttendanceController::class, 'show']);
         Route::post('/', [\Modules\Business\Http\Controllers\AttendanceController::class, 'store']);
         Route::put('/{attendance}', [\Modules\Business\Http\Controllers\AttendanceController::class, 'update']);

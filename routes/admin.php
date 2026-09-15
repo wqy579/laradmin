@@ -20,7 +20,7 @@ Route::post('/import/old-system', function () {
         'message' => '数据导入成功',
         'output' => $output
     ]);
-})->middleware('auth:sanctum');
+})->middleware(['auth.check:admin', 'log.request']);
 
 // 远程执行数据库迁移（只跑 Business 模块，保持改造前语义；不带 --path 则跑全部模块）
 Route::post('/remote/migrate', function () {

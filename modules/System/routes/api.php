@@ -18,6 +18,9 @@ Route::post('/deploy', [PingController::class, 'deployNotice']);
 
 // 系统API
 Route::prefix('system')->group(function () {
-    // 文件上传
-    Route::post('/upload', [Upload::class, 'upload']);
+    // 文件上传：与 admin 侧 system/upload 同权，必须管理员鉴权，并单独限流。
+    // 此前这条是整套系统里唯一的无鉴权写接口（POST 即落盘 storage/app/public/uploads/，
+    // 10MB/文件，无速率限制），等于把磁盘交给了任意匿名调用方。
+    Route::post('/upload', [Upload::class, 'upload'])
+        ->middleware(['auth.check:admin', 'rate.limit:upload']);
 });

@@ -91,6 +91,9 @@ const businessApi = {
 		edit: { put: (id, params) => request.put(`business/purchase-order/${id}`, params) },
 		delete: { del: (id) => request.delete(`business/purchase-order/${id}`) },
 		approve: { post: (id) => request.post(`business/purchase-order/${id}/approve`) },
+		// 入库会把每张明细的数量加进收货仓库；取消仅限草稿/已审批
+		receive: { post: (id) => request.post(`business/purchase-order/${id}/receive`) },
+		cancel: { post: (id) => request.post(`business/purchase-order/${id}/cancel`) },
 	},
 
 	// 退货
@@ -136,23 +139,20 @@ const businessApi = {
 	},
 
 	// 入库
+	// 只保留后端真实存在的两个接口（列表 / 新建入库）。此前这里还声明了 detail、
+	// edit、delete、approve 四个——后端 StockInController 只有 index + store，
+	// 一旦有 view 接上就是静默 404。库存明细/编辑走 business/stock，审批流程不存在。
 	stockIn: {
 		list: { get: (params) => request.get('business/stock-in', { params }) },
-		detail: { get: (id) => request.get(`business/stock-in/${id}`) },
 		add: { post: (params) => request.post('business/stock-in', params) },
-		edit: { put: (id, params) => request.put(`business/stock-in/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/stock-in/${id}`) },
-		approve: { post: (id) => request.post(`business/stock-in/${id}/approve`) },
 	},
 
 	// 出库
+	// 同上：detail / edit / delete / approve 后端都没有，已删除。
+	// StockService::stockOut() 直接扣库存，没有单据状态机可审批。
 	stockOut: {
 		list: { get: (params) => request.get('business/stock-out', { params }) },
-		detail: { get: (id) => request.get(`business/stock-out/${id}`) },
 		add: { post: (params) => request.post('business/stock-out', params) },
-		edit: { put: (id, params) => request.put(`business/stock-out/${id}`, params) },
-		delete: { del: (id) => request.delete(`business/stock-out/${id}`) },
-		approve: { post: (id) => request.post(`business/stock-out/${id}/approve`) },
 	},
 
 	// 调拨
@@ -160,12 +160,6 @@ const businessApi = {
 		list: { get: (params) => request.get('business/transfer', { params }) },
 		detail: { get: (id) => request.get(`business/transfer/${id}`) },
 		add: { post: (params) => request.post('business/transfer', params) },
-	},
-
-	// 考勤
-	attendance: {
-		list: { get: (params) => request.get('business/attendance', { params }) },
-		statistics: { get: (params) => request.get('business/attendance/statistics', { params }) },
 	},
 
 	// 拜访
