@@ -17,10 +17,14 @@
 | **Phase 5 testsuite 目录占位与守卫** | ✅ 完成（修掉「整套测试静默归零」的坑，2026-09-15 发现） |
 
 第三节是 `7c15d04` 时点的实测基线，保留原样供对照；已完成的阶段在原节内标注了现状。
-当前基线：`./vendor/bin/phpunit` → 81 用例 / 435 断言；260 条路由。
+当前基线：`./vendor/bin/phpunit` → **106 用例 / 616 断言**；274 条路由。
 
 （分支已于 2026-09-15 rebase 到 main：`61390b1` 菜单图标修复带进来 4 个用例，
-76 → 80。rebase 前是 76/426。）
+76 → 80。rebase 前是 76/426。
+
+之后又长到 106/616、路由 260 → 274。增量全部来自功能与守卫新增（Phase 3 契约
+守卫、System 通知模块首个模块专属测试、退货/采购状态机、关联完整性守卫），
+不是模块化归位——归位本身只改路径不改用例数，那一步的不变量在当时提交上成立。）
 
 ## 一、目标
 
@@ -113,7 +117,7 @@ $ find modules -maxdepth 2 -type d
 | Console / Events / Listeners / Facades | — | — | ✓ |
 | Exceptions | — | ✓ | — |
 | **Seeders**（基线时无，Phase 2a 已建） | **✓** | **✓** | **✓** |
-| **tests**（基线时无，Phase 2b 已建） | **✓** | **✓** | **✓ 占位**（`Feature/.gitkeep`，尚无模块专属测试；目录缺失会让整套测试归零，见 2b） |
+| **tests**（基线时无，Phase 2b 已建） | **✓** | **✓** | **✓**（通知模块 6 用例 39 断言，占位 `.gitkeep` 已删，见 2b） |
 | **config / resources/views / lang / public** | **—** | **—** | **—** |
 
 ### 3.4 集中式资源
@@ -140,8 +144,11 @@ $ grep -rlF 'App\Http\Controllers\Controller' modules --include='*.php' | wc -l
 
 ### 3.6 测试与 CI 口径
 
-- SQLite（`phpunit.xml` 默认）：**81 测试 / 435 断言全绿**（当前值，2026-09-15 实测；基线 71/420 → Phase 2b 75/425 → 现 81/435，增量来自架构断言、模块归位的用例与 Phase 5 的 testsuite 守卫，与模块化本身无关）
-- MySQL（CI `phpunit` job 实际使用的）：**7 个失败**，含 2 个名字带 `_on_sqlite`、断言「SQLite 上必然抛 `QueryException`」的用例——切到 MySQL 就不抛
+- SQLite（`phpunit.xml` 默认）：**106 测试 / 616 断言全绿**（2026-09-15 实测；
+  71/420 → Phase 2b 75/425 → rebase 后 81/435 → 现 106/616。81→106 的增量来自
+  Phase 3 契约守卫、System 通知模块测试、退货/采购状态机与关联完整性守卫，
+  与模块化归位本身无关）
+- MySQL（CI `phpunit` job 实际使用的）：**7 个失败**，含 2 个名字带 `_on_sqlite`、断言「SQLite 上必然抛 `QueryException`」的用例——切到 MySQL 就不抛。**现状（Phase 4 后）：0 失败 0 错误，1 个跳过**，见 Phase 4 验收
 - 已修的 CI 缺口：静态检查目录清单补上 `modules/`（原清单只覆盖 56 个文件，漏掉 181 个）
 
 ## 四、架构约定
@@ -269,7 +276,7 @@ tests/Unit/StockSnapshotServiceTest.php    → modules/Business/tests/Unit/
 
 **已知缺口（未处理，留给后续）**：迁过来的测试文件仍声明 `namespace Tests\Feature` / `Tests\Unit`（内容为原样搬运、未改类名），所以 `Tests\<M>\` 这三条 autoload-dev 映射暂时是**预留**的、没有类落进去。PHPUnit 按目录扫描文件、不依赖命名空间，所以不影响运行；等将来把模块测试命名空间改成 `Tests\<M>\Feature` 之类的形态时它们才生效。改的时候注意 `Tests\` 是父前缀，PSR-4 取最长匹配，不会冲突。
 
-**System 模块**目前没有模块专属测试（通知 / 日志 / 配置域还没写测试）。`modules/System/tests/Feature/.gitkeep` 已于 2026-09-15 添加占位。
+**System 模块**是三个模块里最后补上专属测试的：`modules/System/tests/Feature/NotificationFeatureTest.php`，6 用例 39 断言（无鉴权 404、未读数与统计可达、show→markRead→delete 生命周期、批量读/删的真实受影响计数、只作用于本人的范围限定）。`Feature/.gitkeep` 占位随之删除——占位当时防的是「空目录让整套测试归零」，那件事现在由两道守卫负责，不靠文件留着。日志与配置域仍未写测试。
 
 ⚠️ **这里踩过一个会让整套测试静默归零的坑**，之前的判断是错的：
 
@@ -295,6 +302,16 @@ $ git diff --stat -- tests/snapshots/routes.json    # 空
 ```
 
 注意：全量跑一遍仍是 75 个用例——迁移只改路径不改内容，用例数不应变化。若这个数字变了，说明有测试被漏掉或重复计入。
+
+**当前值（2026-09-15，用例数含后续阶段新增）**：
+
+```
+$ ./vendor/bin/phpunit                              # OK (106 tests, 616 assertions)
+$ ./vendor/bin/phpunit --testsuite Auth             # OK (16 tests, 106 assertions)
+$ ./vendor/bin/phpunit --testsuite Business         # OK (62 tests, 358 assertions)
+$ ./vendor/bin/phpunit --testsuite System           # OK (6 tests, 39 assertions)
+$ php artisan route:list --json | wc -l             # 274
+```
 
 #### 2c. config 分区（低优先，先评估）
 
@@ -339,13 +356,24 @@ SQLite 跑全量是 76/76 全绿。`tests.yml` 里那两行注释已改写。
 3. ✅ **`_on_sqlite` 用例加驱动条件跳过**，共 3 个（不是原估的 2 个）：
    `MigrationSmokeTest` 的建库用例，以及 `StockSnapshotServiceTest` 的 2 个钉住
    「快照 SQL 不可移植」的缺陷用例。后两者的跳过必须放在 `expectException` 之前。
+   **现状：跳过集合降到 1 个。** `StockSnapshotService::snapshotToday()` 已改成
+   逐行 `updateOrInsert` 的可移植写法（原 `INSERT ... SELECT ... ON DUPLICATE KEY`
+   是 MySQL 专有语法，SQLite 上必然抛错，而该中间件挂在所有 `/admin/*` 上），
+   缺陷本身消失，那 2 个跳过随之删除；剩 `MigrationSmokeTest` 的建库用例按设计跳过。
 4. ✅ **MySQL 失败集合查清了**，与推测的「数据隔离」无关：
    - `StockServiceTest` ×1 → 上述 `whereColumn` 真 bug，已修。
    - `StockSnapshotServiceTest` ×2 → 用例本身按设计只该在 SQLite 上跑，已跳过。
    - `ProductCategoryFeatureTest` ×4 → 早已不复现，当前 MySQL 上通过。
 
-验收（本地 MariaDB 10.11 实测）：SQLite 81/435 全绿；MySQL 81 用例 363 断言
-0 失败 0 错误、3 个跳过。两个驱动的跳过集合各有明确解释，不是「凑绿的跳过」。
+验收（本地 MariaDB 10.11 实测）：SQLite 106/616 全绿；MySQL 106 用例 555 断言
+0 失败 0 错误、1 个跳过（Phase 4 时是 81 用例 363 断言 3 跳过；跳过集合从 3 降到
+1 见第 3 项，不是新加的跳过）。两个驱动的跳过集合各有明确解释，不是「凑绿的跳过」。
+
+复现命令：
+
+```
+DB_CONNECTION=mysql DB_DATABASE=laradmin_test ./vendor/bin/phpunit
+```
 
 ## 六、守卫：CI 新增三道断言
 
@@ -400,8 +428,8 @@ hits=$(grep -rn 'Modules\\' app --include='*.php' || true)
 每一步都跑：
 
 ```bash
-./vendor/bin/phpunit                    # 81/435
-php artisan route:list --json | wc -l   # 260
+./vendor/bin/phpunit                    # 106/616
+php artisan route:list --json | wc -l   # 274
 ```
 
 `tests/snapshots/routes.json` **不应变化**——路由表逐条等价是所有阶段的不变量。
@@ -423,13 +451,13 @@ ls frontend/src/api/*.js    # auth.js business.js system.js ↔ modules/{Auth,Bu
 ./vendor/bin/phpunit && [ "$(git diff --stat tests/snapshots/routes.json)" = "" ]
 
 # 6. 两个驱动的失败集合都有解释                        ✅ 已过
-DB_CONNECTION=mysql DB_DATABASE=laradmin_test ./vendor/bin/phpunit   # 0 失败 0 错误 3 跳过
+DB_CONNECTION=mysql DB_DATABASE=laradmin_test ./vendor/bin/phpunit   # 0 失败 0 错误 1 跳过
 ```
 
 注：
 
 - **第 2 条的排除口径**：`app/Contracts/TaskNotification.php` 的 PHPDoc 里出现 `Modules\System` 字样（说明实现方是谁），是注释不是 import。CI 断言必须按上式排除注释行，否则永远红灯。`config/laravels.php` 的 3 处 System 类引用是 laravel-s 的已登记例外，`config/` 本就不在该断言范围内。
-- **第 3 条**：原式含 `[ -d modules/System/tests ]`，但 System 目前无模块专属测试、目录未建。已改成只校验已建的两个；等 System 有测试并建目录时再加回。
+- **第 3 条**：原式含 `[ -d modules/System/tests ]`，当时 System 无模块专属测试、目录未建，所以只校验已建的两个。**已补齐**：System 有了 `NotificationFeatureTest.php`；且 PHP 版守卫靠 `glob(modules/*)` 动态发现模块、对每个模块都要求 `routes/` + `database/migrations/` + `tests/`，新模块自动纳入，不需要单独加回。
 - 前三条达成即可视为「全模块化」，2c 与 1c 是有意识保留的例外，不计入未完成项。**当前状态：全部阶段完成**（Phase 3 前后端边界、Phase 4 测试口径均已在 `6b3603d` 前后收尾，本文档原写「差 Phase 3 与 Phase 4 两项收尾」是收尾提交后漏改的残留句，2026-09-15 已更正）。
-- **已修的坑（2026-09-15）**：`phpunit.xml` 声明的 `<directory>modules/System/tests</directory>` 指向 git 不跟踪的空目录，任何干净检出都会让 `./vendor/bin/phpunit` exit 2、零个测试执行。已加 `Feature/.gitkeep` 占位 + 两道守卫（见 2b）。
-- **尚未做的**：`modules/System` 仍无模块专属测试（占位目录已建）；模块测试的命名空间仍是 `Tests\Feature`/`Tests\Unit`，`composer.json` 里 `Tests\<M>\` 三条映射暂为空转（见 2b）；`config/` 未分区（2c，评估过不做）。
+- **已修的坑（2026-09-15）**：`phpunit.xml` 声明的 `<directory>modules/System/tests</directory>` 指向 git 不跟踪的空目录，任何干净检出都会让 `./vendor/bin/phpunit` exit 2、零个测试执行。已加 `Feature/.gitkeep` 占位 + 两道守卫（见 2b）。占位后来被真实测试取代、`.gitkeep` 已删，两道守卫保留——它们防的是「声明了不存在的 testsuite 目录」，不是防「缺少测试」。
+- **尚未做的**：模块测试的命名空间仍是 `Tests\Feature`/`Tests\Unit`，`composer.json` 里 `Tests\<M>\` 三条映射暂为空转（见 2b；`Tests\` 是父前缀、PSR-4 取最长匹配，它们永远赢不了，等模块测试改成 `Tests\<M>\Feature` 之类的命名空间才生效）；System 的日志与配置域无模块专属测试（通知模块已补）；`config/` 未分区（2c，评估过不做）。

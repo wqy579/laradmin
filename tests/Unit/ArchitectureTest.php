@@ -204,9 +204,11 @@ class ArchitectureTest extends TestCase
      * 每个模块必须自持路由与迁移目录。
      * 缺一项说明模块还是「挂在集中目录里的命名空间」，不算模块化。
      *
-     * tests/ 只要求「目录存在」，不要求里面有 .php：System 目前尚无模块专属测试，
-     * 靠 Feature/.gitkeep 占位。占位不是风格问题——phpunit.xml 已声明该 testsuite，
-     * 目录缺失会让整个 phpunit run 中止（见 test_declared_testsuite_directories_exist）。
+     * tests/ 只要求「目录存在」，不要求里面有 .php。System 曾经只有空 Feature/
+     * 目录 + .gitkeep 占位——占位不是风格问题，phpunit.xml 已声明该 testsuite，
+     * 目录缺失会让整个 phpunit run 中止（见 test_declared_testsuite_directories_exist），
+     * 现在有 NotificationFeatureTest 了。不要求有 .php 是因为「哪个模块算有测试」
+     * 是产品决策，本守卫只挡结构性缺失。
      */
     public function test_every_module_owns_routes_and_migrations(): void
     {
