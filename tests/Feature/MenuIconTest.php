@@ -22,7 +22,38 @@ class MenuIconTest extends TestCase
     {
         Artisan::call('migrate:fresh', ['--force' => true]);
 
-        $missing = DB::table('auth_permission')
+        $this->assertEmpty(
+            $this->topLevelMenusMissingIcon(),
+            $this->missingIconMessage()
+        );
+    }
+
+    /**
+     * 回归：干净安装的完整路径。
+     *
+     * 上面那条只跑迁移，测不出这个问题：AuthSeeder 在 BusinessSeeder 之前
+     * Permission::truncate() 了整张 auth_permission，把迁移阶段由
+     * fill_missing_menu_icons 补上的图标连同行一起清掉；之后 BusinessSeeder 重建
+     * 顶层菜单时某行漏写 meta，侧边栏就静默渲染出空 <el-icon>。
+     * 2026-09-15 实测丢了「小程序管理」的图标（home 由 AuthSeeder 自己重建，所以幸存）。
+     */
+    public function test_every_top_level_menu_has_an_icon_after_migrate_and_seed(): void
+    {
+        Artisan::call('migrate:fresh', ['--force' => true]);
+        Artisan::call('db:seed', ['--class' => 'DatabaseSeeder', '--force' => true]);
+
+        $this->assertEmpty(
+            $this->topLevelMenusMissingIcon(),
+            $this->missingIconMessage()
+        );
+    }
+
+    /**
+     * 顶层菜单中 meta.icon 缺失的 name 列表
+     */
+    private function topLevelMenusMissingIcon(): array
+    {
+        return DB::table('auth_permission')
             ->where('type', 'menu')
             ->where('parent_id', 0)
             ->get()
@@ -31,20 +62,21 @@ class MenuIconTest extends TestCase
 
                 return empty($meta['icon']);
             })
-            ->pluck('name');
+            ->pluck('name')
+            ->all();
+    }
 
-        $this->assertCount(
-            0,
-            $missing,
-            '以下顶层菜单没有 meta.icon，侧边栏会显示成空图标位：'.implode(', ', $missing->all())
-        );
+    private function missingIconMessage(): string
+    {
+        return '以下顶层菜单没有 meta.icon，侧边栏会显示成空图标位：'
+            .implode(', ', $this->topLevelMenusMissingIcon());
     }
 
     public function test_fill_missing_icons_migration_is_idempotent(): void
     {
         Artisan::call('migrate:fresh', ['--force' => true]);
 
-        $migration = require database_path('migrations/2026_09_14_000002_fill_missing_menu_icons.php');
+        $migration = $this->fillMigration();
 
         $migration->up();
         $afterFirst = $this->homeIcon();
@@ -66,7 +98,7 @@ class MenuIconTest extends TestCase
         // 先让人工在 home 上设置图标 + 一个同列的其它属性
         $this->updateMeta('home', ['icon' => 'ElIconHouse', 'affix' => true, 'hiddenBreadcrumb' => true]);
 
-        $migration = require database_path('migrations/2026_09_14_000002_fill_missing_menu_icons.php');
+        $migration = $this->fillMigration();
         $migration->up();
 
         $meta = json_decode($this->row('home')->meta, true);
@@ -86,7 +118,7 @@ class MenuIconTest extends TestCase
         $this->updateMeta('home', null);
         $this->updateMeta('miniapp', null);
 
-        $migration = require database_path('migrations/2026_09_14_000002_fill_missing_menu_icons.php');
+        $migration = $this->fillMigration();
         $migration->up();
 
         $this->assertSame('ElIconHomeFilled', $this->icon('home'));
@@ -120,5 +152,14 @@ class MenuIconTest extends TestCase
         DB::table('auth_permission')
             ->where('id', $id)
             ->update(['meta' => $meta === null ? null : json_encode($meta)]);
+    }
+
+    /**
+     * 补图标的迁移已随 Phase 2 归位到 System 模块（Phase 2 此前唯一漏掉的一处）。
+     * 文件名保持不变，所以已部署库 migrations 表里的记录不会失效。
+     */
+    private function fillMigration(): object
+    {
+        return require base_path('modules/System/database/migrations/2026_09_14_000002_fill_missing_menu_icons.php');
     }
 }

@@ -10,6 +10,11 @@ class BusinessSeeder extends Seeder
     public function run(): void
     {
         // 10个顶级菜单
+        //
+        // 每一行都必须带 meta.icon，不能省略：AuthSeeder 在本 seeder 之前
+        // Permission::truncate() 了整张 auth_permission，迁移阶段由
+        // fill_missing_menu_icons 补上的图标会随之被清掉，重建完全依赖这里的定义。
+        // 漏一行的后果是侧边栏渲染出空 <el-icon> 且不报错（见 MenuIconTest）。
         $topMenus = [
             ['name' => 'home', 'title' => '首页', 'parent_id' => 0, 'path' => '/', 'sort' => 1, 'status' => 1],
             ['name' => 'data', 'title' => '资料管理', 'parent_id' => 0, 'path' => '/business/product', 'sort' => 2, 'status' => 1, 'meta' => ['icon' => 'ElIconDataAnalysis']],
@@ -20,7 +25,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'report', 'title' => '报表管理', 'parent_id' => 0, 'path' => '/business/report/sales', 'sort' => 7, 'status' => 1, 'meta' => ['icon' => 'ElIconDataBoard']],
             ['name' => 'office', 'title' => '办公管理', 'parent_id' => 0, 'path' => '/business/mail', 'sort' => 8, 'status' => 1, 'meta' => ['icon' => 'ElIconMemo']],
             ['name' => 'visit', 'title' => '拜访管理', 'parent_id' => 0, 'path' => '/business/route', 'sort' => 9, 'status' => 1, 'meta' => ['icon' => 'ElIconLocation']],
-            ['name' => 'miniapp', 'title' => '小程序管理', 'parent_id' => 0, 'path' => '/mp-icons', 'sort' => 10, 'status' => 1],
+            ['name' => 'miniapp', 'title' => '小程序管理', 'parent_id' => 0, 'path' => '/mp-icons', 'sort' => 10, 'status' => 1, 'meta' => ['icon' => 'ElIconPlatform']],
         ];
 
         foreach ($topMenus as $menu) {
