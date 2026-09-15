@@ -195,14 +195,18 @@ class ArchitectureTest extends TestCase
             ."\n".implode("\n", $bad)
             ."模块自有中间件请放到 modules/<M>/Http/Middleware/；"
             ."中间件别名仍统一在 bootstrap/app.php 的 middlewareAliases() 里注册"
-            ."（别名表是全局中间件词汇表，属配置而非代码耦合，"
-            ."该处已登记为「app/ 不依赖模块」的唯一例外）。"
+            ."（别名表是全局中间件词汇表，属配置而非代码耦合）。"
+            ."config/ 与 bootstrap/ 里指向模块类的配置例外已逐处登记，见 docs/MODULARIZATION.md 第三节。"
         );
     }
 
     /**
      * 每个模块必须自持路由与迁移目录。
      * 缺一项说明模块还是「挂在集中目录里的命名空间」，不算模块化。
+     *
+     * tests/ 只要求「目录存在」，不要求里面有 .php：System 目前尚无模块专属测试，
+     * 靠 Feature/.gitkeep 占位。占位不是风格问题——phpunit.xml 已声明该 testsuite，
+     * 目录缺失会让整个 phpunit run 中止（见 test_declared_testsuite_directories_exist）。
      */
     public function test_every_module_owns_routes_and_migrations(): void
     {
@@ -221,12 +225,49 @@ class ArchitectureTest extends TestCase
                     $missing[] = "modules/$module/$sub";
                 }
             }
+
+            if (!is_dir(base_path("modules/$module/tests"))) {
+                $missing[] = "modules/$module/tests";
+            }
         }
 
         $this->assertSame(
             [],
             $missing,
             '以下模块缺少自持目录或目录为空：'.implode(', ', $missing)
+        );
+    }
+
+    /**
+     * phpunit.xml 声明的每个 <directory> 必须真实存在。
+     *
+     * 这是踩过的坑：modules/System/tests 当初只有本地空目录、git 不跟踪，
+     * 检出后目录不存在，PHPUnit 11 不是跳过那一个 testsuite，而是中止整个 run
+     * （exit 2，零个测试执行）。于是 CI 全红，而且红的不是任何一条断言。
+     * 空目录占位用 .gitkeep（无 .php 后缀，不会被当成测试收进去）。
+     */
+    public function test_declared_testsuite_directories_exist(): void
+    {
+        $xml = (string) file_get_contents(base_path('phpunit.xml'));
+
+        preg_match_all('/<directory>(.*?)<\/directory>/', $xml, $matches);
+        $declared = array_values(array_unique(
+            array_map('trim', $matches[1] ?? [])
+        ));
+
+        $this->assertNotEmpty($declared, 'phpunit.xml 里没扫到任何 <directory>');
+
+        $missing = array_values(array_filter(
+            $declared,
+            fn ($rel) => !is_dir(base_path($rel))
+        ));
+
+        $this->assertSame(
+            [],
+            $missing,
+            'phpunit.xml 声明了不存在的目录：'.implode(', ', $missing)
+            ."（PHPUnit 遇到声明的目录缺失会中止整个 run，不是跳过该 testsuite。"
+            .'空目录 git 不跟踪，放一个 .gitkeep 占位。）'
         );
     }
 }

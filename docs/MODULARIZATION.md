@@ -8,15 +8,19 @@
 |---|---|
 | Phase 1a 断环（Auth↔System） | ✅ 完成 |
 | Phase 1b 中间件归位 | ✅ 完成（别名注册留在 `bootstrap/app.php`，见该文件注释） |
-| Phase 1c `config/laravels.php` 例外 | ✅ 已登记，不动 |
+| Phase 1c `config/` 例外 | ✅ 已登记，不动（`config/laravels.php` 3 处 + 基线后发现补登的 `config/auth.php` 1 处，见 3.2） |
 | **Phase 2a seeders 归位** | ✅ 完成 |
 | **Phase 2b tests 归位** | ✅ 完成（见该节「已知缺口」） |
 | Phase 2c config 分区 | ⬜ 只评估，未动 |
 | Phase 3 前后端边界对齐 | ✅ 完成（`notification.js` 并入 `system.js`） |
 | Phase 4 测试与 CI 口径 | ✅ 完成（实测结果推翻了原「主跑 SQLite」的建议，见该节） |
+| **Phase 5 testsuite 目录占位与守卫** | ✅ 完成（修掉「整套测试静默归零」的坑，2026-09-15 发现） |
 
 第三节是 `7c15d04` 时点的实测基线，保留原样供对照；已完成的阶段在原节内标注了现状。
-当前基线：`./vendor/bin/phpunit` → 76 用例 / 426 断言；260 条路由。
+当前基线：`./vendor/bin/phpunit` → 81 用例 / 435 断言；260 条路由。
+
+（分支已于 2026-09-15 rebase 到 main：`61390b1` 菜单图标修复带进来 4 个用例，
+76 → 80。rebase 前是 76/426。）
 
 ## 一、目标
 
@@ -25,7 +29,7 @@
 三条硬指标：
 
 1. **无环依赖** —— 模块间依赖构成 DAG。目标形态：`Auth` 为底层身份模块，`Business → Auth`、`System → Auth` 单向
-2. **内核纯净** —— `app/` 不 import `Modules\`（当前 4 处倒置需清除）
+2. **内核纯净** —— `app/` 不 import `Modules\`（3.2 的 4 处倒置里 2 处已迁进模块，`app/` 现已零倒置；其余是 `bootstrap/` 与 `config/` 里逐处登记的配置例外，现状共 3 处）
 3. **资源随模块** —— 路由、迁移、seeder、测试都落在模块目录内
 
 验收方式：每条指标都有对应的 grep 断言，纳入 CI（见第六节）。
@@ -34,7 +38,7 @@
 
 内核仅 13 个文件，单一消费方，拆包只买到版本号，不买到能力。三个反对理由：
 
-1. **当前「内核」本身依赖模块**（4 处倒置），不是可直接抽取的内核。拆分前得先修倒置，而修完之后拆不拆变成了真可选
+1. **「内核」曾经依赖模块**（3.2 的 4 处倒置），不是可直接抽取的内核。现在 `app/` 已零倒置、剩下 3 处是 `bootstrap/` 与 `config/` 里必须写类名的配置例外——拆不拆确实变成了真可选，这条理由的权重因此下降。但它从未成立为「当前仍依赖」，写这条时得说清是哪个时点
 2. **部署协调成本**。项目跑在 `hhxsv5/laravel-s`（Swoole 常驻 worker）上，`DEPLOY.md` 已记录一整类「部署后运行时陈旧」故障：`route:cache` 在 worker 内 dispatch 即 fatal、子进程携带旧 autoloader 导致新加 autoload files 永远加载不到、reload 无法刷新 fork 继承的旧运行时。包版本错开会把这个故障面再放大一倍
 3. **没有第二个消费方**。单消费方的包，维护的是变更日志和 semver，不是架构
 
@@ -84,6 +88,17 @@ $ grep -rn 'Modules\\' app config bootstrap | grep -v 'bootstrap/providers.php'
 
 `bootstrap/providers.php` 注册三个模块 Provider 无法避免，不计入。
 
+> **基线后发现第 5 处（2026-09-15）**：`config/auth.php:75`
+> `env('AUTH_MODEL', Modules\Auth\Models\User::class)` —— 用户 provider 的 model
+> 必须给类名，和 laravel-s 那 3 处同性质，**登记为已接受例外**，不迁。
+> 试过把 `config/auth.php` 整份挪进模块用 `mergeConfigFrom` 解决：它是浅合并，
+> `providers` 这个键会被整体替换、`providers.users` 直接丢，要做递归合并才能保住，
+> 复杂度远大于收益。`config/` 也不在 ArchitectureTest 的内核纯净扫描范围内
+> （那只扫 `app/`），所以这条靠本文档登记，不靠守卫——登记表就是唯一的防线。
+>
+> 现状：`app/` 零倒置；例外共 3 处，全在 `bootstrap/` 与 `config/`，逐处登记于此节。
+
+
 ### 3.3 模块完备性
 
 ```
@@ -98,7 +113,7 @@ $ find modules -maxdepth 2 -type d
 | Console / Events / Listeners / Facades | — | — | ✓ |
 | Exceptions | — | ✓ | — |
 | **Seeders**（基线时无，Phase 2a 已建） | **✓** | **✓** | **✓** |
-| **tests**（基线时无，Phase 2b 已建） | **✓** | **✓** | **—**（无模块专属测试，testsuite 已预留） |
+| **tests**（基线时无，Phase 2b 已建） | **✓** | **✓** | **✓ 占位**（`Feature/.gitkeep`，尚无模块专属测试；目录缺失会让整套测试归零，见 2b） |
 | **config / resources/views / lang / public** | **—** | **—** | **—** |
 
 ### 3.4 集中式资源
@@ -254,7 +269,19 @@ tests/Unit/StockSnapshotServiceTest.php    → modules/Business/tests/Unit/
 
 **已知缺口（未处理，留给后续）**：迁过来的测试文件仍声明 `namespace Tests\Feature` / `Tests\Unit`（内容为原样搬运、未改类名），所以 `Tests\<M>\` 这三条 autoload-dev 映射暂时是**预留**的、没有类落进去。PHPUnit 按目录扫描文件、不依赖命名空间，所以不影响运行；等将来把模块测试命名空间改成 `Tests\<M>\Feature` 之类的形态时它们才生效。改的时候注意 `Tests\` 是父前缀，PSR-4 取最长匹配，不会冲突。
 
-**System 模块**目前没有模块专属测试（通知 / 日志 / 配置域还没写测试），`modules/System/tests` 尚未创建；`--testsuite System` 对不存在的目录只打印 `No tests executed!`、**退出码 0**，CI 安全。建目录时建议用 `.gitkeep` 占位（仓库此前无此惯例，尚未添加）。
+**System 模块**目前没有模块专属测试（通知 / 日志 / 配置域还没写测试）。`modules/System/tests/Feature/.gitkeep` 已于 2026-09-15 添加占位。
+
+⚠️ **这里踩过一个会让整套测试静默归零的坑**，之前的判断是错的：
+
+- 原来的判断：目录不存在时 phpunit 只跳过该 testsuite、退出码 0、CI 安全。**错。**
+- 实测（PHPUnit 11.5.56）：`phpunit.xml` 声明的 `<directory>` 不存在时，**无论全量跑还是
+  `--testsuite System` 单跑，都是 exit 2 且零个测试执行**，报错 `Test directory ... not found`。
+  空目录 git 不跟踪，所以任何一次干净检出都会踩中——CI 全红，而且红的不是任何一条断言。
+- `No tests executed!` + **退出码 0** 只在 `--testsuite` 指定的**名字**不存在时出现。
+  两个现象长得像，退出码相反，本节的原始表述就是把它们混了。
+- 守卫已补：`ArchitectureTest::test_declared_testsuite_directories_exist` 逐条核对
+  phpunit.xml 的 `<directory>` 是否真实存在，`test_every_module_owns_routes_and_migrations`
+  追加了 `tests` 目录必须存在（允许只有占位文件）。两处都在 phpunit job 里，删掉占位立刻红灯。
 
 验收（已实测通过）：
 
@@ -262,7 +289,7 @@ tests/Unit/StockSnapshotServiceTest.php    → modules/Business/tests/Unit/
 $ ./vendor/bin/phpunit                              # OK (75 tests, 425 assertions)
 $ ./vendor/bin/phpunit --testsuite Auth             # OK (15 tests, 89 assertions)
 $ ./vendor/bin/phpunit --testsuite Business         # OK (52 tests, 263 assertions)
-$ ./vendor/bin/phpunit --testsuite System           # No tests executed!（退出码 0）
+$ ./vendor/bin/phpunit --testsuite System           # OK (0 tests)——System 暂无测试，占位目录存在所以不会中止 run
 $ php artisan route:list --json | wc -l             # 260，不变
 $ git diff --stat -- tests/snapshots/routes.json    # 空
 ```
@@ -317,7 +344,7 @@ SQLite 跑全量是 76/76 全绿。`tests.yml` 里那两行注释已改写。
    - `StockSnapshotServiceTest` ×2 → 用例本身按设计只该在 SQLite 上跑，已跳过。
    - `ProductCategoryFeatureTest` ×4 → 早已不复现，当前 MySQL 上通过。
 
-验收（本地 MariaDB 10.11 实测）：SQLite 76/426 全绿；MySQL 76 用例 363 断言
+验收（本地 MariaDB 10.11 实测）：SQLite 81/435 全绿；MySQL 81 用例 363 断言
 0 失败 0 错误、3 个跳过。两个驱动的跳过集合各有明确解释，不是「凑绿的跳过」。
 
 ## 六、守卫：CI 新增三道断言
@@ -373,7 +400,7 @@ hits=$(grep -rn 'Modules\\' app --include='*.php' || true)
 每一步都跑：
 
 ```bash
-./vendor/bin/phpunit                    # 76/426
+./vendor/bin/phpunit                    # 81/435
 php artisan route:list --json | wc -l   # 260
 ```
 
@@ -385,7 +412,7 @@ php artisan route:list --json | wc -l   # 260
 
 ```bash
 # 1-3 架构三道（无环 / 内核纯净 / 模块完备性）          ✅ 已过
-./vendor/bin/phpunit tests/Unit/ArchitectureTest.php   # 5 tests, 6 assertions
+./vendor/bin/phpunit tests/Unit/ArchitectureTest.php   # 6 tests, 8 assertions
 #   别用 grep 手验：app/Contracts/TaskNotification.php 的 PHPDoc 里提到
 #   Modules\System 来解释设计，朴素 grep 会误判，必须剥注释（见第六节）
 
@@ -403,4 +430,6 @@ DB_CONNECTION=mysql DB_DATABASE=laradmin_test ./vendor/bin/phpunit   # 0 失败 
 
 - **第 2 条的排除口径**：`app/Contracts/TaskNotification.php` 的 PHPDoc 里出现 `Modules\System` 字样（说明实现方是谁），是注释不是 import。CI 断言必须按上式排除注释行，否则永远红灯。`config/laravels.php` 的 3 处 System 类引用是 laravel-s 的已登记例外，`config/` 本就不在该断言范围内。
 - **第 3 条**：原式含 `[ -d modules/System/tests ]`，但 System 目前无模块专属测试、目录未建。已改成只校验已建的两个；等 System 有测试并建目录时再加回。
-- 前三条达成即可视为「全模块化」，2c 与 1c 是有意识保留的例外，不计入未完成项。**当前状态：前三条已达成，差 Phase 3（前后端边界）与 Phase 4（测试口径）两项收尾。**
+- 前三条达成即可视为「全模块化」，2c 与 1c 是有意识保留的例外，不计入未完成项。**当前状态：全部阶段完成**（Phase 3 前后端边界、Phase 4 测试口径均已在 `6b3603d` 前后收尾，本文档原写「差 Phase 3 与 Phase 4 两项收尾」是收尾提交后漏改的残留句，2026-09-15 已更正）。
+- **已修的坑（2026-09-15）**：`phpunit.xml` 声明的 `<directory>modules/System/tests</directory>` 指向 git 不跟踪的空目录，任何干净检出都会让 `./vendor/bin/phpunit` exit 2、零个测试执行。已加 `Feature/.gitkeep` 占位 + 两道守卫（见 2b）。
+- **尚未做的**：`modules/System` 仍无模块专属测试（占位目录已建）；模块测试的命名空间仍是 `Tests\Feature`/`Tests\Unit`，`composer.json` 里 `Tests\<M>\` 三条映射暂为空转（见 2b）；`config/` 未分区（2c，评估过不做）。
