@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature;
+namespace Tests\Auth\Feature;
 
 use Modules\Auth\Models\User;
 use Modules\Auth\Seeders\AuthSeeder;
@@ -67,10 +67,10 @@ class AuthFeatureTest extends TestCase
             'password' => 'definitely-wrong',
         ]);
 
-        // 注意：当前实现把 ValidationException 包进 try/catch，返回 HTTP 500 而非 401/422。
-        // 这是既有对外行为，测试先钉住它；若后续统一为 401/422，请同步调整本用例。
-        $response->assertStatus(500)
-            ->assertJsonPath('code', 500)
+        // 凭证错误是 401，不是 500：此前 catch(Exception) 把它吞成 500，
+        // 密码敲错一次就在 5xx 监控里记一条事故。
+        $response->assertStatus(401)
+            ->assertJsonPath('code', 401)
             ->assertJsonPath('data', null);
         $this->assertStringContainsString('用户名或密码错误', (string) $response->json('message'));
     }
@@ -82,7 +82,7 @@ class AuthFeatureTest extends TestCase
             'password' => 'whatever123',
         ]);
 
-        $response->assertStatus(500);
+        $response->assertStatus(401);
         $this->assertStringContainsString('用户名或密码错误', (string) $response->json('message'));
     }
 
@@ -99,8 +99,10 @@ class AuthFeatureTest extends TestCase
             'password' => 'pass123456',
         ]);
 
-        // 密码正确但 status != 1 → 账号禁用（同样走了 HTTP 500 包装，见上条用例说明）
-        $response->assertStatus(500);
+        // 密码正确但 status != 1 → 账号禁用。仍然 401：登录失败的对外状态码只有一种，
+        // 具体原因看 message，前端 interceptor 也按"有无 token"区分这两种 401。
+        $response->assertStatus(401)
+            ->assertJsonPath('code', 401);
         $this->assertStringContainsString('账号已被禁用', (string) $response->json('message'));
     }
 
@@ -273,7 +275,9 @@ class AuthFeatureTest extends TestCase
             'password' => 'another789',
             'password_confirmation' => 'another789',
         ]);
-        $this->assertTrue(in_array($again->status(), [400, 422, 500]), '原密码错误应被拒绝');
+        // 原密码错误是校验失败，固定 422（此前被 catch(Exception) 吞成 500）
+        $this->assertSame(422, $again->status(), '原密码错误应返回 422');
+        $this->assertStringContainsString('原密码错误', (string) $again->json('message'));
         $this->assertFalse(Hash::check('another789', User::find($user->id)->password), '错误的原密码不应改掉密码');
     }
 
@@ -286,7 +290,7 @@ class AuthFeatureTest extends TestCase
             $this->postJson('/admin/auth/login', [
                 'username' => 'rl_probe_user',
                 'password' => 'bad-password',
-            ])->assertStatus(500);
+            ])->assertStatus(401);
         }
 
         $response = $this->postJson('/admin/auth/login', [
@@ -313,9 +317,10 @@ class AuthFeatureTest extends TestCase
         $this->postJson('/admin/auth/login', ['username' => 'rl_user_a', 'password' => 'bad'])
             ->assertStatus(429);
 
-        // 另一个用户名不受影响（计数键 sha1(login|username)，不含 IP）
+        // 另一个用户名不受影响（计数键 sha1(login|username)，不含 IP）。
+        // 断言 401 而不是 429 就是在验证"未被限流"——密码错返回 401，被限流返回 429。
         $this->postJson('/admin/auth/login', ['username' => 'rl_user_b', 'password' => 'bad'])
-            ->assertStatus(500);
+            ->assertStatus(401);
     }
 
     public function test_login_rate_limit_is_not_bypassed_by_ip_rotation(): void

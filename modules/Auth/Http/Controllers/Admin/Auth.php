@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Modules\Auth\Http\Requests\AuthRequest;
 use Modules\Auth\Services\AuthService;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Exception;
 
 class Auth extends Controller
@@ -32,6 +33,14 @@ class Auth extends Controller
                 'message' => '登录成功',
                 'data' => $result,
             ]);
+        } catch (ValidationException $e) {
+            // 凭证错误是 401，不是服务器错误。此前被 catch(Exception) 吞成 500：
+            // 密码敲错一次就在 5xx 监控里记一条故障，监控上业务失败全被算成事故。
+            return response()->json([
+                'code' => 401,
+                'message' => '登录失败：' . $this->validationMessage($e),
+                'data' => null,
+            ], 401);
         } catch (Exception $e) {
             return response()->json([
                 'code' => 500,
@@ -39,6 +48,19 @@ class Auth extends Controller
                 'data' => null,
             ], 500);
         }
+    }
+
+    /**
+     * 把 ValidationException 的字段错误拍平成一句可直接展示给用户的中文提示
+     *
+     * 服务层用 ValidationException::withMessages 抛业务拒绝（密码错、账号禁用、原密码错），
+     * errors() 的形状是 ['username' => ['用户名或密码错误']]，不能直接当 message 返回。
+     */
+    private function validationMessage(ValidationException $e): string
+    {
+        return collect($e->errors())
+            ->flatten(2)
+            ->implode('；');
     }
 
     /**
@@ -169,6 +191,13 @@ class Auth extends Controller
                 'message' => '密码重置成功',
                 'data' => null,
             ]);
+        } catch (ValidationException $e) {
+            // 「用户不存在」是输入问题，不是服务器错误
+            return response()->json([
+                'code' => 422,
+                'message' => '密码重置失败：' . $this->validationMessage($e),
+                'data' => null,
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'code' => 500,
@@ -193,6 +222,13 @@ class Auth extends Controller
                 'message' => '密码修改成功',
                 'data' => null,
             ]);
+        } catch (ValidationException $e) {
+            // 「原密码错误」是校验失败，不是服务器错误
+            return response()->json([
+                'code' => 422,
+                'message' => '密码修改失败：' . $this->validationMessage($e),
+                'data' => null,
+            ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'code' => 500,
