@@ -76,7 +76,7 @@ jobs:
             # 留在线上——线上 .env 实测就是 debug 模式，接口 500 时异常类名、堆栈、
             # 文件路径和行号会原样回给调用方（/admin/* 与 /api/* 都强制走 JSON 错误页）。
             # 以前靠人手工改，改不改全凭记得。这里每次都显式钉死。
-            # 只碰 APP_ENV / APP_DEBUG 和两个密钥，不覆盖任何业务配置与凭据。
+            # 只碰 APP_ENV / APP_DEBUG / JWT_TTL 和两个密钥，不覆盖任何业务配置与凭据。
             touch .env
             ensure_env() { # 有则覆盖，无则追加
               local key="$1" value="$2"
@@ -88,6 +88,15 @@ jobs:
             }
             ensure_env APP_ENV production
             ensure_env APP_DEBUG false
+
+            # JWT_TTL：480 = 8 小时。tymon 的 TTL 单位是分钟，config/jwt.php 里旧默认
+            # 60*60*24*7(604800) 被当 604800 分钟 = 420 天，没设 JWT_TTL 的环境都会
+            # 签发一年以上有效的 token（2026-09-15 线上实测 exp-iat=420 天）。钉死防
+            # 新服务器再吃默认值。取 8 小时而非本地开发用的 120(2h)：前端没有静默
+            # refresh（401 直接跳登录页），2 小时会在工作日中途把人踢下线；8 小时覆盖
+            # 一个工作日后要求重登。已签发 token 不受影响（exp 写在 token 里），只
+            # 作用于新登录/刷新。
+            ensure_env JWT_TTL 480
 
             # 缺密钥就直接中止，不在线上一边跑一边生成：APP_KEY 空值会让所有加解密与
             # 签名抛错，JWT_SECRET 空值会让每条鉴权路由都失败。生成的值写进 .env 后
@@ -104,6 +113,7 @@ jobs:
             # 钉错了就让部署明确失败，而不是带着 debug 模式上线
             grep -q '^APP_ENV=production$' .env   || { echo "APP_ENV 未生效"; exit 1; }
             grep -q '^APP_DEBUG=false$'  .env     || { echo "APP_DEBUG 未生效"; exit 1; }
+            grep -q '^JWT_TTL=480$'      .env     || { echo "JWT_TTL 未生效"; exit 1; }
 
             # 0. 备份当前前端产物（storage 不参与 rsync --delete，可安全存放上一版，
             #    健康检查失败时回滚用）
