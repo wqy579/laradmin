@@ -53,7 +53,7 @@ class TransferController extends Controller
                 'status' => 'draft',
                 'total_amount' => 0,
                 'total_qty' => 0,
-                'created_by' => auth()->id(),
+                'created_by' => auth('admin')->id(),
             ]));
             foreach ($request->items as $itemData) {
                 $item = $transfer->items()->create(array_merge($itemData, [

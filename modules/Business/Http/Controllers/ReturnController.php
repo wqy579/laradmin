@@ -58,7 +58,7 @@ class ReturnController extends Controller
                 'status' => 'draft',
                 'total_amount' => 0,
                 'total_qty' => 0,
-                'created_by' => auth()->id(),
+                'created_by' => auth('admin')->id(),
             ]));
             foreach ($request->items as $itemData) {
                 $item = $return->items()->create(array_merge($itemData, [
@@ -123,7 +123,10 @@ class ReturnController extends Controller
 
     public function approve(ReturnModel $return)
     {
-        $return->update(['status' => 'approved', 'approved_by' => auth()->id(), 'approved_at' => now()]);
+        if ($return->status !== 'draft') {
+            return response()->json(['message' => '只有草稿状态的退货单可以审批'], 422);
+        }
+        $return->update(['status' => 'approved', 'approved_by' => auth('admin')->id(), 'approved_at' => now()]);
         return response()->json(['message' => '审批成功']);
     }
 
@@ -135,16 +138,24 @@ class ReturnController extends Controller
         DB::beginTransaction();
         try {
             foreach ($return->items as $item) {
-                // 减少库存
+                // 不变量 I2：任何情况下不允许把库存扣成负数。
+                // 与 TransferController::execute 同一套「先校验充足、不足则整体回滚」，
+                // 退货此前是无条件 decrement，可以把任意商品退成负库存。
                 $stock = DB::table('stocks')
                     ->where('product_id', $item->product_id)
                     ->where('warehouse_id', $return->warehouse_id)
+                    ->lockForUpdate()
                     ->first();
-                if ($stock) {
-                    DB::table('stocks')
-                        ->where('id', $stock->id)
-                        ->decrement('quantity', $item->quantity);
+                $available = (int) ($stock->quantity ?? 0);
+                if ($available < $item->quantity) {
+                    DB::rollBack();
+                    return response()->json([
+                        'message' => "库存不足：该仓库现有 {$available} 件，无法退货 {$item->quantity} 件",
+                    ], 422);
                 }
+                DB::table('stocks')
+                    ->where('id', $stock->id)
+                    ->decrement('quantity', $item->quantity);
             }
             $return->update(['status' => 'completed']);
             DB::commit();

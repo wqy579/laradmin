@@ -11,12 +11,14 @@ use Tests\TestCase;
  * T6 采购/销售订单状态机测试
  *
  * 采购单：draft --approve--> approved --receive--> received
+ *   - receive 把每张明细的数量加进收货仓库（库存随单据流动，不再需要另开 stock-in 补记）
+ *   - 只有 draft/approved 可以 cancel；已入库的单据不能作废
  * 销售单：draft --approve--> approved（无后续单据联动）
  *
- * 并钉住当前实现的两个边界：
- *  - approve 没有前置状态校验（任意状态可重复审批）；
- *  - receive 只改状态、不产生任何库存变动（入库需另行走 /admin/business/stock-in）。
- * 两者是设计取舍还是缺陷，报告里单独讨论；若后续加守卫，请同步调整对应用例。
+ * approve / receive 都有前置状态校验，非法流转一律 422。
+ * 此前这三处是「钉住现状」的红灯：approve 无前置校验（状态可被来回翻转）、
+ * receive 只翻状态不动库存、没有取消端点。现已修复，用例改为正向断言。
+ * 退货单的状态机与库存不足保护见 ReturnOrderFeatureTest。
  */
 class OrderStateFeatureTest extends TestCase
 {
@@ -34,12 +36,13 @@ class OrderStateFeatureTest extends TestCase
     }
 
     private int $productId;
+    private int $adminId;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->actingAsAdmin();
+        $this->adminId = $this->actingAsAdmin()->id;
         $this->productId = $this->makeProduct()->id;
     }
 
@@ -147,6 +150,10 @@ class OrderStateFeatureTest extends TestCase
         $order = DB::table('purchase_orders')->find($id);
         $this->assertSame('approved', $order->status);
         $this->assertNotNull($order->approved_at);
+        // 审计字段必须落到当前登录的管理员。这里用 auth('admin') 而不是默认 guard，
+        // 因为默认 guard 是 web，管理端请求下取不到用户 id。
+        $this->assertSame($this->adminId, $order->approved_by, 'approved_by 应记录审批人');
+        $this->assertNotNull(DB::table('purchase_orders')->find($id)->created_by, 'created_by 应记录创建人');
     }
 
     public function test_purchase_order_receive_requires_approved_status(): void
@@ -174,7 +181,7 @@ class OrderStateFeatureTest extends TestCase
         $this->postJson("/admin/business/purchase-order/{$id}/receive")->assertStatus(422);
     }
 
-    public function test_purchase_order_receive_does_not_change_stock(): void
+    public function test_purchase_order_receive_adds_items_to_receiving_warehouse_stock(): void
     {
         $supplier = $this->makeSupplier();
         $warehouse = $this->makeWarehouse();
@@ -189,18 +196,33 @@ class OrderStateFeatureTest extends TestCase
         ]))->json('data.id');
 
         $this->postJson("/admin/business/purchase-order/{$id}/approve")->assertOk();
-        $this->postJson("/admin/business/purchase-order/{$id}/receive")->assertOk();
+        $this->postJson("/admin/business/purchase-order/{$id}/receive")
+            ->assertOk()
+            ->assertJsonPath('message', '入库成功');
 
-        // 钉住现状：receive 只翻状态，库存不变（采购入库实际通过 /admin/business/stock-in 完成）。
-        // 若后续把入库联动进 receive，本用例会红，届时请改为断言库存 += 明细数量。
+        // 采购入库必须反映到收货仓库：此前 receive 只翻状态，采购单永远不进库存，
+        // 出入库全靠另开一张 stock-in 手工补记。
         $this->assertSame(
-            10,
+            15,
             (int) Stock::where('product_id', $this->productId)->where('warehouse_id', $warehouse->id)->value('quantity'),
-            'receive 不应改变库存（当前设计：入库走独立的 stock-in 接口）'
+            '入库后收货仓库库存应为 10 + 5'
+        );
+
+        // 只进收货仓库，不动其他仓库
+        $other = $this->makeWarehouse();
+        $this->assertNull(
+            Stock::where('product_id', $this->productId)->where('warehouse_id', $other->id)->first(),
+            '入库不应在其他仓库凭空建出库存行'
+        );
+
+        // 采购单价不等于成本价，联动入库不得静默覆盖 cost_price
+        $this->assertSame(
+            0.0,
+            (float) Stock::where('product_id', $this->productId)->where('warehouse_id', $warehouse->id)->value('cost_price')
         );
     }
 
-    public function test_purchase_order_approve_has_no_precondition(): void
+    public function test_purchase_order_approve_only_in_draft(): void
     {
         $supplier = $this->makeSupplier();
         $warehouse = $this->makeWarehouse();
@@ -209,29 +231,70 @@ class OrderStateFeatureTest extends TestCase
             'warehouse_id' => $warehouse->id,
         ]))->json('data.id');
 
+        // 已入库的单据不能再审批，状态不得被打回 approved
         $this->postJson("/admin/business/purchase-order/{$id}/approve")->assertOk();
         $this->postJson("/admin/business/purchase-order/{$id}/receive")->assertOk();
         $this->assertSame('received', DB::table('purchase_orders')->find($id)->status);
 
-        // 钉住现状：已入库的单据仍可再次审批并把状态打回 approved。
-        // 这是缺少前置状态校验的表现（配合“可重复 receive 被拦截”看，实际危害有限，
-        // 但状态可被来回翻转）。若加了守卫，本用例应改为断言 4xx。
-        $this->postJson("/admin/business/purchase-order/{$id}/approve")->assertOk();
-        $this->assertSame('approved', DB::table('purchase_orders')->find($id)->status);
+        $this->postJson("/admin/business/purchase-order/{$id}/approve")
+            ->assertStatus(422)
+            ->assertJsonPath('message', '只有草稿状态的订单可以审批');
+        $this->assertSame('received', DB::table('purchase_orders')->find($id)->status);
+
+        // 已审批未入库的单据同样不能重复审批
+        $id2 = $this->postJson('/admin/business/purchase-order', $this->orderPayload([
+            'supplier_id' => $supplier->id,
+            'warehouse_id' => $warehouse->id,
+        ]))->json('data.id');
+        $this->postJson("/admin/business/purchase-order/{$id2}/approve")->assertOk();
+        $this->postJson("/admin/business/purchase-order/{$id2}/approve")
+            ->assertStatus(422)
+            ->assertJsonPath('message', '只有草稿状态的订单可以审批');
     }
 
-    public function test_purchase_order_has_no_cancel_endpoint(): void
+    public function test_purchase_order_cancel_lifecycle(): void
     {
         $supplier = $this->makeSupplier();
         $warehouse = $this->makeWarehouse();
+
+        // 草稿与已审批的单据都能取消
+        foreach (['draft', 'approved'] as $fromStatus) {
+            $id = $this->postJson('/admin/business/purchase-order', $this->orderPayload([
+                'supplier_id' => $supplier->id,
+                'warehouse_id' => $warehouse->id,
+            ]))->json('data.id');
+
+            if ($fromStatus === 'approved') {
+                $this->postJson("/admin/business/purchase-order/{$id}/approve")->assertOk();
+            }
+
+            $this->postJson("/admin/business/purchase-order/{$id}/cancel")
+                ->assertOk()
+                ->assertJsonPath('message', '取消成功');
+            $this->assertSame('cancelled', DB::table('purchase_orders')->find($id)->status);
+        }
+
+        // 已入库的单据不能作废——库存变动已经发生
         $id = $this->postJson('/admin/business/purchase-order', $this->orderPayload([
             'supplier_id' => $supplier->id,
             'warehouse_id' => $warehouse->id,
         ]))->json('data.id');
+        $this->postJson("/admin/business/purchase-order/{$id}/approve")->assertOk();
+        $this->postJson("/admin/business/purchase-order/{$id}/receive")->assertOk();
 
-        // 钉住现状：订单没有取消端点（草稿之外的单据无法作废）。
-        $response = $this->postJson("/admin/business/purchase-order/{$id}/cancel");
-        $this->assertTrue(in_array($response->status(), [404, 405]), '当前不存在取消端点，若已新增请更新本用例与状态机文档');
+        $this->postJson("/admin/business/purchase-order/{$id}/cancel")
+            ->assertStatus(422)
+            ->assertJsonPath('message', '只有草稿或已审批的订单可以取消');
+        $this->assertSame('received', DB::table('purchase_orders')->find($id)->status);
+
+        // 已取消的单据不能再取消，也不能再入库
+        $cancelled = $this->postJson('/admin/business/purchase-order', $this->orderPayload([
+            'supplier_id' => $supplier->id,
+            'warehouse_id' => $warehouse->id,
+        ]))->json('data.id');
+        $this->postJson("/admin/business/purchase-order/{$cancelled}/cancel")->assertOk();
+        $this->postJson("/admin/business/purchase-order/{$cancelled}/cancel")->assertStatus(422);
+        $this->postJson("/admin/business/purchase-order/{$cancelled}/receive")->assertStatus(422);
     }
 
     public function test_purchase_order_statistics(): void
@@ -292,8 +355,10 @@ class OrderStateFeatureTest extends TestCase
         $this->putJson("/admin/business/sales-order/{$id}", $payload)->assertStatus(422);
         $this->deleteJson("/admin/business/sales-order/{$id}")->assertStatus(422);
 
-        // 钉住现状：销售单审批同样无前置校验，可从 approved 再审批（幂等效果）
-        $this->postJson("/admin/business/sales-order/{$id}/approve")->assertOk();
+        // 销售单与采购单同一套前置校验：审批后再审批被拒，状态不会来回翻转
+        $this->postJson("/admin/business/sales-order/{$id}/approve")
+            ->assertStatus(422)
+            ->assertJsonPath('message', '只有草稿状态的订单可以审批');
     }
 
     public function test_sales_order_has_no_cancel_endpoint(): void

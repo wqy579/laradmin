@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use Modules\Business\Models\PurchaseOrder;
 use Modules\Business\Models\Supplier;
 use Modules\Business\Models\Warehouse;
+use Modules\Business\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class PurchaseOrderController extends Controller
 {
+    public function __construct(private StockService $stocks)
+    {
+    }
+
     public function index(Request $request)
     {
         $query = PurchaseOrder::with(['supplier', 'warehouse', 'items.product']);
@@ -58,7 +63,7 @@ class PurchaseOrderController extends Controller
                 'status' => 'draft',
                 'total_amount' => 0,
                 'total_qty' => 0,
-                'created_by' => auth()->id(),
+                'created_by' => auth('admin')->id(),
             ]));
             foreach ($request->items as $itemData) {
                 $item = $order->items()->create(array_merge($itemData, [
@@ -123,7 +128,12 @@ class PurchaseOrderController extends Controller
 
     public function approve(PurchaseOrder $purchaseOrder)
     {
-        $purchaseOrder->update(['status' => 'approved', 'approved_by' => auth()->id(), 'approved_at' => now()]);
+        // 状态机：draft --approve--> approved。无前置校验时 received 的单据还能被反复
+        // 审批并把状态打回 approved，单据状态被来回翻转且审计字段被覆盖。
+        if ($purchaseOrder->status !== 'draft') {
+            return response()->json(['message' => '只有草稿状态的订单可以审批'], 422);
+        }
+        $purchaseOrder->update(['status' => 'approved', 'approved_by' => auth('admin')->id(), 'approved_at' => now()]);
         return response()->json(['message' => '审批成功']);
     }
 
@@ -132,8 +142,35 @@ class PurchaseOrderController extends Controller
         if ($purchaseOrder->status !== 'approved') {
             return response()->json(['message' => '只有已审批的订单可以入库'], 422);
         }
-        $purchaseOrder->update(['status' => 'received']);
-        return response()->json(['message' => '入库成功']);
+        DB::beginTransaction();
+        try {
+            // 采购入库：把每张明细的数量加进收货仓库。此前这里只翻状态，采购单永远不会
+            // 反映到库存，出入库全靠另开一张 stock-in 手工补记。
+            // cost_price 不动——采购单价不等于成本价，静默覆盖会把成本口径改脏。
+            foreach ($purchaseOrder->items as $item) {
+                $this->stocks->stockIn(
+                    (int) $item->product_id,
+                    (int) $purchaseOrder->warehouse_id,
+                    (int) $item->quantity,
+                );
+            }
+            $purchaseOrder->update(['status' => 'received']);
+            DB::commit();
+            return response()->json(['message' => '入库成功']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => '入库失败: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function cancel(PurchaseOrder $purchaseOrder)
+    {
+        // 只有还没入库的单据能作废；已入库的库存变动已发生，不能一键抹掉。
+        if (!in_array($purchaseOrder->status, ['draft', 'approved'], true)) {
+            return response()->json(['message' => '只有草稿或已审批的订单可以取消'], 422);
+        }
+        $purchaseOrder->update(['status' => 'cancelled']);
+        return response()->json(['message' => '取消成功']);
     }
 
     public function statistics()
@@ -143,6 +180,8 @@ class PurchaseOrderController extends Controller
             'total_amount' => PurchaseOrder::sum('total_amount'),
             'pending' => PurchaseOrder::where('status', 'draft')->count(),
             'approved' => PurchaseOrder::where('status', 'approved')->count(),
+            'received' => PurchaseOrder::where('status', 'received')->count(),
+            'cancelled' => PurchaseOrder::where('status', 'cancelled')->count(),
         ];
         return response()->json(['data' => $stats]);
     }

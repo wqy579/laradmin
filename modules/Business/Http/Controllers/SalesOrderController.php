@@ -59,7 +59,7 @@ class SalesOrderController extends Controller
                 'status' => 'draft',
                 'total_amount' => 0,
                 'total_qty' => 0,
-                'created_by' => auth()->id(),
+                'created_by' => auth('admin')->id(),
             ]));
             foreach ($request->items as $itemData) {
                 $item = $order->items()->create(array_merge($itemData, [
@@ -124,7 +124,11 @@ class SalesOrderController extends Controller
 
     public function approve(SalesOrder $salesOrder)
     {
-        $salesOrder->update(['status' => 'approved', 'approved_by' => auth()->id(), 'approved_at' => now()]);
+        // 与采购单同一套前置校验：只有草稿能审批，避免状态被反复翻转、审计字段被覆盖
+        if ($salesOrder->status !== 'draft') {
+            return response()->json(['message' => '只有草稿状态的订单可以审批'], 422);
+        }
+        $salesOrder->update(['status' => 'approved', 'approved_by' => auth('admin')->id(), 'approved_at' => now()]);
         return response()->json(['message' => '审批成功']);
     }
 

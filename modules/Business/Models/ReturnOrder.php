@@ -24,6 +24,9 @@ class ReturnOrder extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(ReturnItem::class);
+        // 必须显式给出外键：Eloquent 按属主类名推断出 return_order_id，
+        // 而 return_items 表里那列叫 return_id。漏了这里，退货单的
+        // store/update/approve/show 全部 SQL 报错 500（明细插入即失败）。
+        return $this->hasMany(ReturnItem::class, 'return_id');
     }
 }
