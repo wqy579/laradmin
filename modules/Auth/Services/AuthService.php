@@ -72,11 +72,13 @@ class AuthService
 	 */
 	public function refresh(): array
 	{
+		// 只刷一次：auth('admin')->refresh() 会把当前 token 立刻拉黑（jwt 黑名单零宽限）
+		// 并签发新 token，第二次调用会对同一个旧 token 再 decode 一次，命中黑名单抛
+		// TokenBlacklistedException，导致 POST /admin/auth/refresh 在任何环境下都 401。
+		// 这里不再二次调用；refreshToken 保留为同一个新 token 的别名，兼容老前端契约。
 		$newToken = auth('admin')->refresh();
 		$user = auth('admin')->user();
-
-		// 生成新的refresh token
-		$newRefreshToken = auth('admin')->refresh();
+		$newRefreshToken = $newToken;
 
 		// 获取用户菜单
 		$menu = $this->getUserMenu($user);

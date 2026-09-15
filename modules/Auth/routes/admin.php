@@ -34,7 +34,9 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/users/batch-department', [\Modules\Auth\Http\Controllers\Admin\User::class, 'batchAssignDepartment']);
         Route::post('/users/batch-roles', [\Modules\Auth\Http\Controllers\Admin\User::class, 'batchAssignRoles']);
         Route::post('/users/import', [\Modules\Auth\Http\Controllers\Admin\User::class, 'import']);
-        Route::get('/users/export', [\Modules\Auth\Http\Controllers\Admin\User::class, 'export']);
+        // 导出是异步任务提交：s-export 组件把 {fields, filters} 作为 JSON body 发上来，
+        // 前端 auth.js 也是按 POST 调用的。此前这里声明成 GET，请求方法对不上必然 404。
+        Route::post('/users/export', [\Modules\Auth\Http\Controllers\Admin\User::class, 'export']);
         Route::post('/users/{id}/reset-password', [\Modules\Auth\Http\Controllers\Admin\User::class, 'resetPassword']);
 
         Route::get('/roles', [\Modules\Auth\Http\Controllers\Admin\Role::class, 'index']);
@@ -49,6 +51,9 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
 
         Route::get('/permissions', [\Modules\Auth\Http\Controllers\Admin\Permission::class, 'index']);
         Route::get('/permissions/tree', [\Modules\Auth\Http\Controllers\Admin\Permission::class, 'tree']);
+        // 前端 auth.js 的 permission.detail 一直按这个路径调用，此前唯独漏了路由声明，
+        // 控制器与 Service 的方法都在，调用却必然 404。
+        Route::get('/permissions/{id}', [\Modules\Auth\Http\Controllers\Admin\Permission::class, 'show']);
         Route::post('/permissions', [\Modules\Auth\Http\Controllers\Admin\Permission::class, 'store']);
         Route::put('/permissions/{id}', [\Modules\Auth\Http\Controllers\Admin\Permission::class, 'update']);
         Route::delete('/permissions/{id}', [\Modules\Auth\Http\Controllers\Admin\Permission::class, 'destroy']);

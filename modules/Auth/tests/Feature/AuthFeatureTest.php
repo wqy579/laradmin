@@ -13,6 +13,11 @@ use Tests\TestCase;
  *
  * 覆盖：登录成功/密码错误/账号禁用、参数校验、JWT 刷新与登出黑名单、
  * 登录限流（5 次/15 分钟，RateLimitMiddleware）、菜单与权限返回结构。
+ *
+ * ⚠️ 认证统一走 loginAs()/withToken()（真实 JWT），不要用 actingAs()。
+ * 生产是常驻进程（laravel-s），身份只可能来自请求上的 token；
+ * FlushRequestState 中间件会主动清掉进程内注入的 guard 身份，
+ * actingAs() 在这里必然拿到 401——那不是测试写错，是它在假装一条不存在的链路。
  */
 class AuthFeatureTest extends TestCase
 {
@@ -134,9 +139,9 @@ class AuthFeatureTest extends TestCase
 
     public function test_me_returns_profile_roles_and_permissions(): void
     {
-        $admin = User::where('username', 'admin')->first();
-
-        $response = $this->actingAs($admin, 'admin')->getJson('/admin/auth/me');
+        // 用真实 token 而不是 actingAs()：生产身份只来自 token，没有「进程内注入用户」
+        // 这条路，而且常驻进程会清掉注入的身份（见 FlushRequestState 文件头的说明）。
+        $response = $this->withToken($this->loginAndGetToken())->getJson('/admin/auth/me');
 
         $response->assertOk()->assertJsonPath('code', 200);
 
@@ -154,9 +159,7 @@ class AuthFeatureTest extends TestCase
 
     public function test_menu_returns_nested_tree_for_super_admin(): void
     {
-        $admin = User::where('username', 'admin')->first();
-
-        $response = $this->actingAs($admin, 'admin')->getJson('/admin/auth/permissions/menu');
+        $response = $this->withToken($this->loginAndGetToken())->getJson('/admin/auth/permissions/menu');
 
         $response->assertOk()->assertJsonPath('code', 200);
 
@@ -182,23 +185,38 @@ class AuthFeatureTest extends TestCase
 
     // ---------------------------------------------------------------- 刷新 / 登出
 
-    public function test_refresh_endpoint_returns_401_due_to_double_refresh_defect(): void
+    public function test_refresh_endpoint_rotates_token_and_returns_full_session_payload(): void
     {
-        $token = $this->loginAndGetToken();
+        $oldToken = $this->loginAndGetToken();
 
-        $response = $this->postJson('/admin/auth/refresh', [], $this->bearer($token));
+        $response = $this->postJson('/admin/auth/refresh', [], $this->bearer($oldToken));
 
-        // 已知缺陷（钉住现状，隔离/类内/全量三种跑法实测一致）：POST /admin/auth/refresh 永远 401。
-        // 机制：AuthService::refresh() 连续调用两次 auth('admin')->refresh()。
-        //   第一次：把当前 token 拉黑（jwt.blacklist_grace_period=0，立即生效）并签发新 token；
-        //   第二次：JWT 单例仍缓存着同一个旧 token，decode 命中黑名单 → TokenBlacklistedException
-        //   → Auth@refresh 的 catch(Exception) 吞掉 → HTTP 401 'Token无效或已过期'。
-        // 前端“刷新会话”功能因此完全不可用。修复：AuthService::refresh() 只调用一次 refresh()；
-        // 修复后请把本用例改回正向断言（200 + token/refreshToken 字段 + 用新 token 完成 me）。
-        $response->assertStatus(401)
-            ->assertJsonPath('code', 401)
-            ->assertJsonPath('message', 'Token无效或已过期')
-            ->assertJsonPath('data', null);
+        $response->assertOk()
+            ->assertJsonPath('code', 200)
+            ->assertJsonPath('message', '刷新成功');
+
+        $data = $response->json('data');
+        $this->assertNotEmpty($data['token'], '刷新响应缺少 token');
+        $this->assertNotEmpty($data['refreshToken'], '刷新响应缺少 refreshToken');
+        // 单点 JWT 体系里没有独立的 refresh token，refreshToken 是同值别名（兼容老前端）
+        $this->assertSame($data['token'], $data['refreshToken']);
+        $this->assertNotSame($oldToken, $data['token'], '刷新后必须换发新 token');
+        $this->assertSame('admin', $data['user']['username']);
+        $this->assertIsArray($data['menu'], '刷新响应缺少 menu');
+        $this->assertIsArray($data['permissions'], '刷新响应缺少 permissions');
+        $this->assertNotEmpty($data['menu']);
+
+        // 新 token 立即可用，旧 token 已被拉黑（jwt.blacklist_grace_period=0）
+        $this->resetJwtState();
+        $this->getJson('/admin/auth/me', $this->bearer($data['token']))
+            ->assertOk()
+            ->assertJsonPath('code', 200)
+            ->assertJsonPath('data.username', 'admin');
+
+        $this->resetJwtState();
+        $this->getJson('/admin/auth/me', $this->bearer($oldToken))
+            ->assertStatus(401)
+            ->assertJsonPath('message', '未登录或token已过期');
     }
 
     public function test_refresh_requires_valid_token(): void
@@ -220,6 +238,7 @@ class AuthFeatureTest extends TestCase
             ->assertJsonPath('message', '登出成功');
 
         // JWT 黑名单已启用（config/jwt.php blacklist_enabled=true），登出后旧 token 立即失效
+        $this->resetJwtState();
         $this->getJson('/admin/auth/me', $this->bearer($token))
             ->assertStatus(401)
             ->assertJsonPath('message', '未登录或token已过期');
@@ -234,7 +253,7 @@ class AuthFeatureTest extends TestCase
             'password' => Hash::make('oldpass123'),
         ]);
 
-        $response = $this->actingAs($user, 'admin')->postJson('/admin/auth/change-password', [
+        $response = $this->withToken($this->loginAs('pw_changer', 'oldpass123'))->postJson('/admin/auth/change-password', [
             'old_password' => 'oldpass123',
             'password' => 'newpass456',
             'password_confirmation' => 'newpass456',
@@ -248,8 +267,8 @@ class AuthFeatureTest extends TestCase
         $this->assertTrue(Hash::check('newpass456', $fresh->password), '新密码未生效');
         $this->assertFalse(Hash::check('oldpass123', $fresh->password), '旧密码应已失效');
 
-        // 原密码错误时拒绝修改
-        $again = $this->actingAs($fresh, 'admin')->postJson('/admin/auth/change-password', [
+        // 原密码错误时拒绝修改（用改过的新密码重新登录拿 token）
+        $again = $this->withToken($this->loginAs('pw_changer', 'newpass456'))->postJson('/admin/auth/change-password', [
             'old_password' => 'wrong-old-password',
             'password' => 'another789',
             'password_confirmation' => 'another789',
@@ -294,19 +313,40 @@ class AuthFeatureTest extends TestCase
         $this->postJson('/admin/auth/login', ['username' => 'rl_user_a', 'password' => 'bad'])
             ->assertStatus(429);
 
-        // 另一个用户名不受影响（计数键 sha1(login|username|ip)）
+        // 另一个用户名不受影响（计数键 sha1(login|username)，不含 IP）
         $this->postJson('/admin/auth/login', ['username' => 'rl_user_b', 'password' => 'bad'])
             ->assertStatus(500);
+    }
+
+    public function test_login_rate_limit_is_not_bypassed_by_ip_rotation(): void
+    {
+        // 计数键只按账号（见 RateLimitMiddleware::resolveSignatures）：
+        // 轮换出口 IP 换不来新配额。laravel-s 会把客户端自带的 X-Real-IP
+        // 无条件写进 REMOTE_ADDR，IP 维度在 laravel-s 下是客户端可控的。
+        for ($i = 1; $i <= 5; $i++) {
+            $this->call('POST', '/admin/auth/login', [
+                'username' => 'rl_ip_rotate',
+                'password' => 'bad',
+            ], [], [], ['REMOTE_ADDR' => '10.99.0.'.$i]);
+        }
+
+        $this->call('POST', '/admin/auth/login', [
+            'username' => 'rl_ip_rotate',
+            'password' => 'bad',
+        ], [], [], ['REMOTE_ADDR' => '10.99.9.254'])
+            ->assertStatus(429);
     }
 
     // ---------------------------------------------------------------- 助手
 
     private function loginAndGetToken(): string
     {
-        $response = $this->postJson('/admin/auth/login', [
-            'username' => 'admin',
-            'password' => 'admin888',
-        ]);
+        return $this->loginAs('admin', 'admin888');
+    }
+
+    private function loginAs(string $username, string $password): string
+    {
+        $response = $this->postJson('/admin/auth/login', compact('username', 'password'));
         $response->assertOk();
 
         return (string) $response->json('data.token');
