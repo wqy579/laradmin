@@ -140,7 +140,7 @@ $ grep -rlF 'App\Http\Controllers\Controller' modules --include='*.php' | wc -l
 
 ### 3.6 测试与 CI 口径
 
-- SQLite（`phpunit.xml` 默认）：**71 测试 / 420 断言全绿**（基线值；Phase 2b 后为 **75 测试 / 425 断言**，增量来自后续补的架构断言与用例，与模块化无关）
+- SQLite（`phpunit.xml` 默认）：**81 测试 / 435 断言全绿**（当前值，2026-09-15 实测；基线 71/420 → Phase 2b 75/425 → 现 81/435，增量来自架构断言、模块归位的用例与 Phase 5 的 testsuite 守卫，与模块化本身无关）
 - MySQL（CI `phpunit` job 实际使用的）：**7 个失败**，含 2 个名字带 `_on_sqlite`、断言「SQLite 上必然抛 `QueryException`」的用例——切到 MySQL 就不抛
 - 已修的 CI 缺口：静态检查目录清单补上 `modules/`（原清单只覆盖 56 个文件，漏掉 181 个）
 
