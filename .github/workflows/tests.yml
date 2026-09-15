@@ -181,8 +181,18 @@ jobs:
       - name: Check platform requirements
         # 上一版这里挂着 `|| true`，是一条永远绿的假门禁（步骤名还写着 lockfile）。
         # 去掉 || true，让它真的能拦住「本地缺扩展但 CI 没发现」。
-        # 注意 composer.json 的 config.platform 已把 php/ext-swoole/ext-pcntl 伪造成
-        # 固定值，所以这里验的是上面 extensions 装没装上。
+        #
+        # ⚠️ 这条命令忽略 composer.json 的 config.platform。composer 自己的说明：
+        #   Unlike update/install, this command will ignore config.platform settings
+        #   and check the real platform packages.
+        # 所以 config.platform 里的 php: 8.2.0 只影响依赖解析，不影响这一步——这里验的
+        # 是矩阵里真实的 PHP 版本。别把「config.platform 已伪造 php」当成这里的安全感。
+        #
+        # 2026-09-15 因此红过一次：lcobucci/jwt 4.0.4 依赖 lcobucci/clock 2.3.0，后者
+        # 声明 php (~8.1.0 || ~8.2.0)，PHP 8.5 矩阵格永久 failed；而同批 PHPUnit (8.5)
+        # 全绿、migrate:fresh 也过——是声明约束不匹配，不是 8.5 跑不动。旧的注释正是
+        # 误判了这一点。修法是升 lcobucci/jwt 到 5.6.0（tymon/jwt-auth 2.3.0 允许
+        # ^4.0|^5.0，无需改它），clock 2.x 随之从依赖树消失。
         run: composer check-platform-reqs --no-dev
 
       - name: Lint PHP syntax
