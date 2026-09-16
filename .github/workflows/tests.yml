@@ -304,8 +304,10 @@ jobs:
       SESSION_DRIVER: array
       QUEUE_CONNECTION: sync
       MAIL_MAILER: array
-      # .env.example 里 JWT_SECRET 是空值，任何走 JWT 签名的路由都会失败
-      JWT_SECRET: 8jWhmZ…DsPD
+      # JWT_SECRET 不在这里写死：曾提交过被截断成 13 字节的假密钥（104 bits，签发 token
+      # 直接抛 "Key provided is shorter than 256 bits"），且 job env 变量会覆盖
+      # .env.testing 里的值。密钥改由下面 Prepare 步骤随机生成写进 .env.testing，
+      # 与 APP_KEY 同法。
 
     steps:
       - uses: actions/checkout@v4
@@ -336,6 +338,15 @@ jobs:
           sed -i "s#^APP_KEY=.*#APP_KEY=base64:$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
           grep -q '^APP_KEY=base64:' .env.testing || {
             echo "::error title=Missing APP_KEY::.env.testing 没有生成 APP_KEY"
+            exit 1
+          }
+          # JWT_SECRET 同理：.env.example 里是空值，而 tymon/jwt-auth 要求 ≥256 位密钥。
+          # 空值/过短都会让所有走 JWT 签名的测试抛 JWTException。同法随机生成——
+          # base64(32B) 保证 ≥256 位，且每次运行密钥都是新鲜的，不再有「写死的假密钥
+          # 悄悄截断、只改 workflow 不查测试」这一类坑（2026-09-16 CI 首跑即被它打红）。
+          sed -i "s#^JWT_SECRET=.*#JWT_SECRET=$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
+          grep -q '^JWT_SECRET=.' .env.testing || {
+            echo "::error title=Missing JWT_SECRET::.env.testing 没有生成 JWT_SECRET"
             exit 1
           }
           mkdir -p build
@@ -454,6 +465,12 @@ jobs:
           sed -i "s#^APP_KEY=.*#APP_KEY=base64:$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
           grep -q '^APP_KEY=base64:' .env.testing \
             || { echo "::error title=Missing APP_KEY::.env.testing 没有生成 APP_KEY"; exit 1; }
+          # JWT_SECRET 与 APP_KEY 同法随机生成（.env.example 里为空）。worker 里
+          # FlushRequestState::flush() 每个请求前都会 resolve 'tymon.jwt'，空密钥直接抛
+          # "Secret is not set" → 所有请求 500（2026-09-16 swoole job 首跑正是死在这）。
+          sed -i "s#^JWT_SECRET=.*#JWT_SECRET=$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
+          grep -q '^JWT_SECRET=.' .env.testing \
+            || { echo "::error title=Missing JWT_SECRET::.env.testing 没有生成 JWT_SECRET"; exit 1; }
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
