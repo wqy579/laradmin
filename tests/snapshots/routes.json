@@ -3245,6 +3245,13 @@
         "middleware": []
     },
     {
+        "method": "PUT",
+        "uri": "storage/{path}",
+        "name": "storage.local.upload",
+        "action": "Closure",
+        "middleware": []
+    },
+    {
         "method": "GET",
         "uri": "up",
         "name": null,
