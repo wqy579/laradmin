@@ -17,7 +17,7 @@ class DepartmentImport implements ToCollection, WithHeadingRow, WithValidation
     /**
      * 处理导入数据
      */
-    public function collection(Collection $rows)
+    public function collection(Collection $rows): void
     {
         foreach ($rows as $index => $row) {
             try {

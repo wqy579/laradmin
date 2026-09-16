@@ -219,19 +219,19 @@ nginx -t && systemctl reload nginx
 | 组件 | 版本 | 位置 | 说明 |
 |------|------|------|------|
 | **PHP（部署 CLI + worker）** | **8.5** | 服务器 `/usr/bin/php8.5` | CLI 与 laravels worker 统一运行时，全链路命令均写死 `php8.5` |
-| PHP（代码下限） | 8.2 | `composer.json` `"php": "^8.2"` | CI 按 `['8.2', '8.5']` 双矩阵跑；本地 8.2.33 实测可启动、71 测试全绿 |
-| Laravel | 11.56.1 | `composer.lock` 锁版 | — |
+| PHP（代码下限） | 8.3 | `composer.json` `"php": "^8.3"` | CI 按 `['8.3', '8.5']` 双矩阵跑；本地 8.3 实测可启动、SQLite 108 测试全绿 |
+| Laravel | 12.69.2 | `composer.lock` 锁版 | — |
 | hhxsv5/laravel-s | 3.8.8 | `composer.lock` 锁版 | 声明 `php >=8.2` |
 | Swoole | ≥ 4.8 | 服务器扩展 | `composer.json` 的 platform 下限 |
 | MySQL | 8.x（**生产实际版本待确认**） | 服务器 | 三个库 `laradmin` / `jxc_system` / `q_qjwykj_com` |
 | Redis | 可选 | 服务器 | `.env` 默认启用，见下 |
 | Node.js | 20 | 仅 GitHub Actions | 服务器**不构建**前端（2G 内存跑 Vite 会拖死整机） |
 
-### 1. 为什么统一 php8.5（而不是 php8.2）
+### 1. 为什么统一 php8.5（而不是 php8.3）
 
 不是代码需要 8.5，而是**部署策略选择**：laravels worker 一直跑在系统 CLI `php8.5` 上，此前部署脚本用 `php8.4` 跑 composer/artisan，双运行时并存导致语法兼容问题难以排查。统一为 `php8.5` 后服务器上的 `php8.4` 不再被本项目使用（卸载前需在宝塔面板确认没有其他站点绑定 8.4-fpm，见提交 `a97422e`）。
 
-若需降级回 8.2：改 `deploy.yml` 中全部 `php8.5` 为对应命令，并同步改 `DEPLOY.md`、`public/docs/deploy-guide-internal.html` 三处。
+若需降级回 8.3：改 `deploy.yml` 中全部 `php8.5` 为对应命令，并同步改 `DEPLOY.md`、`public/docs/deploy-guide-internal.html` 三处。
 
 ### 2. 服务器必须装的 PHP 扩展
 
@@ -239,17 +239,17 @@ nginx -t && systemctl reload nginx
 
 建议：`opcache` `posix` `bcmath`。可选：`redis`（phpredis）、`gd`（Excel 内嵌图片）、`intl`（未使用）。
 
-**mbstring 缺口**：生产 php8.5 **未装** `ext-mbstring`，由 `symfony/polyfill-mbstring` + `app/Support/mb_polyfill.php` 补齐。Laravel 11.56 的 `Str.php` 用到 `mb_split` / `mb_strimwidth`，而 symfony polyfill 不覆盖这两个函数——缺了它们 worker 一启动即 `Call to undefined function Illuminate\Support\mb_split()`，全线 500（2026-09-13 生产事故根因）。`deploy.yml` 第 5.5 步会持续验证该兜底生效。
+**mbstring 缺口**：生产 php8.5 **未装** `ext-mbstring`，由 `symfony/polyfill-mbstring` + `app/Support/mb_polyfill.php` 补齐。Laravel 12（v12.69.2）的 `Str.php` 仍用到 `mb_split` / `mb_strimwidth`，而 symfony polyfill 不覆盖这两个函数——缺了它们 worker 一启动即 `Call to undefined function Illuminate\Support\mb_split()`，全线 500（2026-09-13 生产事故根因）。`deploy.yml` 第 5.5 步会持续验证该兜底生效。
 
 > 建议：给 php8.5 装上 `ext-mbstring` 后 polyfill 会零影响失效（文件内是 `if (!function_exists(...))` 守卫），届时诊断输出里 `mbstring NOT loaded` 应消失。
 
 ### 3. `composer.json` 的 `config.platform` 是刻意为之
 
 ```json
-"platform": { "php": "8.2.0", "ext-swoole": "4.8.0", "ext-pcntl": "8.2.0" }
+"platform": { "php": "8.3.0", "ext-swoole": "4.8.0", "ext-pcntl": "8.3.0" }
 ```
 
-- `php: 8.2.0`：让 composer 按 8.2.0 解析依赖。`phpoffice/phpspreadsheet` 1.30.6 声明 `php >=7.4.0 <8.5.0`，据此才能在 php8.5 上安装成功。⚠️ 代价是 worker 实际以 php8.5 运行该库，处于其声明范围之外（当前实测 Excel 导入导出正常，升级该依赖前请留意）。
+- `php: 8.3.0`：让 composer 按项目代码下限 8.3.0 解析依赖。`maatwebsite/excel` 4.x 要求 `php ^8.3`，解析按 8.3.0 保证依赖树最低合法版本与 CI/本地的 PHP 下限一致。`phpoffice/phpspreadsheet` 5.9 声明 `php ^8.2`（**无上界**），worker 以 php8.5 运行该库处于其声明支持范围内，不再存在旧版（1.30.6 声明 `<8.5.0`）那种越界运行的代价。
 - `ext-swoole` / `ext-pcntl`：让 `composer install` 在**未装**这两个扩展的机器上也能通过解析。扩展本身仍需另行安装。
 
 ### 4. Redis：默认启用但非必需
@@ -262,6 +262,6 @@ nginx -t && systemctl reload nginx
 - **模块化后迁移按模块归位**：`database/migrations/`（仅框架表 `jobs`）+ `modules/{Auth,System,Business}/database/migrations/`，由各模块 Provider 的 `loadMigrationsFrom` 注册。`migrate` 会跨路径按文件名排序，顺序不受影响。
 - **应用代码不能跑 SQLite**：`modules/Business/Services/StockSnapshotService.php` 里是硬编码的 `ON DUPLICATE KEY UPDATE` 原生 SQL（MySQL 专用），另有 20 处 `updateOrCreate` / `updateOrInsert` / `upsert`。
 - **但迁移链可以跑 SQLite**：`tests/Feature/MigrationSmokeTest.php` 就在 SQLite 上跑 `migrate:fresh --seed` 并断言关键表齐全；`phpunit.xml` 默认 `sqlite :memory:`，本地无需额外配置。
-- ⚠️ **CI 与本地的口径不一致**：CI 的 `phpunit` job 起 MySQL 容器（贴近生产），本地默认 SQLite。SQLite 下 71 个用例全绿；MySQL 下当前 7 个失败，其中 2 个是 `StockSnapshotServiceTest` 里名字带 `_on_sqlite`、断言「SQLite 上必然抛异常」的用例，切到 MySQL 就不抛。定口径前不要只看 CI 绿灯。
+- ✅ **CI 与本地的口径已一致**：CI 的 `phpunit` job 起 MySQL 容器（贴近生产），本地默认 SQLite。两库当前均全绿：SQLite 108 个用例全绿（622 断言）；MySQL 107 过 + 1 跳过（561 断言），仅剩 `StockSnapshotServiceTest` 里名字带 `_on_sqlite` 的用例按设计只在 SQLite 上断言「必然抛异常」，MySQL 下跳过。
 - `deploy.yml` 中 `php8.5 artisan migrate --force` **不再带 `|| true`**：此前该静默吞错掩盖了建表顺序与遗留列缺失两处硬错误（生产库因表早已存在而未暴露，仅全新环境会踩）。现在迁移失败会让部署明确失败。
 - 路由含闭包，**禁止执行 `php artisan route:cache`**（worker 内 dispatch 即 fatal）。`routes/admin.php` 与 `modules/*/routes/*.php` 里仍有 2 个跨模块运维闭包路由。

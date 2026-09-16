@@ -1,10 +1,11 @@
 # =============================================================================
 # Tests — CI 质量门禁
 #
-# 设计目标：把 deploy.yml 里才暴露的问题提前拦下来。目前共 4 个 job，全部并行：
+# 设计目标：把 deploy.yml 里才暴露的问题提前拦下来。目前共 5 个 job，全部并行：
 #   secrets   防泄漏（秒级，最快的失败信号）
 #   static    PHP 静态检查（不连数据库）
 #   phpunit   单元 + 功能测试（MySQL 服务容器）
+#   swoole    Swoole worker 探活（PHP 8.5，CI 里唯一能验证 laravel-s 运行时的门）
 #   frontend  前端构建（与 deploy.yml 同一条命令，行为不漂移）
 #
 # 分支保护建议：Required checks 勾 secrets / static / phpunit 三项（frontend 会随
@@ -141,9 +142,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 生产运行时是 8.5（见 deploy.yml），composer.json config.platform 又是 8.2.0
-        # ——两个都测，才能同时挡住「新版本 API 变化」和「依赖解析漂移」。
-        php: ['8.2', '8.5']
+        # 生产运行时是 8.5（见 deploy.yml），composer.json config.platform 又是 8.3.0
+        # （maatwebsite/excel 4.x 要求 php ^8.3，代码下限已到 8.3）——两个都测，
+        # 才能同时挡住「新版本 API 变化」和「依赖解析漂移」。
+        php: ['8.3', '8.5']
     steps:
       - uses: actions/checkout@v4
 
@@ -185,7 +187,7 @@ jobs:
         # ⚠️ 这条命令忽略 composer.json 的 config.platform。composer 自己的说明：
         #   Unlike update/install, this command will ignore config.platform settings
         #   and check the real platform packages.
-        # 所以 config.platform 里的 php: 8.2.0 只影响依赖解析，不影响这一步——这里验的
+        # 所以 config.platform 里的 php: 8.3.0 只影响依赖解析，不影响这一步——这里验的
         # 是矩阵里真实的 PHP 版本。别把「config.platform 已伪造 php」当成这里的安全感。
         #
         # 2026-09-15 因此红过一次：lcobucci/jwt 4.0.4 依赖 lcobucci/clock 2.3.0，后者
@@ -237,7 +239,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.5']
+        php: ['8.3', '8.5']
 
     # 测试库是 MySQL，理由是严格度，不是迁移语法。
     # 曾记录的理由「迁移含 MySQL 专有语法、SQLite 无法执行」已核实为假：
@@ -303,8 +305,10 @@ jobs:
       SESSION_DRIVER: array
       QUEUE_CONNECTION: sync
       MAIL_MAILER: array
-      # .env.example 里 JWT_SECRET 是空值，任何走 JWT 签名的路由都会失败
-      JWT_SECRET: 8jWhmZ…DsPD
+      # JWT_SECRET 不在这里写死：曾提交过被截断成 13 字节的假密钥（104 bits，签发 token
+      # 直接抛 "Key provided is shorter than 256 bits"），且 job env 变量会覆盖
+      # .env.testing 里的值。密钥改由下面 Prepare 步骤随机生成写进 .env.testing，
+      # 与 APP_KEY 同法。
 
     steps:
       - uses: actions/checkout@v4
@@ -335,6 +339,15 @@ jobs:
           sed -i "s#^APP_KEY=.*#APP_KEY=base64:$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
           grep -q '^APP_KEY=base64:' .env.testing || {
             echo "::error title=Missing APP_KEY::.env.testing 没有生成 APP_KEY"
+            exit 1
+          }
+          # JWT_SECRET 同理：.env.example 里是空值，而 tymon/jwt-auth 要求 ≥256 位密钥。
+          # 空值/过短都会让所有走 JWT 签名的测试抛 JWTException。同法随机生成——
+          # base64(32B) 保证 ≥256 位，且每次运行密钥都是新鲜的，不再有「写死的假密钥
+          # 悄悄截断、只改 workflow 不查测试」这一类坑（2026-09-16 CI 首跑即被它打红）。
+          sed -i "s#^JWT_SECRET=.*#JWT_SECRET=$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
+          grep -q '^JWT_SECRET=.' .env.testing || {
+            echo "::error title=Missing JWT_SECRET::.env.testing 没有生成 JWT_SECRET"
             exit 1
           }
           mkdir -p build
@@ -378,6 +391,152 @@ jobs:
           path: |
             junit.xml
             build/*
+            storage/logs/*.log
+            bootstrap/cache/*.php
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ========== Swoole worker 探活 ==========
+  # 为什么需要：生产跑在 laravel-s（swoole 常驻 worker）上，CLI 全绿不等于 worker 内
+  # 能 dispatch 请求——2026-09-13 生产 500 事故就是 route:cache 的缓存路由在 worker 内
+  # fatal、CLI 完全正常（deploy.yml 第 3 步因此禁用 route:cache）。本地四个 PHP 都没装
+  # swoole/phpize，boot 不了 worker，所以 CI 是唯一能验证「laravel-s + 当前框架版本在
+  # worker 里处理请求」的地方。升级框架（如这次的 Laravel 12）必须先让这里绿。
+  #
+  # 职责边界：只探 HTTP 请求生命周期（boot → middleware → 路由 → 422）。不测
+  # websocket/timer/inotify——它们是配置驱动的旁路，Laravel 12 下若有兼容问题会在部署
+  # 健康门（deploy.yml 第 6 步）暴露；这里关掉它们让探活聚焦、少一个变量。
+  #
+  # 矩阵为什么只有 8.5：生产 worker 就是 8.5（DEPLOY.md 运行时表）。依赖漂移已有
+  # static/phpunit 的 8.2 矩阵覆盖，这个 job 的唯一目的就是复刻生产 worker——跑 8.2
+  # 只会多一次 swoole 源码编译，却测不到生产路径。
+  swoole:
+    name: Swoole worker probe (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.5']
+    env:
+      APP_ENV: testing
+      # 探活只打「登录 422」这条无 DB 路由（validation 在查库之前），sqlite 比 MySQL
+      # 容器轻；数组存储避开 Redis/文件队列。worker 内 fatal 与存储引擎无关，DB 正确性
+      # 由 phpunit 的 MySQL 矩阵负责。
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ':memory:'
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+      # 端口/绑定与生产（8000 / 0.0.0.0）分开：runner 上 8000 可能被占，且探活不该
+      # 暴露到容器外。config/laravels.php 全吃 env，改这里即生效。
+      LARAVELS_LISTEN_IP: 127.0.0.1
+      LARAVELS_LISTEN_PORT: '8099'
+      LARAVELS_DAEMONIZE: 'false'
+      # 见上方「职责边界」：关掉旁路，只留 HTTP。
+      LARAVELS_WEBSOCKET: 'false'
+      LARAVELS_TIMER: 'false'
+      LARAVELS_INOTIFY_RELOAD: 'false'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          # swoole 是重点：setup-php 在 PHP 8.5 下从源码编译最新稳定版，耗时较长，
+          # 故 timeout 放到 20 分钟。pcntl：laravel-s 依赖。pdo_mysql 保留是贴近生产
+          # worker 的扩展面；pdo_sqlite 供探活用的 sqlite 连接。
+          extensions: swoole, pcntl, pdo_sqlite, mbstring, pdo_mysql, intl, zip, opcache, bcmath
+          coverage: none
+          tools: composer:v2
+          cache: composer
+
+      - name: Prepare test env
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 与 phpunit job 同法：.env.example 里 APP_KEY 为空，从随机字节生成。
+          # laravel-s start 会先跑 artisan laravels config（完整 app boot），没有
+          # APP_KEY 会抛 "No application encryption key has been specified"。
+          test -f .env.example \
+            || { echo "::error title=Missing .env.example::"; exit 1; }
+          cp .env.example .env.testing
+          sed -i "s#^APP_KEY=.*#APP_KEY=base64:$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
+          grep -q '^APP_KEY=base64:' .env.testing \
+            || { echo "::error title=Missing APP_KEY::.env.testing 没有生成 APP_KEY"; exit 1; }
+          # JWT_SECRET 与 APP_KEY 同法随机生成（.env.example 里为空）。worker 里
+          # FlushRequestState::flush() 每个请求前都会 resolve 'tymon.jwt'，空密钥直接抛
+          # "Secret is not set" → 所有请求 500（2026-09-16 swoole job 首跑正是死在这）。
+          sed -i "s#^JWT_SECRET=.*#JWT_SECRET=$(php -r 'echo base64_encode(random_bytes(32));')#" .env.testing
+          grep -q '^JWT_SECRET=.' .env.testing \
+            || { echo "::error title=Missing JWT_SECRET::.env.testing 没有生成 JWT_SECRET"; exit 1; }
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Boot Swoole worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          # daemonize=false 时 laravel-s 的 start 前台阻塞（Portal::start →
+          # LaravelS->run()），必须 & 后台化并记 PID，由 Stop 步骤回收。
+          php bin/laravels start > storage/logs/swoole-ci.log 2>&1 &
+          echo $! > /tmp/laravels.pid
+          # 等 worker 开始接受连接：任何 HTTP 响应（含 404）都说明已在服务；
+          # 连接拒绝说明还没就绪；进程退出说明 boot 期间就 fatal，直接留证。
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null --max-time 2 http://127.0.0.1:8099/; then
+              echo "worker accepting connections after ${i}s"
+              exit 0
+            fi
+            if ! kill -0 "$(cat /tmp/laravels.pid)" 2>/dev/null; then
+              echo "::error title=Swoole worker died during boot::进程已退出"
+              tail -n 80 storage/logs/swoole-ci.log || true
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "::error title=Swoole worker did not boot::30s 内 127.0.0.1:8099 无响应"
+          tail -n 80 storage/logs/swoole-ci.log || true
+          exit 1
+
+      - name: Probe request lifecycle (production health-check parity)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 与 deploy.yml 第 6 步同判据：空 body POST 登录，422（校验错误）=应用健康，
+          # 5xx 或无响应=worker 内 fatal（2026-09-13 事故的判据）。唯一区别是内网直连
+          # worker 端口，不经 CDN/nginx。
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+            -X POST http://127.0.0.1:8099/admin/auth/login \
+            -H "Content-Type: application/json" -d '{}' || echo 000)
+          echo "login probe -> HTTP $code"
+          if [ "$code" = "000" ] || [ "$code" -ge 500 ]; then
+            echo "::error title=Swoole worker unhealthy::HTTP $code（期望 2xx/4xx；5xx 或无响应=worker fatal）"
+            tail -n 80 storage/logs/swoole-ci.log 2>/dev/null || true
+            tail -n 40 "storage/logs/swoole-$(date +%Y-%m).log" 2>/dev/null || true
+            exit 1
+          fi
+
+      - name: Stop Swoole worker
+        if: always()
+        shell: bash
+        run: |
+          # bin/laravels stop 走 pid 文件（Portal::stop，SIGTERM 给 master），kill 兜底；
+          # 就算 worker 泄漏也无所谓——runner 每 job 独立销毁。
+          php bin/laravels stop >/dev/null 2>&1 || true
+          [ -f /tmp/laravels.pid ] && kill "$(cat /tmp/laravels.pid)" 2>/dev/null || true
+
+      # worker 的 fatal 不打 stdout（生产教训，见 deploy.yml 第 5.5 步），
+      # 失败时把 swoole log 留档。
+      - name: Upload swoole logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: swoole-probe-logs-php${{ matrix.php }}
+          path: |
             storage/logs/*.log
             bootstrap/cache/*.php
           if-no-files-found: ignore

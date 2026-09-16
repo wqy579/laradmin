@@ -13,7 +13,7 @@ class CustomerImport implements ToCollection, WithHeadingRow
     protected $errorCount = 0;
     protected $errors = [];
 
-    public function collection(Collection $rows)
+    public function collection(Collection $rows): void
     {
         foreach ($rows as $index => $row) {
             try {

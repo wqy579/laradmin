@@ -3,11 +3,11 @@
   "type": "project",
   "description": "The skeleton application for the Laravel framework.",
   "require": {
-    "php": "^8.2",
+    "php": "^8.3",
     "hhxsv5/laravel-s": "^3.8",
-    "laravel/framework": "^11.0",
+    "laravel/framework": "^12.0",
     "laravel/tinker": "^2.9",
-    "maatwebsite/excel": "^3.1",
+    "maatwebsite/excel": "^4.0",
     "symfony/polyfill-mbstring": "^1.38",
     "tymon/jwt-auth": "^2.3"
   },
@@ -56,9 +56,9 @@
       "php-http/discovery": true
     },
     "platform": {
-      "php": "8.2.0",
+      "php": "8.3.0",
       "ext-swoole": "4.8.0",
-      "ext-pcntl": "8.2.0"
+      "ext-pcntl": "8.3.0"
     },
     "policy": {
       "advisories": {
