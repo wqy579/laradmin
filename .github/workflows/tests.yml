@@ -142,9 +142,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # 生产运行时是 8.5（见 deploy.yml），composer.json config.platform 又是 8.2.0
-        # ——两个都测，才能同时挡住「新版本 API 变化」和「依赖解析漂移」。
-        php: ['8.2', '8.5']
+        # 生产运行时是 8.5（见 deploy.yml），composer.json config.platform 又是 8.3.0
+        # （maatwebsite/excel 4.x 要求 php ^8.3，代码下限已到 8.3）——两个都测，
+        # 才能同时挡住「新版本 API 变化」和「依赖解析漂移」。
+        php: ['8.3', '8.5']
     steps:
       - uses: actions/checkout@v4
 
@@ -186,7 +187,7 @@ jobs:
         # ⚠️ 这条命令忽略 composer.json 的 config.platform。composer 自己的说明：
         #   Unlike update/install, this command will ignore config.platform settings
         #   and check the real platform packages.
-        # 所以 config.platform 里的 php: 8.2.0 只影响依赖解析，不影响这一步——这里验的
+        # 所以 config.platform 里的 php: 8.3.0 只影响依赖解析，不影响这一步——这里验的
         # 是矩阵里真实的 PHP 版本。别把「config.platform 已伪造 php」当成这里的安全感。
         #
         # 2026-09-15 因此红过一次：lcobucci/jwt 4.0.4 依赖 lcobucci/clock 2.3.0，后者
@@ -238,7 +239,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.5']
+        php: ['8.3', '8.5']
 
     # 测试库是 MySQL，理由是严格度，不是迁移语法。
     # 曾记录的理由「迁移含 MySQL 专有语法、SQLite 无法执行」已核实为假：

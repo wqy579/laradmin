@@ -2,10 +2,10 @@
 
 # LarAdmin
 
-基于 Laravel 11 + Swoole + Vue 3 + Element Plus 的进销存（ERP）后台管理系统
+基于 Laravel 12 + Swoole + Vue 3 + Element Plus 的进销存（ERP）后台管理系统
 
-[![Laravel](https://img.shields.io/badge/Laravel-11.0-red.svg)](https://laravel.com)
-[![PHP](https://img.shields.io/badge/PHP-8.2+-blue.svg)](https://php.net)
+[![Laravel](https://img.shields.io/badge/Laravel-12-red.svg)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.3+-blue.svg)](https://php.net)
 [![Vue](https://img.shields.io/badge/Vue-3.5-brightgreen.svg)](https://vuejs.org)
 [![Element Plus](https://img.shields.io/badge/Element_Plus-2.14-blue.svg)](https://element-plus.org)
 [![Swoole](https://img.shields.io/badge/Swoole-5.1-orange.svg)](https://www.swoole.com)
@@ -36,7 +36,7 @@
 LarAdmin 是一个进销存（ERP）后台管理系统：商品资料与分类、采购/销售订单、库存（出入库/调拨/退货/盘点监控）、客户与供应商、车辆与路线、员工与拜访记录、财务收支等业务模块，配套完整的 RBAC 权限体系与系统管理能力。
 
 - **管理后台 SPA**：Vue 3 + Element Plus + VXE Table，源码位于 `frontend/`，构建产物部署到 `public/admin/`
-- **运行时**：Laravel 11 + `hhxsv5/laravel-s`（Swoole 长生命周期服务）
+- **运行时**：Laravel 12 + `hhxsv5/laravel-s`（Swoole 长生命周期服务）
 
 ## 环境要求
 
@@ -44,8 +44,8 @@ LarAdmin 是一个进销存（ERP）后台管理系统：商品资料与分类�
 
 | 组件 | 版本要求 | 说明 |
 |------|----------|------|
-| **PHP** | 代码最低 **8.2**；生产运行时 **8.5** | 见下方「PHP 版本说明」 |
-| **Laravel** | 11.x（当前锁版 11.56.1） | `composer.lock` 实际锁定版本 |
+| **PHP** | 代码最低 **8.3**；生产运行时 **8.5** | 见下方「PHP 版本说明」 |
+| **Laravel** | 12.x（当前锁版 12.69.2） | `composer.lock` 实际锁定版本 |
 | **MySQL** | 8.x（MariaDB 10.x 亦可） | 生产运行时；应用代码不能跑 SQLite，见「SQLite 的适用边界」 |
 | **Redis** | 可选（6.x+） | `.env.example` 默认启用，但代码未直接调用，见下 |
 | **Node.js** | 20（CI 矩阵 20 + 22） | 仅云端构建前端用，服务器不构建 |
@@ -53,10 +53,9 @@ LarAdmin 是一个进销存（ERP）后台管理系统：商品资料与分类�
 
 ### PHP 版本说明
 
-- **代码最低 8.2**：`composer.json` 声明 `"php": "^8.2"`，CI（`.github/workflows/tests.yml`）按 `['8.2', '8.5']` 双矩阵跑静态检查与 PHPUnit。本地 PHP 8.2.33 实测可正常启动并全量通过 71 个测试。
+- **代码最低 8.3**：`composer.json` 声明 `"php": "^8.3"`（`maatwebsite/excel` 4.x 要求 `php ^8.3`），CI（`.github/workflows/tests.yml`）按 `['8.3', '8.5']` 双矩阵跑静态检查与 PHPUnit。本地 PHP 8.3 实测可正常启动并全量通过 108 个测试。
 - **生产运行时统一 8.5**：服务器系统 CLI 为 `php8.5`，部署脚本（`deploy.yml`）与 laravels worker 全部走 `php8.5`，避免双运行时并存带来的排查成本（见提交 `a97422e`）。
-- **`composer.json` 的 `config.platform` 是刻意为之**：`"php": "8.2.0"`、`"ext-swoole": "4.8.0"`、`"ext-pcntl": "8.2.0"`。前两个让 composer 按 8.2.0 解析依赖（`phpoffice/phpspreadsheet` 1.30.6 声明 `php <8.5.0`，据此才能在 php8.5 上安装）；后两个是让 `composer install` 在**未装** swoole/pcntl 的机器上也能通过，扩展本身仍需另行安装。
-- ⚠️ 注意：因上述 platform 锁定，worker 实际以 php8.5 运行 `phpoffice/phpspreadsheet` 1.30.6，处于其声明支持范围之外。当前实测正常（Excel 导入导出通过测试），升级该依赖前请留意。
+- **`composer.json` 的 `config.platform` 是刻意为之**：`"php": "8.3.0"`、`"ext-swoole": "4.8.0"`、`"ext-pcntl": "8.3.0"`。前两个让 composer 按项目代码下限 8.3.0 解析依赖（`phpoffice/phpspreadsheet` 5.9 声明 `php ^8.2`、无上界，worker 以 php8.5 运行处于其声明范围内）；后两个是让 `composer install` 在**未装** swoole/pcntl 的机器上也能通过，扩展本身仍需另行安装。
 
 ### PHP 扩展
 
@@ -95,7 +94,7 @@ CREATE DATABASE laradmin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 - **迁移链可以跑 SQLite**：`tests/Feature/MigrationSmokeTest.php` 就在 SQLite 上跑 `migrate:fresh --seed` 并断言关键表齐全。`phpunit.xml` 默认 `sqlite :memory:`，本地无需额外配置。
 - **应用代码不能跑 SQLite**：`modules/Business/Services/StockSnapshotService.php` 里有硬编码的 `ON DUPLICATE KEY UPDATE` 原生 SQL（MySQL 专用），另有 20 处 `updateOrCreate` / `updateOrInsert` / `upsert`。
-- **CI 与本地口径不一致**：CI 的 `phpunit` job 起 MySQL 容器（贴近生产），本地默认 SQLite。SQLite 下 71 个用例全绿；MySQL 下当前 7 个失败，含 2 个名字带 `_on_sqlite`、断言「SQLite 上必然抛异常」的用例。见 DEPLOY.md 第九章第 5 节。
+- **CI 与本地口径已一致**：CI 的 `phpunit` job 起 MySQL 容器（贴近生产），本地默认 SQLite。SQLite 下 108 个用例全绿；MySQL 下 107 过 + 1 跳过（后者是名字带 `_on_sqlite`、按设计只在 SQLite 上断言「必然抛异常」的用例）。见 DEPLOY.md 第九章第 5 节。
 
 ## 核心特性
 
@@ -116,11 +115,11 @@ CREATE DATABASE laradmin CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 | 依赖 | 版本 | 用途 |
 |------|------|------|
-| PHP | ^8.2 | 运行时 |
-| Laravel | ^11.0 | 框架核心 |
+| PHP | ^8.3 | 运行时 |
+| Laravel | ^12.0 | 框架核心 |
 | hhxsv5/laravel-s | ^3.8 | Swoole 集成 |
 | tymon/jwt-auth | ^2.3 | JWT 认证 |
-| maatwebsite/excel | ^3.1 | Excel 导入导出 |
+| maatwebsite/excel | ^4.0 | Excel 导入导出 |
 
 ### 管理后台前端（`frontend/`）
 

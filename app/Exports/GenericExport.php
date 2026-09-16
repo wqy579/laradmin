@@ -18,7 +18,7 @@ class GenericExport implements FromCollection, WithHeadings
     /**
      * 获取数据集合
      */
-    public function collection()
+    public function collection(): \Illuminate\Support\Enumerable
     {
         return collect($this->data);
     }

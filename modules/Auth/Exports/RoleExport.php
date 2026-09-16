@@ -20,7 +20,7 @@ class RoleExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
     /**
      * 获取数据集合
      */
-    public function collection()
+    public function collection(): \Illuminate\Support\Enumerable
     {
         $query = Role::with(['permissions']);
 

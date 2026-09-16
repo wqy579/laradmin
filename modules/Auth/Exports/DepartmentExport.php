@@ -20,7 +20,7 @@ class DepartmentExport implements FromCollection, WithHeadings, WithMapping, Sho
     /**
      * 获取数据集合
      */
-    public function collection()
+    public function collection(): \Illuminate\Support\Enumerable
     {
         $query = Department::query();
 

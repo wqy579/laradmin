@@ -4,7 +4,7 @@
  * mbstring 函数补齐（仅当运行环境未加载 ext-mbstring 时生效，有则零影响）。
  *
  * 背景：laravels worker 跑在系统 CLI php8.5 上（未装 mbstring 扩展），
- * Laravel 11.56 的 Str.php 用到 mb_split / mb_strimwidth，而
+ * Laravel 12（v12.69.2）的 Str.php 仍用到 mb_split / mb_strimwidth，而
  * symfony/polyfill-mbstring 恰好不覆盖这两个函数（mb_split 仅出现在其
  * 文档注释中，无实现），worker 一启动即
  * FatalError: Call to undefined function Illuminate\Support\mb_split()

@@ -34,7 +34,7 @@ class UserExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
         $this->filters = $filters;
     }
 
-    public function collection()
+    public function collection(): \Illuminate\Support\Enumerable
     {
         $query = User::with(['department', 'roles']);
 

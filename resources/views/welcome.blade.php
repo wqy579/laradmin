@@ -994,7 +994,7 @@
         <div class="container hero-content">
             <div class="hero-badge">✨ 全新升级 · 高性能架构</div>
             <h1>新一代<br><span class="gradient-text">高性能后台管理系统</span></h1>
-            <p>基于 Laravel 11 + Swoole + Vue 3 构建的进销存（ERP）后台管理系统，覆盖商品资料、采购销售、库存盘点、客户供应商、车辆路线与财务收支，为企业级应用提供坚实的技术支撑</p>
+            <p>基于 Laravel 12 + Swoole + Vue 3 构建的进销存（ERP）后台管理系统，覆盖商品资料、采购销售、库存盘点、客户供应商、车辆路线与财务收支，为企业级应用提供坚实的技术支撑</p>
             <div class="hero-buttons">
                 <a href="/admin" class="btn btn-primary">立即开始</a>
                 <a href="#features" class="btn btn-secondary">了解更多</a>
@@ -1092,8 +1092,8 @@
                 </div>
                 <div class="tech-item">
                     <div class="tech-icon">🔷</div>
-                    <h4>Laravel 11</h4>
-                    <p class="tech-version">11.56</p>
+                    <h4>Laravel 12</h4>
+                    <p class="tech-version">12.69</p>
                 </div>
                 <div class="tech-item">
                     <div class="tech-icon">🚀</div>
@@ -1220,7 +1220,7 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2026 LarAdmin. Built with ❤️ using Laravel 11 & Swoole & Vue 3</p>
+                <p>&copy; 2026 LarAdmin. Built with ❤️ using Laravel 12 & Swoole & Vue 3</p>
             </div>
         </div>
     </footer>
