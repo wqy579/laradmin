@@ -83,15 +83,24 @@ class BusinessSeeder extends Seeder
         }
 
         // 库存管理子菜单
+        //
+        // 库存核对必须在这里定义，不能只靠迁移：AuthSeeder 在本 seeder 之前
+        // Permission::truncate() 了整张 auth_permission，所以任何一次
+        // db:seed / 换库 / 从备份恢复都会丢掉它。2026-09-16 线上就因为这个
+        // 丢过一次（见 2026_09_16_000001_restore_inventory_stock_check_menu）。
+        //
+        // scrap / inventory-check 没有任何后端路由和前端 view，点了是 404，
+        // 按 status=0 入库；页面补上后改回 1 即可。
         $inventoryMenus = [
             ['name' => 'inventory.purchase', 'title' => '采购管理', 'parent' => 'inventory', 'path' => '/business/purchase-order', 'component' => 'business/purchase-order/index', 'sort' => 1],
             ['name' => 'inventory.stock-in', 'title' => '入库管理', 'parent' => 'inventory', 'path' => '/business/stock-in', 'sort' => 2],
             ['name' => 'inventory.stock-out', 'title' => '出库管理', 'parent' => 'inventory', 'path' => '/business/stock-out', 'sort' => 3],
             ['name' => 'inventory.transfer', 'title' => '调拨管理', 'parent' => 'inventory', 'path' => '/business/transfer', 'sort' => 4],
             ['name' => 'inventory.return', 'title' => '退货管理', 'parent' => 'inventory', 'path' => '/business/return', 'sort' => 5],
-            ['name' => 'inventory.scrap', 'title' => '报废管理', 'parent' => 'inventory', 'path' => '/business/scrap', 'sort' => 6],
-            ['name' => 'inventory.check', 'title' => '盘点管理', 'parent' => 'inventory', 'path' => '/business/inventory-check', 'sort' => 7],
+            ['name' => 'inventory.scrap', 'title' => '报废管理', 'parent' => 'inventory', 'path' => '/business/scrap', 'sort' => 6, 'status' => 0],
+            ['name' => 'inventory.check', 'title' => '盘点管理', 'parent' => 'inventory', 'path' => '/business/inventory-check', 'sort' => 7, 'status' => 0],
             ['name' => 'inventory.query', 'title' => '库存查询', 'parent' => 'inventory', 'path' => '/business/stock', 'component' => 'business/stock/index', 'sort' => 8],
+            ['name' => 'inventory.stock-check', 'title' => '库存核对', 'parent' => 'inventory', 'path' => '/business/liankai-stock-check', 'component' => 'business/liankai-stock-check/index', 'sort' => 9],
         ];
 
         foreach ($inventoryMenus as $menu) {
@@ -103,7 +112,7 @@ class BusinessSeeder extends Seeder
                 'path' => $menu['path'],
                 'component' => $menu['component'] ?? null,
                 'sort' => $menu['sort'],
-                'status' => 1,
+                'status' => $menu['status'] ?? 1,
             ]);
         }
 
