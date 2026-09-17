@@ -14,6 +14,12 @@
         <testsuite name="Auth">
             <directory>modules/Auth/tests</directory>
         </testsuite>
+        <testsuite name="Stock">
+            <directory>modules/Stock/tests</directory>
+        </testsuite>
+        <testsuite name="Order">
+            <directory>modules/Order/tests</directory>
+        </testsuite>
         <testsuite name="Business">
             <directory>modules/Business/tests</directory>
         </testsuite>

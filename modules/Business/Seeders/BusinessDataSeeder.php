@@ -2,13 +2,13 @@
 
 namespace Modules\Business\Seeders;
 
-use Modules\Business\Models\Product;
-use Modules\Business\Models\ProductCategory;
-use Modules\Business\Models\Warehouse;
-use Modules\Business\Models\Supplier;
-use Modules\Business\Models\Customer;
-use Modules\Business\Models\Vehicle;
-use Modules\Business\Models\Route;
+use Modules\Stock\Models\Product;
+use Modules\Stock\Models\ProductCategory;
+use Modules\Stock\Models\Warehouse;
+use Modules\Order\Models\Supplier;
+use Modules\Order\Models\Customer;
+use Modules\Stock\Models\Vehicle;
+use Modules\Order\Models\Route;
 use Modules\Business\Models\Employee;
 use Illuminate\Database\Seeder;
 

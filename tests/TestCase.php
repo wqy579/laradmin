@@ -4,11 +4,11 @@ namespace Tests;
 
 use Modules\Auth\Models\Role;
 use Modules\Auth\Models\User;
-use Modules\Business\Models\Customer;
-use Modules\Business\Models\Product;
-use Modules\Business\Models\ProductCategory;
-use Modules\Business\Models\Supplier;
-use Modules\Business\Models\Warehouse;
+use Modules\Order\Models\Customer;
+use Modules\Stock\Models\Product;
+use Modules\Stock\Models\ProductCategory;
+use Modules\Order\Models\Supplier;
+use Modules\Stock\Models\Warehouse;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;

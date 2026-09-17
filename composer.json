@@ -24,17 +24,20 @@
     ],
     "psr-4": {
       "App\\": "app/",
-      "Modules\\": "modules/",
       "Database\\Factories\\": "database/factories/",
       "Database\\Seeders\\": "database/seeders/",
-      "Hhxsv5\\LaravelS\\": "vendor/hhxsv5/laravel-s/src"
+      "Hhxsv5\\LaravelS\\": "vendor/hhxsv5/laravel-s/src",
+      "Modules\\": "modules/",
+      "Modules\\Order\\": "modules/Order/",
+      "Modules\\Stock\\": "modules/Stock/"
     }
   },
   "autoload-dev": {
     "psr-4": {
       "Tests\\": "tests/",
       "Tests\\Auth\\": "modules/Auth/tests/",
-      "Tests\\Business\\": "modules/Business/tests/",
+      "Tests\\Order\\": "modules/Order/tests/",
+      "Tests\\Stock\\": "modules/Stock/tests/",
       "Tests\\System\\": "modules/System/tests/"
     }
   },

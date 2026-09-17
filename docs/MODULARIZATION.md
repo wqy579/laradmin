@@ -17,7 +17,9 @@
 | **Phase 5 testsuite 目录占位与守卫** | ✅ 完成（修掉「整套测试静默归零」的坑，2026-09-15 发现） |
 
 第三节是 `7c15d04` 时点的实测基线，保留原样供对照；已完成的阶段在原节内标注了现状。
-当前基线：`./vendor/bin/phpunit` → **106 用例 / 616 断言**；274 条路由。
+当前基线（2026-10 拆分后）：`php artisan test` → **113 用例 / 655 断言**；274 条路由
+（拆分后路由数不变，仅 123 条的 action 控制器命名空间由 `Business\` 变为 `Stock\`/`Order\`，
+uri 与 middleware 零变化）。历史基线为 106 用例 / 616 断言。
 
 （分支已于 2026-09-15 rebase 到 main：`61390b1` 菜单图标修复带进来 4 个用例，
 76 → 80。rebase 前是 76/426。
@@ -60,7 +62,63 @@
 
 ## 三、现状基线
 
-### 3.1 依赖矩阵
+> ⚠️ 本节 3.1–3.5 是 **2026-09-14** 的历史基线，保留原样供对照，勿据此判断当前拓扑。
+> 当前拓扑见新增的 **3.0 当前模块拓扑（2026-10 拆分后）**。
+
+### 3.0 当前模块拓扑（2026-10 拆分后）
+
+`modules/Business` 于 2026-10 拆成三个模块，`Business` 保留为残部：
+
+| 模块 | 命名空间 | 领域 |
+|---|---|---|
+| `Auth` | `Modules\Auth` | 用户 / 角色 / 权限 / 菜单 |
+| `System` | `Modules\System` | 通知 / 日志 / 调度 / WebSocket |
+| **`Stock`** | `Modules\Stock` | 库存 / 出入库 / 调拨 / 盘点 / 连凯核对 + **商品 / 分类 / 单位 / 仓库 / 车辆主数据** |
+| **`Order`** | `Modules\Order` | 销售 / 采购 / 退货 / 发货订单 + 客户 / 供应商 / 线路 / 拜访 + 收付款 |
+| `Business` | `Modules\Business` | 残部：员工 / 考勤 / 费用 + 菜单与主数据 Seeder + 历史迁移 |
+
+分层与依赖方向（自底向上，无环）：
+
+```
+L0  Auth                ← 不出任何模块边
+L1  Stock               ← 零模块依赖（商品是库存主数据，故与库存同模块）
+    Business            ← 只指向 L0/L1
+L2  System
+L3  Order               ← 指向 Stock / Business / Auth
+```
+
+三条需要记牢的拆分理由（都是实测出来的约束，不是拍脑袋）：
+
+1. **商品必须跟库存同模块。** `Product` 与 `Stock` 的模型层是双向关联
+   （`Product hasMany Stock` / `Stock belongsTo Product`），分到两个模块就是环。
+   `ArchitectureTest` 的白名单会挡住，所以商品主数据进了 `Stock`。
+2. **历史迁移不拆。** `create_business_tables` 一个文件跨 customers/products/units/
+   vehicles/warehouses，`create_transaction_tables` 一个文件跨订单+库存+出入库。
+   按领域拆只能重写已执行的迁移、污染既有库的 `migrations` 记录，所以 30 个历史迁移
+   全部留在 `modules/Business/database/migrations`。`Stock`/`Order` 各自的
+   `database/migrations` 只承接 2026-10 之后的**新增**表。
+3. **URL 不动。** 路由前缀仍是 `business/*`，只改后端归属。改 URL 需要前后端同步
+   发版，不属于本次范围。`bootstrap/app.php` 用 `glob(modules/*/routes/*.php)` 发现
+   模块路由，新增模块零配置。
+
+新增模块的清单（照抄 Auth/System 的骨架即可被守卫覆盖）：
+
+```
+modules/<M>/
+  Providers/<M>ServiceProvider.php   # 必须 loadMigrationsFrom，否则守卫会报
+  routes/admin.php                   # 必须存在且非空
+  database/migrations/               # 必须存在且非空（守卫只挡结构性缺失，不要求有测试）
+  tests/                             # 目录必须存在
+```
+
+同步要改的四处：`composer.json` 的 `psr-4` + `autoload-dev`、`bootstrap/providers.php`、
+`phpunit.xml` 的 testsuite、以及 `ArchitectureTest::ALLOWED_MODULE_EDGES`（**有模块依赖才需要**，
+且必须写明理由；能改走 `App\Contracts` 内核契约的就不要登记白名单）。
+
+模块测试的命名空间必须是 `Tests\<M>\Feature` / `Tests\<M>\Unit`，
+对应 `autoload-dev` 的 `Tests\<M>\` 映射，`ArchitectureTest` 会逐个校验解析目标。
+
+### 3.1 依赖矩阵（2026-09-14 历史基线）
 
 ```
 $ grep -rn 'Modules\\' modules/<Module> --include='*.php' | wc -l

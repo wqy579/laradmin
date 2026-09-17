@@ -18,15 +18,30 @@ class ArchitectureTest extends TestCase
     /**
      * 模块间允许的依赖边（自底向上，key 形如 "System->Auth"）
      *
-     * Auth 是底层身份模块，不出边；Business / System 只准指向 Auth。
-     * 名单里只有指向 Auth 的单向边，结构上不可能成环。
+     * 分层（2026-10 拆分后）：
+     *   L0  Auth      身份/权限，不出任何模块边
+     *   L1  Stock     库存+商品主数据，**零模块依赖**
+     *       Business  业务残部（员工/考勤/费用）
+     *   L2  System    系统能力
+     *   L3  Order     订单，依赖 L1 的商品/库存主数据
+     *
+     * 方向自底向上，没有任何边指向更高层，因此结构上不可能成环。
+     * 每条登记的边都写明理由：能改走 App\Contracts 内核契约的就该改，
+     * 改不动的（通常是共享主数据表）才登记白名单。
      *
      * 名单是动态发现模块后按边校验的：新增模块若不带任何模块依赖则直接通过，
      * 一旦引用了别的模块就必须显式登记这条边并写明理由，不会静默放行。
      */
     private const ALLOWED_MODULE_EDGES = [
-        'Business->Auth',
+        'Business->Auth',   // 菜单 Seeder 写 Auth 的 Permission；System->Auth 同理
         'System->Auth',
+        'Business->Stock',  // BusinessDataSeeder 写商品/单位/仓库/车辆主数据
+        'Business->Order',  // BusinessDataSeeder 写客户/供应商/线路主数据
+        'Order->Stock',     // 订单/退货/发货引用 Stock 的商品与仓库主数据表，
+                            // 两侧同库同事务，抽契约要引入跨事务一致性负担，
+                            // 收益低于耦合成本，保留共享主数据引用
+        'Order->Business',  // 拜访单登记拜访人，引用 Business 的员工表
+        'Order->Auth',      // 订单审批/下单记录发起人，引用 Auth 的用户表
     ];
     /**
      * 扫描目录下所有 PHP 文件，返回引用了 Modules\<module>\ 的文件路径
@@ -182,7 +197,7 @@ class ArchitectureTest extends TestCase
     {
         $bad = [];
 
-        foreach (['Auth', 'Business', 'System'] as $module) {
+        foreach (['Auth', 'Business', 'System', 'Stock', 'Order'] as $module) {
             foreach ($this->refsTo(base_path('app'), $module) as $file) {
                 $bad[] = "Modules\\$module  ←  $file";
             }

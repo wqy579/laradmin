@@ -18,10 +18,19 @@ use Illuminate\Support\Facades\Route;
 // 前端与 deploy.yml 都没人用它，已删除。旧系统数据导入要落地时需要先把命令写出来。
 // =============================================================================
 
-// 远程执行数据库迁移（只跑 Business 模块，保持改造前语义；不带 --path 则跑全部模块）
+// 远程执行数据库迁移（跑所有模块）
+//
+// 2026-10 模块化拆分前这里只跑 modules/Business/database/migrations——因为当时
+// 所有业务迁移都落在那里。拆分后 Stock、Order 各自有了 database/migrations 目录，
+// 沿用旧路径会漏跑这两个模块的迁移，而 Artisan 对不存在的 --path 不报错，
+// 失败方式是无声的。
+//
+// 注意：不能在这里传 --path 来「只跑某个模块」——加了 --path 就等同于只跑该目录，
+// Auth/System 的迁移会被跳过，而 Business 的菜单迁移依赖 auth_permission 表，
+// 全新库上会直接抛 "no such table: auth_permission"。跨模块的依赖关系让
+// 「按模块单独迁移」在部署上没有意义，所以这里一律跑全量。
 Route::post('/remote/migrate', function () {
     $exit = Artisan::call('migrate', [
-        '--path' => 'modules/Business/database/migrations',
         '--force' => true,
     ]);
     $output = Artisan::output();

@@ -25,8 +25,8 @@ use Illuminate\Support\Facades\Route;
 |
 | ⚠️ 信封顺序不可调整：tests/Feature/RouteBaselineTest.php 用路由表快照逐条比对
 | method / uri / name / action / middleware，改错一个中间件名字顺序就会红灯。
-| stock.snapshot 虽然是 Business 模块的中间件，但作用域是「所有管理端请求」，
-| 属于横切关注点，所以留在内核信封里而不进 Business。
+| stock.snapshot 虽然是 Stock 模块的中间件，但作用域是「所有管理端请求」，
+| 属于横切关注点，所以留在内核信封里而不进 Stock。
 |
 */
 return Application::configure(basePath: dirname(__DIR__))
@@ -59,7 +59,7 @@ return Application::configure(basePath: dirname(__DIR__))
 		//
 		// 这是「app/ 不依赖模块」规则的唯一登记例外：别名表是全局中间件词汇表，
 		// 属配置而非代码耦合。中间件类的**代码**都在各自模块里
-		// （modules/Auth、modules/System、modules/Business），内核这里只做映射。
+		// （modules/Auth、modules/System、modules/Stock、modules/Order、modules/Business），内核这里只做映射。
 		//
 		// 曾试过把别名注册挪到各模块 Provider 的 boot() 里（Route::aliasMiddleware），
 		// 功能正常但 route:list 会把这些别名解析成完整类名、而 withMiddleware 注册的
@@ -76,7 +76,7 @@ return Application::configure(basePath: dirname(__DIR__))
 			'auth.check' => \Modules\Auth\Http\Middleware\AuthCheckMiddleware::class,
 			'log.request' => \Modules\System\Http\Middleware\LogRequestMiddleware::class,
 			'rate.limit' => RateLimitMiddleware::class,
-			'stock.snapshot' => \Modules\Business\Http\Middleware\StockSnapshotMiddleware::class,
+			'stock.snapshot' => \Modules\Stock\Http\Middleware\StockSnapshotMiddleware::class,
 		]);
 	})
 	->withExceptions(function (Exceptions $exceptions): void {
