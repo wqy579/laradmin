@@ -220,7 +220,6 @@ jobs:
       # ordered_imports）。先只告警不阻断，否则合码全卡在这一项上；
       # 等本地跑一次 `vendor/bin/pint` 全量格式化后，去掉下面这行让它变硬门槛。
       - name: Check code style (Pint, informational)
-        continue-on-error: true
         run: vendor/bin/pint --test --parallel
 
       # 依赖漏洞：composer.json 里 policy.advisories.block 是 false（解析时不阻断，
