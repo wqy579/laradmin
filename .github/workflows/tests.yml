@@ -216,18 +216,16 @@ jobs:
           printf '%s\0' "${files[@]}" | xargs -0 -n1 php -l
           echo "linted ${#files[@]} files"
 
-      # 代码风格：目前全仓库未按 PSR-12 对齐（约 150 个文件命中，主要是 concat_space /
-      # ordered_imports）。先只告警不阻断，否则合码全卡在这一项上；
-      # 等本地跑一次 `vendor/bin/pint` 全量格式化后，去掉下面这行让它变硬门槛。
-      - name: Check code style (Pint, informational)
+      # 代码风格：全仓库已按 Pint 默认 preset（PSR-12/Laravel）全量格式化，
+      # pint --test 全绿，现为硬门禁——风格回归直接阻断合码。
+      - name: Check code style (Pint)
         run: vendor/bin/pint --test --parallel
 
       # 依赖漏洞：composer.json 里 policy.advisories.block 是 false（解析时不阻断，
-      # 保证 composer install 永不因漏洞退出），所以门禁得单独挂一条命令。
-      # 先只告警：一次性把历史遗留的高危依赖全拦住，只会让整个 static job 长期亮黄。
-      # 有实际可用的修复版本后再考虑去掉 continue-on-error。
-      - name: Audit dependencies (Composer, informational)
-        continue-on-error: true
+      # 保证 composer install 永不因漏洞退出），所以门禁得单独挂这条命令。
+      # composer audit 现已无已知漏洞（近期 Laravel 12 / jwt 5.x / excel 4.x 升级清债），
+      # 转为硬门禁——新增高危依赖会被阻断合码。
+      - name: Audit dependencies (Composer)
         run: composer audit --no-interaction --no-ansi
 
   # ========== 单元测试 / 功能测试 ==========
