@@ -2,16 +2,18 @@
 
 namespace Modules\Auth\Imports;
 
-use Modules\Auth\Models\Permission;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Modules\Auth\Models\Permission;
 
 class PermissionImport implements ToCollection, WithHeadingRow, WithValidation
 {
     protected $successCount = 0;
+
     protected $errorCount = 0;
+
     protected $errors = [];
 
     /**
@@ -30,15 +32,17 @@ class PermissionImport implements ToCollection, WithHeadingRow, WithValidation
                 $exists = Permission::where('name', $row['权限编码'])->exists();
                 if ($exists) {
                     $this->addError($index + 2, '权限编码已存在');
+
                     continue;
                 }
 
                 // 查找父级权限
                 $parentId = null;
-                if (!empty($row['父级ID']) && $row['父级ID'] != 0) {
+                if (! empty($row['父级ID']) && $row['父级ID'] != 0) {
                     $parent = Permission::find($row['父级ID']);
-                    if (!$parent) {
+                    if (! $parent) {
                         $this->addError($index + 2, '父级权限不存在');
+
                         continue;
                     }
                     $parentId = $parent->id;
@@ -49,7 +53,7 @@ class PermissionImport implements ToCollection, WithHeadingRow, WithValidation
 
                 // 解析元数据
                 $meta = null;
-                if ($type === 'menu' && !empty($row['元数据'])) {
+                if ($type === 'menu' && ! empty($row['元数据'])) {
                     // 元数据格式: icon:Setting,hidden:false,keepAlive:false
                     $meta = $this->parseMeta($row['元数据']);
                 }

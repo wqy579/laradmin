@@ -5,12 +5,16 @@ namespace Modules\Order\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Modules\Auth\Models\User;
 
 class Route extends Model
 {
     protected $table = 'routes';
+
     protected $fillable = ['code', 'name', 'area', 'employee_id', 'sort_order', 'is_active', 'remark'];
+
     protected $casts = ['is_active' => 'boolean'];
+
     protected $appends = ['customer_count'];
 
     public function getCustomerCountAttribute()
@@ -20,7 +24,7 @@ class Route extends Model
 
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Auth\Models\User::class, 'employee_id');
+        return $this->belongsTo(User::class, 'employee_id');
     }
 
     public function customers(): BelongsToMany

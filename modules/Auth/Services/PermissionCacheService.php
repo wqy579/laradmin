@@ -2,14 +2,16 @@
 
 namespace Modules\Auth\Services;
 
-use Modules\Auth\Models\User;
-use Modules\Auth\Models\Role;
-use Modules\Auth\Models\Permission;
+use Illuminate\Cache\RedisStore;
 use Illuminate\Support\Facades\Cache;
+use Modules\Auth\Models\Permission;
+use Modules\Auth\Models\Role;
+use Modules\Auth\Models\User;
 
 class PermissionCacheService
 {
     protected $cachePrefix = 'permission:';
+
     protected $cacheMinutes = 60; // 缓存60分钟
 
     /**
@@ -19,9 +21,9 @@ class PermissionCacheService
     {
         $cacheKey = $this->getUserPermissionsCacheKey($userId);
 
-        return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function() use ($userId) {
+        return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function () use ($userId) {
             $user = User::find($userId);
-            if (!$user) {
+            if (! $user) {
                 return [];
             }
 
@@ -49,8 +51,9 @@ class PermissionCacheService
     {
         $cacheKey = $this->getUserPermissionCodesCacheKey($userId);
 
-        return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function() use ($userId) {
+        return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function () use ($userId) {
             $permissions = $this->getUserPermissions($userId);
+
             return array_column($permissions, 'name');
         });
     }
@@ -62,9 +65,9 @@ class PermissionCacheService
     {
         $cacheKey = $this->getUserMenuTreeCacheKey($userId);
 
-        return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function() use ($userId) {
+        return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function () use ($userId) {
             $user = User::find($userId);
-            if (!$user) {
+            if (! $user) {
                 return [];
             }
 
@@ -93,6 +96,7 @@ class PermissionCacheService
     public function userHasPermission(int $userId, string $permissionCode): bool
     {
         $codes = $this->getUserPermissionCodes($userId);
+
         return in_array($permissionCode, $codes);
     }
 
@@ -103,13 +107,13 @@ class PermissionCacheService
     {
         $cacheKey = $this->getRolePermissionsCacheKey($roleId);
 
-        return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function() use ($roleId) {
+        return Cache::remember($cacheKey, now()->addMinutes($this->cacheMinutes), function () use ($roleId) {
             $role = Role::find($roleId);
-            if (!$role) {
+            if (! $role) {
                 return [];
             }
 
-            return $role->permissions->map(function($permission) {
+            return $role->permissions->map(function ($permission) {
                 return [
                     'id' => $permission->id,
                     'title' => $permission->title,
@@ -151,10 +155,10 @@ class PermissionCacheService
      */
     public function clearAllPermissionCache(): void
     {
-        if (Cache::getStore() instanceof \Illuminate\Cache\RedisStore) {
+        if (Cache::getStore() instanceof RedisStore) {
             $redis = Cache::getStore()->connection();
-            $keys = $redis->keys($this->cachePrefix . '*');
-            if (!empty($keys)) {
+            $keys = $redis->keys($this->cachePrefix.'*');
+            if (! empty($keys)) {
                 $redis->del($keys);
             }
         }
@@ -215,7 +219,7 @@ class PermissionCacheService
         }
 
         // 按sort排序
-        usort($tree, function($a, $b) {
+        usort($tree, function ($a, $b) {
             return $a['sort'] <=> $b['sort'];
         });
 
@@ -227,7 +231,7 @@ class PermissionCacheService
      */
     protected function getUserPermissionsCacheKey(int $userId): string
     {
-        return $this->cachePrefix . 'user:' . $userId . ':permissions';
+        return $this->cachePrefix.'user:'.$userId.':permissions';
     }
 
     /**
@@ -235,7 +239,7 @@ class PermissionCacheService
      */
     protected function getUserPermissionCodesCacheKey(int $userId): string
     {
-        return $this->cachePrefix . 'user:' . $userId . ':permission_codes';
+        return $this->cachePrefix.'user:'.$userId.':permission_codes';
     }
 
     /**
@@ -243,7 +247,7 @@ class PermissionCacheService
      */
     protected function getUserMenuTreeCacheKey(int $userId): string
     {
-        return $this->cachePrefix . 'user:' . $userId . ':menu_tree';
+        return $this->cachePrefix.'user:'.$userId.':menu_tree';
     }
 
     /**
@@ -251,6 +255,6 @@ class PermissionCacheService
      */
     protected function getRolePermissionsCacheKey(int $roleId): string
     {
-        return $this->cachePrefix . 'role:' . $roleId . ':permissions';
+        return $this->cachePrefix.'role:'.$roleId.':permissions';
     }
 }

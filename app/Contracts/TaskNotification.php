@@ -22,31 +22,43 @@ interface TaskNotification
 {
     // 通知类型
     public const TYPE_INFO = 'info';
+
     public const TYPE_SUCCESS = 'success';
+
     public const TYPE_WARNING = 'warning';
+
     public const TYPE_ERROR = 'error';
+
     public const TYPE_TASK = 'task';
+
     public const TYPE_SYSTEM = 'system';
 
     // 通知分类
     public const CATEGORY_SYSTEM = 'system';
+
     public const CATEGORY_TASK = 'task';
+
     public const CATEGORY_MESSAGE = 'message';
+
     public const CATEGORY_REMINDER = 'reminder';
+
     public const CATEGORY_ANNOUNCEMENT = 'announcement';
 
     // 操作按钮类型
     public const ACTION_LINK = 'link';
+
     public const ACTION_DOWNLOAD = 'download';
+
     public const ACTION_MODAL = 'modal';
+
     public const ACTION_NONE = 'none';
 
     /**
      * 创建一条通知。
      *
-     * @param array $payload 形状与 Notification 模型 fillable 一致：
-     *                       user_ids / department_ids / title / content /
-     *                       type / category / action_data / is_read 等
+     * @param  array  $payload  形状与 Notification 模型 fillable 一致：
+     *                          user_ids / department_ids / title / content /
+     *                          type / category / action_data / is_read 等
      *
      * ⚠️ 必须提供 user_ids 或 department_ids 之一（复数），
      * 否则实现方抛 InvalidArgumentException。单数 user_id 不被接受。

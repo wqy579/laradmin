@@ -3,9 +3,9 @@
 namespace Modules\System\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Modules\System\Http\Requests\AttachmentRequest;
 use Modules\System\Services\AttachmentService;
-use Illuminate\Http\Request;
 
 class Attachment extends Controller
 {
@@ -22,6 +22,7 @@ class Attachment extends Controller
     public function index(Request $request)
     {
         $result = $this->attachmentService->getList($request->all());
+
         return $this->success($result);
     }
 
@@ -31,9 +32,10 @@ class Attachment extends Controller
     public function show(int $id)
     {
         $attachment = $this->attachmentService->getById($id);
-        if (!$attachment) {
+        if (! $attachment) {
             return $this->notFound('附件不存在');
         }
+
         return $this->success($attachment);
     }
 
@@ -44,6 +46,7 @@ class Attachment extends Controller
     {
         $validated = $request->validated();
         $attachments = $this->attachmentService->getByIds($validated['ids']);
+
         return $this->success($attachments);
     }
 
@@ -54,6 +57,7 @@ class Attachment extends Controller
     {
         try {
             $this->attachmentService->delete($id);
+
             return $this->success(null, '删除成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -67,6 +71,7 @@ class Attachment extends Controller
     {
         $validated = $request->validated();
         $this->attachmentService->batchDelete($validated['ids']);
+
         return $this->success(null, '批量删除成功');
     }
 
@@ -81,6 +86,7 @@ class Attachment extends Controller
                 $id,
                 $validated['description'] ?? ''
             );
+
             return $this->success($attachment, '更新成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -93,6 +99,7 @@ class Attachment extends Controller
     public function directories(Request $request)
     {
         $dirs = $this->attachmentService->getDateDirectories($request->only(['type']));
+
         return $this->success($dirs);
     }
 
@@ -102,6 +109,7 @@ class Attachment extends Controller
     public function statistics(Request $request)
     {
         $stats = $this->attachmentService->getStatistics($request->only(['type']));
+
         return $this->success($stats);
     }
 
@@ -111,6 +119,7 @@ class Attachment extends Controller
     public function typeDistribution()
     {
         $distribution = $this->attachmentService->getTypeDistribution();
+
         return $this->success($distribution);
     }
 }

@@ -2,8 +2,9 @@
 
 namespace Modules\Order\Services;
 
-use Modules\Order\Models\Pay;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Modules\Order\Models\Pay;
 
 class PayService
 {
@@ -22,6 +23,7 @@ class PayService
                 'remark' => $data['remark'] ?? null,
                 'status' => 0,
             ]);
+
             return $pay;
         });
     }
@@ -36,6 +38,7 @@ class PayService
         if ($pay->status == 1) {
             throw new \Exception('已审核单据不能修改');
         }
+
         return DB::transaction(function () use ($pay, $data) {
             $pay->update([
                 'amount' => $data['amount'],
@@ -43,6 +46,7 @@ class PayService
                 'payment_method' => $data['payment_method'] ?? $pay->payment_method,
                 'remark' => $data['remark'] ?? $pay->remark,
             ]);
+
             return $pay;
         });
     }
@@ -52,9 +56,11 @@ class PayService
         if ($pay->status == 1) {
             throw new \Exception('单据已审核');
         }
+
         return DB::transaction(function () use ($pay) {
             $pay->status = 1;
             $pay->save();
+
             return $pay;
         });
     }
@@ -64,23 +70,24 @@ class PayService
         if ($pay->status == 1) {
             throw new \Exception('已审核单据不能删除');
         }
+
         return $pay->delete();
     }
 
-    public function list(array $filters = [], int $page = 1, int $pageSize = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function list(array $filters = [], int $page = 1, int $pageSize = 20): LengthAwarePaginator
     {
         $query = Pay::with(['supplier', 'purchaseOrder', 'handler']);
 
-        if (!empty($filters['supplier_id'])) {
+        if (! empty($filters['supplier_id'])) {
             $query->where('supplier_id', $filters['supplier_id']);
         }
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('pay_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('pay_date', '<=', $filters['end_date']);
         }
 
@@ -91,13 +98,13 @@ class PayService
     {
         $query = Pay::where('status', 1);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('pay_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('pay_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['supplier_id'])) {
+        if (! empty($filters['supplier_id'])) {
             $query->where('supplier_id', $filters['supplier_id']);
         }
 
@@ -110,8 +117,8 @@ class PayService
     private function generateNo(): string
     {
         $date = date('Ymd');
-        $prefix = 'FK' . $date;
-        $last = Pay::where('pay_no', 'like', $prefix . '%')
+        $prefix = 'FK'.$date;
+        $last = Pay::where('pay_no', 'like', $prefix.'%')
             ->orderByDesc('pay_no')
             ->value('pay_no');
 
@@ -121,6 +128,6 @@ class PayService
             $seq = 1;
         }
 
-        return $prefix . str_pad($seq, 6, '0', STR_PAD_LEFT);
+        return $prefix.str_pad($seq, 6, '0', STR_PAD_LEFT);
     }
 }

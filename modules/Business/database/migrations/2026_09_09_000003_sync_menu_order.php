@@ -15,7 +15,7 @@ return new class extends Migration
         $nameMapping = [
             // 首页
             'home' => '首页',
-            
+
             // 资料管理
             'data.product' => '商品档案',
             'data.customer' => '客户档案',
@@ -25,14 +25,14 @@ return new class extends Migration
             'data.vehicle' => '车辆档案',
             'data.company' => '公司档案',
             'data.department' => '事业部档案',
-            
+
             // 价格管理
             'price.cost' => '成本价格',
             'price.recent' => '最近价格',
             'price.promotion' => '促销',
             'price.special' => '特价',
             'price.plan' => '价格方案',
-            
+
             // 库存管理
             'inventory.purchase' => '采购申请',
             'inventory.stock-in' => '进货录单',
@@ -53,7 +53,7 @@ return new class extends Migration
             'inventory.order' => '订货录单',
             'inventory.order-query' => '订货查询',
             'inventory.adjust' => '订货调整',
-            
+
             // 订单管理
             'order.sales' => '订单申报',
             'order.sales-manage' => '订单管理',
@@ -64,7 +64,7 @@ return new class extends Migration
             'order.sales-return-query' => '退货查询',
             'order.print' => '订单打印',
             'order.summary' => '业务员订单汇总',
-            
+
             // 财务管理
             'finance.payment' => '收款单',
             'finance.supplier-payment' => '付款单',
@@ -80,7 +80,7 @@ return new class extends Migration
             'finance.journal' => '日记账',
             'finance.voucher' => '财务凭证',
             'finance.monthly' => '财务月结',
-            
+
             // 报表管理
             'report.sales' => '销售报表',
             'report.stock' => '库存明细表',
@@ -91,11 +91,11 @@ return new class extends Migration
             'report.supplier' => '供应商余额一览表',
             'report.customer' => '客户余额一览表',
             'report.price' => '商品价格一览表',
-            
+
             // 办公管理
             'office.mail' => '内部邮件',
             'office.notice' => '公司公告',
-            
+
             // 拜访管理
             'visit.route' => '线路档案',
             'visit.visit' => '拜访明细查询',
@@ -104,11 +104,11 @@ return new class extends Migration
             'visit.detail' => '拜访明细',
             'visit.schedule' => '业务员行程',
             'visit.route-analysis' => '行程路线分析',
-            
+
             // 小程序管理
             'miniapp.setting' => '小程序设置',
         ];
-        
+
         // 按库存菜单顺序重新排序
         // 库存菜单顺序（从旧系统导出，仅保留与新系统有映射的项）
         $stockOrder = [
@@ -152,7 +152,7 @@ return new class extends Migration
             'visit.schedule' => 7,
             'miniapp.setting' => 1,
         ];
-        
+
         // 更新顶级菜单排序
         $topMenuOrder = [
             'home' => 1,
@@ -166,14 +166,14 @@ return new class extends Migration
             'visit' => 9,
             'miniapp' => 10,
         ];
-        
+
         foreach ($topMenuOrder as $name => $sort) {
             DB::table('auth_permission')
                 ->where('name', $name)
                 ->where('parent_id', 0)
                 ->update(['sort' => $sort]);
         }
-        
+
         // 更新子菜单排序
         foreach ($stockOrder as $menuName => $sort) {
             $parentId = DB::table('auth_permission')->where('name', $menuName)->value('parent_id');
@@ -183,7 +183,7 @@ return new class extends Migration
                     ->update(['sort' => $sort]);
             }
         }
-        
+
         // 更新菜标题（与旧系统保持一致）
         $titleUpdates = [
             'home' => ['title' => '首页'],
@@ -216,7 +216,7 @@ return new class extends Migration
             'visit.visit' => ['title' => '拜访明细查询'],
             'miniapp.setting' => ['title' => '小程序设置'],
         ];
-        
+
         foreach ($titleUpdates as $name => $data) {
             DB::table('auth_permission')
                 ->where('name', $name)
@@ -238,7 +238,7 @@ return new class extends Migration
                 ->where('parent_id', 0)
                 ->update(['sort' => $sort]);
         }
-        
+
         // 恢复子菜单默认排序
         $childDefaults = [
             'data.product' => 1, 'data.customer' => 2, 'data.supplier' => 3,
@@ -262,7 +262,7 @@ return new class extends Migration
             'visit.detail' => 5, 'visit.schedule' => 6,
             'miniapp.setting' => 1,
         ];
-        
+
         foreach ($childDefaults as $name => $sort) {
             DB::table('auth_permission')
                 ->where('name', $name)

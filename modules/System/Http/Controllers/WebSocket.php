@@ -2,11 +2,11 @@
 
 namespace Modules\System\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
-use Modules\System\Services\WebSocket\WebSocketService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\System\Http\Requests\WebSocketRequest;
+use Modules\System\Services\WebSocket\WebSocketService;
 
 /**
  * WebSocket Controller
@@ -30,8 +30,6 @@ class WebSocket extends Controller
 
     /**
      * Get online user count
-     *
-     * @return JsonResponse
      */
     public function getOnlineCount(): JsonResponse
     {
@@ -41,15 +39,13 @@ class WebSocket extends Controller
             'code' => 200,
             'message' => 'success',
             'data' => [
-                'online_count' => $count
-            ]
+                'online_count' => $count,
+            ],
         ]);
     }
 
     /**
      * Get online user IDs
-     *
-     * @return JsonResponse
      */
     public function getOnlineUsers(): JsonResponse
     {
@@ -60,16 +56,15 @@ class WebSocket extends Controller
             'message' => 'success',
             'data' => [
                 'user_ids' => $userIds,
-                'count' => count($userIds)
-            ]
+                'count' => count($userIds),
+            ],
         ]);
     }
 
     /**
      * Check if a user is online
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function checkOnline(WebSocketRequest $request): JsonResponse
     {
@@ -82,16 +77,15 @@ class WebSocket extends Controller
             'message' => 'success',
             'data' => [
                 'user_id' => $userId,
-                'is_online' => $isOnline
-            ]
+                'is_online' => $isOnline,
+            ],
         ]);
     }
 
     /**
      * Send message to a specific user
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function sendToUser(WebSocketRequest $request): JsonResponse
     {
@@ -102,7 +96,7 @@ class WebSocket extends Controller
 
         $message = [
             'type' => $type,
-            'data' => $data
+            'data' => $data,
         ];
 
         $sent = $this->webSocketService->sendToUser($userId, $message);
@@ -112,16 +106,15 @@ class WebSocket extends Controller
             'message' => $sent ? 'Message sent successfully' : 'User is not online',
             'data' => [
                 'user_id' => $userId,
-                'sent' => $sent
-            ]
+                'sent' => $sent,
+            ],
         ], $sent ? 200 : 404);
     }
 
     /**
      * Send message to multiple users
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function sendToUsers(WebSocketRequest $request): JsonResponse
     {
@@ -132,7 +125,7 @@ class WebSocket extends Controller
 
         $message = [
             'type' => $type,
-            'data' => $data
+            'data' => $data,
         ];
 
         $sentTo = $this->webSocketService->sendToUsers($userIds, $message);
@@ -143,16 +136,15 @@ class WebSocket extends Controller
             'data' => [
                 'total_users' => count($userIds),
                 'sent_to' => $sentTo,
-                'failed' => count($userIds) - count($sentTo)
-            ]
+                'failed' => count($userIds) - count($sentTo),
+            ],
         ]);
     }
 
     /**
      * Broadcast message to all users
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function broadcast(WebSocketRequest $request): JsonResponse
     {
@@ -163,7 +155,7 @@ class WebSocket extends Controller
 
         $message = [
             'type' => $type,
-            'data' => $data
+            'data' => $data,
         ];
 
         $count = $this->webSocketService->broadcast($message, $excludeUserId);
@@ -173,16 +165,15 @@ class WebSocket extends Controller
             'message' => 'Broadcast sent successfully',
             'data' => [
                 'sent_to' => $count,
-                'exclude_user_id' => $excludeUserId
-            ]
+                'exclude_user_id' => $excludeUserId,
+            ],
         ]);
     }
 
     /**
      * Send message to a channel
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function sendToChannel(WebSocketRequest $request): JsonResponse
     {
@@ -193,7 +184,7 @@ class WebSocket extends Controller
 
         $message = [
             'type' => $type,
-            'data' => $data
+            'data' => $data,
         ];
 
         $count = $this->webSocketService->sendToChannel($channel, $message);
@@ -203,8 +194,8 @@ class WebSocket extends Controller
             'message' => 'Message sent to channel successfully',
             'data' => [
                 'channel' => $channel,
-                'sent_to' => $count
-            ]
+                'sent_to' => $count,
+            ],
         ]);
     }
 
@@ -215,8 +206,7 @@ class WebSocket extends Controller
     /**
      * Push data update
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function pushDataUpdate(WebSocketRequest $request): JsonResponse
     {
@@ -236,16 +226,15 @@ class WebSocket extends Controller
                 'action' => $action,
                 'total_users' => count($userIds),
                 'sent_to' => $sentTo,
-                'failed' => count($userIds) - count($sentTo)
-            ]
+                'failed' => count($userIds) - count($sentTo),
+            ],
         ]);
     }
 
     /**
      * Push data update to channel
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function pushDataUpdateToChannel(WebSocketRequest $request): JsonResponse
     {
@@ -264,16 +253,15 @@ class WebSocket extends Controller
                 'channel' => $channel,
                 'resource_type' => $resourceType,
                 'action' => $action,
-                'sent_to' => $count
-            ]
+                'sent_to' => $count,
+            ],
         ]);
     }
 
     /**
      * Disconnect a user from WebSocket
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function disconnectUser(WebSocketRequest $request): JsonResponse
     {
@@ -286,8 +274,8 @@ class WebSocket extends Controller
             'message' => $disconnected ? 'User disconnected successfully' : 'User is not online',
             'data' => [
                 'user_id' => $userId,
-                'disconnected' => $disconnected
-            ]
+                'disconnected' => $disconnected,
+            ],
         ], $disconnected ? 200 : 404);
     }
 }

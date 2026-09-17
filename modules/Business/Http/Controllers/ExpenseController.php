@@ -3,9 +3,9 @@
 namespace Modules\Business\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Business\Services\ExpenseService;
-use Illuminate\Http\Request;
 use App\Traits\ResponseTrait;
+use Illuminate\Http\Request;
+use Modules\Business\Services\ExpenseService;
 
 class ExpenseController extends Controller
 {
@@ -21,6 +21,7 @@ class ExpenseController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['expense_type', 'status', 'start_date', 'end_date']);
+
         return $this->paginated($this->service->list($filters, (int) $request->input('page', 1), (int) $request->input('page_size', 20)));
     }
 
@@ -36,22 +37,24 @@ class ExpenseController extends Controller
         ]);
 
         $expense = $this->service->create($validated);
+
         return $this->created($expense);
     }
 
     public function show($id)
     {
         $expense = $this->service->find($id);
-        if (!$expense) {
+        if (! $expense) {
             return $this->notFound();
         }
+
         return $this->success($expense);
     }
 
     public function update(Request $request, $id)
     {
         $expense = $this->service->find($id);
-        if (!$expense) {
+        if (! $expense) {
             return $this->notFound();
         }
 
@@ -63,28 +66,31 @@ class ExpenseController extends Controller
         ]);
 
         $expense = $this->service->update($expense, $validated);
+
         return $this->success($expense);
     }
 
     public function approve($id)
     {
         $expense = $this->service->find($id);
-        if (!$expense) {
+        if (! $expense) {
             return $this->notFound();
         }
 
         $expense = $this->service->approve($expense);
+
         return $this->success($expense);
     }
 
     public function destroy($id)
     {
         $expense = $this->service->find($id);
-        if (!$expense) {
+        if (! $expense) {
             return $this->notFound();
         }
 
         $this->service->destroy($expense);
+
         return $this->noContent();
     }
 
@@ -92,6 +98,7 @@ class ExpenseController extends Controller
     {
         $filters = $request->only(['expense_type', 'start_date', 'end_date']);
         $stats = $this->service->statistics($filters);
+
         return $this->success($stats);
     }
 }

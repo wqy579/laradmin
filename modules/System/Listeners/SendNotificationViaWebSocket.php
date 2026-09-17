@@ -15,7 +15,7 @@ class SendNotificationViaWebSocket
     {
         $notification = $event->notification;
 
-        if (!$this->webSocketService->isUserOnline($notification->user_id)) {
+        if (! $this->webSocketService->isUserOnline($notification->user_id)) {
             return;
         }
 

@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('receives')) {
+        if (! Schema::hasTable('receives')) {
             Schema::create('receives', function (Blueprint $table) {
                 $table->id();
                 $table->string('receive_no', 50)->unique()->comment('收款单号');
@@ -30,7 +30,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('pays')) {
+        if (! Schema::hasTable('pays')) {
             Schema::create('pays', function (Blueprint $table) {
                 $table->id();
                 $table->string('pay_no', 50)->unique()->comment('付款单号');
@@ -52,7 +52,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('expenses')) {
+        if (! Schema::hasTable('expenses')) {
             Schema::create('expenses', function (Blueprint $table) {
                 $table->id();
                 $table->string('expense_no', 50)->unique()->comment('费用单号');

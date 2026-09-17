@@ -2,10 +2,10 @@
 
 namespace Tests\Stock\Unit;
 
-use Modules\Stock\Services\StockSnapshotService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Mockery;
+use Modules\Stock\Services\StockSnapshotService;
 use Tests\TestCase;
 
 /**
@@ -53,7 +53,7 @@ class StockSnapshotServiceTest extends TestCase
     {
         Cache::put('stock_snapshot_last_date', now()->toDateString(), now()->addDays(2));
 
-        $service = new StockSnapshotService();
+        $service = new StockSnapshotService;
 
         $this->assertFalse($service->checkAndSnapshot(), '当日已处理过应直接短路返回 false，不触碰数据库');
         $this->assertSame(0, (int) \DB::table('stock_snapshots')->count());
@@ -64,7 +64,7 @@ class StockSnapshotServiceTest extends TestCase
         $this->clearSnapshotCache();
         [$productId, $warehouseId] = $this->seedStock();
 
-        $service = new StockSnapshotService();
+        $service = new StockSnapshotService;
 
         $this->assertTrue($service->checkAndSnapshot(), '缓存无今日标记时应生成快照');
 
@@ -84,7 +84,7 @@ class StockSnapshotServiceTest extends TestCase
     {
         [$productId, $warehouseId] = $this->seedStock();
 
-        $service = new StockSnapshotService();
+        $service = new StockSnapshotService;
 
         // 同日重复执行只更新，不新增行
         $this->assertSame(1, $service->snapshotToday(), '首拍应写入 1 行');
@@ -108,7 +108,7 @@ class StockSnapshotServiceTest extends TestCase
 
     public function test_snapshot_today_is_a_noop_when_there_is_no_stock(): void
     {
-        $this->assertSame(0, (new StockSnapshotService())->snapshotToday());
+        $this->assertSame(0, (new StockSnapshotService)->snapshotToday());
         $this->assertSame(0, (int) \DB::table('stock_snapshots')->count());
     }
 

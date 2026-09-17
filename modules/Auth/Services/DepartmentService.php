@@ -2,8 +2,8 @@
 
 namespace Modules\Auth\Services;
 
-use Modules\Auth\Models\Department;
 use Illuminate\Validation\ValidationException;
+use Modules\Auth\Models\Department;
 
 class DepartmentService
 {
@@ -15,11 +15,11 @@ class DepartmentService
         $query = Department::query();
 
         // 搜索条件
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $query->where(function ($q) use ($params) {
-                $q->where('name', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('leader', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('phone', 'like', '%' . $params['keyword'] . '%');
+                $q->where('name', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('leader', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('phone', 'like', '%'.$params['keyword'].'%');
             });
         }
 
@@ -57,10 +57,10 @@ class DepartmentService
         $query = Department::query();
 
         // 搜索条件
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $query->where(function ($q) use ($params) {
-                $q->where('name', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('leader', 'like', '%' . $params['keyword'] . '%');
+                $q->where('name', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('leader', 'like', '%'.$params['keyword'].'%');
             });
         }
 
@@ -69,6 +69,7 @@ class DepartmentService
         }
 
         $departments = $query->orderBy('sort', 'asc')->get();
+
         return $this->buildTree($departments);
     }
 
@@ -78,6 +79,7 @@ class DepartmentService
     public function getAll(): array
     {
         $departments = Department::where('status', 1)->orderBy('sort', 'asc')->get();
+
         return $departments->map(function ($department) {
             return [
                 'id' => $department->id,
@@ -94,7 +96,7 @@ class DepartmentService
     {
         $department = Department::with(['parent', 'children'])->find($id);
 
-        if (!$department) {
+        if (! $department) {
             throw ValidationException::withMessages([
                 'id' => ['部门不存在'],
             ]);
@@ -126,7 +128,7 @@ class DepartmentService
     {
         // 检查部门名称是否已存在
         $query = Department::where('name', $data['name']);
-        if (!empty($data['parent_id'])) {
+        if (! empty($data['parent_id'])) {
             $query->where('parent_id', $data['parent_id']);
         } else {
             $query->where('parent_id', 0);
@@ -138,9 +140,9 @@ class DepartmentService
         }
 
         // 如果有父级ID，检查父级是否存在
-        if (!empty($data['parent_id'])) {
+        if (! empty($data['parent_id'])) {
             $parent = Department::find($data['parent_id']);
-            if (!$parent) {
+            if (! $parent) {
                 throw ValidationException::withMessages([
                     'parent_id' => ['父级部门不存在'],
                 ]);
@@ -164,7 +166,7 @@ class DepartmentService
     {
         $department = Department::find($id);
 
-        if (!$department) {
+        if (! $department) {
             throw ValidationException::withMessages([
                 'id' => ['部门不存在'],
             ]);
@@ -188,9 +190,9 @@ class DepartmentService
         }
 
         // 如果有父级ID，检查父级是否存在
-        if (isset($data['parent_id']) && !empty($data['parent_id'])) {
+        if (isset($data['parent_id']) && ! empty($data['parent_id'])) {
             $parent = Department::find($data['parent_id']);
-            if (!$parent) {
+            if (! $parent) {
                 throw ValidationException::withMessages([
                     'parent_id' => ['父级部门不存在'],
                 ]);
@@ -221,6 +223,7 @@ class DepartmentService
         ];
 
         $department->update($updateData);
+
         return $department;
     }
 
@@ -231,7 +234,7 @@ class DepartmentService
     {
         $department = Department::find($id);
 
-        if (!$department) {
+        if (! $department) {
             throw ValidationException::withMessages([
                 'id' => ['部门不存在'],
             ]);
@@ -307,6 +310,7 @@ class DepartmentService
                 $tree[] = $node;
             }
         }
+
         return $tree;
     }
 
@@ -319,18 +323,18 @@ class DepartmentService
             return true;
         }
         $child = Department::find($childId);
-        if (!$child || $child->parent_id == 0) {
+        if (! $child || $child->parent_id == 0) {
             return false;
         }
+
         return $this->isDescendant($id, $child->parent_id);
     }
 
     /**
      * 获取部门及所有子部门的ID列表
      *
-     * @param int $departmentId 部门ID
-     * @param array $departments 所有部门数据
-     * @return array
+     * @param  int  $departmentId  部门ID
+     * @param  array  $departments  所有部门数据
      */
     public function getDepartmentAndChildrenIds(int $departmentId, ?array $departments = null): array
     {
@@ -347,9 +351,9 @@ class DepartmentService
     /**
      * 递归收集子部门ID
      *
-     * @param int $parentId 父部门ID
-     * @param array $departments 所有部门数据
-     * @param array &$ids ID收集数组
+     * @param  int  $parentId  父部门ID
+     * @param  array  $departments  所有部门数据
+     * @param  array  &$ids  ID收集数组
      */
     private function collectChildrenIds(int $parentId, array $departments, array &$ids): void
     {

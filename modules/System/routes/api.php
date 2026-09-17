@@ -1,8 +1,8 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use Modules\System\Http\Controllers\Api\PingController;
 use Modules\System\Http\Controllers\Api\Upload;
-use Illuminate\Support\Facades\Route;
 
 // =============================================================================
 // 系统模块（System）对外 API

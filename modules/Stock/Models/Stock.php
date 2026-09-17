@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Stock extends Model
 {
     protected $table = 'stocks';
+
     protected $fillable = ['product_id', 'warehouse_id', 'quantity', 'frozen_qty', 'cost_price', 'total_amount'];
 
     public function product(): BelongsTo

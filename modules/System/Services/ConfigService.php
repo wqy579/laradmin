@@ -2,9 +2,9 @@
 
 namespace Modules\System\Services;
 
-use Modules\System\Models\Config;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Modules\System\Models\Config;
 
 class ConfigService
 {
@@ -13,7 +13,7 @@ class ConfigService
         $query = Config::query();
 
         // 默认只查配置项
-        if (!isset($params['item_type'])) {
+        if (! isset($params['item_type'])) {
             $query->where('item_type', 'config');
         } elseif ($params['item_type']) {
             $query->where('item_type', $params['item_type']);
@@ -23,14 +23,14 @@ class ConfigService
             $query->where('parent_id', $params['parent_id'] ?: null);
         }
 
-        if (!empty($params['group'])) {
+        if (! empty($params['group'])) {
             $query->where('group', $params['group']);
         }
 
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $query->where(function ($q) use ($params) {
-                $q->where('name', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('key', 'like', '%' . $params['keyword'] . '%');
+                $q->where('name', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('key', 'like', '%'.$params['keyword'].'%');
             });
         }
 
@@ -73,7 +73,7 @@ class ConfigService
     {
         $query = Config::where('status', true);
 
-        if (!empty($params['item_type'])) {
+        if (! empty($params['item_type'])) {
             $query->where('item_type', $params['item_type']);
         } else {
             $query->where('item_type', 'config');
@@ -114,11 +114,12 @@ class ConfigService
     {
         $configs = $this->getAllConfig();
 
-        if (!isset($configs[$key])) {
+        if (! isset($configs[$key])) {
             return $default;
         }
 
         $config = $configs[$key];
+
         return $config['value'] ?? $config['default_value'] ?? $default;
     }
 
@@ -146,6 +147,7 @@ class ConfigService
                 $tree[] = $item;
             }
         }
+
         return $tree;
     }
 
@@ -155,14 +157,14 @@ class ConfigService
 
         if ($itemType === 'group') {
             // 校验 parent_id 必须指向分组
-            if (!empty($data['parent_id'])) {
+            if (! empty($data['parent_id'])) {
                 $parent = Config::find($data['parent_id']);
-                if (!$parent || !$parent->isGroup()) {
+                if (! $parent || ! $parent->isGroup()) {
                     throw new \Exception('父级必须是分组类型');
                 }
             }
 
-            $data['key'] = $data['key'] ?? ('group_' . \Illuminate\Support\Str::random(8));
+            $data['key'] = $data['key'] ?? ('group_'.Str::random(8));
             $data['type'] = 'string';
         } else {
             // 配置项必须归属于某个分组
@@ -170,13 +172,14 @@ class ConfigService
                 throw new \Exception('配置项必须归属于某个分组');
             }
             $parent = Config::find($data['parent_id']);
-            if (!$parent || !$parent->isGroup()) {
+            if (! $parent || ! $parent->isGroup()) {
                 throw new \Exception('父级必须是分组类型');
             }
         }
 
         $config = Config::create($data);
         $this->clearCache();
+
         return $config;
     }
 
@@ -185,19 +188,19 @@ class ConfigService
         $config = Config::findOrFail($id);
 
         if (isset($data['item_type']) && $data['item_type'] === 'group') {
-            if (!empty($data['parent_id'])) {
+            if (! empty($data['parent_id'])) {
                 if ($data['parent_id'] == $id) {
                     throw new \Exception('不能将自己设为父级');
                 }
                 $parent = Config::find($data['parent_id']);
-                if (!$parent || !$parent->isGroup()) {
+                if (! $parent || ! $parent->isGroup()) {
                     throw new \Exception('父级必须是分组类型');
                 }
             }
         } else {
-            if (isset($data['parent_id']) && !empty($data['parent_id'])) {
+            if (isset($data['parent_id']) && ! empty($data['parent_id'])) {
                 $parent = Config::find($data['parent_id']);
-                if (!$parent || !$parent->isGroup()) {
+                if (! $parent || ! $parent->isGroup()) {
                     throw new \Exception('父级必须是分组类型');
                 }
             }
@@ -205,6 +208,7 @@ class ConfigService
 
         $config->update($data);
         $this->clearCache();
+
         return $config;
     }
 
@@ -223,6 +227,7 @@ class ConfigService
 
         $config->delete();
         $this->clearCache();
+
         return true;
     }
 
@@ -247,6 +252,7 @@ class ConfigService
             $config->delete();
         }
         $this->clearCache();
+
         return true;
     }
 
@@ -254,19 +260,21 @@ class ConfigService
     {
         Config::whereIn('id', $ids)->update(['status' => $status]);
         $this->clearCache();
+
         return true;
     }
 
     public function batchSave(array $items): bool
     {
         foreach ($items as $item) {
-            if (!empty($item['id'])) {
+            if (! empty($item['id'])) {
                 Config::where('id', $item['id'])->update([
                     'value' => $item['value'] ?? null,
                 ]);
             }
         }
         $this->clearCache();
+
         return true;
     }
 

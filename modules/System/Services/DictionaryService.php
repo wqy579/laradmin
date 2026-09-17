@@ -2,11 +2,10 @@
 
 namespace Modules\System\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Modules\System\Models\Dictionary;
 use Modules\System\Models\DictionaryItem;
 use Modules\System\Services\WebSocket\WebSocketService;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Validator;
 
 class DictionaryService
 {
@@ -21,10 +20,10 @@ class DictionaryService
     {
         $query = Dictionary::query();
 
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $query->where(function ($q) use ($params) {
-                $q->where('name', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('code', 'like', '%' . $params['keyword'] . '%');
+                $q->where('name', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('code', 'like', '%'.$params['keyword'].'%');
             });
         }
 
@@ -63,7 +62,7 @@ class DictionaryService
 
     public function getById(int $id): ?array
     {
-        $cacheKey = 'system:dictionary:' . $id;
+        $cacheKey = 'system:dictionary:'.$id;
         $dictionary = Cache::get($cacheKey);
 
         if ($dictionary === null) {
@@ -71,7 +70,7 @@ class DictionaryService
             if ($dictionary) {
                 $dictionary = $dictionary->toArray();
                 // 格式化字典项值
-                if (!empty($dictionary['items'])) {
+                if (! empty($dictionary['items'])) {
                     $dictionary['items'] = $this->formatItemsByType($dictionary['items'], $dictionary['value_type']);
                 }
                 Cache::put($cacheKey, $dictionary, 3600);
@@ -83,7 +82,7 @@ class DictionaryService
 
     public function getByCode(string $code): ?array
     {
-        $cacheKey = 'system:dictionary:code:' . $code;
+        $cacheKey = 'system:dictionary:code:'.$code;
         $dictionary = Cache::get($cacheKey);
 
         if ($dictionary === null) {
@@ -91,7 +90,7 @@ class DictionaryService
             if ($dictionaryModel) {
                 $dictionary = $dictionaryModel->toArray();
                 // 格式化字典项值
-                if (!empty($dictionary['items'])) {
+                if (! empty($dictionary['items'])) {
                     $dictionary['items'] = $this->formatItemsByType($dictionary['items'], $dictionary['value_type']);
                 }
                 Cache::put($cacheKey, $dictionary, 3600);
@@ -105,7 +104,7 @@ class DictionaryService
 
     public function getItemsByCode(string $code): array
     {
-        $cacheKey = 'system:dictionary:' . $code;
+        $cacheKey = 'system:dictionary:'.$code;
         $items = Cache::get($cacheKey);
 
         if ($items === null) {
@@ -132,6 +131,7 @@ class DictionaryService
         $dictionary = Dictionary::create($data);
         $this->clearCache();
         $this->notifyDictionaryUpdate('create', $dictionary->toArray());
+
         return $dictionary;
     }
 
@@ -142,6 +142,7 @@ class DictionaryService
         $dictionary->update($data);
         $this->clearCache();
         $this->notifyDictionaryUpdate('update', $dictionary->toArray());
+
         return $dictionary;
     }
 
@@ -153,6 +154,7 @@ class DictionaryService
         $dictionary->delete();
         $this->clearCache();
         $this->notifyDictionaryUpdate('delete', $dictionaryData);
+
         return true;
     }
 
@@ -162,6 +164,7 @@ class DictionaryService
         Dictionary::whereIn('id', $ids)->delete();
         $this->clearCache();
         $this->notifyDictionaryUpdate('batch_delete', ['ids' => $ids]);
+
         return true;
     }
 
@@ -170,6 +173,7 @@ class DictionaryService
         Dictionary::whereIn('id', $ids)->update(['status' => $status]);
         $this->clearCache();
         $this->notifyDictionaryUpdate('batch_update_status', ['ids' => $ids, 'status' => $status]);
+
         return true;
     }
 
@@ -182,16 +186,16 @@ class DictionaryService
             // 清理特定字典的缓存
             $dictionary = Dictionary::find($dictionaryId);
             if ($dictionary) {
-                Cache::forget('system:dictionary:' . $dictionaryId);
-                Cache::forget('system:dictionary:code:' . $dictionary->code);
-                Cache::forget('system:dictionary:' . $dictionary->code);
+                Cache::forget('system:dictionary:'.$dictionaryId);
+                Cache::forget('system:dictionary:code:'.$dictionary->code);
+                Cache::forget('system:dictionary:'.$dictionary->code);
             }
         } else {
             // 清理所有字典缓存
             $codes = Dictionary::pluck('code')->toArray();
             foreach ($codes as $code) {
-                Cache::forget('system:dictionary:' . $code);
-                Cache::forget('system:dictionary:code:' . $code);
+                Cache::forget('system:dictionary:'.$code);
+                Cache::forget('system:dictionary:code:'.$code);
             }
         }
     }
@@ -199,9 +203,10 @@ class DictionaryService
     public function getItem(int $id): ?array
     {
         $item = DictionaryItem::query()->find($id);
-        if (!$item) {
+        if (! $item) {
             return null;
         }
+
         return $item->toArray();
     }
 
@@ -209,7 +214,7 @@ class DictionaryService
     {
         $query = DictionaryItem::query();
 
-        if (!empty($params['dictionary_id'])) {
+        if (! empty($params['dictionary_id'])) {
             $query->where('dictionary_id', $params['dictionary_id']);
         }
 
@@ -236,6 +241,7 @@ class DictionaryService
         $item = DictionaryItem::create($data);
         $this->clearCache($data['dictionary_id']);
         $this->notifyDictionaryItemUpdate('create', $item->toArray());
+
         return $item;
     }
 
@@ -246,6 +252,7 @@ class DictionaryService
         $item->update($data);
         $this->clearCache($item->dictionary_id);
         $this->notifyDictionaryItemUpdate('update', $item->toArray());
+
         return $item;
     }
 
@@ -257,6 +264,7 @@ class DictionaryService
         $item->delete();
         $this->clearCache($dictionaryId);
         $this->notifyDictionaryItemUpdate('delete', $itemData);
+
         return true;
     }
 
@@ -273,6 +281,7 @@ class DictionaryService
         }
 
         $this->notifyDictionaryItemUpdate('batch_delete', ['ids' => $ids, 'dictionary_ids' => $dictionaryIds]);
+
         return true;
     }
 
@@ -289,11 +298,13 @@ class DictionaryService
         }
 
         $this->notifyDictionaryItemUpdate('batch_update_status', ['ids' => $ids, 'dictionary_ids' => $dictionaryIds, 'status' => $status]);
+
         return true;
     }
 
     /**
      * 获取所有字典项（按字典分类）
+     *
      * @return array 按字典code分类的字典项数据
      */
     public function getAllItems(): array
@@ -318,7 +329,7 @@ class DictionaryService
                     'name' => $dictionary->name,
                     'description' => $dictionary->description,
                     'value_type' => $dictionary->value_type,
-                    'items' => $items
+                    'items' => $items,
                 ];
             }
 
@@ -332,8 +343,8 @@ class DictionaryService
     /**
      * 通知前端字典分类已更新
      *
-     * @param string $action 操作类型：create, update, delete, batch_delete, batch_update_status
-     * @param array $data 字典数据
+     * @param  string  $action  操作类型：create, update, delete, batch_delete, batch_update_status
+     * @param  array  $data  字典数据
      */
     private function notifyDictionaryUpdate(string $action, array $data): void
     {
@@ -343,16 +354,16 @@ class DictionaryService
                 'action' => $action,
                 'resource_type' => 'dictionary',
                 'data' => $data,
-                'timestamp' => time()
-            ]
+                'timestamp' => time(),
+            ],
         ]);
     }
 
     /**
      * 通知前端字典项已更新
      *
-     * @param string $action 操作类型：create, update, delete, batch_delete, batch_update_status
-     * @param array $data 字典项数据
+     * @param  string  $action  操作类型：create, update, delete, batch_delete, batch_update_status
+     * @param  array  $data  字典项数据
      */
     private function notifyDictionaryItemUpdate(string $action, array $data): void
     {
@@ -362,15 +373,16 @@ class DictionaryService
                 'action' => $action,
                 'resource_type' => 'dictionary_item',
                 'data' => $data,
-                'timestamp' => time()
-            ]
+                'timestamp' => time(),
+            ],
         ]);
     }
 
     /**
      * 根据值类型格式化字典项
-     * @param array $items 字典项数组
-     * @param string $valueType 值类型：string, number, boolean, json
+     *
+     * @param  array  $items  字典项数组
+     * @param  string  $valueType  值类型：string, number, boolean, json
      * @return array 格式化后的字典项数组
      */
     private function formatItemsByType(array $items, string $valueType): array
@@ -379,7 +391,7 @@ class DictionaryService
             switch ($valueType) {
                 case 'number':
                     // 数字类型：将值转换为数字
-                    $item['value'] = is_numeric($item['value']) ? (strpos($item['value'], '.') !== false ? (float)$item['value'] : (int)$item['value']) : $item['value'];
+                    $item['value'] = is_numeric($item['value']) ? (strpos($item['value'], '.') !== false ? (float) $item['value'] : (int) $item['value']) : $item['value'];
                     break;
                 case 'boolean':
                     // 布尔类型：将 '1', 'true', 'yes' 转换为 true，其他为 false
@@ -397,6 +409,7 @@ class DictionaryService
                     // 字符串类型：保持原值
                     break;
             }
+
             return $item;
         }, $items);
     }

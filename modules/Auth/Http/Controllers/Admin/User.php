@@ -3,17 +3,18 @@
 namespace Modules\Auth\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Modules\Auth\Http\Requests\UserRequest;
-use Modules\Auth\Services\UserService;
-use Modules\Auth\Services\UserOnlineService;
-use Modules\Auth\Services\ImportExportService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Modules\Auth\Http\Requests\UserRequest;
+use Modules\Auth\Services\ImportExportService;
+use Modules\Auth\Services\UserOnlineService;
+use Modules\Auth\Services\UserService;
 
 class User extends Controller
 {
     protected $userService;
+
     protected $userOnlineService;
+
     protected $importExportService;
 
     public function __construct(
@@ -188,7 +189,7 @@ class User extends Controller
     {
         $filePath = $this->importExportService->getExportFilePath($filename);
 
-        if (!file_exists($filePath)) {
+        if (! file_exists($filePath)) {
             return response()->json([
                 'code' => 404,
                 'message' => '文件不存在或已过期',
@@ -282,7 +283,7 @@ class User extends Controller
     {
         $validated = $request->validated();
 
-        if (!empty($validated['token'])) {
+        if (! empty($validated['token'])) {
             $this->userOnlineService->setOffline($userId, $validated['token']);
         }
 

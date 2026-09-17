@@ -2,9 +2,9 @@
 
 namespace Tests\Stock\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\ProductCategory;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**

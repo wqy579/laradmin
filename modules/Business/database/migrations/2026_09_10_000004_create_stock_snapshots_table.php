@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         // 兼容已手工建表的旧环境
-        if (!Schema::hasTable('stock_snapshots')) {
+        if (! Schema::hasTable('stock_snapshots')) {
             Schema::create('stock_snapshots', function (Blueprint $table) {
                 $table->id();
                 $table->date('snapshot_date')->comment('快照日期');

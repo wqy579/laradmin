@@ -3,8 +3,8 @@
 namespace Modules\System\Console\Commands;
 
 use Illuminate\Console\Command;
-use Modules\System\Services\NotificationService;
 use Illuminate\Support\Facades\Log;
+use Modules\System\Services\NotificationService;
 
 class RetryUnsentNotifications extends Command
 {
@@ -57,15 +57,15 @@ class RetryUnsentNotifications extends Command
 
             Log::info('重试未发送通知完成', [
                 'sent_count' => $sentCount,
-                'limit' => $limit
+                'limit' => $limit,
             ]);
 
             return self::SUCCESS;
         } catch (\Exception $e) {
-            $this->error('重试未发送通知失败: ' . $e->getMessage());
+            $this->error('重试未发送通知失败: '.$e->getMessage());
             Log::error('重试未发送通知失败', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return self::FAILURE;

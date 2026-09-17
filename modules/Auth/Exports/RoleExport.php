@@ -2,13 +2,14 @@
 
 namespace Modules\Auth\Exports;
 
-use Modules\Auth\Models\Role;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Modules\Auth\Models\Role;
 
-class RoleExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class RoleExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping
 {
     protected $roleIds;
 
@@ -20,11 +21,11 @@ class RoleExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
     /**
      * 获取数据集合
      */
-    public function collection(): \Illuminate\Support\Enumerable
+    public function collection(): Enumerable
     {
         $query = Role::with(['permissions']);
 
-        if (!empty($this->roleIds)) {
+        if (! empty($this->roleIds)) {
             $query->whereIn('id', $this->roleIds);
         }
 
@@ -59,9 +60,9 @@ class RoleExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
             $role->code,
             $role->description,
             $role->permissions->pluck('title')->implode(','),
-            (int)$role->sort,
+            (int) $role->sort,
             $role->status == 1 ? '启用' : '禁用',
-            $role->created_at ? (string)$role->created_at : '',
+            $role->created_at ? (string) $role->created_at : '',
         ];
     }
 }

@@ -3,7 +3,6 @@
 namespace Modules\System\Services;
 
 use Modules\System\Models\Attachment;
-use Illuminate\Support\Facades\Validator;
 
 class AttachmentService
 {
@@ -20,43 +19,43 @@ class AttachmentService
         $query = Attachment::query();
 
         // 关键词搜索
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $query->where(function ($q) use ($params) {
-                $q->where('name', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('file_name', 'like', '%' . $params['keyword'] . '%');
+                $q->where('name', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('file_name', 'like', '%'.$params['keyword'].'%');
             });
         }
 
         // 文件类型筛选
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $query->where('type', $params['type']);
         }
 
         // 扩展名筛选
-        if (!empty($params['extension'])) {
+        if (! empty($params['extension'])) {
             $query->where('extension', $params['extension']);
         }
 
         // 存储驱动筛选
-        if (!empty($params['storage_driver'])) {
+        if (! empty($params['storage_driver'])) {
             $query->where('storage_driver', $params['storage_driver']);
         }
 
         // 上传用户筛选
-        if (!empty($params['user_id'])) {
+        if (! empty($params['user_id'])) {
             $query->where('user_id', $params['user_id']);
         }
 
         // 按日期目录筛选
-        if (!empty($params['date'])) {
+        if (! empty($params['date'])) {
             $query->whereDate('created_at', $params['date']);
         }
 
         // 日期范围
-        if (!empty($params['start_date'])) {
+        if (! empty($params['start_date'])) {
             $query->where('created_at', '>=', $params['start_date']);
         }
-        if (!empty($params['end_date'])) {
+        if (! empty($params['end_date'])) {
             $query->where('created_at', '<=', $params['end_date']);
         }
 
@@ -100,7 +99,7 @@ class AttachmentService
     {
         $query = Attachment::selectRaw('DATE(created_at) as date, COUNT(*) as count, SUM(size) as total_size');
 
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $query->where('type', $params['type']);
         }
 
@@ -132,7 +131,7 @@ class AttachmentService
     {
         $query = Attachment::query();
 
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $query->where('type', $params['type']);
         }
 
@@ -169,6 +168,7 @@ class AttachmentService
     {
         $attachment = Attachment::findOrFail($id);
         $attachment->update(['description' => $description]);
+
         return $attachment;
     }
 }

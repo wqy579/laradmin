@@ -2,9 +2,9 @@
 
 namespace Modules\Auth\Services;
 
-use Modules\Auth\Models\Permission;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Modules\Auth\Models\Permission;
+use Modules\Auth\Models\User;
 
 class PermissionService
 {
@@ -16,14 +16,14 @@ class PermissionService
         $query = Permission::query();
 
         // 搜索条件
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $query->where(function ($q) use ($params) {
-                $q->where('title', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('name', 'like', '%' . $params['keyword'] . '%');
+                $q->where('title', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('name', 'like', '%'.$params['keyword'].'%');
             });
         }
 
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $query->where('type', $params['type']);
         }
 
@@ -56,7 +56,7 @@ class PermissionService
     {
         $query = Permission::query();
 
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $query->where('type', $params['type']);
         }
 
@@ -65,6 +65,7 @@ class PermissionService
         }
 
         $permissions = $query->orderBy('sort', 'asc')->orderBy('id', 'asc')->get();
+
         return $this->buildTree($permissions);
     }
 
@@ -78,7 +79,7 @@ class PermissionService
 
         if ($userId) {
             // 获取用户的权限
-            $user = \Modules\Auth\Models\User::find($userId);
+            $user = User::find($userId);
             if ($user) {
                 $permissionIds = [];
                 foreach ($user->roles as $role) {
@@ -91,6 +92,7 @@ class PermissionService
         }
 
         $permissions = $query->orderBy('sort', 'asc')->orderBy('id', 'asc')->get();
+
         return $this->buildTree($permissions);
     }
 
@@ -101,7 +103,7 @@ class PermissionService
     {
         $permission = Permission::with(['parent'])->find($id);
 
-        if (!$permission) {
+        if (! $permission) {
             throw ValidationException::withMessages([
                 'id' => ['权限不存在'],
             ]);
@@ -147,9 +149,9 @@ class PermissionService
         }
 
         // 如果有父级ID，检查父级是否存在
-        if (!empty($data['parent_id'])) {
+        if (! empty($data['parent_id'])) {
             $parent = Permission::find($data['parent_id']);
-            if (!$parent) {
+            if (! $parent) {
                 throw ValidationException::withMessages([
                     'parent_id' => ['父级权限不存在'],
                 ]);
@@ -176,7 +178,7 @@ class PermissionService
     {
         $permission = Permission::find($id);
 
-        if (!$permission) {
+        if (! $permission) {
             throw ValidationException::withMessages([
                 'id' => ['权限不存在'],
             ]);
@@ -201,9 +203,9 @@ class PermissionService
         }
 
         // 如果有父级ID，检查父级是否存在
-        if (isset($data['parent_id']) && !empty($data['parent_id'])) {
+        if (isset($data['parent_id']) && ! empty($data['parent_id'])) {
             $parent = Permission::find($data['parent_id']);
-            if (!$parent) {
+            if (! $parent) {
                 throw ValidationException::withMessages([
                     'parent_id' => ['父级权限不存在'],
                 ]);
@@ -230,6 +232,7 @@ class PermissionService
         ];
 
         $permission->update($updateData);
+
         return $permission;
     }
 
@@ -240,7 +243,7 @@ class PermissionService
     {
         $permission = Permission::find($id);
 
-        if (!$permission) {
+        if (! $permission) {
             throw ValidationException::withMessages([
                 'id' => ['权限不存在'],
             ]);
@@ -318,6 +321,7 @@ class PermissionService
                 $tree[] = $node;
             }
         }
+
         return $tree;
     }
 }

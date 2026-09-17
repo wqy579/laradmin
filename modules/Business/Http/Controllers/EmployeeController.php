@@ -3,8 +3,8 @@
 namespace Modules\Business\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Business\Models\Employee;
 use Illuminate\Http\Request;
+use Modules\Business\Models\Employee;
 
 class EmployeeController extends Controller
 {
@@ -14,9 +14,9 @@ class EmployeeController extends Controller
 
         if ($request->filled('keyword')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('code', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('phone', 'like', '%' . $request->keyword . '%');
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('code', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('phone', 'like', '%'.$request->keyword.'%');
             });
         }
 
@@ -30,6 +30,7 @@ class EmployeeController extends Controller
 
         $query->orderBy('id', 'desc');
         $employees = $query->paginate($request->integer('page_size', 20));
+
         return $this->paginated($employees);
     }
 
@@ -56,6 +57,7 @@ class EmployeeController extends Controller
             'remark' => 'nullable|string',
         ]);
         $employee = Employee::create($validated);
+
         return $this->created($employee, '创建成功');
     }
 
@@ -77,12 +79,14 @@ class EmployeeController extends Controller
             'remark' => 'nullable|string',
         ]);
         $employee->update($validated);
+
         return $this->success($employee, '更新成功');
     }
 
     public function destroy(Employee $employee)
     {
         $employee->delete();
+
         return $this->success(null, '删除成功');
     }
 
@@ -90,6 +94,7 @@ class EmployeeController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'is_active' => 'required|boolean']);
         Employee::whereIn('id', $request->ids)->update(['is_active' => $request->is_active]);
+
         return $this->success(null, '操作成功');
     }
 
@@ -97,6 +102,7 @@ class EmployeeController extends Controller
     {
         $request->validate(['ids' => 'required|array']);
         Employee::whereIn('id', $request->ids)->delete();
+
         return $this->success(null, '删除成功');
     }
 }

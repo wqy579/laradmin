@@ -2,13 +2,14 @@
 
 namespace Modules\Auth\Exports;
 
-use Modules\Auth\Models\Department;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Modules\Auth\Models\Department;
 
-class DepartmentExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class DepartmentExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping
 {
     protected $departmentIds;
 
@@ -20,11 +21,11 @@ class DepartmentExport implements FromCollection, WithHeadings, WithMapping, Sho
     /**
      * 获取数据集合
      */
-    public function collection(): \Illuminate\Support\Enumerable
+    public function collection(): Enumerable
     {
         $query = Department::query();
 
-        if (!empty($this->departmentIds)) {
+        if (! empty($this->departmentIds)) {
             $query->whereIn('id', $this->departmentIds);
         }
 
@@ -65,9 +66,9 @@ class DepartmentExport implements FromCollection, WithHeadings, WithMapping, Sho
             $parentName,
             $department->leader,
             $department->phone,
-            (int)$department->sort,
+            (int) $department->sort,
             $department->status == 1 ? '启用' : '禁用',
-            $department->created_at ? (string)$department->created_at : '',
+            $department->created_at ? (string) $department->created_at : '',
         ];
     }
 }

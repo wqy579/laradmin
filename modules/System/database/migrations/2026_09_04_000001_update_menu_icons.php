@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
@@ -23,7 +22,7 @@ return new class extends Migration
                 ->where('name', $name)
                 ->where('type', 'menu')
                 ->update([
-                    'meta' => json_encode(['icon' => $icon])
+                    'meta' => json_encode(['icon' => $icon]),
                 ]);
         }
     }
@@ -34,7 +33,7 @@ return new class extends Migration
             ->where('type', 'menu')
             ->whereNotNull('meta')
             ->update([
-                'meta' => null
+                'meta' => null,
             ]);
     }
 };

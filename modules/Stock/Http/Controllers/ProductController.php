@@ -3,9 +3,10 @@
 namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\ProductCategory;
-use Illuminate\Http\Request;
+use Modules\Stock\Models\Unit;
 
 class ProductController extends Controller
 {
@@ -21,10 +22,10 @@ class ProductController extends Controller
                 $q->where('is_active', true)->orderBy('sort_order');
             }])
             ->get()
-            ->map(fn($cat) => [
+            ->map(fn ($cat) => [
                 'id' => $cat->id,
                 'name' => $cat->name,
-                'children' => $cat->subCategories->map(fn($sc) => [
+                'children' => $cat->subCategories->map(fn ($sc) => [
                     'id' => $sc->id,
                     'name' => $sc->name,
                 ]),
@@ -34,15 +35,15 @@ class ProductController extends Controller
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->get()
-            ->map(fn($cat) => ['id' => $cat->id, 'name' => $cat->name]);
+            ->map(fn ($cat) => ['id' => $cat->id, 'name' => $cat->name]);
 
         $query = Product::with(['mainCategory', 'subCategory']);
         if ($request->filled('keyword')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('code', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('barcode_small', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('spec', 'like', '%' . $request->keyword . '%');
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('code', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('barcode_small', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('spec', 'like', '%'.$request->keyword.'%');
             });
         }
         if ($request->main_category_id !== null && $request->main_category_id !== '' && $request->main_category_id !== 'null') {
@@ -60,7 +61,7 @@ class ProductController extends Controller
         $query->orderBy('id', 'desc');
         $products = $query->paginate($request->integer('page_size', 20));
 
-        $products->getCollection()->transform(fn($p) => [
+        $products->getCollection()->transform(fn ($p) => [
             ...$p->toArray(true),
             'main_category_name' => $p->mainCategory?->name,
             'sub_category_name' => $p->subCategory?->name,
@@ -80,6 +81,7 @@ class ProductController extends Controller
     public function show(Product $product)
     {
         $product->load(['mainCategory', 'subCategory']);
+
         return $this->success($product);
     }
 
@@ -104,6 +106,7 @@ class ProductController extends Controller
             'unit_conversion_medium' => 'nullable|numeric|min:1',
         ]);
         $product = Product::create($validated);
+
         return $this->created($product, '创建成功');
     }
 
@@ -129,12 +132,14 @@ class ProductController extends Controller
             'unit_conversion_medium' => 'nullable|numeric|min:1',
         ]);
         $product->update($validated);
+
         return $this->success($product, '更新成功');
     }
 
     public function destroy(Product $product)
     {
         $product->delete();
+
         return $this->success(null, '删除成功');
     }
 
@@ -142,6 +147,7 @@ class ProductController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'is_active' => 'required|boolean']);
         Product::whereIn('id', $request->ids)->update(['is_active' => $request->is_active]);
+
         return $this->success(null, '操作成功');
     }
 
@@ -149,6 +155,7 @@ class ProductController extends Controller
     {
         $request->validate(['ids' => 'required|array']);
         Product::whereIn('id', $request->ids)->delete();
+
         return $this->success(null, '删除成功');
     }
 
@@ -156,10 +163,11 @@ class ProductController extends Controller
 
     public function units()
     {
-        $units = \Modules\Stock\Models\Unit::where('is_active', true)
+        $units = Unit::where('is_active', true)
             ->orderBy('sort_order')
             ->get(['id', 'name']);
-        return $this->success($units->map(fn($u) => ['value' => $u->name, 'label' => $u->name]));
+
+        return $this->success($units->map(fn ($u) => ['value' => $u->name, 'label' => $u->name]));
     }
 
     // --- 分类管理 ---
@@ -188,14 +196,14 @@ class ProductController extends Controller
             ->selectRaw('sub_category_id, count(*) as cnt')
             ->pluck('cnt', 'sub_category_id');
 
-        return $this->success($mainCategories->map(fn($cat) => [
-            "id" => $cat->id,
-            "name" => $cat->name,
-            "product_count" => (int) ($mainCounts[$cat->id] ?? 0),
-            "children" => $cat->subCategories->map(fn($sc) => [
-                "id" => $sc->id,
-                "name" => $sc->name,
-                "product_count" => (int) ($subCounts[$sc->id] ?? 0),
+        return $this->success($mainCategories->map(fn ($cat) => [
+            'id' => $cat->id,
+            'name' => $cat->name,
+            'product_count' => (int) ($mainCounts[$cat->id] ?? 0),
+            'children' => $cat->subCategories->map(fn ($sc) => [
+                'id' => $sc->id,
+                'name' => $sc->name,
+                'product_count' => (int) ($subCounts[$sc->id] ?? 0),
             ]),
         ]));
     }
@@ -210,6 +218,7 @@ class ProductController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
         $category = ProductCategory::create($validated);
+
         return $this->created($category, '创建成功');
     }
 
@@ -223,6 +232,7 @@ class ProductController extends Controller
             'is_active' => 'nullable|boolean',
         ]);
         $category->update($validated);
+
         return $this->success($category, '更新成功');
     }
 
@@ -243,6 +253,7 @@ class ProductController extends Controller
             }
         }
         $category->delete();
+
         return $this->success(null, '删除成功');
     }
 }

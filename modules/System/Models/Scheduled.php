@@ -14,13 +14,19 @@ class Scheduled extends Model
     protected $table = 'system_scheduled';
 
     const STATUS_IDLE = 'idle';
+
     const STATUS_RUNNING = 'running';
+
     const STATUS_PAUSED = 'paused';
+
     const STATUS_STOPPED = 'stopped';
+
     const STATUS_ERROR = 'error';
 
     const TYPE_ARTISAN = 'artisan';
+
     const TYPE_JOB = 'job';
+
     const TYPE_SHELL = 'shell';
 
     protected $fillable = [
@@ -81,7 +87,7 @@ class Scheduled extends Model
      */
     public function isIntervalMode(): bool
     {
-        return !empty($this->interval);
+        return ! empty($this->interval);
     }
 
     /**
@@ -90,14 +96,16 @@ class Scheduled extends Model
     public function isDue(): bool
     {
         if ($this->isIntervalMode()) {
-            if (!$this->last_run_at) {
+            if (! $this->last_run_at) {
                 return true;
             }
+
             return $this->last_run_at->addSeconds($this->interval)->isPast();
         }
 
         try {
             $cron = new CronExpression($this->expression);
+
             return $cron->isDue('now', $this->timezone);
         } catch (\Exception $e) {
             return false;
@@ -111,11 +119,13 @@ class Scheduled extends Model
     {
         if ($this->isIntervalMode()) {
             $base = $this->last_run_at ?? now();
+
             return $base->addSeconds($this->interval)->toDateTime();
         }
 
         try {
             $cron = new CronExpression($this->expression);
+
             return $cron->getNextRunDate('now', 0, false, $this->timezone);
         } catch (\Exception $e) {
             return null;
@@ -124,9 +134,10 @@ class Scheduled extends Model
 
     public function isOverdue(): bool
     {
-        if (!$this->started_at || $this->status !== self::STATUS_RUNNING) {
+        if (! $this->started_at || $this->status !== self::STATUS_RUNNING) {
             return false;
         }
+
         return $this->started_at->addSeconds($this->timeout)->isPast();
     }
 

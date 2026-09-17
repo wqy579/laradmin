@@ -42,7 +42,7 @@ class StorageService
         $driver = $configService->getConfigValue('storage_driver', 'local');
 
         $supported = array_keys($this->driverMap);
-        if (!in_array($driver, $supported)) {
+        if (! in_array($driver, $supported)) {
             $driver = 'local';
         }
 
@@ -64,7 +64,7 @@ class StorageService
     {
         $driverClass = $this->driverMap[$driver] ?? null;
 
-        if (!$driverClass || !class_exists($driverClass)) {
+        if (! $driverClass || ! class_exists($driverClass)) {
             throw new \Exception("不支持的存储驱动：{$driver}");
         }
 
@@ -147,6 +147,7 @@ class StorageService
     public function testCurrentConnection(): bool
     {
         $driver = $this->getDefaultDriver();
+
         return $driver->testConnection();
     }
 
@@ -156,6 +157,7 @@ class StorageService
     public function testDriverConnection(string $driverName): bool
     {
         $driver = $this->getDriverByName($driverName);
+
         return $driver->testConnection();
     }
 }

@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Transfer extends Model
 {
     protected $table = 'transfers';
+
     protected $fillable = ['order_no', 'from_warehouse_id', 'to_warehouse_id', 'transfer_date', 'total_amount', 'total_qty', 'status', 'created_by', 'remark'];
+
     protected $casts = ['transfer_date' => 'date'];
 
     public function fromWarehouse(): BelongsTo

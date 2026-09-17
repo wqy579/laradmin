@@ -2,10 +2,10 @@
 
 namespace Tests\System\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Auth\Models\User;
 use Modules\Auth\Seeders\AuthSeeder;
 use Modules\System\Models\Notification;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**

@@ -2,13 +2,14 @@
 
 namespace Modules\System\Services;
 
-use Modules\System\Models\Scheduled;
-use Modules\System\Models\ScheduledLog;
-use Modules\System\Models\Notification;
+use Cron\CronExpression;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Modules\Auth\Models\User;
+use Modules\System\Models\Notification;
+use Modules\System\Models\Scheduled;
+use Modules\System\Models\ScheduledLog;
 
 class ScheduledService
 {
@@ -23,18 +24,18 @@ class ScheduledService
     {
         $query = Scheduled::query();
 
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $query->where(function ($q) use ($params) {
-                $q->where('name', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('command', 'like', '%' . $params['keyword'] . '%');
+                $q->where('name', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('command', 'like', '%'.$params['keyword'].'%');
             });
         }
 
-        if (!empty($params['status'])) {
+        if (! empty($params['status'])) {
             $query->where('status', $params['status']);
         }
 
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $query->where('type', $params['type']);
         }
 
@@ -67,9 +68,9 @@ class ScheduledService
 
         $data['status'] = Scheduled::STATUS_IDLE;
 
-        if (!empty($data['expression'])) {
+        if (! empty($data['expression'])) {
             $data['next_run_at'] = $this->calculateNextRunAt($data['expression'], $data['timezone'] ?? 'Asia/Shanghai');
-        } elseif (!empty($data['interval'])) {
+        } elseif (! empty($data['interval'])) {
             $data['next_run_at'] = now()->addSeconds($data['interval'])->format('Y-m-d H:i:s');
         }
 
@@ -86,17 +87,18 @@ class ScheduledService
 
         $this->validate($data, $id);
 
-        if (!empty($data['expression'])) {
+        if (! empty($data['expression'])) {
             $data['next_run_at'] = $this->calculateNextRunAt(
                 $data['expression'],
                 $data['timezone'] ?? $task->timezone
             );
-        } elseif (!empty($data['interval'])) {
+        } elseif (! empty($data['interval'])) {
             $base = $task->last_run_at ?? now();
             $data['next_run_at'] = $base->addSeconds($data['interval'])->format('Y-m-d H:i:s');
         }
 
         $task->update($data);
+
         return $task->fresh();
     }
 
@@ -119,6 +121,7 @@ class ScheduledService
         }
 
         Scheduled::whereIn('id', $ids)->delete();
+
         return true;
     }
 
@@ -147,7 +150,7 @@ class ScheduledService
     {
         $task = Scheduled::findOrFail($id);
 
-        if (!$task->canTransitionTo(Scheduled::STATUS_PAUSED)) {
+        if (! $task->canTransitionTo(Scheduled::STATUS_PAUSED)) {
             throw new \Exception('当前状态不允许暂停');
         }
 
@@ -164,7 +167,7 @@ class ScheduledService
     {
         $task = Scheduled::findOrFail($id);
 
-        if (!$task->canTransitionTo(Scheduled::STATUS_RUNNING)) {
+        if (! $task->canTransitionTo(Scheduled::STATUS_RUNNING)) {
             throw new \Exception('当前状态不允许恢复');
         }
 
@@ -182,7 +185,7 @@ class ScheduledService
     {
         $task = Scheduled::findOrFail($id);
 
-        if (!$task->canTransitionTo(Scheduled::STATUS_STOPPED)) {
+        if (! $task->canTransitionTo(Scheduled::STATUS_STOPPED)) {
             throw new \Exception('当前状态不允许停止');
         }
 
@@ -319,7 +322,7 @@ class ScheduledService
     {
         $query = ScheduledLog::where('scheduled_id', $taskId);
 
-        if (!empty($params['status'])) {
+        if (! empty($params['status'])) {
             $query->where('status', $params['status']);
         }
 
@@ -342,6 +345,7 @@ class ScheduledService
     public function clearLogs(int $taskId): bool
     {
         ScheduledLog::where('scheduled_id', $taskId)->delete();
+
         return true;
     }
 
@@ -382,15 +386,15 @@ class ScheduledService
     {
         $jobClass = $task->command;
 
-        if (!class_exists($jobClass)) {
+        if (! class_exists($jobClass)) {
             throw new \Exception("Job 类不存在: {$jobClass}");
         }
 
         $params = $task->parameters ?? [];
-        if (!empty($params)) {
+        if (! empty($params)) {
             dispatch(new $jobClass(...$params));
         } else {
-            dispatch(new $jobClass());
+            dispatch(new $jobClass);
         }
     }
 
@@ -403,7 +407,7 @@ class ScheduledService
         $output = '';
         $resultCode = 0;
 
-        exec($command . ' 2>&1', $output, $resultCode);
+        exec($command.' 2>&1', $output, $resultCode);
         $output = implode("\n", $output);
 
         if ($resultCode !== 0) {
@@ -424,11 +428,11 @@ class ScheduledService
         }
 
         // 验证 Cron 表达式格式
-        if (!empty($data['expression'])) {
+        if (! empty($data['expression'])) {
             try {
-                new \Cron\CronExpression($data['expression']);
+                new CronExpression($data['expression']);
             } catch (\Exception $e) {
-                throw new \Exception('无效的 Cron 表达式: ' . $data['expression']);
+                throw new \Exception('无效的 Cron 表达式: '.$data['expression']);
             }
         }
     }
@@ -439,7 +443,8 @@ class ScheduledService
     protected function calculateNextRunAt(string $expression, string $timezone = 'Asia/Shanghai'): ?string
     {
         try {
-            $cron = new \Cron\CronExpression($expression);
+            $cron = new CronExpression($expression);
+
             return $cron->getNextRunDate('now', 0, false, $timezone)->format('Y-m-d H:i:s');
         } catch (\Exception $e) {
             return null;
@@ -460,8 +465,8 @@ class ScheduledService
             if ($logStatus === ScheduledLog::STATUS_FAILED || $logStatus === ScheduledLog::STATUS_TIMEOUT) {
                 $this->notificationService->sendToUsers(
                     $adminUserIds,
-                    '调度任务执行失败: ' . $task->name,
-                    sprintf("任务 %s 执行%s，%s耗时：%d 毫秒", $task->name, $logStatus === ScheduledLog::STATUS_TIMEOUT ? '超时' : '失败', $errorMessage ? "错误：{$errorMessage}\n" : '', $executionTime),
+                    '调度任务执行失败: '.$task->name,
+                    sprintf('任务 %s 执行%s，%s耗时：%d 毫秒', $task->name, $logStatus === ScheduledLog::STATUS_TIMEOUT ? '超时' : '失败', $errorMessage ? "错误：{$errorMessage}\n" : '', $executionTime),
                     Notification::TYPE_ERROR,
                     Notification::CATEGORY_TASK,
                     ['scheduled_id' => $task->id, 'scheduled_name' => $task->name, 'error_message' => $errorMessage, 'execution_time' => $executionTime]
@@ -475,8 +480,8 @@ class ScheduledService
     protected function getAdminUserIds(): array
     {
         try {
-            return \Modules\Auth\Models\User::where('status', 1)
-                ->whereHas('roles', fn($q) => $q->where('name', 'admin'))
+            return User::where('status', 1)
+                ->whereHas('roles', fn ($q) => $q->where('name', 'admin'))
                 ->pluck('id')
                 ->toArray();
         } catch (\Exception $e) {

@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Response;
 class RateLimitMiddleware
 {
     protected $defaultMaxAttempts = 60;
+
     protected $defaultDecayMinutes = 1;
 
     protected $routeLimits = [
@@ -83,7 +84,8 @@ class RateLimitMiddleware
         // 各账号依然各自独立，不会互相牵连误伤。
         if ($type === 'login' || $type === 'register') {
             $identifier = $request->input('username', $request->input('email', 'anonymous'));
-            return [sha1($type . '|' . $identifier)];
+
+            return [sha1($type.'|'.$identifier)];
         }
 
         if ($type === 'upload') {
@@ -91,10 +93,10 @@ class RateLimitMiddleware
             //   IP 桶——出口维度兜底，防匿名流量打满磁盘；
             //   账号桶——持有效 token 的账号即使轮换伪造 IP 也逃不掉。
             // 只留 IP 维度的话，账号桶等于没有（IP 可伪造）。
-            return [sha1($type . '|' . $ip), sha1($type . '|user|' . $userId)];
+            return [sha1($type.'|'.$ip), sha1($type.'|user|'.$userId)];
         }
 
-        return [sha1($type . '|' . $userId . '|' . $ip . '|' . $route)];
+        return [sha1($type.'|'.$userId.'|'.$ip.'|'.$route)];
     }
 
     /**

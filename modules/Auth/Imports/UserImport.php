@@ -2,19 +2,21 @@
 
 namespace Modules\Auth\Imports;
 
-use Modules\Auth\Models\User;
-use Modules\Auth\Models\Department;
-use Modules\Auth\Models\Role;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Modules\Auth\Models\Department;
+use Modules\Auth\Models\Role;
+use Modules\Auth\Models\User;
 
 class UserImport implements ToCollection, WithHeadingRow, WithValidation
 {
     protected $successCount = 0;
+
     protected $errorCount = 0;
+
     protected $errors = [];
 
     /**
@@ -33,15 +35,17 @@ class UserImport implements ToCollection, WithHeadingRow, WithValidation
                 $exists = User::where('username', $row['用户名'])->exists();
                 if ($exists) {
                     $this->addError($index + 2, '用户名已存在');
+
                     continue;
                 }
 
                 // 查找部门
                 $departmentId = null;
-                if (!empty($row['部门名称'])) {
+                if (! empty($row['部门名称'])) {
                     $department = Department::where('name', $row['部门名称'])->first();
-                    if (!$department) {
-                        $this->addError($index + 2, '部门不存在: ' . $row['部门名称']);
+                    if (! $department) {
+                        $this->addError($index + 2, '部门不存在: '.$row['部门名称']);
+
                         continue;
                     }
                     $departmentId = $department->id;
@@ -49,14 +53,15 @@ class UserImport implements ToCollection, WithHeadingRow, WithValidation
 
                 // 查找角色
                 $roleIds = [];
-                if (!empty($row['角色名称（多个用逗号分隔）'])) {
+                if (! empty($row['角色名称（多个用逗号分隔）'])) {
                     $roleNames = array_map('trim', explode(',', $row['角色名称（多个用逗号分隔）']));
                     $roles = Role::whereIn('name', $roleNames)->get();
 
                     if ($roles->count() != count($roleNames)) {
                         $existingNames = $roles->pluck('name')->toArray();
                         $notFound = array_diff($roleNames, $existingNames);
-                        $this->addError($index + 2, '角色不存在: ' . implode(', ', $notFound));
+                        $this->addError($index + 2, '角色不存在: '.implode(', ', $notFound));
+
                         continue;
                     }
                     $roleIds = $roles->pluck('id')->toArray();
@@ -74,7 +79,7 @@ class UserImport implements ToCollection, WithHeadingRow, WithValidation
                 ]);
 
                 // 分配角色
-                if (!empty($roleIds)) {
+                if (! empty($roleIds)) {
                     $user->roles()->attach($roleIds);
                 }
 

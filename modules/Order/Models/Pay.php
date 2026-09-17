@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Pay extends Model
 {
     protected $table = 'pays';
+
     protected $fillable = [
         'pay_no', 'pay_type', 'supplier_id', 'purchase_order_id',
         'amount', 'pay_date', 'payment_method', 'handler_id', 'remark', 'status',
     ];
+
     protected $casts = [
         'pay_date' => 'date',
         'amount' => 'decimal:2',

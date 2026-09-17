@@ -4,8 +4,9 @@ namespace Modules\System\Models;
 
 use App\Traits\ModelTrait;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Modules\Auth\Models\User;
 
 class Attachment extends Model
 {
@@ -39,10 +40,15 @@ class Attachment extends Model
      * 文件类型常量
      */
     const TYPE_IMAGE = 'image';
+
     const TYPE_DOCUMENT = 'document';
+
     const TYPE_VIDEO = 'video';
+
     const TYPE_AUDIO = 'audio';
+
     const TYPE_ARCHIVE = 'archive';
+
     const TYPE_OTHER = 'other';
 
     /**
@@ -50,7 +56,7 @@ class Attachment extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Auth\Models\User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -89,6 +95,7 @@ class Attachment extends Model
         ])) {
             return self::TYPE_ARCHIVE;
         }
+
         return self::TYPE_OTHER;
     }
 
@@ -99,13 +106,14 @@ class Attachment extends Model
     {
         $bytes = $this->size;
         if ($bytes >= 1073741824) {
-            return number_format($bytes / 1073741824, 2) . ' GB';
+            return number_format($bytes / 1073741824, 2).' GB';
         } elseif ($bytes >= 1048576) {
-            return number_format($bytes / 1048576, 2) . ' MB';
+            return number_format($bytes / 1048576, 2).' MB';
         } elseif ($bytes >= 1024) {
-            return number_format($bytes / 1024, 2) . ' KB';
+            return number_format($bytes / 1024, 2).' KB';
         }
-        return $bytes . ' B';
+
+        return $bytes.' B';
     }
 
     /**

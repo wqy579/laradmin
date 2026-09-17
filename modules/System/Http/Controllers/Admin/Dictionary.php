@@ -3,8 +3,8 @@
 namespace Modules\System\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Modules\System\Http\Requests\DictionaryRequest;
 use Illuminate\Http\Request;
+use Modules\System\Http\Requests\DictionaryRequest;
 use Modules\System\Services\DictionaryService;
 
 class Dictionary extends Controller
@@ -19,38 +19,40 @@ class Dictionary extends Controller
     public function index(Request $request)
     {
         $result = $this->dictionaryService->getList($request->all());
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $result
+            'data' => $result,
         ]);
     }
 
     public function all()
     {
         $dictionaries = $this->dictionaryService->getAll();
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $dictionaries
+            'data' => $dictionaries,
         ]);
     }
 
     public function show(int $id)
     {
         $dictionary = $this->dictionaryService->getById($id);
-        if (!$dictionary) {
+        if (! $dictionary) {
             return response()->json([
                 'code' => 404,
                 'message' => '字典不存在',
-                'data' => null
+                'data' => null,
             ], 404);
         }
 
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $dictionary
+            'data' => $dictionary,
         ]);
     }
 
@@ -58,16 +60,17 @@ class Dictionary extends Controller
     {
         try {
             $dictionary = $this->dictionaryService->create($request->validated());
+
             return response()->json([
                 'code' => 200,
                 'message' => '创建成功',
-                'data' => $dictionary
+                'data' => $dictionary,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 422,
                 'message' => $e->getMessage(),
-                'data' => null
+                'data' => null,
             ], 422);
         }
     }
@@ -76,16 +79,17 @@ class Dictionary extends Controller
     {
         try {
             $dictionary = $this->dictionaryService->update($id, $request->validated());
+
             return response()->json([
                 'code' => 200,
                 'message' => '更新成功',
-                'data' => $dictionary
+                'data' => $dictionary,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 422,
                 'message' => $e->getMessage(),
-                'data' => null
+                'data' => null,
             ], 422);
         }
     }
@@ -94,16 +98,17 @@ class Dictionary extends Controller
     {
         try {
             $this->dictionaryService->delete($id);
+
             return response()->json([
                 'code' => 200,
                 'message' => '删除成功',
-                'data' => null
+                'data' => null,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 400,
                 'message' => $e->getMessage(),
-                'data' => null
+                'data' => null,
             ], 400);
         }
     }
@@ -112,10 +117,11 @@ class Dictionary extends Controller
     {
         $validated = $request->validated();
         $this->dictionaryService->batchDelete($validated['ids']);
+
         return response()->json([
             'code' => 200,
             'message' => '批量删除成功',
-            'data' => null
+            'data' => null,
         ]);
     }
 
@@ -126,48 +132,51 @@ class Dictionary extends Controller
             $validated['ids'],
             $validated['status']
         );
+
         return response()->json([
             'code' => 200,
             'message' => '批量更新状态成功',
-            'data' => null
+            'data' => null,
         ]);
     }
 
     public function showItem(int $id)
     {
         $item = $this->dictionaryService->getItem($id);
-        if (!$item) {
+        if (! $item) {
             return response()->json([
                 'code' => 404,
                 'message' => '字典项不存在',
-                'data' => null
+                'data' => null,
             ], 404);
         }
 
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $item
+            'data' => $item,
         ]);
     }
 
     public function getItemsList(Request $request)
     {
         $result = $this->dictionaryService->getItemsList($request->all());
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $result
+            'data' => $result,
         ]);
     }
 
     public function getAllItems()
     {
         $items = $this->dictionaryService->getAllItems();
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $items
+            'data' => $items,
         ]);
     }
 
@@ -175,16 +184,17 @@ class Dictionary extends Controller
     {
         try {
             $item = $this->dictionaryService->createItem($request->validated());
+
             return response()->json([
                 'code' => 200,
                 'message' => '创建成功',
-                'data' => $item
+                'data' => $item,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 422,
                 'message' => $e->getMessage(),
-                'data' => null
+                'data' => null,
             ], 422);
         }
     }
@@ -193,16 +203,17 @@ class Dictionary extends Controller
     {
         try {
             $item = $this->dictionaryService->updateItem($id, $request->validated());
+
             return response()->json([
                 'code' => 200,
                 'message' => '更新成功',
-                'data' => $item
+                'data' => $item,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 422,
                 'message' => $e->getMessage(),
-                'data' => null
+                'data' => null,
             ], 422);
         }
     }
@@ -210,10 +221,11 @@ class Dictionary extends Controller
     public function destroyItem(int $id)
     {
         $this->dictionaryService->deleteItem($id);
+
         return response()->json([
             'code' => 200,
             'message' => '删除成功',
-            'data' => null
+            'data' => null,
         ]);
     }
 
@@ -221,10 +233,11 @@ class Dictionary extends Controller
     {
         $validated = $request->validated();
         $this->dictionaryService->batchDeleteItems($validated['ids']);
+
         return response()->json([
             'code' => 200,
             'message' => '批量删除成功',
-            'data' => null
+            'data' => null,
         ]);
     }
 
@@ -235,10 +248,11 @@ class Dictionary extends Controller
             $validated['ids'],
             $validated['status']
         );
+
         return response()->json([
             'code' => 200,
             'message' => '批量更新状态成功',
-            'data' => null
+            'data' => null,
         ]);
     }
 }

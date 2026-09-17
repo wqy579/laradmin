@@ -1,6 +1,15 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Stock\Http\Controllers\CostPriceController;
+use Modules\Stock\Http\Controllers\ProductController;
+use Modules\Stock\Http\Controllers\StockCheckController;
+use Modules\Stock\Http\Controllers\StockController;
+use Modules\Stock\Http\Controllers\StockInController;
+use Modules\Stock\Http\Controllers\StockOutController;
+use Modules\Stock\Http\Controllers\TransferController;
+use Modules\Stock\Http\Controllers\VehicleController;
+use Modules\Stock\Http\Controllers\WarehouseController;
 
 // =============================================================================
 // 库存模块（Stock）路由
@@ -20,71 +29,71 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 商品档案
     Route::prefix('business/product')->group(function () {
-        Route::get('/units', [\Modules\Stock\Http\Controllers\ProductController::class, 'units']);
-        Route::get('/categories', [\Modules\Stock\Http\Controllers\ProductController::class, 'categories']);
-        Route::get('/', [\Modules\Stock\Http\Controllers\ProductController::class, 'index']);
-        Route::post('/', [\Modules\Stock\Http\Controllers\ProductController::class, 'store']);
-        Route::get('/{product}', [\Modules\Stock\Http\Controllers\ProductController::class, 'show']);
-        Route::put('/{product}', [\Modules\Stock\Http\Controllers\ProductController::class, 'update']);
-        Route::delete('/{product}', [\Modules\Stock\Http\Controllers\ProductController::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\Stock\Http\Controllers\ProductController::class, 'batchDelete']);
-        Route::post('/batch-status', [\Modules\Stock\Http\Controllers\ProductController::class, 'batchUpdateStatus']);
-        Route::post('/categories', [\Modules\Stock\Http\Controllers\ProductController::class, 'storeCategory']);
-        Route::put('/categories/{category}', [\Modules\Stock\Http\Controllers\ProductController::class, 'updateCategory']);
-        Route::delete('/categories/{category}', [\Modules\Stock\Http\Controllers\ProductController::class, 'destroyCategory']);
+        Route::get('/units', [ProductController::class, 'units']);
+        Route::get('/categories', [ProductController::class, 'categories']);
+        Route::get('/', [ProductController::class, 'index']);
+        Route::post('/', [ProductController::class, 'store']);
+        Route::get('/{product}', [ProductController::class, 'show']);
+        Route::put('/{product}', [ProductController::class, 'update']);
+        Route::delete('/{product}', [ProductController::class, 'destroy']);
+        Route::post('/batch-delete', [ProductController::class, 'batchDelete']);
+        Route::post('/batch-status', [ProductController::class, 'batchUpdateStatus']);
+        Route::post('/categories', [ProductController::class, 'storeCategory']);
+        Route::put('/categories/{category}', [ProductController::class, 'updateCategory']);
+        Route::delete('/categories/{category}', [ProductController::class, 'destroyCategory']);
     });
     // 仓库
     Route::prefix('business/warehouse')->group(function () {
-        Route::get('/', [\Modules\Stock\Http\Controllers\WarehouseController::class, 'index']);
-        Route::get('/{warehouse}', [\Modules\Stock\Http\Controllers\WarehouseController::class, 'show']);
-        Route::post('/', [\Modules\Stock\Http\Controllers\WarehouseController::class, 'store']);
-        Route::put('/{warehouse}', [\Modules\Stock\Http\Controllers\WarehouseController::class, 'update']);
-        Route::delete('/{warehouse}', [\Modules\Stock\Http\Controllers\WarehouseController::class, 'destroy']);
+        Route::get('/', [WarehouseController::class, 'index']);
+        Route::get('/{warehouse}', [WarehouseController::class, 'show']);
+        Route::post('/', [WarehouseController::class, 'store']);
+        Route::put('/{warehouse}', [WarehouseController::class, 'update']);
+        Route::delete('/{warehouse}', [WarehouseController::class, 'destroy']);
     });
     // 车辆（订单发货/销售单引用，随库存模块归属）
     Route::prefix('business/vehicle')->group(function () {
-        Route::get('/', [\Modules\Stock\Http\Controllers\VehicleController::class, 'index']);
-        Route::get('/{vehicle}', [\Modules\Stock\Http\Controllers\VehicleController::class, 'show']);
-        Route::post('/', [\Modules\Stock\Http\Controllers\VehicleController::class, 'store']);
-        Route::put('/{vehicle}', [\Modules\Stock\Http\Controllers\VehicleController::class, 'update']);
-        Route::delete('/{vehicle}', [\Modules\Stock\Http\Controllers\VehicleController::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\Stock\Http\Controllers\VehicleController::class, 'batchDelete']);
-        Route::post('/batch-status', [\Modules\Stock\Http\Controllers\VehicleController::class, 'batchUpdateStatus']);
+        Route::get('/', [VehicleController::class, 'index']);
+        Route::get('/{vehicle}', [VehicleController::class, 'show']);
+        Route::post('/', [VehicleController::class, 'store']);
+        Route::put('/{vehicle}', [VehicleController::class, 'update']);
+        Route::delete('/{vehicle}', [VehicleController::class, 'destroy']);
+        Route::post('/batch-delete', [VehicleController::class, 'batchDelete']);
+        Route::post('/batch-status', [VehicleController::class, 'batchUpdateStatus']);
     });
     // 调拨管理
     Route::prefix('business/transfer')->group(function () {
-        Route::get('/', [\Modules\Stock\Http\Controllers\TransferController::class, 'index']);
-        Route::get('/statistics', [\Modules\Stock\Http\Controllers\TransferController::class, 'statistics']);
-        Route::get('/{transfer}', [\Modules\Stock\Http\Controllers\TransferController::class, 'show']);
-        Route::post('/', [\Modules\Stock\Http\Controllers\TransferController::class, 'store']);
-        Route::put('/{transfer}', [\Modules\Stock\Http\Controllers\TransferController::class, 'update']);
-        Route::delete('/{transfer}', [\Modules\Stock\Http\Controllers\TransferController::class, 'destroy']);
-        Route::post('/{transfer}/approve', [\Modules\Stock\Http\Controllers\TransferController::class, 'approve']);
-        Route::post('/{transfer}/execute', [\Modules\Stock\Http\Controllers\TransferController::class, 'execute']);
+        Route::get('/', [TransferController::class, 'index']);
+        Route::get('/statistics', [TransferController::class, 'statistics']);
+        Route::get('/{transfer}', [TransferController::class, 'show']);
+        Route::post('/', [TransferController::class, 'store']);
+        Route::put('/{transfer}', [TransferController::class, 'update']);
+        Route::delete('/{transfer}', [TransferController::class, 'destroy']);
+        Route::post('/{transfer}/approve', [TransferController::class, 'approve']);
+        Route::post('/{transfer}/execute', [TransferController::class, 'execute']);
     });
     // 成本价格（只依赖商品与库存表，随库存模块归属）
     Route::prefix('business/cost-price')->group(function () {
-        Route::get('/', [\Modules\Stock\Http\Controllers\CostPriceController::class, 'index']);
-        Route::post('/batch', [\Modules\Stock\Http\Controllers\CostPriceController::class, 'batchUpdate']);
-        Route::put('/{product}', [\Modules\Stock\Http\Controllers\CostPriceController::class, 'update']);
+        Route::get('/', [CostPriceController::class, 'index']);
+        Route::post('/batch', [CostPriceController::class, 'batchUpdate']);
+        Route::put('/{product}', [CostPriceController::class, 'update']);
     });
     // 库存核对与监控
-    Route::get('business/stock-monitor', [\Modules\Stock\Http\Controllers\StockCheckController::class, 'monitor']);
-    Route::get('business/stock-check', [\Modules\Stock\Http\Controllers\StockCheckController::class, 'index']);
+    Route::get('business/stock-monitor', [StockCheckController::class, 'monitor']);
+    Route::get('business/stock-check', [StockCheckController::class, 'index']);
     // 库存查询
     Route::prefix('business/stock')->group(function () {
-        Route::get('/', [\Modules\Stock\Http\Controllers\StockController::class, 'index']);
-        Route::get('/statistics', [\Modules\Stock\Http\Controllers\StockController::class, 'statistics']);
-        Route::get('/{stock}', [\Modules\Stock\Http\Controllers\StockController::class, 'show']);
+        Route::get('/', [StockController::class, 'index']);
+        Route::get('/statistics', [StockController::class, 'statistics']);
+        Route::get('/{stock}', [StockController::class, 'show']);
     });
     // 入库单
     Route::prefix('business/stock-in')->group(function () {
-        Route::get('/', [\Modules\Stock\Http\Controllers\StockInController::class, 'index']);
-        Route::post('/', [\Modules\Stock\Http\Controllers\StockInController::class, 'store']);
+        Route::get('/', [StockInController::class, 'index']);
+        Route::post('/', [StockInController::class, 'store']);
     });
     // 出库单
     Route::prefix('business/stock-out')->group(function () {
-        Route::get('/', [\Modules\Stock\Http\Controllers\StockOutController::class, 'index']);
-        Route::post('/', [\Modules\Stock\Http\Controllers\StockOutController::class, 'store']);
+        Route::get('/', [StockOutController::class, 'index']);
+        Route::post('/', [StockOutController::class, 'store']);
     });
 });

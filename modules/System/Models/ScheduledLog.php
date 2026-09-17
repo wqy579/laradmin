@@ -12,8 +12,11 @@ class ScheduledLog extends Model
     protected $table = 'system_scheduled_log';
 
     const STATUS_RUNNING = 'running';
+
     const STATUS_SUCCESS = 'success';
+
     const STATUS_FAILED = 'failed';
+
     const STATUS_TIMEOUT = 'timeout';
 
     protected $fillable = [

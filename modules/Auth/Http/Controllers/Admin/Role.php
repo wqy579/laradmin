@@ -3,14 +3,15 @@
 namespace Modules\Auth\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Modules\Auth\Http\Requests\RoleRequest;
-use Modules\Auth\Services\RoleService;
-use Modules\Auth\Services\ImportExportService;
 use Illuminate\Http\Request;
+use Modules\Auth\Http\Requests\RoleRequest;
+use Modules\Auth\Services\ImportExportService;
+use Modules\Auth\Services\RoleService;
 
 class Role extends Controller
 {
     protected $roleService;
+
     protected $importExportService;
 
     public function __construct(

@@ -58,6 +58,7 @@ class Config extends Model
         if (is_string($value)) {
             return json_decode($value, true) ?? [];
         }
+
         return $value;
     }
 

@@ -53,15 +53,16 @@ class RustfsStorageDriver extends S3StorageDriver
 
         if ($customUrl) {
             // customUrl 末尾已是 /{bucket} 视为已包含 bucket，直接拼接
-            $bucketSuffix = $bucket ? '/' . trim($bucket, '/') : '';
+            $bucketSuffix = $bucket ? '/'.trim($bucket, '/') : '';
             $endsWithBucket = $bucketSuffix !== '' && str_ends_with($customUrl, $bucketSuffix);
 
-            $prefix = $endsWithBucket ? $customUrl : ($bucket ? $customUrl . $bucketSuffix : $customUrl);
-            return $prefix . '/' . $path;
+            $prefix = $endsWithBucket ? $customUrl : ($bucket ? $customUrl.$bucketSuffix : $customUrl);
+
+            return $prefix.'/'.$path;
         }
 
         if ($endpoint && $bucket) {
-            return $endpoint . '/' . trim($bucket, '/') . '/' . $path;
+            return $endpoint.'/'.trim($bucket, '/').'/'.$path;
         }
 
         return Storage::disk($this->diskName)->url($path);
@@ -76,6 +77,7 @@ class RustfsStorageDriver extends S3StorageDriver
     {
         try {
             Storage::disk($this->diskName)->files();
+
             return true;
         } catch (\Throwable) {
             return false;

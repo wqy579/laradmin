@@ -2,15 +2,13 @@
 
 namespace Modules\Business\Seeders;
 
+use Illuminate\Database\Seeder;
+use Modules\Order\Models\Customer;
+use Modules\Order\Models\Supplier;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\ProductCategory;
-use Modules\Stock\Models\Warehouse;
-use Modules\Order\Models\Supplier;
-use Modules\Order\Models\Customer;
 use Modules\Stock\Models\Vehicle;
-use Modules\Order\Models\Route;
-use Modules\Business\Models\Employee;
-use Illuminate\Database\Seeder;
+use Modules\Stock\Models\Warehouse;
 
 class BusinessDataSeeder extends Seeder
 {

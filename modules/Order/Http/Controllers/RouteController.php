@@ -3,9 +3,9 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Order\Models\Route;
-use Modules\Order\Models\Customer;
 use Illuminate\Http\Request;
+use Modules\Order\Models\Customer;
+use Modules\Order\Models\Route;
 
 class RouteController extends Controller
 {
@@ -14,8 +14,8 @@ class RouteController extends Controller
         $query = Route::with(['employee', 'customers']);
         if ($request->filled('keyword')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('code', 'like', '%' . $request->keyword . '%');
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('code', 'like', '%'.$request->keyword.'%');
             });
         }
         if ($request->filled('is_active')) {
@@ -23,12 +23,14 @@ class RouteController extends Controller
         }
         $query->orderBy('sort_order');
         $routes = $query->paginate($request->integer('page_size', 20));
+
         return $this->paginated($routes);
     }
 
     public function show(Route $route)
     {
         $route->load('employee', 'customers');
+
         return $this->success($route);
     }
 
@@ -47,13 +49,14 @@ class RouteController extends Controller
         ]);
         $route = Route::create($validated);
         if ($request->filled('customer_ids')) {
-            $customerIds = collect($validated['customer_ids'])->map(fn($id) => [
+            $customerIds = collect($validated['customer_ids'])->map(fn ($id) => [
                 'customer_id' => $id,
                 'visit_order' => 0,
                 'visit_frequency' => 1,
             ])->toArray();
             $route->customers()->sync($customerIds);
         }
+
         return $this->created($route, '创建成功');
     }
 
@@ -61,7 +64,7 @@ class RouteController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'code' => 'required|string|max:30|unique:routes,code,' . $route->id,
+            'code' => 'required|string|max:30|unique:routes,code,'.$route->id,
             'area' => 'nullable|string|max:100',
             'employee_id' => 'nullable|exists:auth_user,id',
             'sort_order' => 'nullable|integer',
@@ -72,19 +75,21 @@ class RouteController extends Controller
         ]);
         $route->update($validated);
         if ($request->filled('customer_ids')) {
-            $customerIds = collect($validated['customer_ids'])->map(fn($id) => [
+            $customerIds = collect($validated['customer_ids'])->map(fn ($id) => [
                 'customer_id' => $id,
                 'visit_order' => 0,
                 'visit_frequency' => 1,
             ])->toArray();
             $route->customers()->sync($customerIds);
         }
+
         return $this->success($route, '更新成功');
     }
 
     public function destroy(Route $route)
     {
         $route->delete();
+
         return $this->success(null, '删除成功');
     }
 
@@ -92,6 +97,7 @@ class RouteController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'is_active' => 'required|boolean']);
         Route::whereIn('id', $request->ids)->update(['is_active' => $request->is_active]);
+
         return $this->success(null, '操作成功');
     }
 
@@ -99,6 +105,7 @@ class RouteController extends Controller
     {
         $request->validate(['ids' => 'required|array']);
         Route::whereIn('id', $request->ids)->delete();
+
         return $this->success(null, '删除成功');
     }
 
@@ -107,6 +114,7 @@ class RouteController extends Controller
         $customers = Customer::where('is_active', true)
             ->whereNotIn('id', $route->customers()->pluck('customer_id'))
             ->paginate($request->integer('page_size', 20));
+
         return $this->paginated($customers);
     }
 
@@ -121,6 +129,7 @@ class RouteController extends Controller
             'visit_order' => $request->visit_order ?? 0,
             'visit_frequency' => $request->visit_frequency ?? 1,
         ]);
+
         return $this->success(null, '添加成功');
     }
 
@@ -128,6 +137,7 @@ class RouteController extends Controller
     {
         $request->validate(['customer_id' => 'required|exists:customers,id']);
         $route->customers()->detach($request->customer_id);
+
         return $this->success(null, '移除成功');
     }
 }

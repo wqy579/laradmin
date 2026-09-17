@@ -3,10 +3,10 @@
 namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Stock\Models\Product;
-use Modules\Stock\Models\Stock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Modules\Stock\Models\Product;
+use Modules\Stock\Models\Stock;
 
 /**
  * 成本价格管理：产品成本价列表查询与维护
@@ -22,11 +22,11 @@ class CostPriceController extends Controller
 
         if ($request->filled('keyword')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('code', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('barcode_small', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('barcode_large', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('spec', 'like', '%' . $request->keyword . '%');
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('code', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('barcode_small', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('barcode_large', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('spec', 'like', '%'.$request->keyword.'%');
             });
         }
 
@@ -87,13 +87,13 @@ class CostPriceController extends Controller
                 // 同步库存成本价与库存金额
                 Stock::where('product_id', $product->id)->update([
                     'cost_price' => $cost,
-                    'total_amount' => DB::raw('quantity * ' . $cost),
+                    'total_amount' => DB::raw('quantity * '.$cost),
                 ]);
             });
 
             return $this->success($product->fresh(), '保存成功');
         } catch (\Exception $e) {
-            return $this->error('保存失败：' . $e->getMessage());
+            return $this->error('保存失败：'.$e->getMessage());
         }
     }
 
@@ -116,13 +116,13 @@ class CostPriceController extends Controller
                 Product::whereIn('id', $ids)->update(['cost_price' => $cost]);
                 Stock::whereIn('product_id', $ids)->update([
                     'cost_price' => $cost,
-                    'total_amount' => DB::raw('quantity * ' . $cost),
+                    'total_amount' => DB::raw('quantity * '.$cost),
                 ]);
             });
 
             return $this->success(null, '批量设置成功');
         } catch (\Exception $e) {
-            return $this->error('批量设置失败：' . $e->getMessage());
+            return $this->error('批量设置失败：'.$e->getMessage());
         }
     }
 }

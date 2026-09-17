@@ -2,8 +2,9 @@
 
 namespace Modules\Order\Services;
 
-use Modules\Order\Models\Receive;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Modules\Order\Models\Receive;
 
 class ReceiveService
 {
@@ -22,6 +23,7 @@ class ReceiveService
                 'remark' => $data['remark'] ?? null,
                 'status' => 0,
             ]);
+
             return $receive;
         });
     }
@@ -36,6 +38,7 @@ class ReceiveService
         if ($receive->status == 1) {
             throw new \Exception('已审核单据不能修改');
         }
+
         return DB::transaction(function () use ($receive, $data) {
             $receive->update([
                 'amount' => $data['amount'],
@@ -43,6 +46,7 @@ class ReceiveService
                 'payment_method' => $data['payment_method'] ?? $receive->payment_method,
                 'remark' => $data['remark'] ?? $receive->remark,
             ]);
+
             return $receive;
         });
     }
@@ -52,9 +56,11 @@ class ReceiveService
         if ($receive->status == 1) {
             throw new \Exception('单据已审核');
         }
+
         return DB::transaction(function () use ($receive) {
             $receive->status = 1;
             $receive->save();
+
             return $receive;
         });
     }
@@ -64,23 +70,24 @@ class ReceiveService
         if ($receive->status == 1) {
             throw new \Exception('已审核单据不能删除');
         }
+
         return $receive->delete();
     }
 
-    public function list(array $filters = [], int $page = 1, int $pageSize = 20): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+    public function list(array $filters = [], int $page = 1, int $pageSize = 20): LengthAwarePaginator
     {
         $query = Receive::with(['customer', 'salesOrder', 'handler']);
 
-        if (!empty($filters['customer_id'])) {
+        if (! empty($filters['customer_id'])) {
             $query->where('customer_id', $filters['customer_id']);
         }
         if (isset($filters['status'])) {
             $query->where('status', $filters['status']);
         }
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('receive_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('receive_date', '<=', $filters['end_date']);
         }
 
@@ -91,13 +98,13 @@ class ReceiveService
     {
         $query = Receive::where('status', 1);
 
-        if (!empty($filters['start_date'])) {
+        if (! empty($filters['start_date'])) {
             $query->where('receive_date', '>=', $filters['start_date']);
         }
-        if (!empty($filters['end_date'])) {
+        if (! empty($filters['end_date'])) {
             $query->where('receive_date', '<=', $filters['end_date']);
         }
-        if (!empty($filters['customer_id'])) {
+        if (! empty($filters['customer_id'])) {
             $query->where('customer_id', $filters['customer_id']);
         }
 
@@ -110,8 +117,8 @@ class ReceiveService
     private function generateNo(): string
     {
         $date = date('Ymd');
-        $prefix = 'SK' . $date;
-        $last = Receive::where('receive_no', 'like', $prefix . '%')
+        $prefix = 'SK'.$date;
+        $last = Receive::where('receive_no', 'like', $prefix.'%')
             ->orderByDesc('receive_no')
             ->value('receive_no');
 
@@ -121,6 +128,6 @@ class ReceiveService
             $seq = 1;
         }
 
-        return $prefix . str_pad($seq, 6, '0', STR_PAD_LEFT);
+        return $prefix.str_pad($seq, 6, '0', STR_PAD_LEFT);
     }
 }

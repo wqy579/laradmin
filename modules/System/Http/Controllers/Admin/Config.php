@@ -3,8 +3,8 @@
 namespace Modules\System\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Modules\System\Http\Requests\ConfigRequest;
 use Illuminate\Http\Request;
+use Modules\System\Http\Requests\ConfigRequest;
 use Modules\System\Services\ConfigService;
 
 class Config extends Controller
@@ -21,35 +21,36 @@ class Config extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $this->configService->getGroups()
+            'data' => $this->configService->getGroups(),
         ]);
     }
 
     public function index(Request $request)
     {
         $result = $this->configService->getList($request->all());
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $result
+            'data' => $result,
         ]);
     }
 
     public function show(int $id)
     {
         $config = $this->configService->getById($id);
-        if (!$config) {
+        if (! $config) {
             return response()->json([
                 'code' => 404,
                 'message' => '配置不存在',
-                'data' => null
+                'data' => null,
             ], 404);
         }
 
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $config
+            'data' => $config,
         ]);
     }
 
@@ -57,16 +58,17 @@ class Config extends Controller
     {
         try {
             $config = $this->configService->create($request->validated());
+
             return response()->json([
                 'code' => 200,
                 'message' => '创建成功',
-                'data' => $config
+                'data' => $config,
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 422,
                 'message' => $e->getMessage(),
-                'data' => null
+                'data' => null,
             ], 422);
         }
     }
@@ -75,16 +77,17 @@ class Config extends Controller
     {
         try {
             $config = $this->configService->update($id, $request->validated());
+
             return response()->json([
                 'code' => 200,
                 'message' => '更新成功',
-                'data' => $config
+                'data' => $config,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 422,
                 'message' => $e->getMessage(),
-                'data' => null
+                'data' => null,
             ], 422);
         }
     }
@@ -93,16 +96,17 @@ class Config extends Controller
     {
         try {
             $this->configService->delete($id);
+
             return response()->json([
                 'code' => 200,
                 'message' => '删除成功',
-                'data' => null
+                'data' => null,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 400,
                 'message' => $e->getMessage(),
-                'data' => null
+                'data' => null,
             ], 400);
         }
     }
@@ -111,10 +115,11 @@ class Config extends Controller
     {
         $validated = $request->validated();
         $this->configService->batchDelete($validated['ids']);
+
         return response()->json([
             'code' => 200,
             'message' => '批量删除成功',
-            'data' => null
+            'data' => null,
         ]);
     }
 
@@ -125,10 +130,11 @@ class Config extends Controller
             $validated['ids'],
             $validated['status']
         );
+
         return response()->json([
             'code' => 200,
             'message' => '批量更新状态成功',
-            'data' => null
+            'data' => null,
         ]);
     }
 
@@ -136,20 +142,22 @@ class Config extends Controller
     {
         $items = $request->input('items', []);
         $this->configService->batchSave($items);
+
         return response()->json([
             'code' => 200,
             'message' => '保存成功',
-            'data' => null
+            'data' => null,
         ]);
     }
 
     public function tree()
     {
         $tree = $this->configService->getTree();
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $tree
+            'data' => $tree,
         ]);
     }
 
@@ -157,20 +165,22 @@ class Config extends Controller
     {
         $params = $request->only(['item_type']);
         $configs = $this->configService->getAllConfigs($params);
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $configs
+            'data' => $configs,
         ]);
     }
 
     public function getGroups()
     {
         $groups = $this->configService->getGroups();
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $groups
+            'data' => $groups,
         ]);
     }
 
@@ -179,9 +189,9 @@ class Config extends Controller
         $parentId = $request->input('parent_id');
         $group = $request->input('group');
 
-        if (!empty($parentId)) {
+        if (! empty($parentId)) {
             $configs = $this->configService->getByParentId((int) $parentId);
-        } elseif (!empty($group)) {
+        } elseif (! empty($group)) {
             $configs = $this->configService->getByGroup($group);
         } else {
             $configs = $this->configService->getAllConfigs($request->only('item_type'));
@@ -190,7 +200,7 @@ class Config extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $configs
+            'data' => $configs,
         ]);
     }
 }

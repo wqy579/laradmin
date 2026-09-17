@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class TransferItem extends Model
 {
     protected $table = 'transfer_items';
+
     protected $fillable = ['transfer_id', 'product_id', 'quantity', 'price', 'amount', 'remark'];
 
     public function transfer(): BelongsTo

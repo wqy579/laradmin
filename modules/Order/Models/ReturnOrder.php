@@ -3,14 +3,16 @@
 namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Modules\Stock\Models\Warehouse;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Stock\Models\Warehouse;
 
 class ReturnOrder extends Model
 {
     protected $table = 'returns';
+
     protected $fillable = ['order_no', 'supplier_id', 'warehouse_id', 'return_date', 'total_amount', 'total_qty', 'status', 'created_by', 'approved_by', 'approved_at', 'remark'];
+
     protected $casts = ['return_date' => 'date'];
 
     public function supplier(): BelongsTo

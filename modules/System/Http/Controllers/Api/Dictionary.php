@@ -18,10 +18,11 @@ class Dictionary extends Controller
     public function index()
     {
         $dictionaries = $this->dictionaryService->getAll();
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $dictionaries
+            'data' => $dictionaries,
         ]);
     }
 
@@ -34,16 +35,17 @@ class Dictionary extends Controller
         $dictionaries = $this->dictionaryService->getAll();
 
         // 为每个字典添加 items 字段
-        $result = array_map(function($dictionary) {
+        $result = array_map(function ($dictionary) {
             $items = $this->dictionaryService->getItemsByCode($dictionary['code']);
             $dictionary['items'] = $items;
+
             return $dictionary;
         }, $dictionaries);
 
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $result
+            'data' => $result,
         ]);
     }
 
@@ -51,31 +53,32 @@ class Dictionary extends Controller
     {
         $code = $request->input('code');
         $items = $this->dictionaryService->getItemsByCode($code);
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
             'data' => [
                 'code' => $code,
                 'items' => $items,
-            ]
+            ],
         ]);
     }
 
     public function show(int $id)
     {
         $dictionary = $this->dictionaryService->getById($id);
-        if (!$dictionary) {
+        if (! $dictionary) {
             return response()->json([
                 'code' => 404,
                 'message' => '字典不存在',
-                'data' => null
+                'data' => null,
             ], 404);
         }
 
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $dictionary
+            'data' => $dictionary,
         ]);
     }
 }

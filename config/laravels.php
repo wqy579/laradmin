@@ -1,5 +1,12 @@
 <?php
 
+use Hhxsv5\LaravelS\Illuminate\Cleaners\AuthCleaner;
+use Hhxsv5\LaravelS\Illuminate\Cleaners\JWTCleaner;
+use Modules\System\Services\QueueWorkerProcess;
+use Modules\System\Services\ScheduledTimerJob;
+use Modules\System\Services\WebSocket\WebSocketHandler;
+use Swoole\Table;
+
 return [
     /*
     |--------------------------------------------------------------------------
@@ -105,19 +112,19 @@ return [
 
     'inotify_reload' => [
         // Whether enable the Inotify Reload to reload all worker processes when your code is modified.
-        'enable'        => env('LARAVELS_INOTIFY_RELOAD', false),
+        'enable' => env('LARAVELS_INOTIFY_RELOAD', false),
 
         // The file path that Inotify watches
-        'watch_path'    => base_path(),
+        'watch_path' => base_path(),
 
         // The file types that Inotify watches
-        'file_types'    => ['.php'],
+        'file_types' => ['.php'],
 
         // The excluded/ignored directories that Inotify watches
         'excluded_dirs' => [],
 
         // Whether output the reload log
-        'log'           => true,
+        'log' => true,
     ],
 
     /*
@@ -148,7 +155,7 @@ return [
 
     'websocket' => [
         'enable' => env('LARAVELS_WEBSOCKET', true),
-        'handler' => \Modules\System\Services\WebSocket\WebSocketHandler::class,
+        'handler' => WebSocketHandler::class,
     ],
 
     /*
@@ -178,10 +185,10 @@ return [
 
     'processes' => [
         [
-            'class'    => \Modules\System\Services\QueueWorkerProcess::class,
-            'num'      => 1,
+            'class' => QueueWorkerProcess::class,
+            'num' => 1,
             'redirect' => false,
-            'pipe'     => 0,
+            'pipe' => 0,
         ],
     ],
 
@@ -197,21 +204,21 @@ return [
     */
 
     'timer' => [
-        'enable'          => env('LARAVELS_TIMER', true),
+        'enable' => env('LARAVELS_TIMER', true),
 
         // The list of cron job
-        'jobs'            => [
+        'jobs' => [
             // 秒级调度定时器，每秒检查到期任务
-            \Modules\System\Services\ScheduledTimerJob::class,
+            ScheduledTimerJob::class,
         ],
 
         // Max waiting time of reloading
-        'max_wait_time'   => 5,
+        'max_wait_time' => 5,
 
         // Enable the global lock to ensure that only one instance starts the timer
         // when deploying multiple instances.
         // This feature depends on Redis https://laravel.com/docs/8.x/redis
-        'global_lock'     => false,
+        'global_lock' => false,
         'global_lock_key' => config('app.name', 'Laravel'),
     ],
 
@@ -229,10 +236,10 @@ return [
     'swoole_tables' => [
         // WebSocket table for storing user connections
         'ws' => [
-            'size'   => 102400, // Maximum number of rows
+            'size' => 102400, // Maximum number of rows
             'column' => [
-                ['name' => 'value', 'type' => defined('Swoole\Table::TYPE_STRING') ? \Swoole\Table::TYPE_STRING : 1, 'size' => 1024],
-                ['name' => 'expiry', 'type' => defined('Swoole\Table::TYPE_INT') ? \Swoole\Table::TYPE_INT : 2, 'size' => 4],
+                ['name' => 'value', 'type' => defined('Swoole\Table::TYPE_STRING') ? Table::TYPE_STRING : 1, 'size' => 1024],
+                ['name' => 'expiry', 'type' => defined('Swoole\Table::TYPE_INT') ? Table::TYPE_INT : 2, 'size' => 4],
             ],
         ],
     ],
@@ -266,8 +273,8 @@ return [
     */
 
     'cleaners' => [
-        Hhxsv5\LaravelS\Illuminate\Cleaners\JWTCleaner::class,
-        Hhxsv5\LaravelS\Illuminate\Cleaners\AuthCleaner::class,
+        JWTCleaner::class,
+        AuthCleaner::class,
     ],
 
     /*
@@ -283,7 +290,7 @@ return [
     */
 
     'destroy_controllers' => [
-        'enable'        => false,
+        'enable' => false,
         'excluded_list' => [],
     ],
 
@@ -301,29 +308,29 @@ return [
     */
 
     'swoole' => [
-        'daemonize'          => env('LARAVELS_DAEMONIZE', false),
-        'dispatch_mode'      => env('LARAVELS_DISPATCH_MODE', 2),
+        'daemonize' => env('LARAVELS_DAEMONIZE', false),
+        'dispatch_mode' => env('LARAVELS_DISPATCH_MODE', 2),
         // 服务器仅 2G 内存，每个 worker 常驻一份 Laravel 应用实例（约 50-100MB）。
         // 原默认 30 会把内存吃满导致 swap 抖动；如需调整用环境变量 LARAVELS_WORKER_NUM。
-        'worker_num'         => env('LARAVELS_WORKER_NUM', 4),
-        //'task_worker_num'    => env('LARAVELS_TASK_WORKER_NUM', 10),
-        'task_ipc_mode'      => 1,
-        'task_max_request'   => env('LARAVELS_TASK_MAX_REQUEST', 5000),
-        'task_tmpdir'        => @is_writable('/dev/shm/') ? '/dev/shm' : '/tmp',
-        'max_request'        => env('LARAVELS_MAX_REQUEST', 5000),
-        'open_tcp_nodelay'   => true,
-        'pid_file'           => storage_path('laravels.pid'),
-        'log_level'          => env('LARAVELS_LOG_LEVEL', 4),
-        'log_file'           => storage_path(sprintf('logs/swoole-%s.log', date('Y-m'))),
-        'document_root'      => base_path('public'),
+        'worker_num' => env('LARAVELS_WORKER_NUM', 4),
+        // 'task_worker_num'    => env('LARAVELS_TASK_WORKER_NUM', 10),
+        'task_ipc_mode' => 1,
+        'task_max_request' => env('LARAVELS_TASK_MAX_REQUEST', 5000),
+        'task_tmpdir' => @is_writable('/dev/shm/') ? '/dev/shm' : '/tmp',
+        'max_request' => env('LARAVELS_MAX_REQUEST', 5000),
+        'open_tcp_nodelay' => true,
+        'pid_file' => storage_path('laravels.pid'),
+        'log_level' => env('LARAVELS_LOG_LEVEL', 4),
+        'log_file' => storage_path(sprintf('logs/swoole-%s.log', date('Y-m'))),
+        'document_root' => base_path('public'),
         'buffer_output_size' => 2 * 1024 * 1024,
         'socket_buffer_size' => 8 * 1024 * 1024,
         'package_max_length' => 4 * 1024 * 1024,
-        'reload_async'       => true,
-        'max_wait_time'      => 60,
-        'enable_reuse_port'  => true,
-        'enable_coroutine'   => false,
-        'upload_tmp_dir'     => @is_writable('/dev/shm/') ? '/dev/shm' : '/tmp',
-        'http_compression'   => env('LARAVELS_HTTP_COMPRESSION', false),
+        'reload_async' => true,
+        'max_wait_time' => 60,
+        'enable_reuse_port' => true,
+        'enable_coroutine' => false,
+        'upload_tmp_dir' => @is_writable('/dev/shm/') ? '/dev/shm' : '/tmp',
+        'http_compression' => env('LARAVELS_HTTP_COMPRESSION', false),
     ],
 ];

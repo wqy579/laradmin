@@ -3,25 +3,23 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Order\Models\PurchaseOrder;
 use Modules\Order\Models\Supplier;
 use Modules\Stock\Models\Warehouse;
 use Modules\Stock\Services\StockService;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class PurchaseOrderController extends Controller
 {
-    public function __construct(private StockService $stocks)
-    {
-    }
+    public function __construct(private StockService $stocks) {}
 
     public function index(Request $request)
     {
         $query = PurchaseOrder::with(['supplier', 'warehouse', 'items.product']);
         if ($request->filled('keyword')) {
-            $query->where('order_no', 'like', '%' . $request->keyword . '%');
+            $query->where('order_no', 'like', '%'.$request->keyword.'%');
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -33,12 +31,14 @@ class PurchaseOrderController extends Controller
         $orders = $query->paginate($request->integer('per_page', 20));
         $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
         $warehouses = Warehouse::where('is_active', true)->get();
+
         return response()->json(['data' => $orders, 'suppliers' => $suppliers, 'warehouses' => $warehouses]);
     }
 
     public function show(PurchaseOrder $purchaseOrder)
     {
         $purchaseOrder->load(['supplier', 'warehouse', 'items.product']);
+
         return response()->json(['data' => $purchaseOrder]);
     }
 
@@ -53,7 +53,7 @@ class PurchaseOrderController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
         ]);
-        $orderNo = 'PO' . date('YmdHis') . strtoupper(Str::random(4));
+        $orderNo = 'PO'.date('YmdHis').strtoupper(Str::random(4));
         $totalAmount = 0;
         $totalQty = 0;
         DB::beginTransaction();
@@ -74,10 +74,12 @@ class PurchaseOrderController extends Controller
             }
             $order->update(['total_amount' => $totalAmount, 'total_qty' => $totalQty]);
             DB::commit();
+
             return response()->json(['data' => $order->fresh(['items.product']), 'message' => '创建成功']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '创建失败: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => '创建失败: '.$e->getMessage()], 500);
         }
     }
 
@@ -110,10 +112,12 @@ class PurchaseOrderController extends Controller
             }
             $purchaseOrder->update(['total_amount' => $totalAmount, 'total_qty' => $totalQty]);
             DB::commit();
+
             return response()->json(['data' => $purchaseOrder->fresh(['items.product']), 'message' => '更新成功']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '更新失败: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => '更新失败: '.$e->getMessage()], 500);
         }
     }
 
@@ -123,6 +127,7 @@ class PurchaseOrderController extends Controller
             return response()->json(['message' => '只有草稿状态可以删除'], 422);
         }
         $purchaseOrder->delete();
+
         return response()->json(['message' => '删除成功']);
     }
 
@@ -134,6 +139,7 @@ class PurchaseOrderController extends Controller
             return response()->json(['message' => '只有草稿状态的订单可以审批'], 422);
         }
         $purchaseOrder->update(['status' => 'approved', 'approved_by' => auth('admin')->id(), 'approved_at' => now()]);
+
         return response()->json(['message' => '审批成功']);
     }
 
@@ -156,20 +162,23 @@ class PurchaseOrderController extends Controller
             }
             $purchaseOrder->update(['status' => 'received']);
             DB::commit();
+
             return response()->json(['message' => '入库成功']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '入库失败: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => '入库失败: '.$e->getMessage()], 500);
         }
     }
 
     public function cancel(PurchaseOrder $purchaseOrder)
     {
         // 只有还没入库的单据能作废；已入库的库存变动已发生，不能一键抹掉。
-        if (!in_array($purchaseOrder->status, ['draft', 'approved'], true)) {
+        if (! in_array($purchaseOrder->status, ['draft', 'approved'], true)) {
             return response()->json(['message' => '只有草稿或已审批的订单可以取消'], 422);
         }
         $purchaseOrder->update(['status' => 'cancelled']);
+
         return response()->json(['message' => '取消成功']);
     }
 
@@ -183,6 +192,7 @@ class PurchaseOrderController extends Controller
             'received' => PurchaseOrder::where('status', 'received')->count(),
             'cancelled' => PurchaseOrder::where('status', 'cancelled')->count(),
         ];
+
         return response()->json(['data' => $stats]);
     }
 }

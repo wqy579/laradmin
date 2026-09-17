@@ -25,14 +25,14 @@ class StockCheckController extends Controller
     {
         try {
             $mainCategoryId = $request->integer('main_category_id');
-            $subCategoryId  = $request->integer('sub_category_id');
-            $warehouseId    = $request->integer('warehouse_id');
-            $keyword        = trim((string) $request->input('keyword', ''));
-            $stockFilter    = (string) $request->input('stock_filter', '');
-            $page           = max(1, $request->integer('page', 1));
-            $pageSize       = min(500, max(10, $request->integer('page_size', 30)));
+            $subCategoryId = $request->integer('sub_category_id');
+            $warehouseId = $request->integer('warehouse_id');
+            $keyword = trim((string) $request->input('keyword', ''));
+            $stockFilter = (string) $request->input('stock_filter', '');
+            $page = max(1, $request->integer('page', 1));
+            $pageSize = min(500, max(10, $request->integer('page_size', 30)));
 
-            $today     = now()->toDateString();
+            $today = now()->toDateString();
             $yesterday = now()->subDay()->toDateString();
 
             // 昨日快照
@@ -63,15 +63,15 @@ class StockCheckController extends Controller
                 ->leftJoin('product_categories as c2', 'p.sub_category_id', '=', 'c2.id')
                 ->leftJoinSub($yesterdaySnap, 'ys', function ($join) {
                     $join->on('ys.product_id', '=', 's.product_id')
-                         ->on('ys.warehouse_id', '=', 's.warehouse_id');
+                        ->on('ys.warehouse_id', '=', 's.warehouse_id');
                 })
                 ->leftJoinSub($todayIn, 'tin', function ($join) {
                     $join->on('tin.product_id', '=', 's.product_id')
-                         ->on('tin.warehouse_id', '=', 's.warehouse_id');
+                        ->on('tin.warehouse_id', '=', 's.warehouse_id');
                 })
                 ->leftJoinSub($todayOut, 'tout', function ($join) {
                     $join->on('tout.product_id', '=', 's.product_id')
-                         ->on('tout.warehouse_id', '=', 's.warehouse_id');
+                        ->on('tout.warehouse_id', '=', 's.warehouse_id');
                 })
                 ->select(
                     'p.id as product_id',
@@ -105,9 +105,9 @@ class StockCheckController extends Controller
             }
             if ($keyword !== '') {
                 $query->where(function ($q) use ($keyword) {
-                    $q->where('p.name', 'like', '%' . $keyword . '%')
-                      ->orWhere('p.barcode_small', 'like', '%' . $keyword . '%')
-                      ->orWhere('p.code', 'like', '%' . $keyword . '%');
+                    $q->where('p.name', 'like', '%'.$keyword.'%')
+                        ->orWhere('p.barcode_small', 'like', '%'.$keyword.'%')
+                        ->orWhere('p.code', 'like', '%'.$keyword.'%');
                 });
             }
             if ($stockFilter === 'positive') {
@@ -118,12 +118,12 @@ class StockCheckController extends Controller
                 $query->where('s.quantity', '<', 0);
             }
 
-            $totalQty    = (clone $query)->sum('s.quantity');
+            $totalQty = (clone $query)->sum('s.quantity');
             $totalAmount = (clone $query)->sum('s.total_amount');
 
-            $all   = $query->orderBy('p.name')->orderBy('w.name')->get();
+            $all = $query->orderBy('p.name')->orderBy('w.name')->get();
             $total = $all->count();
-            $list  = array_slice($all->toArray(), ($page - 1) * $pageSize, $pageSize);
+            $list = array_slice($all->toArray(), ($page - 1) * $pageSize, $pageSize);
 
             return response()->json([
                 'code' => 200,
@@ -149,7 +149,7 @@ class StockCheckController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'code' => 500,
-                'message' => '服务器错误: ' . $e->getMessage(),
+                'message' => '服务器错误: '.$e->getMessage(),
                 'data' => null,
             ], 500);
         }
@@ -180,7 +180,7 @@ class StockCheckController extends Controller
                 ->limit(2)
                 ->pluck('snapshot_date');
             $latestDate = $dates[0] ?? null;
-            $prevDate   = $dates[1] ?? null;
+            $prevDate = $dates[1] ?? null;
 
             $empty = [
                 'summary' => null,
@@ -189,7 +189,7 @@ class StockCheckController extends Controller
                 'changes' => [],
             ];
 
-            if (!$latestDate) {
+            if (! $latestDate) {
                 return response()->json(['code' => 200, 'message' => 'success', 'data' => $empty]);
             }
 
@@ -224,6 +224,7 @@ class StockCheckController extends Controller
                     ->get()
                     ->map(function ($r) {
                         $r->diff_qty = (float) $r->today_qty - (float) $r->yesterday_qty;
+
                         return $r;
                     });
             }
@@ -240,7 +241,7 @@ class StockCheckController extends Controller
                     ->leftJoin('warehouses as w', 'l.warehouse_id', '=', 'w.id')
                     ->leftJoinSub($prevSnap, 'p', function ($j) {
                         $j->on('p.product_id', '=', 'l.product_id')
-                           ->on('p.warehouse_id', '=', 'l.warehouse_id');
+                            ->on('p.warehouse_id', '=', 'l.warehouse_id');
                     })
                     ->where('l.snapshot_date', $latestDate)
                     ->select(
@@ -255,6 +256,7 @@ class StockCheckController extends Controller
                     ->get()
                     ->map(function ($r) {
                         $r->diff_qty = (float) $r->today_qty - (float) $r->yesterday_qty;
+
                         return $r;
                     })
                     ->filter(function ($r) {
@@ -268,11 +270,11 @@ class StockCheckController extends Controller
             }
 
             $summary = [
-                'snapshot_date'   => $latestDate,
-                'total_products'  => DB::table('stock_snapshots')->where('snapshot_date', $latestDate)->count(),
-                'total_quantity'  => (float) DB::table('stock_snapshots')->where('snapshot_date', $latestDate)->sum('quantity'),
+                'snapshot_date' => $latestDate,
+                'total_products' => DB::table('stock_snapshots')->where('snapshot_date', $latestDate)->count(),
+                'total_quantity' => (float) DB::table('stock_snapshots')->where('snapshot_date', $latestDate)->sum('quantity'),
                 'frozen_quantity' => (float) DB::table('stock_snapshots')->where('snapshot_date', $latestDate)->sum('frozen_qty'),
-                'changed_count'   => $changes->count(),
+                'changed_count' => $changes->count(),
             ];
 
             return response()->json([
@@ -288,7 +290,7 @@ class StockCheckController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'code' => 500,
-                'message' => '服务器错误: ' . $e->getMessage(),
+                'message' => '服务器错误: '.$e->getMessage(),
                 'data' => null,
             ], 500);
         }
@@ -319,6 +321,7 @@ class StockCheckController extends Controller
                         ->where('sub_category_id', $sc->id)
                         ->where('is_active', 1)
                         ->count();
+
                     return $sc;
                 });
 

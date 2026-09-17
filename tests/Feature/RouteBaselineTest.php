@@ -123,7 +123,7 @@ class RouteBaselineTest extends TestCase
 
         $missing = [];
         foreach ($refs as $command => $files) {
-            if (!in_array($command, $registered, true)) {
+            if (! in_array($command, $registered, true)) {
                 $missing[] = "$command  →  ".implode(', ', array_unique($files));
             }
         }
@@ -187,13 +187,13 @@ class RouteBaselineTest extends TestCase
         foreach ($declared as [$method, $uri, $origin]) {
             $key = $method.'|'.$uri;
 
-            if (!isset($registered[$key])) {
+            if (! isset($registered[$key])) {
                 $missing[] = "$method $uri（来自 $origin）";
 
                 continue;
             }
 
-            if (!in_array('auth.check:admin', $registered[$key], true) && !in_array($key, $anonymousAllowed, true)) {
+            if (! in_array('auth.check:admin', $registered[$key], true) && ! in_array($key, $anonymousAllowed, true)) {
                 $unauthenticated[] = "$method $uri（缺少 auth.check:admin，来自 $origin）";
             }
         }
@@ -230,7 +230,7 @@ class RouteBaselineTest extends TestCase
             $source = (string) file_get_contents($file);
             $origin = str_replace(base_path().'/', '', $file);
 
-            if (!preg_match_all(
+            if (! preg_match_all(
                 '/request\.(get|post|put|del|delete|patch)\(\s*([\'"`])((?:[^\'"`\\\\]|\\\\.)*?)\2/',
                 $source,
                 $matches,

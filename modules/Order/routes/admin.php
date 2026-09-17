@@ -1,6 +1,16 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Order\Http\Controllers\CustomerController;
+use Modules\Order\Http\Controllers\DeliveryController;
+use Modules\Order\Http\Controllers\PayController;
+use Modules\Order\Http\Controllers\PurchaseOrderController;
+use Modules\Order\Http\Controllers\ReceiveController;
+use Modules\Order\Http\Controllers\ReturnController;
+use Modules\Order\Http\Controllers\RouteController;
+use Modules\Order\Http\Controllers\SalesOrderController;
+use Modules\Order\Http\Controllers\SupplierController;
+use Modules\Order\Http\Controllers\VisitLogController;
 
 // =============================================================================
 // 订单模块（Order）路由
@@ -19,109 +29,109 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 客户
     Route::prefix('business/customers')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\CustomerController::class, 'index']);
-        Route::get('/{customer}', [\Modules\Order\Http\Controllers\CustomerController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\CustomerController::class, 'store']);
-        Route::put('/{customer}', [\Modules\Order\Http\Controllers\CustomerController::class, 'update']);
-        Route::delete('/{customer}', [\Modules\Order\Http\Controllers\CustomerController::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\Order\Http\Controllers\CustomerController::class, 'batchDelete']);
-        Route::post('/batch-status', [\Modules\Order\Http\Controllers\CustomerController::class, 'batchUpdateStatus']);
+        Route::get('/', [CustomerController::class, 'index']);
+        Route::get('/{customer}', [CustomerController::class, 'show']);
+        Route::post('/', [CustomerController::class, 'store']);
+        Route::put('/{customer}', [CustomerController::class, 'update']);
+        Route::delete('/{customer}', [CustomerController::class, 'destroy']);
+        Route::post('/batch-delete', [CustomerController::class, 'batchDelete']);
+        Route::post('/batch-status', [CustomerController::class, 'batchUpdateStatus']);
     });
     // 供应商
     Route::prefix('business/supplier')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\SupplierController::class, 'index']);
-        Route::get('/{supplier}', [\Modules\Order\Http\Controllers\SupplierController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\SupplierController::class, 'store']);
-        Route::put('/{supplier}', [\Modules\Order\Http\Controllers\SupplierController::class, 'update']);
-        Route::delete('/{supplier}', [\Modules\Order\Http\Controllers\SupplierController::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\Order\Http\Controllers\SupplierController::class, 'batchDelete']);
-        Route::post('/batch-status', [\Modules\Order\Http\Controllers\SupplierController::class, 'batchUpdateStatus']);
+        Route::get('/', [SupplierController::class, 'index']);
+        Route::get('/{supplier}', [SupplierController::class, 'show']);
+        Route::post('/', [SupplierController::class, 'store']);
+        Route::put('/{supplier}', [SupplierController::class, 'update']);
+        Route::delete('/{supplier}', [SupplierController::class, 'destroy']);
+        Route::post('/batch-delete', [SupplierController::class, 'batchDelete']);
+        Route::post('/batch-status', [SupplierController::class, 'batchUpdateStatus']);
     });
     // 线路
     Route::prefix('business/route')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\RouteController::class, 'index']);
-        Route::get('/{route}', [\Modules\Order\Http\Controllers\RouteController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\RouteController::class, 'store']);
-        Route::put('/{route}', [\Modules\Order\Http\Controllers\RouteController::class, 'update']);
-        Route::delete('/{route}', [\Modules\Order\Http\Controllers\RouteController::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\Order\Http\Controllers\RouteController::class, 'batchDelete']);
-        Route::post('/batch-status', [\Modules\Order\Http\Controllers\RouteController::class, 'batchUpdateStatus']);
-        Route::get('/{route}/customers', [\Modules\Order\Http\Controllers\RouteController::class, 'customers']);
-        Route::post('/{route}/customers', [\Modules\Order\Http\Controllers\RouteController::class, 'addCustomer']);
-        Route::delete('/{route}/customers', [\Modules\Order\Http\Controllers\RouteController::class, 'removeCustomer']);
+        Route::get('/', [RouteController::class, 'index']);
+        Route::get('/{route}', [RouteController::class, 'show']);
+        Route::post('/', [RouteController::class, 'store']);
+        Route::put('/{route}', [RouteController::class, 'update']);
+        Route::delete('/{route}', [RouteController::class, 'destroy']);
+        Route::post('/batch-delete', [RouteController::class, 'batchDelete']);
+        Route::post('/batch-status', [RouteController::class, 'batchUpdateStatus']);
+        Route::get('/{route}/customers', [RouteController::class, 'customers']);
+        Route::post('/{route}/customers', [RouteController::class, 'addCustomer']);
+        Route::delete('/{route}/customers', [RouteController::class, 'removeCustomer']);
     });
     // 销售订单
     Route::prefix('business/sales-order')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\SalesOrderController::class, 'index']);
-        Route::get('/statistics', [\Modules\Order\Http\Controllers\SalesOrderController::class, 'statistics']);
-        Route::get('/{salesOrder}', [\Modules\Order\Http\Controllers\SalesOrderController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\SalesOrderController::class, 'store']);
-        Route::put('/{salesOrder}', [\Modules\Order\Http\Controllers\SalesOrderController::class, 'update']);
-        Route::delete('/{salesOrder}', [\Modules\Order\Http\Controllers\SalesOrderController::class, 'destroy']);
-        Route::post('/{salesOrder}/approve', [\Modules\Order\Http\Controllers\SalesOrderController::class, 'approve']);
+        Route::get('/', [SalesOrderController::class, 'index']);
+        Route::get('/statistics', [SalesOrderController::class, 'statistics']);
+        Route::get('/{salesOrder}', [SalesOrderController::class, 'show']);
+        Route::post('/', [SalesOrderController::class, 'store']);
+        Route::put('/{salesOrder}', [SalesOrderController::class, 'update']);
+        Route::delete('/{salesOrder}', [SalesOrderController::class, 'destroy']);
+        Route::post('/{salesOrder}/approve', [SalesOrderController::class, 'approve']);
     });
     // 采购订单
     Route::prefix('business/purchase-order')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'index']);
-        Route::get('/statistics', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'statistics']);
-        Route::get('/{purchaseOrder}', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'store']);
-        Route::put('/{purchaseOrder}', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'update']);
-        Route::delete('/{purchaseOrder}', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'destroy']);
-        Route::post('/{purchaseOrder}/approve', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'approve']);
-        Route::post('/{purchaseOrder}/receive', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'receive']);
-        Route::post('/{purchaseOrder}/cancel', [\Modules\Order\Http\Controllers\PurchaseOrderController::class, 'cancel']);
+        Route::get('/', [PurchaseOrderController::class, 'index']);
+        Route::get('/statistics', [PurchaseOrderController::class, 'statistics']);
+        Route::get('/{purchaseOrder}', [PurchaseOrderController::class, 'show']);
+        Route::post('/', [PurchaseOrderController::class, 'store']);
+        Route::put('/{purchaseOrder}', [PurchaseOrderController::class, 'update']);
+        Route::delete('/{purchaseOrder}', [PurchaseOrderController::class, 'destroy']);
+        Route::post('/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
+        Route::post('/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive']);
+        Route::post('/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel']);
     });
     // 退货管理
     Route::prefix('business/return')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\ReturnController::class, 'index']);
-        Route::get('/statistics', [\Modules\Order\Http\Controllers\ReturnController::class, 'statistics']);
-        Route::get('/{return}', [\Modules\Order\Http\Controllers\ReturnController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\ReturnController::class, 'store']);
-        Route::put('/{return}', [\Modules\Order\Http\Controllers\ReturnController::class, 'update']);
-        Route::delete('/{return}', [\Modules\Order\Http\Controllers\ReturnController::class, 'destroy']);
-        Route::post('/{return}/approve', [\Modules\Order\Http\Controllers\ReturnController::class, 'approve']);
-        Route::post('/{return}/process', [\Modules\Order\Http\Controllers\ReturnController::class, 'process']);
+        Route::get('/', [ReturnController::class, 'index']);
+        Route::get('/statistics', [ReturnController::class, 'statistics']);
+        Route::get('/{return}', [ReturnController::class, 'show']);
+        Route::post('/', [ReturnController::class, 'store']);
+        Route::put('/{return}', [ReturnController::class, 'update']);
+        Route::delete('/{return}', [ReturnController::class, 'destroy']);
+        Route::post('/{return}/approve', [ReturnController::class, 'approve']);
+        Route::post('/{return}/process', [ReturnController::class, 'process']);
     });
     // 发货管理
     Route::prefix('business/delivery')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\DeliveryController::class, 'index']);
-        Route::get('/statistics', [\Modules\Order\Http\Controllers\DeliveryController::class, 'statistics']);
-        Route::get('/{delivery}', [\Modules\Order\Http\Controllers\DeliveryController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\DeliveryController::class, 'store']);
-        Route::put('/{delivery}', [\Modules\Order\Http\Controllers\DeliveryController::class, 'update']);
-        Route::delete('/{delivery}', [\Modules\Order\Http\Controllers\DeliveryController::class, 'destroy']);
-        Route::post('/{delivery}/dispatch', [\Modules\Order\Http\Controllers\DeliveryController::class, 'dispatch']);
-        Route::post('/{delivery}/complete', [\Modules\Order\Http\Controllers\DeliveryController::class, 'complete']);
+        Route::get('/', [DeliveryController::class, 'index']);
+        Route::get('/statistics', [DeliveryController::class, 'statistics']);
+        Route::get('/{delivery}', [DeliveryController::class, 'show']);
+        Route::post('/', [DeliveryController::class, 'store']);
+        Route::put('/{delivery}', [DeliveryController::class, 'update']);
+        Route::delete('/{delivery}', [DeliveryController::class, 'destroy']);
+        Route::post('/{delivery}/dispatch', [DeliveryController::class, 'dispatch']);
+        Route::post('/{delivery}/complete', [DeliveryController::class, 'complete']);
     });
     // 拜访管理
     Route::prefix('business/visit')->group(function () {
-        Route::get('/logs', [\Modules\Order\Http\Controllers\VisitLogController::class, 'index']);
-        Route::get('/logs/{visitLog}', [\Modules\Order\Http\Controllers\VisitLogController::class, 'show']);
-        Route::post('/logs', [\Modules\Order\Http\Controllers\VisitLogController::class, 'store']);
-        Route::put('/logs/{visitLog}', [\Modules\Order\Http\Controllers\VisitLogController::class, 'update']);
-        Route::delete('/logs/{visitLog}', [\Modules\Order\Http\Controllers\VisitLogController::class, 'destroy']);
-        Route::get('/achievement', [\Modules\Order\Http\Controllers\VisitLogController::class, 'achievement']);
-        Route::get('/schedule', [\Modules\Order\Http\Controllers\VisitLogController::class, 'schedule']);
+        Route::get('/logs', [VisitLogController::class, 'index']);
+        Route::get('/logs/{visitLog}', [VisitLogController::class, 'show']);
+        Route::post('/logs', [VisitLogController::class, 'store']);
+        Route::put('/logs/{visitLog}', [VisitLogController::class, 'update']);
+        Route::delete('/logs/{visitLog}', [VisitLogController::class, 'destroy']);
+        Route::get('/achievement', [VisitLogController::class, 'achievement']);
+        Route::get('/schedule', [VisitLogController::class, 'schedule']);
     });
     // 收款管理
     Route::prefix('business/receive')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\ReceiveController::class, 'index']);
-        Route::get('/statistics', [\Modules\Order\Http\Controllers\ReceiveController::class, 'statistics']);
-        Route::get('/{id}', [\Modules\Order\Http\Controllers\ReceiveController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\ReceiveController::class, 'store']);
-        Route::put('/{id}', [\Modules\Order\Http\Controllers\ReceiveController::class, 'update']);
-        Route::post('/{id}/approve', [\Modules\Order\Http\Controllers\ReceiveController::class, 'approve']);
-        Route::delete('/{id}', [\Modules\Order\Http\Controllers\ReceiveController::class, 'destroy']);
+        Route::get('/', [ReceiveController::class, 'index']);
+        Route::get('/statistics', [ReceiveController::class, 'statistics']);
+        Route::get('/{id}', [ReceiveController::class, 'show']);
+        Route::post('/', [ReceiveController::class, 'store']);
+        Route::put('/{id}', [ReceiveController::class, 'update']);
+        Route::post('/{id}/approve', [ReceiveController::class, 'approve']);
+        Route::delete('/{id}', [ReceiveController::class, 'destroy']);
     });
     // 付款管理
     Route::prefix('business/pay')->group(function () {
-        Route::get('/', [\Modules\Order\Http\Controllers\PayController::class, 'index']);
-        Route::get('/statistics', [\Modules\Order\Http\Controllers\PayController::class, 'statistics']);
-        Route::get('/{id}', [\Modules\Order\Http\Controllers\PayController::class, 'show']);
-        Route::post('/', [\Modules\Order\Http\Controllers\PayController::class, 'store']);
-        Route::put('/{id}', [\Modules\Order\Http\Controllers\PayController::class, 'update']);
-        Route::post('/{id}/approve', [\Modules\Order\Http\Controllers\PayController::class, 'approve']);
-        Route::delete('/{id}', [\Modules\Order\Http\Controllers\PayController::class, 'destroy']);
+        Route::get('/', [PayController::class, 'index']);
+        Route::get('/statistics', [PayController::class, 'statistics']);
+        Route::get('/{id}', [PayController::class, 'show']);
+        Route::post('/', [PayController::class, 'store']);
+        Route::put('/{id}', [PayController::class, 'update']);
+        Route::post('/{id}/approve', [PayController::class, 'approve']);
+        Route::delete('/{id}', [PayController::class, 'destroy']);
     });
 });

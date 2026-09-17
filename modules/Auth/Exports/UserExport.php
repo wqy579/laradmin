@@ -2,16 +2,19 @@
 
 namespace Modules\Auth\Exports;
 
-use Modules\Auth\Models\User;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Modules\Auth\Models\User;
 
-class UserExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class UserExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping
 {
     protected $userIds;
+
     protected $fields;
+
     protected $filters;
 
     protected $fieldMap = [
@@ -34,25 +37,25 @@ class UserExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
         $this->filters = $filters;
     }
 
-    public function collection(): \Illuminate\Support\Enumerable
+    public function collection(): Enumerable
     {
         $query = User::with(['department', 'roles']);
 
-        if (!empty($this->userIds)) {
+        if (! empty($this->userIds)) {
             $query->whereIn('id', $this->userIds);
         }
 
-        if (!empty($this->filters)) {
-            if (!empty($this->filters['username'])) {
-                $query->where('username', 'like', '%' . $this->filters['username'] . '%');
+        if (! empty($this->filters)) {
+            if (! empty($this->filters['username'])) {
+                $query->where('username', 'like', '%'.$this->filters['username'].'%');
             }
-            if (!empty($this->filters['phone'])) {
-                $query->where('phone', 'like', '%' . $this->filters['phone'] . '%');
+            if (! empty($this->filters['phone'])) {
+                $query->where('phone', 'like', '%'.$this->filters['phone'].'%');
             }
             if (isset($this->filters['status']) && $this->filters['status'] !== '') {
                 $query->where('status', $this->filters['status']);
             }
-            if (!empty($this->filters['department_id'])) {
+            if (! empty($this->filters['department_id'])) {
                 $query->where('department_id', $this->filters['department_id']);
             }
         }
@@ -68,6 +71,7 @@ class UserExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
                 $headings[] = $this->fieldMap[$field]['title'];
             }
         }
+
         return $headings;
     }
 
@@ -84,12 +88,13 @@ class UserExport implements FromCollection, WithHeadings, WithMapping, ShouldAut
                 'department' => $user->department ? $user->department->name : '',
                 'roles' => $user->roles->pluck('name')->implode(','),
                 'status' => $user->status == 1 ? '正常' : '禁用',
-                'last_login_at' => $user->last_login_at ? (string)$user->last_login_at : '',
-                'created_at' => $user->created_at ? (string)$user->created_at : '',
+                'last_login_at' => $user->last_login_at ? (string) $user->last_login_at : '',
+                'created_at' => $user->created_at ? (string) $user->created_at : '',
                 default => '',
             };
             $row[] = $value;
         }
+
         return $row;
     }
 }

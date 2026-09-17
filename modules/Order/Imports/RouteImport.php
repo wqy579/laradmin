@@ -2,16 +2,18 @@
 
 namespace Modules\Order\Imports;
 
-use Modules\Order\Models\Route;
-use Modules\Business\Models\Employee;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Modules\Business\Models\Employee;
+use Modules\Order\Models\Route;
 
 class RouteImport implements ToCollection, WithHeadingRow
 {
     protected $successCount = 0;
+
     protected $errorCount = 0;
+
     protected $errors = [];
 
     public function collection(Collection $rows): void
@@ -23,7 +25,7 @@ class RouteImport implements ToCollection, WithHeadingRow
                 }
 
                 $employeeId = null;
-                if (!empty($row['employee_name']) || !empty($row['employee_id'])) {
+                if (! empty($row['employee_name']) || ! empty($row['employee_id'])) {
                     $employee = Employee::where('name', $row['employee_name'])
                         ->orWhere('id', $row['employee_id'])
                         ->first();
@@ -42,7 +44,7 @@ class RouteImport implements ToCollection, WithHeadingRow
                 );
 
                 // 如果有客户数据，关联到线路
-                if (!empty($row['customer_ids'])) {
+                if (! empty($row['customer_ids'])) {
                     $customerIds = array_filter(explode(',', $row['customer_ids']));
                     foreach ($customerIds as $customerId) {
                         $route->customers()->attach($customerId, [
@@ -55,7 +57,7 @@ class RouteImport implements ToCollection, WithHeadingRow
                 $this->successCount++;
             } catch (\Exception $e) {
                 $this->errorCount++;
-                $this->errors[] = "第 " . ($index + 2) . " 行: " . $e->getMessage();
+                $this->errors[] = '第 '.($index + 2).' 行: '.$e->getMessage();
             }
         }
     }

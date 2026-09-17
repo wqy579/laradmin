@@ -4,11 +4,14 @@ namespace Modules\Stock\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
     protected $table = 'products';
+
     protected $appends = ['spec_display', 'conversion_display'];
+
     protected $fillable = [
         'main_category_id', 'sub_category_id',
         'name', 'spec', 'code', 'image',
@@ -21,6 +24,7 @@ class Product extends Model
         'shelf_life_days', 'is_online', 'is_active',
         'remark',
     ];
+
     protected $casts = [
         'is_active' => 'boolean',
         'is_online' => 'boolean',
@@ -40,9 +44,9 @@ class Product extends Model
         return $this->belongsTo(ProductCategory::class, 'sub_category_id');
     }
 
-    public function stocks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function stocks(): HasMany
     {
-        return $this->hasMany(\Modules\Stock\Models\Stock::class, 'product_id');
+        return $this->hasMany(Stock::class, 'product_id');
     }
 
     /**
@@ -62,6 +66,7 @@ class Product extends Model
         if ($ucm > 0) {
             // 有中单位：1*4*120
             $mediumQty = (int) round($uc / $ucm);
+
             return "1*{$mediumQty}*{$ucm}";
         }
 
@@ -89,6 +94,7 @@ class Product extends Model
         if ($ucm > 0) {
             // 有中单位：1件=4盒=480个
             $mediumQty = (int) round($uc / $ucm);
+
             return "1{$unitLarge}={$mediumQty}{$unitMedium}={$uc}{$unitSmall}";
         }
 

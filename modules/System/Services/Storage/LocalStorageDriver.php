@@ -21,6 +21,7 @@ class LocalStorageDriver implements StorageDriverInterface
             @chmod($fullPath, 0644);
             @chmod(dirname($fullPath), 0755);
         }
+
         return $result !== false;
     }
 
@@ -30,6 +31,7 @@ class LocalStorageDriver implements StorageDriverInterface
         if ($disk->exists($path)) {
             return $disk->get($path);
         }
+
         return null;
     }
 
@@ -39,16 +41,18 @@ class LocalStorageDriver implements StorageDriverInterface
         if ($disk->exists($path)) {
             return $disk->delete($path);
         }
+
         return true;
     }
 
     public function deleteMultiple(array $paths): bool
     {
         $disk = Storage::disk($this->diskName);
-        $existingPaths = array_filter($paths, fn($path) => $disk->exists($path));
-        if (!empty($existingPaths)) {
+        $existingPaths = array_filter($paths, fn ($path) => $disk->exists($path));
+        if (! empty($existingPaths)) {
             return $disk->delete($existingPaths);
         }
+
         return true;
     }
 
@@ -81,6 +85,7 @@ class LocalStorageDriver implements StorageDriverInterface
     {
         try {
             Storage::disk($this->diskName)->exists('/');
+
             return true;
         } catch (\Throwable) {
             return false;

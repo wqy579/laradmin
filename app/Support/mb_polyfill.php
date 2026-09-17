@@ -13,8 +13,7 @@
  * 依赖说明：本文件内的实现用到 mb_substr / mb_strlen / mb_strwidth，
  * 这些由 symfony/polyfill-mbstring（composer 依赖）在无 ext-mbstring 时提供。
  */
-
-if (!function_exists('mb_split')) {
+if (! function_exists('mb_split')) {
     /**
      * 与 mbregex 语义一致：大小写不敏感、多字节安全的正则切分。
      *
@@ -22,11 +21,11 @@ if (!function_exists('mb_split')) {
      */
     function mb_split(string $pattern, string $string, int $limit = -1): array|false
     {
-        return preg_split('~' . str_replace('~', '\~', $pattern) . '~iu', $string, $limit);
+        return preg_split('~'.str_replace('~', '\~', $pattern).'~iu', $string, $limit);
     }
 }
 
-if (!function_exists('mb_strimwidth')) {
+if (! function_exists('mb_strimwidth')) {
     function mb_strimwidth(string $string, int $start, int $width, string $trim_marker = '', ?string $encoding = null): string
     {
         $encoding = $encoding ?: (function_exists('mb_internal_encoding') ? mb_internal_encoding() : 'UTF-8');
@@ -46,6 +45,6 @@ if (!function_exists('mb_strimwidth')) {
             $result .= $char;
         }
 
-        return $result . $trim_marker;
+        return $result.$trim_marker;
     }
 }

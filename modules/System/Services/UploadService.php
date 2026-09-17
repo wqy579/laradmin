@@ -2,22 +2,28 @@
 
 namespace Modules\System\Services;
 
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use Modules\System\Models\Attachment;
 use Modules\System\Services\Storage\StorageDriverInterface;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Cache;
 
 class UploadService
 {
     protected StorageService $storageService;
+
     protected ConfigService $configService;
 
     protected array $allowedImageTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
+
     protected array $allowedFileTypes = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z', 'txt', 'csv', 'mp4', 'mp3', 'avi', 'mov'];
+
     protected int $defaultMaxFileSize = 10 * 1024 * 1024; // 10MB
+
     protected int $chunkMaxFileSize = 2 * 1024 * 1024 * 1024; // 切片上传上限 2GB
+
     protected int $chunkMaxChunkSize = 10 * 1024 * 1024; // 单个分片上限 10MB
+
     protected int $chunkExpire = 86400; // 切片缓存有效期 24小时
 
     public function __construct(StorageService $storageService, ConfigService $configService)
@@ -32,6 +38,7 @@ class UploadService
         if ($configMax) {
             return (int) $configMax * 1024 * 1024;
         }
+
         return $this->defaultMaxFileSize;
     }
 
@@ -41,6 +48,7 @@ class UploadService
         if ($configTypes) {
             return array_map('trim', explode(',', $configTypes));
         }
+
         return array_merge($this->allowedImageTypes, $this->allowedFileTypes);
     }
 
@@ -56,7 +64,7 @@ class UploadService
         $driver = $this->resolveDriver();
 
         $fileName = $this->generateFileName($extension);
-        $filePath = $directory . '/' . date('Ymd') . '/' . $fileName;
+        $filePath = $directory.'/'.date('Ymd').'/'.$fileName;
 
         // 写入文件
         $driver->put($filePath, file_get_contents($file->getRealPath()));
@@ -66,7 +74,7 @@ class UploadService
         $driverName = $driver->getDriverName();
 
         // 秒传检测
-        if (!isset($options['skip_duplicate_check'])) {
+        if (! isset($options['skip_duplicate_check'])) {
             $existing = Attachment::where('hash', $hash)
                 ->where('size', $file->getSize())
                 ->where('storage_driver', $driverName)
@@ -125,6 +133,7 @@ class UploadService
                 $results[] = $this->upload($file, $directory, $options);
             }
         }
+
         return $results;
     }
 
@@ -133,7 +142,7 @@ class UploadService
      */
     public function uploadBase64(string $base64, string $directory = 'uploads', ?string $fileName = null, array $options = []): array
     {
-        if (!preg_match('/^data:(\w+\/(\w+));base64,/', $base64, $matches)) {
+        if (! preg_match('/^data:(\w+\/(\w+));base64,/', $base64, $matches)) {
             throw new \Exception('无效的Base64图片数据');
         }
 
@@ -141,13 +150,13 @@ class UploadService
         $extension = $matches[2];
         $data = base64_decode(substr($base64, strpos($base64, ',') + 1));
 
-        if (!$data) {
+        if (! $data) {
             throw new \Exception('Base64解码失败');
         }
 
         $driver = $this->resolveDriver();
         $fileName = $fileName ?: $this->generateFileName($extension);
-        $filePath = $directory . '/' . date('Ymd') . '/' . $fileName;
+        $filePath = $directory.'/'.date('Ymd').'/'.$fileName;
 
         $driver->put($filePath, $data);
 
@@ -182,15 +191,15 @@ class UploadService
 
         $extension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
         $allowedTypes = array_merge($this->allowedImageTypes, $this->allowedFileTypes);
-        if (!in_array($extension, $allowedTypes)) {
-            throw new \Exception('不允许的文件类型：' . $extension);
+        if (! in_array($extension, $allowedTypes)) {
+            throw new \Exception('不允许的文件类型：'.$extension);
         }
 
         $driver = $this->resolveDriver();
         $driverName = $driver->getDriverName();
 
         // 秒传检测
-        if (!isset($options['skip_duplicate_check'])) {
+        if (! isset($options['skip_duplicate_check'])) {
             $existing = Attachment::where('hash', $fileHash)
                 ->where('size', $fileSize)
                 ->where('storage_driver', $driverName)
@@ -215,7 +224,7 @@ class UploadService
 
         // 生成最终文件路径
         $targetFileName = $this->generateFileName($extension);
-        $targetPath = $directory . '/' . date('Ymd') . '/' . $targetFileName;
+        $targetPath = $directory.'/'.date('Ymd').'/'.$targetFileName;
 
         $meta = [
             'upload_id' => $uploadId,
@@ -257,7 +266,7 @@ class UploadService
     public function uploadChunk(string $uploadId, int $chunkIndex, UploadedFile $chunkFile): array
     {
         $meta = Cache::get("chunk_upload:{$uploadId}");
-        if (!$meta) {
+        if (! $meta) {
             throw new \Exception('上传任务不存在或已过期，请重新初始化上传');
         }
 
@@ -267,7 +276,7 @@ class UploadService
 
         $chunkSize = $chunkFile->getSize();
         if ($chunkSize > $this->chunkMaxChunkSize) {
-            throw new \Exception('分片大小超过限制（最大' . ($this->chunkMaxChunkSize / 1024 / 1024) . 'MB）');
+            throw new \Exception('分片大小超过限制（最大'.($this->chunkMaxChunkSize / 1024 / 1024).'MB）');
         }
 
         // 幂等：跳过已上传分片
@@ -302,7 +311,7 @@ class UploadService
         } else {
             // 本地驱动：存储到临时目录
             $chunkDir = storage_path("app/chunks/{$uploadId}");
-            if (!is_dir($chunkDir)) {
+            if (! is_dir($chunkDir)) {
                 mkdir($chunkDir, 0755, true);
             }
             $chunkFile->move($chunkDir, "chunk_{$chunkIndex}");
@@ -325,7 +334,7 @@ class UploadService
     public function mergeChunks(string $uploadId): array
     {
         $meta = Cache::get("chunk_upload:{$uploadId}");
-        if (!$meta) {
+        if (! $meta) {
             throw new \Exception('上传任务不存在或已过期');
         }
 
@@ -334,7 +343,7 @@ class UploadService
 
         if (count($uploadedChunks) !== $totalChunks) {
             $missing = array_diff(range(0, $totalChunks - 1), $uploadedChunks);
-            throw new \Exception('分片未全部上传完成，缺少分片：' . implode(',', $missing));
+            throw new \Exception('分片未全部上传完成，缺少分片：'.implode(',', $missing));
         }
 
         $extension = $meta['extension'];
@@ -350,7 +359,7 @@ class UploadService
             // S3 类驱动：在桶内完成合并
             $parts = [];
             for ($i = 0; $i < $totalChunks; $i++) {
-                if (!isset($meta['parts'][$i])) {
+                if (! isset($meta['parts'][$i])) {
                     throw new \Exception("分片 {$i} 的上传信息缺失");
                 }
                 $parts[] = $meta['parts'][$i];
@@ -370,7 +379,7 @@ class UploadService
         }
 
         // 秒传检测
-        if (!isset($options['skip_duplicate_check'])) {
+        if (! isset($options['skip_duplicate_check'])) {
             $existing = Attachment::where('hash', $hash)
                 ->where('size', $fileSize)
                 ->where('storage_driver', $driverName)
@@ -378,6 +387,7 @@ class UploadService
 
             if ($existing) {
                 $this->cleanupChunks($uploadId);
+
                 return $existing->toArray();
             }
         }
@@ -419,18 +429,18 @@ class UploadService
         $tmpPath = storage_path("app/chunks/{$uploadId}/merged_tmp");
 
         $outStream = fopen($tmpPath, 'wb');
-        if (!$outStream) {
+        if (! $outStream) {
             throw new \Exception('创建临时文件失败');
         }
 
         try {
             for ($i = 0; $i < $totalChunks; $i++) {
                 $chunkPath = "{$chunkDir}/chunk_{$i}";
-                if (!file_exists($chunkPath)) {
+                if (! file_exists($chunkPath)) {
                     throw new \Exception("分片 {$i} 不存在");
                 }
                 $inStream = fopen($chunkPath, 'rb');
-                if (!$inStream) {
+                if (! $inStream) {
                     throw new \Exception("读取分片 {$i} 失败");
                 }
                 stream_copy_to_stream($inStream, $outStream);
@@ -449,7 +459,7 @@ class UploadService
         $driverName = $driver->getDriverName();
 
         // 秒传检测
-        if (!isset($options['skip_duplicate_check'])) {
+        if (! isset($options['skip_duplicate_check'])) {
             $existing = Attachment::where('hash', $hash)
                 ->where('size', $fileSize)
                 ->where('storage_driver', $driverName)
@@ -457,13 +467,13 @@ class UploadService
 
             if ($existing) {
                 @unlink($tmpPath);
-                throw new \Exception('__DUPLICATE__' . json_encode($existing->toArray()));
+                throw new \Exception('__DUPLICATE__'.json_encode($existing->toArray()));
             }
         }
 
         // 写入存储驱动（直接流式传输，避免大文件内存溢出）
         $stream = fopen($tmpPath, 'rb');
-        if (!$stream) {
+        if (! $stream) {
             throw new \Exception('读取合并文件失败');
         }
         $driver->put($filePath, $stream);
@@ -498,12 +508,12 @@ class UploadService
     public function getUploadedChunks(string $uploadId): array
     {
         $meta = Cache::get("chunk_upload:{$uploadId}");
-        if (!$meta) {
+        if (! $meta) {
             throw new \Exception('上传任务不存在或已过期');
         }
 
         // 本地模式：校验临时文件
-        if (!$meta['multipart_upload_id']) {
+        if (! $meta['multipart_upload_id']) {
             $chunkDir = storage_path("app/chunks/{$uploadId}");
             $actualChunks = [];
             foreach ($meta['uploaded_chunks'] as $index) {
@@ -538,6 +548,7 @@ class UploadService
         }
 
         $this->cleanupChunks($uploadId);
+
         return true;
     }
 
@@ -564,6 +575,7 @@ class UploadService
     public function deleteAttachment(int $attachmentId): bool
     {
         $attachment = Attachment::findOrFail($attachmentId);
+
         return $this->deleteAttachmentEntity($attachment);
     }
 
@@ -576,6 +588,7 @@ class UploadService
         foreach ($attachments as $attachment) {
             $this->deleteAttachmentEntity($attachment);
         }
+
         return true;
     }
 
@@ -589,6 +602,7 @@ class UploadService
         }
 
         $attachment->delete();
+
         return true;
     }
 
@@ -607,6 +621,7 @@ class UploadService
     public function getAttachmentUrl(int $attachmentId): ?string
     {
         $attachment = Attachment::find($attachmentId);
+
         return $attachment?->url;
     }
 
@@ -632,12 +647,12 @@ class UploadService
     {
         $maxSize = $this->getMaxFileSize();
         if ($file->getSize() > $maxSize) {
-            throw new \Exception('文件大小超过限制（最大' . round($maxSize / 1024 / 1024) . 'MB）');
+            throw new \Exception('文件大小超过限制（最大'.round($maxSize / 1024 / 1024).'MB）');
         }
 
         $allowedTypes = $this->getAllowedTypes();
-        if (!in_array($extension, $allowedTypes)) {
-            throw new \Exception('不允许的文件类型：' . $extension);
+        if (! in_array($extension, $allowedTypes)) {
+            throw new \Exception('不允许的文件类型：'.$extension);
         }
 
         return true;
@@ -645,7 +660,7 @@ class UploadService
 
     protected function generateFileName(string $extension): string
     {
-        return uniqid() . '_' . Str::random(6) . '.' . $extension;
+        return uniqid().'_'.Str::random(6).'.'.$extension;
     }
 
     protected function guessMimeType(string $filePath, string $extension): string

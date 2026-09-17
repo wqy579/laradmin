@@ -4,16 +4,19 @@ namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Auth\Models\User;
 
 class VisitLog extends Model
 {
     protected $table = 'visit_logs';
+
     protected $fillable = [
         'visit_no', 'employee_id', 'customer_id', 'route_id',
         'checkin_time', 'checkin_lat', 'checkin_lng', 'checkin_address', 'checkin_photo',
         'checkout_time', 'checkout_lat', 'checkout_lng', 'checkout_photo',
         'visit_duration', 'visit_result', 'remark', 'status', 'created_by',
     ];
+
     protected $casts = [
         'checkin_time' => 'datetime',
         'checkout_time' => 'datetime',
@@ -43,7 +46,7 @@ class VisitLog extends Model
 
     public function employee(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Auth\Models\User::class, 'employee_id');
+        return $this->belongsTo(User::class, 'employee_id');
     }
 
     public function customer(): BelongsTo

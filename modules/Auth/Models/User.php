@@ -3,7 +3,6 @@
 namespace Modules\Auth\Models;
 
 use App\Traits\ModelTrait;
-use Modules\Auth\Services\PermissionCacheService;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -77,23 +76,25 @@ class User extends Authenticatable implements JWTSubject
                 return true;
             }
         }
+
         return false;
     }
 
     public function hasAllPermissions(array $permissionCodes): bool
     {
         foreach ($permissionCodes as $code) {
-            if (!$this->hasPermission($code)) {
+            if (! $this->hasPermission($code)) {
                 return false;
             }
         }
+
         return true;
     }
 
     public function getPermissionCodes(): array
     {
         $cacheKey = "user:{$this->id}:permission_codes";
-        
+
         return Cache::remember($cacheKey, now()->addMinutes(60), function () {
             $codes = [];
             foreach ($this->roles as $role) {
@@ -101,6 +102,7 @@ class User extends Authenticatable implements JWTSubject
                     $codes[] = $permission->name;
                 }
             }
+
             return array_unique($codes);
         });
     }

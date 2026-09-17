@@ -3,11 +3,12 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Order\Models\Delivery;
-use Modules\Order\Models\DeliveryItem;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Modules\Order\Models\Delivery;
+use Modules\Order\Models\DeliveryItem;
+use Modules\Stock\Models\Product;
 
 class DeliveryController extends Controller
 {
@@ -19,10 +20,10 @@ class DeliveryController extends Controller
 
         if ($request->has('keyword') && $request->keyword) {
             $query->where(function ($q) use ($request) {
-                $q->where('delivery_no', 'like', '%' . $request->keyword . '%')
-                  ->orWhereHas('customer', function ($q) use ($request) {
-                      $q->where('name', 'like', '%' . $request->keyword . '%');
-                  });
+                $q->where('delivery_no', 'like', '%'.$request->keyword.'%')
+                    ->orWhereHas('customer', function ($q) use ($request) {
+                        $q->where('name', 'like', '%'.$request->keyword.'%');
+                    });
             });
         }
 
@@ -48,7 +49,7 @@ class DeliveryController extends Controller
         $delivery = Delivery::with(['customer', 'warehouse', 'vehicle', 'driver', 'route', 'items.product'])
             ->find($id);
 
-        if (!$delivery) {
+        if (! $delivery) {
             return $this->notFound('发货单不存在');
         }
 
@@ -72,8 +73,8 @@ class DeliveryController extends Controller
         ]);
 
         try {
-            $deliveryNo = 'DEL' . date('YmdHis') . strtoupper(substr(md5(time()), 0, 4));
-            
+            $deliveryNo = 'DEL'.date('YmdHis').strtoupper(substr(md5(time()), 0, 4));
+
             $delivery = Delivery::create([
                 'delivery_no' => $deliveryNo,
                 'order_id' => $validated['order_id'],
@@ -89,7 +90,7 @@ class DeliveryController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
-                $product = \Modules\Stock\Models\Product::find($item['product_id']);
+                $product = Product::find($item['product_id']);
                 DeliveryItem::create([
                     'delivery_id' => $delivery->id,
                     'product_id' => $item['product_id'],
@@ -112,7 +113,7 @@ class DeliveryController extends Controller
     public function update(Request $request, $id)
     {
         $delivery = Delivery::find($id);
-        if (!$delivery) {
+        if (! $delivery) {
             return $this->notFound('发货单不存在');
         }
 
@@ -145,9 +146,9 @@ class DeliveryController extends Controller
             ]);
 
             DB::table('delivery_items')->where('delivery_id', $id)->delete();
-            
+
             foreach ($validated['items'] as $item) {
-                $product = \Modules\Stock\Models\Product::find($item['product_id']);
+                $product = Product::find($item['product_id']);
                 DeliveryItem::create([
                     'delivery_id' => $id,
                     'product_id' => $item['product_id'],
@@ -170,7 +171,7 @@ class DeliveryController extends Controller
     public function destroy($id)
     {
         $delivery = Delivery::find($id);
-        if (!$delivery) {
+        if (! $delivery) {
             return $this->notFound('发货单不存在');
         }
 
@@ -179,13 +180,14 @@ class DeliveryController extends Controller
         }
 
         $delivery->delete();
+
         return $this->success(null, '删除成功');
     }
 
     public function dispatch($id)
     {
         $delivery = Delivery::find($id);
-        if (!$delivery) {
+        if (! $delivery) {
             return $this->notFound('发货单不存在');
         }
 
@@ -202,7 +204,7 @@ class DeliveryController extends Controller
     public function complete($id)
     {
         $delivery = Delivery::find($id);
-        if (!$delivery) {
+        if (! $delivery) {
             return $this->notFound('发货单不存在');
         }
 

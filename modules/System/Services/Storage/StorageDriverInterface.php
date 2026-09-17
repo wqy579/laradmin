@@ -68,13 +68,15 @@ interface StorageDriverInterface
 
     /**
      * 上传单个分片到服务端
+     *
      * @return string 返回分片的 ETag
      */
     public function uploadPart(string $path, string $uploadId, int $partNumber, mixed $content): string;
 
     /**
      * 完成分片上传，在服务端合并所有分片
-     * @param array $parts [['part_number' => int, 'etag' => string], ...]
+     *
+     * @param  array  $parts  [['part_number' => int, 'etag' => string], ...]
      */
     public function completeMultipart(string $path, string $uploadId, array $parts): bool;
 

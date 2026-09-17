@@ -3,11 +3,11 @@
 namespace Modules\System\Services;
 
 use App\Contracts\TaskNotification;
-use Modules\System\Events\NotificationCreated;
-use Modules\System\Models\Notification;
-use Modules\System\Services\WebSocket\WebSocketService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Modules\Auth\Models\User;
+use Modules\System\Models\Notification;
+use Modules\System\Services\WebSocket\WebSocketService;
 
 /**
  * System 模块的通知实现，同时实现内核契约 App\Contracts\TaskNotification。
@@ -32,24 +32,21 @@ class NotificationService implements TaskNotification
 
     /**
      * 获取通知列表
-     *
-     * @param array $params
-     * @return array
      */
     public function getList(array $params): array
     {
         $query = Notification::query();
 
         // 过滤用户ID（支持 JSON 查询）
-        if (!empty($params['user_id'])) {
+        if (! empty($params['user_id'])) {
             $query->whereJsonContains('user_ids', $params['user_id']);
         }
 
         // 关键字搜索
-        if (!empty($params['keyword'])) {
+        if (! empty($params['keyword'])) {
             $query->where(function ($q) use ($params) {
-                $q->where('title', 'like', '%' . $params['keyword'] . '%')
-                    ->orWhere('content', 'like', '%' . $params['keyword'] . '%');
+                $q->where('title', 'like', '%'.$params['keyword'].'%')
+                    ->orWhere('content', 'like', '%'.$params['keyword'].'%');
             });
         }
 
@@ -59,20 +56,20 @@ class NotificationService implements TaskNotification
         }
 
         // 过滤通知类型
-        if (!empty($params['type'])) {
+        if (! empty($params['type'])) {
             $query->where('type', $params['type']);
         }
 
         // 过滤通知分类
-        if (!empty($params['category'])) {
+        if (! empty($params['category'])) {
             $query->where('category', $params['category']);
         }
 
         // 日期范围
-        if (!empty($params['start_date'])) {
+        if (! empty($params['start_date'])) {
             $query->where('created_at', '>=', $params['start_date']);
         }
-        if (!empty($params['end_date'])) {
+        if (! empty($params['end_date'])) {
             $query->where('created_at', '<=', $params['end_date']);
         }
 
@@ -91,12 +88,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 获取未读通知列表
-     *
-     * @param int $userId
-     * @param int $limit
-     * @param int $page
-     * @param string|null $type
-     * @return array
      */
     public function getUnreadNotifications(int $userId, int $limit = 10, int $page = 1, ?string $type = null): array
     {
@@ -104,7 +95,7 @@ class NotificationService implements TaskNotification
             ->where('is_read', false);
 
         // 按类型过滤
-        if (!empty($type)) {
+        if (! empty($type)) {
             $query->where('type', $type);
         }
 
@@ -123,9 +114,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 获取未读通知数量
-     *
-     * @param int $userId
-     * @return int
      */
     public function getUnreadCount(int $userId): int
     {
@@ -136,9 +124,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 根据ID获取通知
-     *
-     * @param int $id
-     * @return Notification|null
      */
     public function getById(int $id): ?Notification
     {
@@ -147,9 +132,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 创建通知
-     *
-     * @param array $data
-     * @return Notification
      */
     public function create(array $data): Notification
     {
@@ -162,7 +144,7 @@ class NotificationService implements TaskNotification
         }
 
         // 如果 action_data 不是数组，转换为标准格式
-        if (isset($data['action_data']) && !isset($data['action_data'][0])) {
+        if (isset($data['action_data']) && ! isset($data['action_data'][0])) {
             $data['action_data'] = [$data['action_data']];
         }
 
@@ -233,7 +215,7 @@ class NotificationService implements TaskNotification
                 if (isset($data['action_data']) && is_string($data['action_data'])) {
                     $data['action_data'] = json_decode($data['action_data'], true) ?? [];
                 }
-                if (isset($data['action_data']) && !isset($data['action_data'][0])) {
+                if (isset($data['action_data']) && ! isset($data['action_data'][0])) {
                     $data['action_data'] = [$data['action_data']];
                 }
 
@@ -262,14 +244,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 发送系统通知给单个用户
-     *
-     * @param int $userId
-     * @param string $title
-     * @param string $content
-     * @param string $type
-     * @param string $category
-     * @param array $actionData
-     * @return Notification
      */
     public function sendToUser(
         int $userId,
@@ -294,14 +268,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 发送系统通知给多个用户
-     *
-     * @param array $userIds
-     * @param string $title
-     * @param string $content
-     * @param string $type
-     * @param string $category
-     * @param array $actionData
-     * @return array
      */
     public function sendToUsers(
         array $userIds,
@@ -326,14 +292,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 发送系统通知给部门成员
-     *
-     * @param array $departmentIds
-     * @param string $title
-     * @param string $content
-     * @param string $type
-     * @param string $category
-     * @param array $actionData
-     * @return array
      */
     public function sendToDepartments(
         array $departmentIds,
@@ -358,15 +316,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 发送系统通知给指定用户和部门成员
-     *
-     * @param array $userIds
-     * @param array $departmentIds
-     * @param string $title
-     * @param string $content
-     * @param string $type
-     * @param string $category
-     * @param array $actionData
-     * @return array
      */
     public function sendToUsersAndDepartments(
         array $userIds,
@@ -423,13 +372,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 发送系统广播通知（所有用户）
-     *
-     * @param string $title
-     * @param string $content
-     * @param string $type
-     * @param string $category
-     * @param array $extraData
-     * @return array
      */
     public function broadcast(
         string $title,
@@ -439,7 +381,7 @@ class NotificationService implements TaskNotification
         array $extraData = []
     ): array {
         // 获取所有用户ID
-        $userIds = \Modules\Auth\Models\User::where('status', 1)->pluck('id')->toArray();
+        $userIds = User::where('status', 1)->pluck('id')->toArray();
 
         return $this->sendToUsers($userIds, $title, $content, $type, $category, $extraData);
     }
@@ -447,9 +389,7 @@ class NotificationService implements TaskNotification
     /**
      * 通过WebSocket发送通知
      *
-     * @param Notification $notification
-     * @param int|null $targetUserId 目标用户ID
-     * @return bool
+     * @param  int|null  $targetUserId  目标用户ID
      */
     protected function sendViaWebSocket(Notification $notification, ?int $targetUserId = null): bool
     {
@@ -464,11 +404,11 @@ class NotificationService implements TaskNotification
                 'data' => $notification->data,
                 'action_data' => $notification->action_data ?? [],
                 'timestamp' => $notification->created_at->timestamp,
-            ]
+            ],
         ];
 
         $userId = $targetUserId ?? ($notification->user_ids[0] ?? null);
-        if (!$userId) {
+        if (! $userId) {
             return false;
         }
 
@@ -485,9 +425,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 重试发送未发送的通知
-     *
-     * @param int $limit
-     * @return int
      */
     public function retryUnsentNotifications(int $limit = 100): int
     {
@@ -515,10 +452,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 标记通知为已读
-     *
-     * @param int $id
-     * @param int $userId
-     * @return bool
      */
     public function markAsRead(int $id, int $userId): bool
     {
@@ -526,7 +459,7 @@ class NotificationService implements TaskNotification
             ->whereJsonContains('user_ids', $userId)
             ->first();
 
-        if (!$notification) {
+        if (! $notification) {
             return false;
         }
 
@@ -535,10 +468,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 批量标记通知为已读
-     *
-     * @param array $ids
-     * @param int $userId
-     * @return int
      */
     public function batchMarkAsRead(array $ids, int $userId): int
     {
@@ -552,9 +481,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 标记所有通知为已读
-     *
-     * @param int $userId
-     * @return int
      */
     public function markAllAsRead(int $userId): int
     {
@@ -568,10 +494,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 删除通知
-     *
-     * @param int $id
-     * @param int $userId
-     * @return bool
      */
     public function delete(int $id, int $userId): bool
     {
@@ -579,7 +501,7 @@ class NotificationService implements TaskNotification
             ->whereJsonContains('user_ids', $userId)
             ->first();
 
-        if (!$notification) {
+        if (! $notification) {
             return false;
         }
 
@@ -588,10 +510,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 批量删除通知
-     *
-     * @param array $ids
-     * @param int $userId
-     * @return int
      */
     public function batchDelete(array $ids, int $userId): int
     {
@@ -602,9 +520,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 清空已读通知
-     *
-     * @param int $userId
-     * @return int
      */
     public function clearReadNotifications(int $userId): int
     {
@@ -615,9 +530,6 @@ class NotificationService implements TaskNotification
 
     /**
      * 获取通知统计
-     *
-     * @param int $userId
-     * @return array
      */
     public function getStatistics(int $userId): array
     {
@@ -651,11 +563,7 @@ class NotificationService implements TaskNotification
     /**
      * 发送任务通知
      *
-     * @param int $userId
-     * @param string $title
-     * @param string $content
-     * @param array $taskData
-     * @return Notification
+     * @param  array  $taskData
      */
     public function sendTaskNotification(int $userId, string $title, string $content, array $extraData = []): Notification
     {
@@ -672,10 +580,7 @@ class NotificationService implements TaskNotification
     /**
      * 发送系统维护通知
      *
-     * @param string $title
-     * @param string $content
-     * @param array $maintenanceData
-     * @return array
+     * @param  array  $maintenanceData
      */
     public function sendMaintenanceNotification(string $title, string $content, array $extraData = []): array
     {
@@ -691,11 +596,7 @@ class NotificationService implements TaskNotification
     /**
      * 发送新消息通知
      *
-     * @param int $userId
-     * @param string $title
-     * @param string $content
-     * @param array $messageData
-     * @return Notification
+     * @param  array  $messageData
      */
     public function sendNewMessageNotification(int $userId, string $title, string $content, array $extraData = []): Notification
     {
@@ -712,11 +613,7 @@ class NotificationService implements TaskNotification
     /**
      * 发送提醒通知
      *
-     * @param int $userId
-     * @param string $title
-     * @param string $content
-     * @param array $reminderData
-     * @return Notification
+     * @param  array  $reminderData
      */
     public function sendReminderNotification(int $userId, string $title, string $content, array $extraData = []): Notification
     {

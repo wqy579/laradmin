@@ -19,7 +19,7 @@ class PermissionRequest extends BaseFormRequest
                 'route' => 'nullable|string|max:200',
                 'component' => 'nullable|string|max:200',
                 'parent_id' => ['nullable', 'integer', 'min:0', function ($attribute, $value, $fail) {
-                    if (!empty($value) && $value != 0 && !Permission::find($value)) {
+                    if (! empty($value) && $value != 0 && ! Permission::find($value)) {
                         $fail('父级权限不存在');
                     }
                 }],
@@ -29,12 +29,12 @@ class PermissionRequest extends BaseFormRequest
             ],
             'update' => [
                 'title' => 'nullable|string|max:50',
-                'name' => 'nullable|string|max:100|unique:auth_permission,name,' . $this->route('id'),
+                'name' => 'nullable|string|max:100|unique:auth_permission,name,'.$this->route('id'),
                 'type' => 'nullable|in:menu,api,button',
                 'route' => 'nullable|string|max:200',
                 'component' => 'nullable|string|max:200',
                 'parent_id' => ['nullable', 'integer', 'min:0', function ($attribute, $value, $fail) {
-                    if (!empty($value) && $value != 0 && !Permission::find($value)) {
+                    if (! empty($value) && $value != 0 && ! Permission::find($value)) {
                         $fail('父级权限不存在');
                     }
                 }],

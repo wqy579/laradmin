@@ -3,9 +3,9 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Order\Services\PayService;
-use Illuminate\Http\Request;
 use App\Traits\ResponseTrait;
+use Illuminate\Http\Request;
+use Modules\Order\Services\PayService;
 
 class PayController extends Controller
 {
@@ -21,6 +21,7 @@ class PayController extends Controller
     public function index(Request $request)
     {
         $filters = $request->only(['supplier_id', 'status', 'start_date', 'end_date']);
+
         return $this->paginated($this->service->list($filters, (int) $request->input('page', 1), (int) $request->input('page_size', 20)));
     }
 
@@ -38,22 +39,24 @@ class PayController extends Controller
         ]);
 
         $pay = $this->service->create($validated);
+
         return $this->created($pay);
     }
 
     public function show($id)
     {
         $pay = $this->service->find($id);
-        if (!$pay) {
+        if (! $pay) {
             return $this->notFound();
         }
+
         return $this->success($pay);
     }
 
     public function update(Request $request, $id)
     {
         $pay = $this->service->find($id);
-        if (!$pay) {
+        if (! $pay) {
             return $this->notFound();
         }
 
@@ -65,28 +68,31 @@ class PayController extends Controller
         ]);
 
         $pay = $this->service->update($pay, $validated);
+
         return $this->success($pay);
     }
 
     public function approve($id)
     {
         $pay = $this->service->find($id);
-        if (!$pay) {
+        if (! $pay) {
             return $this->notFound();
         }
 
         $pay = $this->service->approve($pay);
+
         return $this->success($pay);
     }
 
     public function destroy($id)
     {
         $pay = $this->service->find($id);
-        if (!$pay) {
+        if (! $pay) {
             return $this->notFound();
         }
 
         $this->service->destroy($pay);
+
         return $this->noContent();
     }
 
@@ -94,6 +100,7 @@ class PayController extends Controller
     {
         $filters = $request->only(['supplier_id', 'start_date', 'end_date']);
         $stats = $this->service->statistics($filters);
+
         return $this->success($stats);
     }
 }

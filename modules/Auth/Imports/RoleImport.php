@@ -2,17 +2,19 @@
 
 namespace Modules\Auth\Imports;
 
-use Modules\Auth\Models\Role;
-use Modules\Auth\Models\Permission;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Modules\Auth\Models\Permission;
+use Modules\Auth\Models\Role;
 
 class RoleImport implements ToCollection, WithHeadingRow, WithValidation
 {
     protected $successCount = 0;
+
     protected $errorCount = 0;
+
     protected $errors = [];
 
     /**
@@ -31,19 +33,21 @@ class RoleImport implements ToCollection, WithHeadingRow, WithValidation
                 $exists = Role::where('code', $row['角色编码'])->exists();
                 if ($exists) {
                     $this->addError($index + 2, '角色编码已存在');
+
                     continue;
                 }
 
                 // 查找权限
                 $permissionIds = [];
-                if (!empty($row['权限（多个用逗号分隔）'])) {
+                if (! empty($row['权限（多个用逗号分隔）'])) {
                     $permissionNames = array_map('trim', explode(',', $row['权限（多个用逗号分隔）']));
                     $permissions = Permission::whereIn('title', $permissionNames)->get();
 
                     if ($permissions->count() != count($permissionNames)) {
                         $existingNames = $permissions->pluck('title')->toArray();
                         $notFound = array_diff($permissionNames, $existingNames);
-                        $this->addError($index + 2, '权限不存在: ' . implode(', ', $notFound));
+                        $this->addError($index + 2, '权限不存在: '.implode(', ', $notFound));
+
                         continue;
                     }
                     $permissionIds = $permissions->pluck('id')->toArray();
@@ -59,7 +63,7 @@ class RoleImport implements ToCollection, WithHeadingRow, WithValidation
                 ]);
 
                 // 分配权限
-                if (!empty($permissionIds)) {
+                if (! empty($permissionIds)) {
                     $role->permissions()->attach($permissionIds);
                 }
 

@@ -4,6 +4,7 @@ namespace Modules\System\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log as LaravelLog;
 use Modules\System\Services\LogService;
@@ -21,8 +22,6 @@ class LogRequestMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
@@ -43,10 +42,7 @@ class LogRequestMiddleware
     /**
      * 记录请求日志
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \Illuminate\Http\Response  $response
-     * @param  float  $executionTime
-     * @return void
+     * @param  Response  $response
      */
     protected function logRequest(Request $request, $response, float $executionTime): void
     {
@@ -118,9 +114,6 @@ class LogRequestMiddleware
 
     /**
      * 解析模块名称
-     *
-     * @param  string  $path
-     * @return string
      */
     protected function parseModule(string $path): string
     {
@@ -137,10 +130,6 @@ class LogRequestMiddleware
 
     /**
      * 解析操作名称
-     *
-     * @param  string  $method
-     * @param  string  $path
-     * @return string
      */
     protected function parseAction(string $method, string $path): string
     {
@@ -165,14 +154,11 @@ class LogRequestMiddleware
 
         $action = $actionMap[$method] ?? '操作';
 
-        return $action . ' ' . $resource;
+        return $action.' '.$resource;
     }
 
     /**
      * 清理敏感参数
-     *
-     * @param  array  $params
-     * @return array
      */
     protected function sanitizeParams(array $params): array
     {
@@ -189,9 +175,6 @@ class LogRequestMiddleware
 
     /**
      * 提取错误信息
-     *
-     * @param  string|null  $content
-     * @return string|null
      */
     protected function extractErrorMessage(?string $content): ?string
     {
@@ -213,9 +196,6 @@ class LogRequestMiddleware
 
     /**
      * 获取客户端 IP
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return string
      */
     protected function getClientIp(Request $request): string
     {

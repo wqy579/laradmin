@@ -3,10 +3,9 @@
 namespace Modules\Business\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Business\Models\Attendance;
-use Modules\Business\Models\Employee;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
+use Modules\Business\Models\Attendance;
 
 class AttendanceController extends Controller
 {
@@ -37,6 +36,7 @@ class AttendanceController extends Controller
     public function show(Attendance $attendance)
     {
         $attendance->load('employee');
+
         return $this->success($attendance);
     }
 
@@ -52,6 +52,7 @@ class AttendanceController extends Controller
         ]);
 
         $attendance = Attendance::create($validated);
+
         return $this->created($attendance);
     }
 
@@ -67,12 +68,14 @@ class AttendanceController extends Controller
         ]);
 
         $attendance->update($validated);
+
         return $this->success($attendance);
     }
 
     public function destroy(Attendance $attendance)
     {
         $attendance->delete();
+
         return $this->noContent();
     }
 
@@ -81,7 +84,7 @@ class AttendanceController extends Controller
         $employeeId = $request->input('employee_id');
         $month = $request->input('month', date('Y-m'));
 
-        $stats = Attendance::where('date', 'like', $month . '%')
+        $stats = Attendance::where('date', 'like', $month.'%')
             ->when($employeeId, function ($q) use ($employeeId) {
                 $q->where('employee_id', $employeeId);
             })

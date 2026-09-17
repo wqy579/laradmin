@@ -2,17 +2,17 @@
 
 namespace Modules\Order\Models;
 
-use Modules\Order\Models\Customer;
-use Modules\Stock\Models\Warehouse;
-use Modules\Stock\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Stock\Models\Warehouse;
 
 class Delivery extends Model
 {
     protected $table = 'deliveries';
+
     protected $guarded = [];
+
     protected $casts = [
         'order_id' => 'integer',
         'warehouse_id' => 'integer',
@@ -32,12 +32,12 @@ class Delivery extends Model
 
     public function getOrderNoAttribute()
     {
-        return $this->order_id ? 'SO' . str_pad($this->order_id, 6, '0', STR_PAD_LEFT) : '';
+        return $this->order_id ? 'SO'.str_pad($this->order_id, 6, '0', STR_PAD_LEFT) : '';
     }
 
     public function getDeliveryNoAttribute()
     {
-        return $this->delivery_no ?? 'DEL' . date('YmdHis');
+        return $this->delivery_no ?? 'DEL'.date('YmdHis');
     }
 
     public function customer(): BelongsTo

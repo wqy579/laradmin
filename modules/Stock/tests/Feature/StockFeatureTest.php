@@ -2,10 +2,10 @@
 
 namespace Tests\Stock\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Stock;
 use Modules\Stock\Models\Warehouse;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**

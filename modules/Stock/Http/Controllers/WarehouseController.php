@@ -3,8 +3,8 @@
 namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Stock\Models\Warehouse;
 use Illuminate\Http\Request;
+use Modules\Stock\Models\Warehouse;
 
 class WarehouseController extends Controller
 {
@@ -13,8 +13,8 @@ class WarehouseController extends Controller
         $query = Warehouse::query();
         if ($request->filled('keyword')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('code', 'like', '%' . $request->keyword . '%');
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('code', 'like', '%'.$request->keyword.'%');
             });
         }
         if ($request->filled('is_active')) {
@@ -22,6 +22,7 @@ class WarehouseController extends Controller
         }
         $query->orderBy('id');
         $warehouses = $query->paginate($request->integer('page_size', 20));
+
         return $this->paginated($warehouses);
     }
 
@@ -45,6 +46,7 @@ class WarehouseController extends Controller
         }
         $validated['is_active'] = (bool) ($validated['is_active'] ?? true);
         $warehouse = Warehouse::create($validated);
+
         return $this->created($warehouse, '创建成功');
     }
 
@@ -52,19 +54,21 @@ class WarehouseController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'code' => 'required|string|max:20|unique:warehouses,code,' . $warehouse->id,
+            'code' => 'required|string|max:20|unique:warehouses,code,'.$warehouse->id,
             'address' => 'nullable|string|max:255',
             'contact' => 'nullable|string|max:50',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
         ]);
         $warehouse->update($validated);
+
         return $this->success($warehouse, '更新成功');
     }
 
     public function destroy(Warehouse $warehouse)
     {
         $warehouse->delete();
+
         return $this->success(null, '删除成功');
     }
 
@@ -72,9 +76,10 @@ class WarehouseController extends Controller
     {
         $n = Warehouse::count() + 1;
         do {
-            $code = 'WH' . str_pad((string) $n, 3, '0', STR_PAD_LEFT);
+            $code = 'WH'.str_pad((string) $n, 3, '0', STR_PAD_LEFT);
             $n++;
         } while (Warehouse::where('code', $code)->exists());
+
         return $code;
     }
 }

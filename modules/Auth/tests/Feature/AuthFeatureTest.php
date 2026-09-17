@@ -2,10 +2,10 @@
 
 namespace Tests\Auth\Feature;
 
-use Modules\Auth\Models\User;
-use Modules\Auth\Seeders\AuthSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Modules\Auth\Models\User;
+use Modules\Auth\Seeders\AuthSeeder;
 use Tests\TestCase;
 
 /**

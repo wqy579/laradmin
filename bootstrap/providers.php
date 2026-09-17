@@ -1,10 +1,17 @@
 <?php
 
+use App\Providers\AppServiceProvider;
+use Modules\Auth\Providers\AuthServiceProvider;
+use Modules\Business\Providers\BusinessServiceProvider;
+use Modules\Order\Providers\OrderServiceProvider;
+use Modules\Stock\Providers\StockServiceProvider;
+use Modules\System\Providers\SystemServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    Modules\Auth\Providers\AuthServiceProvider::class,
-    Modules\System\Providers\SystemServiceProvider::class,
-    Modules\Stock\Providers\StockServiceProvider::class,
-    Modules\Order\Providers\OrderServiceProvider::class,
-    Modules\Business\Providers\BusinessServiceProvider::class,
+    AppServiceProvider::class,
+    AuthServiceProvider::class,
+    SystemServiceProvider::class,
+    StockServiceProvider::class,
+    OrderServiceProvider::class,
+    BusinessServiceProvider::class,
 ];

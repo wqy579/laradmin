@@ -33,7 +33,7 @@ class RelationIntegrityTest extends TestCase
                 // 个别关系方法内部会再发起查询，无 DB 行的实例上调不动——跳过而不是中断
                 try {
                     /** @var Relation $relation */
-                    $relation = (new $class())->$method();
+                    $relation = (new $class)->$method();
                 } catch (\Throwable $e) {
                     continue;
                 }
@@ -50,9 +50,9 @@ class RelationIntegrityTest extends TestCase
                     // 一对多 / 一对一：外键在被关联表上
                     : $relation->getRelated()->getTable();
 
-                if (!Schema::hasTable($table)) {
+                if (! Schema::hasTable($table)) {
                     $bad[] = "$class::$method() → 表 $table 不存在";
-                } elseif (!Schema::hasColumn($table, $fk)) {
+                } elseif (! Schema::hasColumn($table, $fk)) {
                     $bad[] = "$class::$method() → 表 $table 没有列 $fk（很可能是 hasMany 漏传外键名，Eloquent 按类名推错了）";
                 }
             }
@@ -95,7 +95,7 @@ class RelationIntegrityTest extends TestCase
         foreach (get_class_methods($class) as $method) {
             $ref = new \ReflectionMethod($class, $method);
 
-            if (!$ref->isPublic() || $ref->getNumberOfRequiredParameters() > 0) {
+            if (! $ref->isPublic() || $ref->getNumberOfRequiredParameters() > 0) {
                 continue;
             }
 

@@ -40,9 +40,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class FlushRequestState
 {
-    public function __construct(private Application $app)
-    {
-    }
+    public function __construct(private Application $app) {}
 
     public function handle(Request $request, Closure $next): Response
     {

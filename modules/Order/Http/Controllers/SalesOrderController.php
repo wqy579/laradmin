@@ -3,13 +3,12 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Order\Models\SalesOrder;
-use Modules\Order\Models\SalesOrderItem;
-use Modules\Order\Models\Customer;
-use Modules\Stock\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Order\Models\Customer;
+use Modules\Order\Models\SalesOrder;
+use Modules\Stock\Models\Warehouse;
 
 class SalesOrderController extends Controller
 {
@@ -17,7 +16,7 @@ class SalesOrderController extends Controller
     {
         $query = SalesOrder::with(['customer', 'warehouse', 'items.product']);
         if ($request->filled('keyword')) {
-            $query->where('order_no', 'like', '%' . $request->keyword . '%');
+            $query->where('order_no', 'like', '%'.$request->keyword.'%');
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -29,12 +28,14 @@ class SalesOrderController extends Controller
         $orders = $query->paginate($request->integer('per_page', 20));
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
         $warehouses = Warehouse::where('is_active', true)->get();
+
         return response()->json(['data' => $orders, 'customers' => $customers, 'warehouses' => $warehouses]);
     }
 
     public function show(SalesOrder $salesOrder)
     {
         $salesOrder->load(['customer', 'warehouse', 'items.product']);
+
         return response()->json(['data' => $salesOrder]);
     }
 
@@ -49,7 +50,7 @@ class SalesOrderController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
         ]);
-        $orderNo = 'SO' . date('YmdHis') . strtoupper(Str::random(4));
+        $orderNo = 'SO'.date('YmdHis').strtoupper(Str::random(4));
         $totalAmount = 0;
         $totalQty = 0;
         DB::beginTransaction();
@@ -70,10 +71,12 @@ class SalesOrderController extends Controller
             }
             $order->update(['total_amount' => $totalAmount, 'total_qty' => $totalQty]);
             DB::commit();
+
             return response()->json(['data' => $order->fresh(['items.product']), 'message' => '创建成功']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '创建失败: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => '创建失败: '.$e->getMessage()], 500);
         }
     }
 
@@ -106,10 +109,12 @@ class SalesOrderController extends Controller
             }
             $salesOrder->update(['total_amount' => $totalAmount, 'total_qty' => $totalQty]);
             DB::commit();
+
             return response()->json(['data' => $salesOrder->fresh(['items.product']), 'message' => '更新成功']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '更新失败: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => '更新失败: '.$e->getMessage()], 500);
         }
     }
 
@@ -119,6 +124,7 @@ class SalesOrderController extends Controller
             return response()->json(['message' => '只有草稿状态可以删除'], 422);
         }
         $salesOrder->delete();
+
         return response()->json(['message' => '删除成功']);
     }
 
@@ -129,6 +135,7 @@ class SalesOrderController extends Controller
             return response()->json(['message' => '只有草稿状态的订单可以审批'], 422);
         }
         $salesOrder->update(['status' => 'approved', 'approved_by' => auth('admin')->id(), 'approved_at' => now()]);
+
         return response()->json(['message' => '审批成功']);
     }
 
@@ -140,6 +147,7 @@ class SalesOrderController extends Controller
             'pending' => SalesOrder::where('status', 'draft')->count(),
             'approved' => SalesOrder::where('status', 'approved')->count(),
         ];
+
         return response()->json(['data' => $stats]);
     }
 }

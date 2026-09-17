@@ -4,7 +4,6 @@ namespace Modules\Auth\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Modules\Auth\Services\PermissionCacheService;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,7 +18,7 @@ class AuthCheckMiddleware
 
     public function handle(Request $request, Closure $next, ?string $guard = 'api', ?string $permission = null): Response
     {
-        if (!auth($guard)->check()) {
+        if (! auth($guard)->check()) {
             return response()->json([
                 'code' => 401,
                 'message' => '未登录或token已过期',
@@ -38,7 +37,7 @@ class AuthCheckMiddleware
         }
 
         if ($permission !== null) {
-            if (!$this->checkPermission($user, $permission)) {
+            if (! $this->checkPermission($user, $permission)) {
                 return response()->json([
                     'code' => 403,
                     'message' => '无权限访问',
@@ -72,16 +71,18 @@ class AuthCheckMiddleware
                 return true;
             }
         }
+
         return false;
     }
 
     protected function checkAllPermissions($user, array $permissions): bool
     {
         foreach ($permissions as $permission) {
-            if (!$this->checkPermission($user, $permission)) {
+            if (! $this->checkPermission($user, $permission)) {
                 return false;
             }
         }
+
         return true;
     }
 }

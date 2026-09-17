@@ -2,15 +2,17 @@
 
 namespace Modules\Order\Imports;
 
-use Modules\Order\Models\Customer;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Modules\Order\Models\Customer;
 
 class CustomerImport implements ToCollection, WithHeadingRow
 {
     protected $successCount = 0;
+
     protected $errorCount = 0;
+
     protected $errors = [];
 
     public function collection(Collection $rows): void
@@ -40,7 +42,7 @@ class CustomerImport implements ToCollection, WithHeadingRow
                 $this->successCount++;
             } catch (\Exception $e) {
                 $this->errorCount++;
-                $this->errors[] = "第 " . ($index + 2) . " 行: " . $e->getMessage();
+                $this->errors[] = '第 '.($index + 2).' 行: '.$e->getMessage();
             }
         }
     }

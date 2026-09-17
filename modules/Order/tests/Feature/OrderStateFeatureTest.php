@@ -2,9 +2,9 @@
 
 namespace Tests\Order\Feature;
 
-use Modules\Stock\Models\Stock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Modules\Stock\Models\Stock;
 use Tests\TestCase;
 
 /**
@@ -36,6 +36,7 @@ class OrderStateFeatureTest extends TestCase
     }
 
     private int $productId;
+
     private int $adminId;
 
     protected function setUp(): void

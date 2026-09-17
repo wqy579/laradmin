@@ -2,13 +2,13 @@
 
 namespace Modules\Auth\Seeders;
 
-use Modules\Auth\Models\User;
-use Modules\Auth\Models\Role;
-use Modules\Auth\Models\Permission;
-use Modules\Auth\Models\Department;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Modules\Auth\Models\Department;
+use Modules\Auth\Models\Permission;
+use Modules\Auth\Models\Role;
+use Modules\Auth\Models\User;
 
 class AuthSeeder extends Seeder
 {

@@ -2,9 +2,9 @@
 
 namespace Modules\System\Facades;
 
+use Illuminate\Support\Facades\Facade;
 use Modules\System\Models\Notification;
 use Modules\System\Services\NotificationService;
-use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static Notification sendToUser(int $userId, string $title, string $content, string $type = 'info', string $category = 'system', array $extraData = [])

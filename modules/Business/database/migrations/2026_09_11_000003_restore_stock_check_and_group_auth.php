@@ -14,19 +14,19 @@ return new class extends Migration
     public function up(): void
     {
         $inventoryId = DB::table('auth_permission')->where('name', 'inventory')->value('id') ?? 72;
-        $systemId    = DB::table('auth_permission')->where('name', 'system')->value('id') ?? 35;
+        $systemId = DB::table('auth_permission')->where('name', 'system')->value('id') ?? 35;
 
         // 1. 恢复库存核对菜单（幂等：不存在才插入）
-        if (!DB::table('auth_permission')->where('name', 'inventory.stock-check')->exists()) {
+        if (! DB::table('auth_permission')->where('name', 'inventory.stock-check')->exists()) {
             DB::table('auth_permission')->insert([
-                'title'      => '库存核对',
-                'name'       => 'inventory.stock-check',
-                'type'       => 'menu',
-                'parent_id'  => $inventoryId,
-                'path'       => '/business/stock-check',
-                'component'  => 'business/stock-check/index',
-                'sort'       => 20,
-                'status'     => 1,
+                'title' => '库存核对',
+                'name' => 'inventory.stock-check',
+                'type' => 'menu',
+                'parent_id' => $inventoryId,
+                'path' => '/business/stock-check',
+                'component' => 'business/stock-check/index',
+                'sort' => 20,
+                'status' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

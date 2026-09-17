@@ -2,10 +2,10 @@
 
 namespace Modules\System\Console\Commands;
 
-use Modules\System\Models\Scheduled;
-use Modules\System\Services\ScheduledService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Modules\System\Models\Scheduled;
+use Modules\System\Services\ScheduledService;
 
 class RunScheduled extends Command
 {
@@ -19,6 +19,7 @@ class RunScheduled extends Command
 
         if ($tasks->isEmpty()) {
             $this->info('没有需要执行的调度任务。');
+
             return self::SUCCESS;
         }
 
@@ -28,15 +29,17 @@ class RunScheduled extends Command
 
         foreach ($tasks as $task) {
             // 检查是否到期
-            if (!$this->option('force') && !$task->isDue()) {
+            if (! $this->option('force') && ! $task->isDue()) {
                 $skipped++;
+
                 continue;
             }
 
             // 检查防重叠锁
             if ($task->without_overlapping && $task->status === Scheduled::STATUS_RUNNING) {
-                if (!$task->isOverdue()) {
+                if (! $task->isOverdue()) {
                     $skipped++;
+
                     continue;
                 }
                 // 超时了，标记为超时
@@ -59,6 +62,7 @@ class RunScheduled extends Command
         }
 
         $this->info("执行: {$executed} | 跳过: {$skipped} | 失败: {$failed}");
+
         return self::SUCCESS;
     }
 }

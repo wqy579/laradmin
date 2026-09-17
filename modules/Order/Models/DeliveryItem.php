@@ -3,13 +3,15 @@
 namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Modules\Stock\Models\Product;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Stock\Models\Product;
 
 class DeliveryItem extends Model
 {
     protected $table = 'delivery_items';
+
     protected $guarded = [];
+
     protected $casts = [
         'delivery_id' => 'integer',
         'product_id' => 'integer',

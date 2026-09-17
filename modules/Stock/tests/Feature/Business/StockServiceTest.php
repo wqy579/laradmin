@@ -2,12 +2,12 @@
 
 namespace Tests\Stock\Feature\Business;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Modules\Stock\Exceptions\StockRuleException;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Warehouse;
 use Modules\Stock\Services\StockService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Tests\TestCase;
 
 /**
@@ -26,14 +26,16 @@ class StockServiceTest extends TestCase
     use RefreshDatabase;
 
     private StockService $stocks;
+
     private Product $product;
+
     private Warehouse $warehouse;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->stocks = new StockService();
+        $this->stocks = new StockService;
         $this->product = Product::create(['name' => '测试商品A']);
         $this->warehouse = Warehouse::create(['code' => uniqid('W'), 'name' => '测试仓库']);
     }

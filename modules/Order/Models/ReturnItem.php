@@ -3,12 +3,13 @@
 namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Modules\Stock\Models\Product;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Stock\Models\Product;
 
 class ReturnItem extends Model
 {
     protected $table = 'return_items';
+
     protected $fillable = ['return_id', 'product_id', 'quantity', 'price', 'amount', 'remark'];
 
     public function return(): BelongsTo

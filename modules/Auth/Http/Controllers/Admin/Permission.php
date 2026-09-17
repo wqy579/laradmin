@@ -3,14 +3,15 @@
 namespace Modules\Auth\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Modules\Auth\Http\Requests\PermissionRequest;
-use Modules\Auth\Services\PermissionService;
-use Modules\Auth\Services\ImportExportService;
 use Illuminate\Http\Request;
+use Modules\Auth\Http\Requests\PermissionRequest;
+use Modules\Auth\Services\ImportExportService;
+use Modules\Auth\Services\PermissionService;
 
 class Permission extends Controller
 {
     protected $permissionService;
+
     protected $importExportService;
 
     public function __construct(
@@ -202,14 +203,13 @@ class Permission extends Controller
         return response()->download($filePath, $filename)->deleteFileAfterSend();
     }
 
-
     /**
      * 批量更新菜单图标
      */
     public function updateIcons(Request $request)
     {
         $icons = $request->input('icons', []);
-        
+
         foreach ($icons as $name => $icon) {
             $menu = Permission::where('name', $name)->first();
             if ($menu) {
@@ -217,11 +217,10 @@ class Permission extends Controller
                 $menu->save();
             }
         }
-        
+
         return response()->json([
             'code' => 200,
             'message' => '图标更新成功',
         ]);
     }
-
 }

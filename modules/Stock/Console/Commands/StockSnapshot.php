@@ -22,7 +22,7 @@ class StockSnapshot extends Command
     {
         $count = $service->snapshotToday();
 
-        $this->info("已写入 {$count} 行快照（".now()->toDateString()."）");
+        $this->info("已写入 {$count} 行快照（".now()->toDateString().'）');
 
         return self::SUCCESS;
     }

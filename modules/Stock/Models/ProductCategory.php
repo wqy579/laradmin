@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class ProductCategory extends Model
 {
     protected $table = 'product_categories';
+
     protected $fillable = ['name', 'parent_id', 'is_main', 'sort_order', 'is_active'];
+
     protected $casts = ['is_active' => 'boolean', 'is_main' => 'boolean'];
 
     public function parent(): HasOne

@@ -5,10 +5,12 @@ namespace Modules\System\Models;
 use App\Traits\ModelTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Auth\Models\User;
 
 class Log extends Model
 {
     use ModelTrait;
+
     protected $table = 'system_log';
 
     protected $fillable = [
@@ -36,6 +38,6 @@ class Log extends Model
 
     public function user(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Auth\Models\User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 }

@@ -3,11 +3,11 @@
 namespace Modules\Auth\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Modules\Auth\Http\Requests\AuthRequest;
-use Modules\Auth\Services\AuthService;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Exception;
+use Modules\Auth\Http\Requests\AuthRequest;
+use Modules\Auth\Services\AuthService;
 
 class Auth extends Controller
 {
@@ -38,13 +38,13 @@ class Auth extends Controller
             // 密码敲错一次就在 5xx 监控里记一条故障，监控上业务失败全被算成事故。
             return response()->json([
                 'code' => 401,
-                'message' => '登录失败：' . $this->validationMessage($e),
+                'message' => '登录失败：'.$this->validationMessage($e),
                 'data' => null,
             ], 401);
         } catch (Exception $e) {
             return response()->json([
                 'code' => 500,
-                'message' => '登录失败：' . $e->getMessage(),
+                'message' => '登录失败：'.$e->getMessage(),
                 'data' => null,
             ], 500);
         }
@@ -79,7 +79,7 @@ class Auth extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'code' => 500,
-                'message' => '登出失败：' . $e->getMessage(),
+                'message' => '登出失败：'.$e->getMessage(),
                 'data' => null,
             ], 500);
         }
@@ -129,7 +129,6 @@ class Auth extends Controller
         }
     }
 
-
     /**
      * 获取当前用户菜单（前端刷新后重新拉取，修复刷新掉登录）
      */
@@ -152,6 +151,7 @@ class Auth extends Controller
             ], 401);
         }
     }
+
     /**
      * 更新个人资料
      */
@@ -170,7 +170,7 @@ class Auth extends Controller
         } catch (Exception $e) {
             return response()->json([
                 'code' => 500,
-                'message' => '保存失败：' . $e->getMessage(),
+                'message' => '保存失败：'.$e->getMessage(),
                 'data' => null,
             ], 500);
         }
@@ -195,13 +195,13 @@ class Auth extends Controller
             // 「用户不存在」是输入问题，不是服务器错误
             return response()->json([
                 'code' => 422,
-                'message' => '密码重置失败：' . $this->validationMessage($e),
+                'message' => '密码重置失败：'.$this->validationMessage($e),
                 'data' => null,
             ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'code' => 500,
-                'message' => '密码重置失败：' . $e->getMessage(),
+                'message' => '密码重置失败：'.$e->getMessage(),
                 'data' => null,
             ], 500);
         }
@@ -226,13 +226,13 @@ class Auth extends Controller
             // 「原密码错误」是校验失败，不是服务器错误
             return response()->json([
                 'code' => 422,
-                'message' => '密码修改失败：' . $this->validationMessage($e),
+                'message' => '密码修改失败：'.$this->validationMessage($e),
                 'data' => null,
             ], 422);
         } catch (Exception $e) {
             return response()->json([
                 'code' => 500,
-                'message' => '密码修改失败：' . $e->getMessage(),
+                'message' => '密码修改失败：'.$e->getMessage(),
                 'data' => null,
             ], 500);
         }

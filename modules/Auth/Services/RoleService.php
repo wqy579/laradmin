@@ -2,9 +2,9 @@
 
 namespace Modules\Auth\Services;
 
-use Modules\Auth\Models\Role;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Modules\Auth\Models\Role;
 
 class RoleService
 {

@@ -5,7 +5,7 @@ use Illuminate\Http\Request;
 define('LARAVEL_START', microtime(true));
 
 // Load Swoole stub only for environments WITHOUT the Swoole extension
-if (!extension_loaded('swoole') && !class_exists('Swoole\\Table')) {
+if (! extension_loaded('swoole') && ! class_exists('Swoole\\Table')) {
     require __DIR__.'/../stubs/SwooleTable.php';
 }
 

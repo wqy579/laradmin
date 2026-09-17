@@ -2,9 +2,9 @@
 
 namespace Modules\Stock\Http\Middleware;
 
-use Modules\Stock\Services\StockSnapshotService;
 use Closure;
 use Illuminate\Http\Request;
+use Modules\Stock\Services\StockSnapshotService;
 
 class StockSnapshotMiddleware
 {

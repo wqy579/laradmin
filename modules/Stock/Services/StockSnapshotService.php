@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 class StockSnapshotService
 {
     private const CACHE_KEY = 'stock_snapshot_last_date';
+
     private const LOCK_KEY = 'stock_snapshot_lock';
 
     /**
@@ -35,7 +36,7 @@ class StockSnapshotService
 
         // 并发锁：同一秒多个首次请求只放行一个执行快照
         $lock = Cache::lock(self::LOCK_KEY, 10);
-        if (!$lock->get()) {
+        if (! $lock->get()) {
             return false;
         }
 
@@ -52,6 +53,7 @@ class StockSnapshotService
 
             // 标记今天已处理
             Cache::put(self::CACHE_KEY, $today, now()->addDays(2));
+
             return true;
         } catch (\Throwable $e) {
             Log::error('每日库存快照失败', ['error' => $e->getMessage()]);

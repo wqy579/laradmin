@@ -2,11 +2,11 @@
 
 namespace Modules\System\Http\Controllers\Admin;
 
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Modules\System\Services\NotificationService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Modules\System\Http\Requests\NotificationRequest;
+use Modules\System\Services\NotificationService;
 
 class Notification extends Controller
 {
@@ -25,9 +25,6 @@ class Notification extends Controller
 
     /**
      * 获取通知列表
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -43,15 +40,12 @@ class Notification extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $result
+            'data' => $result,
         ]);
     }
 
     /**
      * 获取未读通知
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function unread(Request $request): JsonResponse
     {
@@ -65,14 +59,12 @@ class Notification extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $result
+            'data' => $result,
         ]);
     }
 
     /**
      * 获取未读通知数量
-     *
-     * @return JsonResponse
      */
     public function unreadCount(): JsonResponse
     {
@@ -83,77 +75,69 @@ class Notification extends Controller
             'code' => 200,
             'message' => 'success',
             'data' => [
-                'count' => $count
-            ]
+                'count' => $count,
+            ],
         ]);
     }
 
     /**
      * 获取通知详情
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
         $notification = $this->notificationService->getById($id);
 
-        if (!$notification) {
+        if (! $notification) {
             return response()->json([
                 'code' => 404,
                 'message' => 'Notification not found',
-                'data' => null
+                'data' => null,
             ], 404);
         }
 
         // 检查权限：当前用户必须在通知目标用户范围内
-        if (!$notification->isForUser(auth('admin')->id())) {
+        if (! $notification->isForUser(auth('admin')->id())) {
             return response()->json([
                 'code' => 403,
                 'message' => 'Access denied',
-                'data' => null
+                'data' => null,
             ], 403);
         }
 
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $notification
+            'data' => $notification,
         ]);
     }
 
     /**
      * 标记通知为已读
-     *
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
      */
     public function markAsRead(Request $request, int $id): JsonResponse
     {
         $userId = auth('admin')->id();
         $result = $this->notificationService->markAsRead($id, $userId);
 
-        if (!$result) {
+        if (! $result) {
             return response()->json([
                 'code' => 404,
                 'message' => 'Notification not found or access denied',
-                'data' => null
+                'data' => null,
             ], 404);
         }
 
         return response()->json([
             'code' => 200,
             'message' => 'Notification marked as read',
-            'data' => null
+            'data' => null,
         ]);
     }
 
     /**
      * 批量标记通知为已读
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function batchMarkAsRead(NotificationRequest $request): JsonResponse
     {
@@ -167,15 +151,13 @@ class Notification extends Controller
             'code' => 200,
             'message' => 'Notifications marked as read',
             'data' => [
-                'count' => $count
-            ]
+                'count' => $count,
+            ],
         ]);
     }
 
     /**
      * 标记所有通知为已读
-     *
-     * @return JsonResponse
      */
     public function markAllAsRead(): JsonResponse
     {
@@ -186,42 +168,38 @@ class Notification extends Controller
             'code' => 200,
             'message' => 'All notifications marked as read',
             'data' => [
-                'count' => $count
-            ]
+                'count' => $count,
+            ],
         ]);
     }
 
     /**
      * 删除通知
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function destroy(int $id): JsonResponse
     {
         $userId = auth('admin')->id();
         $result = $this->notificationService->delete($id, $userId);
 
-        if (!$result) {
+        if (! $result) {
             return response()->json([
                 'code' => 404,
                 'message' => 'Notification not found or access denied',
-                'data' => null
+                'data' => null,
             ], 404);
         }
 
         return response()->json([
             'code' => 200,
             'message' => 'Notification deleted',
-            'data' => null
+            'data' => null,
         ]);
     }
 
     /**
      * 批量删除通知
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function batchDelete(NotificationRequest $request): JsonResponse
     {
@@ -235,15 +213,13 @@ class Notification extends Controller
             'code' => 200,
             'message' => 'Notifications deleted',
             'data' => [
-                'count' => $count
-            ]
+                'count' => $count,
+            ],
         ]);
     }
 
     /**
      * 清空已读通知
-     *
-     * @return JsonResponse
      */
     public function clearRead(): JsonResponse
     {
@@ -254,15 +230,13 @@ class Notification extends Controller
             'code' => 200,
             'message' => 'Read notifications cleared',
             'data' => [
-                'count' => $count
-            ]
+                'count' => $count,
+            ],
         ]);
     }
 
     /**
      * 获取通知统计
-     *
-     * @return JsonResponse
      */
     public function statistics(): JsonResponse
     {
@@ -272,15 +246,14 @@ class Notification extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $stats
+            'data' => $stats,
         ]);
     }
 
     /**
      * 发送通知（管理员功能）
      *
-     * @param Request $request
-     * @return JsonResponse
+     * @param  Request  $request
      */
     public function send(NotificationRequest $request): JsonResponse
     {
@@ -317,16 +290,13 @@ class Notification extends Controller
             'code' => 200,
             'message' => 'Notification sent successfully',
             'data' => [
-                'count' => count($result)
-            ]
+                'count' => count($result),
+            ],
         ]);
     }
 
     /**
      * 重试发送未发送的通知（管理员功能）
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function retryUnsent(Request $request): JsonResponse
     {
@@ -337,8 +307,8 @@ class Notification extends Controller
             'code' => 200,
             'message' => 'Unsent notifications retried',
             'data' => [
-                'count' => $count
-            ]
+                'count' => $count,
+            ],
         ]);
     }
 }

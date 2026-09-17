@@ -3,18 +3,16 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Order\Models\VisitLog;
-use Modules\Order\Models\Customer;
-use Modules\Order\Models\Route;
-use Modules\Business\Models\Employee;
 use Illuminate\Http\Request;
+use Modules\Auth\Models\User;
+use Modules\Order\Models\VisitLog;
 
 class VisitLogController extends Controller
 {
     public function index(Request $request)
     {
         $query = VisitLog::with(['employee', 'customer', 'route']);
-        
+
         if ($request->filled('employee_id')) {
             $query->where('employee_id', $request->employee_id);
         }
@@ -33,16 +31,17 @@ class VisitLogController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        
+
         $query->orderBy('checkin_time', 'desc');
         $visits = $query->paginate($request->integer('page_size', 20));
-        
+
         return $this->paginated($visits);
     }
 
     public function show(VisitLog $visitLog)
     {
         $visitLog->load(['employee', 'customer', 'route']);
+
         return $this->success($visitLog);
     }
 
@@ -65,8 +64,9 @@ class VisitLogController extends Controller
             'visit_result' => 'nullable|string|max:50',
             'remark' => 'nullable|string',
         ]);
-        
+
         $visitLog = VisitLog::create($validated);
+
         return $this->created($visitLog, '创建成功');
     }
 
@@ -89,14 +89,16 @@ class VisitLogController extends Controller
             'visit_result' => 'nullable|string|max:50',
             'remark' => 'nullable|string',
         ]);
-        
+
         $visitLog->update($validated);
+
         return $this->success($visitLog, '更新成功');
     }
 
     public function destroy(VisitLog $visitLog)
     {
         $visitLog->delete();
+
         return $this->success(null, '删除成功');
     }
 
@@ -104,11 +106,11 @@ class VisitLogController extends Controller
     {
         $startDate = $request->input('date_start', date('Y-m-01'));
         $endDate = $request->input('date_end', date('Y-m-d'));
-        
+
         // 获取所有员工
-        $employees = \Modules\Auth\Models\User::where('status', 1)->get();
+        $employees = User::where('status', 1)->get();
         $stats = [];
-        
+
         foreach ($employees as $employee) {
             // 该员工已拜访的客户数
             $visitedCustomers = VisitLog::where('employee_id', $employee->id)
@@ -116,7 +118,7 @@ class VisitLogController extends Controller
                 ->where('status', 2)
                 ->distinct('customer_id')
                 ->count('customer_id');
-            
+
             $stats[] = [
                 'employee_id' => $employee->id,
                 'employee_name' => $employee->real_name,
@@ -125,7 +127,7 @@ class VisitLogController extends Controller
                 'achievement' => 0,
             ];
         }
-        
+
         return $this->success([
             'period' => [$startDate, $endDate],
             'stats' => $stats,
@@ -135,17 +137,17 @@ class VisitLogController extends Controller
     public function schedule(Request $request)
     {
         $date = $request->input('date', date('Y-m-d'));
-        
+
         $visits = VisitLog::with(['employee', 'customer'])
             ->whereDate('checkin_time', $date)
             ->orderBy('checkin_time')
             ->get();
-        
+
         // 按员工分组
         $schedule = [];
         foreach ($visits as $visit) {
             $empId = $visit->employee_id;
-            if (!isset($schedule[$empId])) {
+            if (! isset($schedule[$empId])) {
                 $schedule[$empId] = [
                     'employee_id' => $empId,
                     'employee_name' => $visit->employee?->real_name ?? '未知',
@@ -163,7 +165,7 @@ class VisitLogController extends Controller
                 'address' => $visit->checkin_address,
             ];
         }
-        
+
         return $this->success(array_values($schedule));
     }
 }

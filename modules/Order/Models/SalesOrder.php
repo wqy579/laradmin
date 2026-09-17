@@ -3,14 +3,15 @@
 namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Modules\Stock\Models\Vehicle;
-use Modules\Stock\Models\Warehouse;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Stock\Models\Vehicle;
+use Modules\Stock\Models\Warehouse;
 
 class SalesOrder extends Model
 {
     protected $table = 'sales_orders';
+
     protected $fillable = [
         'order_no', 'order_type', 'customer_id', 'warehouse_id',
         'order_date', 'total_amount', 'total_qty', 'paid_amount',
@@ -19,6 +20,7 @@ class SalesOrder extends Model
         'approved_by', 'dispatched_by', 'approved_at', 'dispatched_at',
         'remark', 'print_count',
     ];
+
     protected $casts = [
         'order_date' => 'date',
         'approved_at' => 'datetime',

@@ -2,8 +2,6 @@
 
 namespace Modules\Auth\Services;
 
-use Modules\Auth\Jobs\UserImportJob;
-use Modules\Auth\Models\User;
 use App\Contracts\TaskNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -12,6 +10,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Modules\Auth\Jobs\UserExportJob;
+use Modules\Auth\Jobs\UserImportJob;
+use Modules\Auth\Models\User;
 
 class UserService
 {
@@ -335,7 +336,7 @@ class UserService
         Cache::put($cacheKey, true, 30);
         Cache::put($cacheKey.'_task_id', $taskId, 30);
 
-        $job = new \Modules\Auth\Jobs\UserExportJob($params, $currentUserId);
+        $job = new UserExportJob($params, $currentUserId);
         dispatch($job);
 
         return [

@@ -22,9 +22,7 @@ use Illuminate\Foundation\Events\RequestHandled;
  */
 class FlushRequestStateOnRequestHandled
 {
-    public function __construct(private FlushRequestState $flushRequestState)
-    {
-    }
+    public function __construct(private FlushRequestState $flushRequestState) {}
 
     public function handle(RequestHandled $event): void
     {

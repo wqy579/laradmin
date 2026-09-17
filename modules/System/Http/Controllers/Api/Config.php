@@ -18,10 +18,11 @@ class Config extends Controller
     public function all()
     {
         $configs = $this->configService->getAllConfig();
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $configs
+            'data' => $configs,
         ]);
     }
 
@@ -30,7 +31,7 @@ class Config extends Controller
         $parentId = $request->input('parent_id');
         $group = $request->input('group');
 
-        if (!empty($parentId)) {
+        if (! empty($parentId)) {
             $configs = $this->configService->getByParentId((int) $parentId);
         } else {
             $configs = $this->configService->getByGroup($group);
@@ -39,7 +40,7 @@ class Config extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'success',
-            'data' => $configs
+            'data' => $configs,
         ]);
     }
 
@@ -47,13 +48,14 @@ class Config extends Controller
     {
         $key = $request->input('key');
         $value = $this->configService->getConfigValue($key);
+
         return response()->json([
             'code' => 200,
             'message' => 'success',
             'data' => [
                 'key' => $key,
                 'value' => $value,
-            ]
+            ],
         ]);
     }
 }

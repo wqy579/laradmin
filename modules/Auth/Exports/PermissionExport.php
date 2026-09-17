@@ -2,13 +2,14 @@
 
 namespace Modules\Auth\Exports;
 
-use Modules\Auth\Models\Permission;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Modules\Auth\Models\Permission;
 
-class PermissionExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class PermissionExport implements FromCollection, ShouldAutoSize, WithHeadings, WithMapping
 {
     protected $permissionIds;
 
@@ -20,11 +21,11 @@ class PermissionExport implements FromCollection, WithHeadings, WithMapping, Sho
     /**
      * 获取数据集合
      */
-    public function collection(): \Illuminate\Support\Enumerable
+    public function collection(): Enumerable
     {
         $query = Permission::query();
 
-        if (!empty($this->permissionIds)) {
+        if (! empty($this->permissionIds)) {
             $query->whereIn('id', $this->permissionIds);
         }
 
@@ -63,9 +64,9 @@ class PermissionExport implements FromCollection, WithHeadings, WithMapping, Sho
             $permission->parent_id ?: 0,
             $permission->path,
             $permission->component,
-            (int)$permission->sort,
+            (int) $permission->sort,
             $permission->status == 1 ? '启用' : '禁用',
-            $permission->created_at ? (string)$permission->created_at : '',
+            $permission->created_at ? (string) $permission->created_at : '',
         ];
     }
 
@@ -80,6 +81,7 @@ class PermissionExport implements FromCollection, WithHeadings, WithMapping, Sho
             'button' => '按钮',
             'url' => '链接',
         ];
+
         return $types[$type] ?? $type;
     }
 }

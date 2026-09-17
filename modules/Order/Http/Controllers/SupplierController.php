@@ -3,8 +3,8 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Order\Models\Supplier;
 use Illuminate\Http\Request;
+use Modules\Order\Models\Supplier;
 
 class SupplierController extends Controller
 {
@@ -13,12 +13,13 @@ class SupplierController extends Controller
         $query = Supplier::query();
         if ($request->filled('keyword')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('code', 'like', '%' . $request->keyword . '%');
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('code', 'like', '%'.$request->keyword.'%');
             });
         }
         $query->orderBy('id', 'desc');
         $suppliers = $query->paginate($request->integer('page_size', 20));
+
         return $this->paginated($suppliers);
     }
 
@@ -42,6 +43,7 @@ class SupplierController extends Controller
             'remark' => 'nullable|string',
         ]);
         $supplier = Supplier::create($validated);
+
         return $this->created($supplier, '创建成功');
     }
 
@@ -60,12 +62,14 @@ class SupplierController extends Controller
             'remark' => 'nullable|string',
         ]);
         $supplier->update($validated);
+
         return $this->success($supplier, '更新成功');
     }
 
     public function destroy(Supplier $supplier)
     {
         $supplier->delete();
+
         return $this->success(null, '删除成功');
     }
 
@@ -73,6 +77,7 @@ class SupplierController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'is_active' => 'required|boolean']);
         Supplier::whereIn('id', $request->ids)->update(['is_active' => $request->is_active]);
+
         return $this->success(null, '操作成功');
     }
 
@@ -80,6 +85,7 @@ class SupplierController extends Controller
     {
         $request->validate(['ids' => 'required|array']);
         Supplier::whereIn('id', $request->ids)->delete();
+
         return $this->success(null, '删除成功');
     }
 }

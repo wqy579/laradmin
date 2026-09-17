@@ -22,7 +22,7 @@ class RoleRequest extends BaseFormRequest
             ],
             'update' => [
                 'name' => 'nullable|string|max:50',
-                'code' => 'nullable|string|max:50|unique:auth_role,code,' . $this->route('id'),
+                'code' => 'nullable|string|max:50|unique:auth_role,code,'.$this->route('id'),
                 'description' => 'nullable|string|max:200',
                 'sort' => 'nullable|integer|min:0',
                 'status' => 'nullable|integer|in:0,1',

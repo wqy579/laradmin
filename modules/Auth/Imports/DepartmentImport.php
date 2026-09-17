@@ -2,16 +2,18 @@
 
 namespace Modules\Auth\Imports;
 
-use Modules\Auth\Models\Department;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
+use Modules\Auth\Models\Department;
 
 class DepartmentImport implements ToCollection, WithHeadingRow, WithValidation
 {
     protected $successCount = 0;
+
     protected $errorCount = 0;
+
     protected $errors = [];
 
     /**
@@ -29,16 +31,18 @@ class DepartmentImport implements ToCollection, WithHeadingRow, WithValidation
                 // 检查部门名称是否已存在
                 $exists = Department::where('name', $row['部门名称'])->exists();
                 if ($exists) {
-                    $this->addError($index + 2, '部门名称已存在: ' . $row['部门名称']);
+                    $this->addError($index + 2, '部门名称已存在: '.$row['部门名称']);
+
                     continue;
                 }
 
                 // 查找父级部门
                 $parentId = null;
-                if (!empty($row['上级部门名称'])) {
+                if (! empty($row['上级部门名称'])) {
                     $parent = Department::where('name', $row['上级部门名称'])->first();
-                    if (!$parent) {
-                        $this->addError($index + 2, '上级部门不存在: ' . $row['上级部门名称']);
+                    if (! $parent) {
+                        $this->addError($index + 2, '上级部门不存在: '.$row['上级部门名称']);
+
                         continue;
                     }
                     $parentId = $parent->id;

@@ -8,6 +8,7 @@ use Modules\Auth\Models\Permission;
 class UpdateMenuIcons extends Command
 {
     protected $signature = 'menu:icons';
+
     protected $description = '更新菜单图标';
 
     public function handle()

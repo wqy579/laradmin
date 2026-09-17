@@ -42,13 +42,13 @@ return new class extends Migration
             return;
         }
 
-        if (!Schema::hasColumn('product_categories', 'product_count')) {
+        if (! Schema::hasColumn('product_categories', 'product_count')) {
             Schema::table('product_categories', function (Blueprint $table) {
                 $table->integer('product_count')->default(0)->comment('商品数量');
             });
         }
 
-        if (!Schema::hasColumn('products', 'category_id')) {
+        if (! Schema::hasColumn('products', 'category_id')) {
             Schema::table('products', function (Blueprint $table) {
                 $table->foreignId('category_id')->nullable()->constrained('product_categories')->nullOnDelete();
             });

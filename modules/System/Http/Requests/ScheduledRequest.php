@@ -15,7 +15,7 @@ class ScheduledRequest extends BaseFormRequest
             return [
                 'name' => 'required|string|max:100',
                 'command' => 'required|string|max:255',
-                'type' => 'required|string|in:' . implode(',', [Scheduled::TYPE_ARTISAN, Scheduled::TYPE_JOB, Scheduled::TYPE_SHELL]),
+                'type' => 'required|string|in:'.implode(',', [Scheduled::TYPE_ARTISAN, Scheduled::TYPE_JOB, Scheduled::TYPE_SHELL]),
                 'expression' => 'nullable|string|max:100',
                 'interval' => 'nullable|integer|min:1|max:86400',
                 'timezone' => 'sometimes|string|max:50',

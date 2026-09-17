@@ -2,16 +2,14 @@
 
 namespace Modules\Stock\Http\Controllers;
 
-use Modules\Stock\Exceptions\StockRuleException;
 use App\Http\Controllers\Controller;
-use Modules\Stock\Services\StockService;
 use Illuminate\Http\Request;
+use Modules\Stock\Exceptions\StockRuleException;
+use Modules\Stock\Services\StockService;
 
 class StockInController extends Controller
 {
-    public function __construct(private StockService $stocks)
-    {
-    }
+    public function __construct(private StockService $stocks) {}
 
     public function index(Request $request)
     {

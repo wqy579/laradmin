@@ -2,20 +2,18 @@
 
 namespace Modules\Auth\Services;
 
-use Modules\Auth\Models\User;
-use Modules\Auth\Models\Department;
-use Modules\Auth\Models\Role;
+use App\Exports\GenericExport;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
-use Modules\Auth\Exports\UserExport;
 use Modules\Auth\Exports\DepartmentExport;
-use Modules\Auth\Exports\RoleExport;
 use Modules\Auth\Exports\PermissionExport;
-use Modules\Auth\Imports\UserImport;
+use Modules\Auth\Exports\RoleExport;
+use Modules\Auth\Exports\UserExport;
 use Modules\Auth\Imports\DepartmentImport;
-use Modules\Auth\Imports\RoleImport;
 use Modules\Auth\Imports\PermissionImport;
+use Modules\Auth\Imports\RoleImport;
+use Modules\Auth\Imports\UserImport;
 
 class ImportExportService
 {
@@ -24,11 +22,11 @@ class ImportExportService
      */
     public function downloadUserTemplate(): string
     {
-        $filename = 'user_import_template_' . date('YmdHis') . '.xlsx';
-        $path = storage_path('app/exports/' . $filename);
+        $filename = 'user_import_template_'.date('YmdHis').'.xlsx';
+        $path = storage_path('app/exports/'.$filename);
 
         // 确保目录存在
-        if (!is_dir(dirname($path))) {
+        if (! is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
 
@@ -56,7 +54,7 @@ class ImportExportService
             ],
         ];
 
-        Excel::store(new \App\Exports\GenericExport($templateData), 'exports/' . $filename, 'public');
+        Excel::store(new GenericExport($templateData), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -66,10 +64,10 @@ class ImportExportService
      */
     public function downloadDepartmentTemplate(): string
     {
-        $filename = 'department_import_template_' . date('YmdHis') . '.xlsx';
+        $filename = 'department_import_template_'.date('YmdHis').'.xlsx';
 
         // 确保目录存在
-        if (!is_dir(storage_path('app/exports'))) {
+        if (! is_dir(storage_path('app/exports'))) {
             mkdir(storage_path('app/exports'), 0755, true);
         }
 
@@ -92,7 +90,7 @@ class ImportExportService
             ],
         ];
 
-        Excel::store(new \App\Exports\GenericExport($templateData), 'exports/' . $filename, 'public');
+        Excel::store(new GenericExport($templateData), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -102,13 +100,13 @@ class ImportExportService
      */
     public function exportUsers(array $userIds = []): string
     {
-        $filename = 'users_export_' . date('YmdHis') . '.xlsx';
+        $filename = 'users_export_'.date('YmdHis').'.xlsx';
 
-        if (!is_dir(storage_path('app/exports'))) {
+        if (! is_dir(storage_path('app/exports'))) {
             mkdir(storage_path('app/exports'), 0755, true);
         }
 
-        Excel::store(new UserExport($userIds), 'exports/' . $filename, 'public');
+        Excel::store(new UserExport($userIds), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -118,13 +116,13 @@ class ImportExportService
      */
     public function exportUsersWithFields(array $fields = [], array $filters = []): string
     {
-        $filename = 'users_export_' . date('YmdHis') . '.xlsx';
+        $filename = 'users_export_'.date('YmdHis').'.xlsx';
 
-        if (!is_dir(storage_path('app/exports'))) {
+        if (! is_dir(storage_path('app/exports'))) {
             mkdir(storage_path('app/exports'), 0755, true);
         }
 
-        Excel::store(new UserExport([], $fields, $filters), 'exports/' . $filename, 'public');
+        Excel::store(new UserExport([], $fields, $filters), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -134,14 +132,14 @@ class ImportExportService
      */
     public function exportDepartments(array $departmentIds = []): string
     {
-        $filename = 'departments_export_' . date('YmdHis') . '.xlsx';
+        $filename = 'departments_export_'.date('YmdHis').'.xlsx';
 
         // 确保目录存在
-        if (!is_dir(storage_path('app/exports'))) {
+        if (! is_dir(storage_path('app/exports'))) {
             mkdir(storage_path('app/exports'), 0755, true);
         }
 
-        Excel::store(new DepartmentExport($departmentIds), 'exports/' . $filename, 'public');
+        Excel::store(new DepartmentExport($departmentIds), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -151,13 +149,13 @@ class ImportExportService
      */
     public function importUsers(string $filePath, string $realPath): array
     {
-        if (!file_exists($realPath)) {
+        if (! file_exists($realPath)) {
             throw ValidationException::withMessages([
                 'file' => ['文件不存在'],
             ]);
         }
 
-        $import = new UserImport();
+        $import = new UserImport;
         Excel::import($import, $realPath);
 
         // 删除临时文件
@@ -177,13 +175,13 @@ class ImportExportService
      */
     public function importDepartments(string $filePath, string $realPath): array
     {
-        if (!file_exists($realPath)) {
+        if (! file_exists($realPath)) {
             throw ValidationException::withMessages([
                 'file' => ['文件不存在'],
             ]);
         }
 
-        $import = new DepartmentImport();
+        $import = new DepartmentImport;
         Excel::import($import, $realPath);
 
         // 删除临时文件
@@ -203,7 +201,7 @@ class ImportExportService
      */
     public function getExportFilePath(string $filename): string
     {
-        return \Illuminate\Support\Facades\Storage::disk('public')->path('exports/' . $filename);
+        return Storage::disk('public')->path('exports/'.$filename);
     }
 
     /**
@@ -211,10 +209,10 @@ class ImportExportService
      */
     public function downloadRoleTemplate(): string
     {
-        $filename = 'role_import_template_' . date('YmdHis') . '.xlsx';
+        $filename = 'role_import_template_'.date('YmdHis').'.xlsx';
 
         // 确保目录存在
-        if (!is_dir(storage_path('app/exports'))) {
+        if (! is_dir(storage_path('app/exports'))) {
             mkdir(storage_path('app/exports'), 0755, true);
         }
 
@@ -235,7 +233,7 @@ class ImportExportService
             ],
         ];
 
-        Excel::store(new \App\Exports\GenericExport($templateData), 'exports/' . $filename, 'public');
+        Excel::store(new GenericExport($templateData), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -245,14 +243,14 @@ class ImportExportService
      */
     public function exportRoles(array $roleIds = []): string
     {
-        $filename = 'roles_export_' . date('YmdHis') . '.xlsx';
+        $filename = 'roles_export_'.date('YmdHis').'.xlsx';
 
         // 确保目录存在
-        if (!is_dir(storage_path('app/exports'))) {
+        if (! is_dir(storage_path('app/exports'))) {
             mkdir(storage_path('app/exports'), 0755, true);
         }
 
-        Excel::store(new RoleExport($roleIds), 'exports/' . $filename, 'public');
+        Excel::store(new RoleExport($roleIds), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -262,13 +260,13 @@ class ImportExportService
      */
     public function importRoles(string $filePath, string $realPath): array
     {
-        if (!file_exists($realPath)) {
+        if (! file_exists($realPath)) {
             throw ValidationException::withMessages([
                 'file' => ['文件不存在'],
             ]);
         }
 
-        $import = new RoleImport();
+        $import = new RoleImport;
         Excel::import($import, $realPath);
 
         // 删除临时文件
@@ -288,10 +286,10 @@ class ImportExportService
      */
     public function downloadPermissionTemplate(): string
     {
-        $filename = 'permission_import_template_' . date('YmdHis') . '.xlsx';
+        $filename = 'permission_import_template_'.date('YmdHis').'.xlsx';
 
         // 确保目录存在
-        if (!is_dir(storage_path('app/exports'))) {
+        if (! is_dir(storage_path('app/exports'))) {
             mkdir(storage_path('app/exports'), 0755, true);
         }
 
@@ -318,7 +316,7 @@ class ImportExportService
             ],
         ];
 
-        Excel::store(new \App\Exports\GenericExport($templateData), 'exports/' . $filename, 'public');
+        Excel::store(new GenericExport($templateData), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -328,14 +326,14 @@ class ImportExportService
      */
     public function exportPermissions(array $permissionIds = []): string
     {
-        $filename = 'permissions_export_' . date('YmdHis') . '.xlsx';
+        $filename = 'permissions_export_'.date('YmdHis').'.xlsx';
 
         // 确保目录存在
-        if (!is_dir(storage_path('app/exports'))) {
+        if (! is_dir(storage_path('app/exports'))) {
             mkdir(storage_path('app/exports'), 0755, true);
         }
 
-        Excel::store(new PermissionExport($permissionIds), 'exports/' . $filename, 'public');
+        Excel::store(new PermissionExport($permissionIds), 'exports/'.$filename, 'public');
 
         return $filename;
     }
@@ -345,13 +343,13 @@ class ImportExportService
      */
     public function importPermissions(string $filePath, string $realPath): array
     {
-        if (!file_exists($realPath)) {
+        if (! file_exists($realPath)) {
             throw ValidationException::withMessages([
                 'file' => ['文件不存在'],
             ]);
         }
 
-        $import = new PermissionImport();
+        $import = new PermissionImport;
         Excel::import($import, $realPath);
 
         // 删除临时文件
@@ -375,6 +373,7 @@ class ImportExportService
         if (file_exists($path)) {
             return unlink($path);
         }
+
         return true;
     }
 }

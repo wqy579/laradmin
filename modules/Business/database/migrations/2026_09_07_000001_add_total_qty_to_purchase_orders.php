@@ -19,7 +19,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasColumn('purchase_orders', 'total_qty')) {
+        if (! Schema::hasColumn('purchase_orders', 'total_qty')) {
             return;
         }
         Schema::table('purchase_orders', function (Blueprint $table) {

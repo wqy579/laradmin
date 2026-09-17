@@ -103,7 +103,7 @@ class InventoryMenuTest extends TestCase
     private function migrationFile(): string
     {
         return dirname(__DIR__, 2)
-            . '/modules/Business/database/migrations/2026_09_16_000001_restore_inventory_stock_check_menu.php';
+            .'/modules/Business/database/migrations/2026_09_16_000001_restore_inventory_stock_check_menu.php';
     }
 
     /**

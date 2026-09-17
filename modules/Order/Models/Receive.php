@@ -8,10 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Receive extends Model
 {
     protected $table = 'receives';
+
     protected $fillable = [
         'receive_no', 'receive_type', 'customer_id', 'sales_order_id',
         'amount', 'receive_date', 'payment_method', 'handler_id', 'remark', 'status',
     ];
+
     protected $casts = [
         'receive_date' => 'date',
         'amount' => 'decimal:2',

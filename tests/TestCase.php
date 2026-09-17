@@ -2,17 +2,17 @@
 
 namespace Tests;
 
-use Modules\Auth\Models\Role;
-use Modules\Auth\Models\User;
-use Modules\Order\Models\Customer;
-use Modules\Stock\Models\Product;
-use Modules\Stock\Models\ProductCategory;
-use Modules\Order\Models\Supplier;
-use Modules\Stock\Models\Warehouse;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Modules\Auth\Models\Role;
+use Modules\Auth\Models\User;
+use Modules\Order\Models\Customer;
+use Modules\Order\Models\Supplier;
+use Modules\Stock\Models\Product;
+use Modules\Stock\Models\ProductCategory;
+use Modules\Stock\Models\Warehouse;
 
 abstract class TestCase extends BaseTestCase
 {

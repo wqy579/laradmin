@@ -26,7 +26,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasColumn('returns', 'approved_by') && !Schema::hasColumn('returns', 'approved_at')) {
+        if (! Schema::hasColumn('returns', 'approved_by') && ! Schema::hasColumn('returns', 'approved_at')) {
             return;
         }
 

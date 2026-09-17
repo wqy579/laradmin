@@ -3,12 +3,13 @@
 namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Modules\Stock\Models\Product;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Stock\Models\Product;
 
 class SalesOrderItem extends Model
 {
     protected $table = 'sales_order_items';
+
     protected $fillable = [
         'sales_order_id', 'product_id', 'quantity', 'actual_qty',
         'qty_large', 'qty_medium', 'qty_small',

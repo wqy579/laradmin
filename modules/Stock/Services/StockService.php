@@ -2,12 +2,12 @@
 
 namespace Modules\Stock\Services;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Modules\Stock\Exceptions\StockRuleException;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Stock;
 use Modules\Stock\Models\Warehouse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 /**
  * 库存核心服务：入库 / 出库 / 列表查询 / 统计。
@@ -39,8 +39,8 @@ class StockService
 
         if ($request->filled('keyword')) {
             $query->whereHas('product', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->keyword . '%')
-                  ->orWhere('code', 'like', '%' . $request->keyword . '%');
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('code', 'like', '%'.$request->keyword.'%');
             });
         }
 
@@ -94,7 +94,7 @@ class StockService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$stock || (int) $stock->quantity < $quantity) {
+            if (! $stock || (int) $stock->quantity < $quantity) {
                 throw new StockRuleException('库存不足');
             }
 

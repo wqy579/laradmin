@@ -2,12 +2,14 @@
 
 namespace Modules\Auth\Services;
 
-use Modules\Auth\Models\User;
+use Illuminate\Cache\RedisStore;
 use Illuminate\Support\Facades\Cache;
+use Modules\Auth\Models\User;
 
 class UserOnlineService
 {
     protected $cachePrefix = 'user_online:';
+
     protected $expireMinutes = 5;
 
     /**
@@ -61,14 +63,14 @@ class UserOnlineService
      */
     public function setAllOffline(int $userId): void
     {
-        $pattern = $this->cachePrefix . $userId . ':*';
-        $keys = Cache::store('redis')->getPrefix() . $pattern;
+        $pattern = $this->cachePrefix.$userId.':*';
+        $keys = Cache::store('redis')->getPrefix().$pattern;
 
         // Redis 模式删除
-        if (Cache::getStore() instanceof \Illuminate\Cache\RedisStore) {
+        if (Cache::getStore() instanceof RedisStore) {
             $redis = Cache::getStore()->connection();
-            $keys = $redis->keys($this->cachePrefix . $userId . ':*');
-            if (!empty($keys)) {
+            $keys = $redis->keys($this->cachePrefix.$userId.':*');
+            if (! empty($keys)) {
                 $redis->del($keys);
             }
         }
@@ -79,12 +81,13 @@ class UserOnlineService
      */
     public function isOnline(int $userId): bool
     {
-        $pattern = $this->cachePrefix . $userId . ':*';
+        $pattern = $this->cachePrefix.$userId.':*';
 
-        if (Cache::getStore() instanceof \Illuminate\Cache\RedisStore) {
+        if (Cache::getStore() instanceof RedisStore) {
             $redis = Cache::getStore()->connection();
-            $keys = $redis->keys($this->cachePrefix . $userId . ':*');
-            return !empty($keys);
+            $keys = $redis->keys($this->cachePrefix.$userId.':*');
+
+            return ! empty($keys);
         }
 
         return false;
@@ -96,6 +99,7 @@ class UserOnlineService
     public function getOnlineInfo(int $userId, string $token): ?array
     {
         $key = $this->getCacheKey($userId, $token);
+
         return Cache::get($key);
     }
 
@@ -106,9 +110,9 @@ class UserOnlineService
     {
         $sessions = [];
 
-        if (Cache::getStore() instanceof \Illuminate\Cache\RedisStore) {
+        if (Cache::getStore() instanceof RedisStore) {
             $redis = Cache::getStore()->connection();
-            $keys = $redis->keys($this->cachePrefix . $userId . ':*');
+            $keys = $redis->keys($this->cachePrefix.$userId.':*');
 
             foreach ($keys as $key) {
                 $session = $redis->get($key);
@@ -128,9 +132,9 @@ class UserOnlineService
     {
         $count = 0;
 
-        if (Cache::getStore() instanceof \Illuminate\Cache\RedisStore) {
+        if (Cache::getStore() instanceof RedisStore) {
             $redis = Cache::getStore()->connection();
-            $keys = $redis->keys($this->cachePrefix . '*');
+            $keys = $redis->keys($this->cachePrefix.'*');
             // 去重用户ID
             $userIds = [];
             foreach ($keys as $key) {
@@ -152,9 +156,9 @@ class UserOnlineService
     {
         $onlineUsers = [];
 
-        if (Cache::getStore() instanceof \Illuminate\Cache\RedisStore) {
+        if (Cache::getStore() instanceof RedisStore) {
             $redis = Cache::getStore()->connection();
-            $keys = $redis->keys($this->cachePrefix . '*');
+            $keys = $redis->keys($this->cachePrefix.'*');
 
             $userIds = [];
             $userSessions = [];
@@ -164,7 +168,7 @@ class UserOnlineService
                 if ($session) {
                     $session = json_decode($session, true);
                     $userId = $session['user_id'];
-                    if (!isset($userIds[$userId])) {
+                    if (! isset($userIds[$userId])) {
                         $userIds[$userId] = $userId;
                     }
                     $userSessions[$userId] = $session;
@@ -203,6 +207,6 @@ class UserOnlineService
      */
     protected function getCacheKey(int $userId, string $token): string
     {
-        return $this->cachePrefix . $userId . ':' . md5($token);
+        return $this->cachePrefix.$userId.':'.md5($token);
     }
 }

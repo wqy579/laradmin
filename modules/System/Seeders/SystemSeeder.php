@@ -2,12 +2,12 @@
 
 namespace Modules\System\Seeders;
 
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Modules\Auth\Models\Permission;
 use Modules\System\Models\Config;
 use Modules\System\Models\Dictionary;
 use Modules\System\Models\DictionaryItem;
-use Modules\Auth\Models\Permission;
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class SystemSeeder extends Seeder
 {

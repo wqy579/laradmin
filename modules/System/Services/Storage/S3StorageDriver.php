@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Storage;
 class S3StorageDriver implements StorageDriverInterface
 {
     protected string $diskName;
+
     protected array $config;
 
     public function __construct(array $config = [])
@@ -58,7 +59,7 @@ class S3StorageDriver implements StorageDriverInterface
         try {
             return Storage::disk($this->diskName)->put($path, $content);
         } catch (\Throwable $e) {
-            throw new \Exception('文件上传到云存储失败：' . $e->getMessage(), 0, $e);
+            throw new \Exception('文件上传到云存储失败：'.$e->getMessage(), 0, $e);
         }
     }
 
@@ -68,6 +69,7 @@ class S3StorageDriver implements StorageDriverInterface
         if ($disk->exists($path)) {
             return $disk->get($path);
         }
+
         return null;
     }
 
@@ -77,12 +79,14 @@ class S3StorageDriver implements StorageDriverInterface
         if ($disk->exists($path)) {
             return $disk->delete($path);
         }
+
         return true;
     }
 
     public function deleteMultiple(array $paths): bool
     {
         $disk = Storage::disk($this->diskName);
+
         return $disk->delete($paths);
     }
 
@@ -96,14 +100,14 @@ class S3StorageDriver implements StorageDriverInterface
         // 优先使用自定义 URL（如 CDN 域名）
         $customUrl = $this->config['url'] ?? '';
         if ($customUrl) {
-            return rtrim($customUrl, '/') . '/' . $path;
+            return rtrim($customUrl, '/').'/'.$path;
         }
 
         // 从 endpoint + bucket 构建
         $endpoint = $this->config['endpoint'] ?? '';
         $bucket = $this->config['bucket'] ?? '';
         if ($endpoint && $bucket) {
-            return rtrim($endpoint, '/') . '/' . $bucket . '/' . $path;
+            return rtrim($endpoint, '/').'/'.$bucket.'/'.$path;
         }
 
         return Storage::disk($this->diskName)->url($path);
@@ -128,6 +132,7 @@ class S3StorageDriver implements StorageDriverInterface
     {
         try {
             Storage::disk($this->diskName)->exists('/');
+
             return true;
         } catch (\Throwable) {
             return false;

@@ -3,14 +3,15 @@
 namespace Modules\Auth\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Modules\Auth\Http\Requests\DepartmentRequest;
 use Modules\Auth\Services\DepartmentService;
 use Modules\Auth\Services\ImportExportService;
-use Illuminate\Http\Request;
 
 class Department extends Controller
 {
     protected $departmentService;
+
     protected $importExportService;
 
     public function __construct(

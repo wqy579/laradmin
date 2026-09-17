@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         // 确保external_id字段存在
-        if (!Schema::hasColumn('products', 'external_id')) {
+        if (! Schema::hasColumn('products', 'external_id')) {
             Schema::table('products', function (Blueprint $table) {
                 $table->string('external_id', 50)->nullable()->after('image')->comment('外部ID');
             });

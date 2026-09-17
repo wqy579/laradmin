@@ -2,7 +2,7 @@
 
 namespace App\Exports;
 
-use Illuminate\Support\Collection;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
@@ -18,7 +18,7 @@ class GenericExport implements FromCollection, WithHeadings
     /**
      * 获取数据集合
      */
-    public function collection(): \Illuminate\Support\Enumerable
+    public function collection(): Enumerable
     {
         return collect($this->data);
     }

@@ -1,6 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\System\Http\Controllers\Admin\Attachment;
+use Modules\System\Http\Controllers\Admin\Config;
+use Modules\System\Http\Controllers\Admin\Dictionary;
+use Modules\System\Http\Controllers\Admin\Log;
+use Modules\System\Http\Controllers\Admin\Notification;
+use Modules\System\Http\Controllers\Admin\ScheduledController;
+use Modules\System\Http\Controllers\Admin\Upload;
 
 // =============================================================================
 // 系统模块（System）路由
@@ -12,91 +19,91 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 系统模块：设置
     Route::prefix('system/setting')->group(function () {
-        Route::get('/', [\Modules\System\Http\Controllers\Admin\Config::class, 'index']);
-        Route::get('/all', [\Modules\System\Http\Controllers\Admin\Config::class, 'all']);
-        Route::get('/tree', [\Modules\System\Http\Controllers\Admin\Config::class, 'tree']);
-        Route::get('/groups', [\Modules\System\Http\Controllers\Admin\Config::class, 'groups']);
-        Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\Config::class, 'show']);
-        Route::post('/', [\Modules\System\Http\Controllers\Admin\Config::class, 'store']);
-        Route::put('/{id}', [\Modules\System\Http\Controllers\Admin\Config::class, 'update']);
-        Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\Config::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\Config::class, 'batchDelete']);
-        Route::post('/batch-status', [\Modules\System\Http\Controllers\Admin\Config::class, 'batchUpdateStatus']);
-        Route::post('/batch-save', [\Modules\System\Http\Controllers\Admin\Config::class, 'batchSave']);
+        Route::get('/', [Config::class, 'index']);
+        Route::get('/all', [Config::class, 'all']);
+        Route::get('/tree', [Config::class, 'tree']);
+        Route::get('/groups', [Config::class, 'groups']);
+        Route::get('/{id}', [Config::class, 'show']);
+        Route::post('/', [Config::class, 'store']);
+        Route::put('/{id}', [Config::class, 'update']);
+        Route::delete('/{id}', [Config::class, 'destroy']);
+        Route::post('/batch-delete', [Config::class, 'batchDelete']);
+        Route::post('/batch-status', [Config::class, 'batchUpdateStatus']);
+        Route::post('/batch-save', [Config::class, 'batchSave']);
     });
     // 系统模块：日志
     Route::prefix('system/log')->group(function () {
-        Route::get('/', [\Modules\System\Http\Controllers\Admin\Log::class, 'index']);
-        Route::get('/statistics', [\Modules\System\Http\Controllers\Admin\Log::class, 'getStatistics']);
-        Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\Log::class, 'show']);
-        Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\Log::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\Log::class, 'batchDelete']);
-        Route::post('/clear', [\Modules\System\Http\Controllers\Admin\Log::class, 'clearLogs']);
+        Route::get('/', [Log::class, 'index']);
+        Route::get('/statistics', [Log::class, 'getStatistics']);
+        Route::get('/{id}', [Log::class, 'show']);
+        Route::delete('/{id}', [Log::class, 'destroy']);
+        Route::post('/batch-delete', [Log::class, 'batchDelete']);
+        Route::post('/clear', [Log::class, 'clearLogs']);
     });
     // 系统模块：字典
     Route::prefix('system/dictionary')->group(function () {
-        Route::get('/', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'index']);
-        Route::get('/all', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'all']);
-        Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'show']);
-        Route::post('/', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'store']);
-        Route::put('/{id}', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'update']);
-        Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'batchDelete']);
-        Route::post('/batch-status', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'batchUpdateStatus']);
+        Route::get('/', [Dictionary::class, 'index']);
+        Route::get('/all', [Dictionary::class, 'all']);
+        Route::get('/{id}', [Dictionary::class, 'show']);
+        Route::post('/', [Dictionary::class, 'store']);
+        Route::put('/{id}', [Dictionary::class, 'update']);
+        Route::delete('/{id}', [Dictionary::class, 'destroy']);
+        Route::post('/batch-delete', [Dictionary::class, 'batchDelete']);
+        Route::post('/batch-status', [Dictionary::class, 'batchUpdateStatus']);
     });
     // 系统模块：字典项
     Route::prefix('system/dictionary-item')->group(function () {
-        Route::get('/', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'getItemsList']);
-        Route::get('/all', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'getAllItems']);
-        Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'showItem']);
-        Route::post('/', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'storeItem']);
-        Route::put('/{id}', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'updateItem']);
-        Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'destroyItem']);
-        Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'batchDeleteItems']);
-        Route::post('/batch-status', [\Modules\System\Http\Controllers\Admin\Dictionary::class, 'batchUpdateItemsStatus']);
+        Route::get('/', [Dictionary::class, 'getItemsList']);
+        Route::get('/all', [Dictionary::class, 'getAllItems']);
+        Route::get('/{id}', [Dictionary::class, 'showItem']);
+        Route::post('/', [Dictionary::class, 'storeItem']);
+        Route::put('/{id}', [Dictionary::class, 'updateItem']);
+        Route::delete('/{id}', [Dictionary::class, 'destroyItem']);
+        Route::post('/batch-delete', [Dictionary::class, 'batchDeleteItems']);
+        Route::post('/batch-status', [Dictionary::class, 'batchUpdateItemsStatus']);
     });
     // 系统模块：定时调度
     Route::prefix('system/scheduled')->group(function () {
-        Route::get('/', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'index']);
-        Route::get('/all', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'all']);
-        Route::get('/statistics', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'statistics']);
-        Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'show']);
-        Route::post('/', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'store']);
-        Route::put('/{id}', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'update']);
-        Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'batchDelete']);
-        Route::post('/{id}/start', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'start']);
-        Route::post('/{id}/pause', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'pause']);
-        Route::post('/{id}/resume', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'resume']);
-        Route::post('/{id}/stop', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'stop']);
-        Route::post('/{id}/run', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'runNow']);
-        Route::get('/{id}/logs', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'executionLogs']);
-        Route::delete('/{id}/logs', [\Modules\System\Http\Controllers\Admin\ScheduledController::class, 'clearLogs']);
+        Route::get('/', [ScheduledController::class, 'index']);
+        Route::get('/all', [ScheduledController::class, 'all']);
+        Route::get('/statistics', [ScheduledController::class, 'statistics']);
+        Route::get('/{id}', [ScheduledController::class, 'show']);
+        Route::post('/', [ScheduledController::class, 'store']);
+        Route::put('/{id}', [ScheduledController::class, 'update']);
+        Route::delete('/{id}', [ScheduledController::class, 'destroy']);
+        Route::post('/batch-delete', [ScheduledController::class, 'batchDelete']);
+        Route::post('/{id}/start', [ScheduledController::class, 'start']);
+        Route::post('/{id}/pause', [ScheduledController::class, 'pause']);
+        Route::post('/{id}/resume', [ScheduledController::class, 'resume']);
+        Route::post('/{id}/stop', [ScheduledController::class, 'stop']);
+        Route::post('/{id}/run', [ScheduledController::class, 'runNow']);
+        Route::get('/{id}/logs', [ScheduledController::class, 'executionLogs']);
+        Route::delete('/{id}/logs', [ScheduledController::class, 'clearLogs']);
     });
     // 系统模块：附件
     Route::prefix('system/attachment')->group(function () {
-        Route::get('/', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'index']);
-        Route::get('/directories', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'directories']);
-        Route::get('/statistics', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'statistics']);
-        Route::get('/type-distribution', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'typeDistribution']);
-        Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'show']);
-        Route::post('/get-by-ids', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'getByIds']);
-        Route::put('/{id}', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'update']);
-        Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'destroy']);
-        Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\Attachment::class, 'batchDelete']);
+        Route::get('/', [Attachment::class, 'index']);
+        Route::get('/directories', [Attachment::class, 'directories']);
+        Route::get('/statistics', [Attachment::class, 'statistics']);
+        Route::get('/type-distribution', [Attachment::class, 'typeDistribution']);
+        Route::get('/{id}', [Attachment::class, 'show']);
+        Route::post('/get-by-ids', [Attachment::class, 'getByIds']);
+        Route::put('/{id}', [Attachment::class, 'update']);
+        Route::delete('/{id}', [Attachment::class, 'destroy']);
+        Route::post('/batch-delete', [Attachment::class, 'batchDelete']);
     });
     // 系统模块：上传
     Route::prefix('system/upload')->group(function () {
-        Route::post('/', [\Modules\System\Http\Controllers\Admin\Upload::class, 'upload']);
-        Route::post('/multiple', [\Modules\System\Http\Controllers\Admin\Upload::class, 'uploadMultiple']);
-        Route::post('/base64', [\Modules\System\Http\Controllers\Admin\Upload::class, 'uploadBase64']);
-        Route::post('/delete', [\Modules\System\Http\Controllers\Admin\Upload::class, 'delete']);
+        Route::post('/', [Upload::class, 'upload']);
+        Route::post('/multiple', [Upload::class, 'uploadMultiple']);
+        Route::post('/base64', [Upload::class, 'uploadBase64']);
+        Route::post('/delete', [Upload::class, 'delete']);
         // 分片上传
-        Route::post('/chunk/init', [\Modules\System\Http\Controllers\Admin\Upload::class, 'initChunk']);
-        Route::post('/chunk/upload', [\Modules\System\Http\Controllers\Admin\Upload::class, 'uploadChunk']);
-        Route::post('/chunk/merge', [\Modules\System\Http\Controllers\Admin\Upload::class, 'mergeChunks']);
-        Route::get('/chunk/uploaded', [\Modules\System\Http\Controllers\Admin\Upload::class, 'getUploadedChunks']);
-        Route::post('/chunk/cancel', [\Modules\System\Http\Controllers\Admin\Upload::class, 'cancelChunk']);
+        Route::post('/chunk/init', [Upload::class, 'initChunk']);
+        Route::post('/chunk/upload', [Upload::class, 'uploadChunk']);
+        Route::post('/chunk/merge', [Upload::class, 'mergeChunks']);
+        Route::get('/chunk/uploaded', [Upload::class, 'getUploadedChunks']);
+        Route::post('/chunk/cancel', [Upload::class, 'cancelChunk']);
     });
     // 系统模块：站内通知
     //
@@ -107,17 +114,16 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 先不暴露（retryUnsent 已有 console 命令与 notifications:retry-unsent 调度）。
     // 注意 /{id} 必须排在 /unread 等固定路径之后，否则 GET /unread 会被当成 id。
     Route::prefix('system/notification')->group(function () {
-        Route::get('/', [\Modules\System\Http\Controllers\Admin\Notification::class, 'index']);
-        Route::get('/unread', [\Modules\System\Http\Controllers\Admin\Notification::class, 'unread']);
-        Route::get('/unread-count', [\Modules\System\Http\Controllers\Admin\Notification::class, 'unreadCount']);
-        Route::get('/statistics', [\Modules\System\Http\Controllers\Admin\Notification::class, 'statistics']);
-        Route::get('/{id}', [\Modules\System\Http\Controllers\Admin\Notification::class, 'show']);
-        Route::post('/{id}/read', [\Modules\System\Http\Controllers\Admin\Notification::class, 'markAsRead']);
-        Route::post('/batch-read', [\Modules\System\Http\Controllers\Admin\Notification::class, 'batchMarkAsRead']);
-        Route::post('/read-all', [\Modules\System\Http\Controllers\Admin\Notification::class, 'markAllAsRead']);
-        Route::post('/batch-delete', [\Modules\System\Http\Controllers\Admin\Notification::class, 'batchDelete']);
-        Route::post('/clear-read', [\Modules\System\Http\Controllers\Admin\Notification::class, 'clearRead']);
-        Route::delete('/{id}', [\Modules\System\Http\Controllers\Admin\Notification::class, 'destroy']);
+        Route::get('/', [Notification::class, 'index']);
+        Route::get('/unread', [Notification::class, 'unread']);
+        Route::get('/unread-count', [Notification::class, 'unreadCount']);
+        Route::get('/statistics', [Notification::class, 'statistics']);
+        Route::get('/{id}', [Notification::class, 'show']);
+        Route::post('/{id}/read', [Notification::class, 'markAsRead']);
+        Route::post('/batch-read', [Notification::class, 'batchMarkAsRead']);
+        Route::post('/read-all', [Notification::class, 'markAllAsRead']);
+        Route::post('/batch-delete', [Notification::class, 'batchDelete']);
+        Route::post('/clear-read', [Notification::class, 'clearRead']);
+        Route::delete('/{id}', [Notification::class, 'destroy']);
     });
 });
-

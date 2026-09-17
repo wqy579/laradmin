@@ -5,7 +5,6 @@ namespace Modules\System\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Modules\System\Http\Requests\UploadRequest;
 use Modules\System\Services\UploadService;
-use Illuminate\Http\Request;
 
 class Upload extends Controller
 {
@@ -30,6 +29,7 @@ class Upload extends Controller
             ];
 
             $result = $this->uploadService->upload($file, $directory, $options);
+
             return $this->success($result, '上传成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -49,6 +49,7 @@ class Upload extends Controller
             ];
 
             $results = $this->uploadService->uploadMultiple($files, $directory, $options);
+
             return $this->success($results, '上传成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -69,6 +70,7 @@ class Upload extends Controller
             ];
 
             $result = $this->uploadService->uploadBase64($base64, $directory, $fileName, $options);
+
             return $this->success($result, '上传成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -84,6 +86,7 @@ class Upload extends Controller
             $path = $request->input('path');
             $driver = $request->input('driver');
             $this->uploadService->deleteFile($path, $driver);
+
             return $this->success(null, '删除成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -101,6 +104,7 @@ class Upload extends Controller
             foreach ($paths as $path) {
                 $this->uploadService->deleteFile($path, $driver);
             }
+
             return $this->success(null, '批量删除成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -163,6 +167,7 @@ class Upload extends Controller
     {
         try {
             $result = $this->uploadService->mergeChunks($request->input('upload_id'));
+
             return $this->success($result, '文件合并成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -176,6 +181,7 @@ class Upload extends Controller
     {
         try {
             $result = $this->uploadService->getUploadedChunks($request->input('upload_id'));
+
             return $this->success($result);
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -189,6 +195,7 @@ class Upload extends Controller
     {
         try {
             $this->uploadService->cancelChunkUpload($request->input('upload_id'));
+
             return $this->success(null, '已取消上传');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());

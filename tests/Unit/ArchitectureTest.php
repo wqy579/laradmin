@@ -38,11 +38,12 @@ class ArchitectureTest extends TestCase
         'Business->Stock',  // BusinessDataSeeder 写商品/单位/仓库/车辆主数据
         'Business->Order',  // BusinessDataSeeder 写客户/供应商/线路主数据
         'Order->Stock',     // 订单/退货/发货引用 Stock 的商品与仓库主数据表，
-                            // 两侧同库同事务，抽契约要引入跨事务一致性负担，
-                            // 收益低于耦合成本，保留共享主数据引用
+        // 两侧同库同事务，抽契约要引入跨事务一致性负担，
+        // 收益低于耦合成本，保留共享主数据引用
         'Order->Business',  // 拜访单登记拜访人，引用 Business 的员工表
         'Order->Auth',      // 订单审批/下单记录发起人，引用 Auth 的用户表
     ];
+
     /**
      * 扫描目录下所有 PHP 文件，返回引用了 Modules\<module>\ 的文件路径
      *
@@ -116,12 +117,12 @@ class ArchitectureTest extends TestCase
             $content = $this->stripComments((string) file_get_contents($file->getPathname()));
 
             foreach ($modules as $from) {
-                if (!str_starts_with($path, "modules/$from/")) {
+                if (! str_starts_with($path, "modules/$from/")) {
                     continue;
                 }
 
                 foreach ($modules as $to) {
-                    if ($from === $to || !str_contains($content, "Modules\\$to\\")) {
+                    if ($from === $to || ! str_contains($content, "Modules\\$to\\")) {
                         continue;
                     }
 
@@ -182,7 +183,7 @@ class ArchitectureTest extends TestCase
             .'当前边：'.implode(', ', array_keys($edges))
             .'；允许：'.implode(', ', self::ALLOWED_MODULE_EDGES)
             ."\n有模块引用了另一模块，先问一句：能不能改走 App\Contracts 里的内核契约？"
-            ."不能时在 ALLOWED_MODULE_EDGES 里登记这条边并写明理由。"
+            .'不能时在 ALLOWED_MODULE_EDGES 里登记这条边并写明理由。'
         );
     }
 
@@ -208,10 +209,10 @@ class ArchitectureTest extends TestCase
             $bad,
             'app/ 依赖了模块代码（依赖倒置）。共享内核不得 import Modules\\：'
             ."\n".implode("\n", $bad)
-            ."模块自有中间件请放到 modules/<M>/Http/Middleware/；"
-            ."中间件别名仍统一在 bootstrap/app.php 的 middlewareAliases() 里注册"
-            ."（别名表是全局中间件词汇表，属配置而非代码耦合）。"
-            ."config/ 与 bootstrap/ 里指向模块类的配置例外已逐处登记，见 docs/MODULARIZATION.md 第三节。"
+            .'模块自有中间件请放到 modules/<M>/Http/Middleware/；'
+            .'中间件别名仍统一在 bootstrap/app.php 的 middlewareAliases() 里注册'
+            .'（别名表是全局中间件词汇表，属配置而非代码耦合）。'
+            .'config/ 与 bootstrap/ 里指向模块类的配置例外已逐处登记，见 docs/MODULARIZATION.md 第三节。'
         );
     }
 
@@ -238,12 +239,12 @@ class ArchitectureTest extends TestCase
         foreach ($modules as $module) {
             foreach (['routes', 'database/migrations'] as $sub) {
                 $path = base_path("modules/$module/$sub");
-                if (!is_dir($path) || empty(glob("$path/*.php"))) {
+                if (! is_dir($path) || empty(glob("$path/*.php"))) {
                     $missing[] = "modules/$module/$sub";
                 }
             }
 
-            if (!is_dir(base_path("modules/$module/tests"))) {
+            if (! is_dir(base_path("modules/$module/tests"))) {
                 $missing[] = "modules/$module/tests";
             }
         }
@@ -297,8 +298,9 @@ class ArchitectureTest extends TestCase
 
             $fqcn = ($ns !== '' ? $ns.'\\' : '').$cls;
 
-            if (!class_exists($fqcn)) {
+            if (! class_exists($fqcn)) {
                 $bad[] = "$fqcn  →  无法解析（namespace 与文件路径不符，或 composer.json 缺映射）";
+
                 continue;
             }
 
@@ -306,7 +308,7 @@ class ArchitectureTest extends TestCase
             if ($resolved !== $file->getPathname()) {
                 $bad[] = "$fqcn  →  解析到 "
                     .str_replace(base_path().'/', '', $resolved)
-                    ."，不是它自己所在的 "
+                    .'，不是它自己所在的 '
                     .str_replace(base_path().'/', '', $file->getPathname());
             }
         }
@@ -316,7 +318,7 @@ class ArchitectureTest extends TestCase
             $bad,
             '以下测试类的声明命名空间与 composer 映射不一致：'.implode("\n", $bad)
             ."\n模块测试的命名空间必须是 Tests\\<M>\\Feature / Tests\\<M>\\Unit，"
-            ."这样 tests/ 与 modules/<M>/tests/ 两处都不会解析到同一个类名。"
+            .'这样 tests/ 与 modules/<M>/tests/ 两处都不会解析到同一个类名。'
         );
     }
 
@@ -341,14 +343,14 @@ class ArchitectureTest extends TestCase
 
         $missing = array_values(array_filter(
             $declared,
-            fn ($rel) => !is_dir(base_path($rel))
+            fn ($rel) => ! is_dir(base_path($rel))
         ));
 
         $this->assertSame(
             [],
             $missing,
             'phpunit.xml 声明了不存在的目录：'.implode(', ', $missing)
-            ."（PHPUnit 遇到声明的目录缺失会中止整个 run，不是跳过该 testsuite。"
+            .'（PHPUnit 遇到声明的目录缺失会中止整个 run，不是跳过该 testsuite。'
             .'空目录 git 不跟踪，放一个 .gitkeep 占位。）'
         );
     }

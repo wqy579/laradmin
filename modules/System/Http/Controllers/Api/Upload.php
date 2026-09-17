@@ -5,7 +5,6 @@ namespace Modules\System\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Modules\System\Http\Requests\UploadRequest;
 use Modules\System\Services\UploadService;
-use Illuminate\Http\Request;
 
 class Upload extends Controller
 {
@@ -25,6 +24,7 @@ class Upload extends Controller
             $file = $request->file('file');
             $directory = $request->input('directory', 'uploads');
             $result = $this->uploadService->upload($file, $directory);
+
             return $this->success($result, '上传成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -41,6 +41,7 @@ class Upload extends Controller
             $directory = $request->input('directory', 'uploads');
 
             $results = $this->uploadService->uploadMultiple($files, $directory);
+
             return $this->success($results, '上传成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());
@@ -58,6 +59,7 @@ class Upload extends Controller
             $fileName = $request->input('file_name');
 
             $result = $this->uploadService->uploadBase64($base64, $directory, $fileName);
+
             return $this->success($result, '上传成功');
         } catch (\Exception $e) {
             return $this->error($e->getMessage());

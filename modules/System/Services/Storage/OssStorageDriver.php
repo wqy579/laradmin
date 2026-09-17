@@ -44,7 +44,7 @@ class OssStorageDriver extends S3StorageDriver
     {
         $customUrl = $this->config['url'] ?? '';
         if ($customUrl) {
-            return rtrim($customUrl, '/') . '/' . $path;
+            return rtrim($customUrl, '/').'/'.$path;
         }
 
         $endpoint = $this->config['endpoint'] ?? env('OSS_ENDPOINT', '');
@@ -53,7 +53,8 @@ class OssStorageDriver extends S3StorageDriver
         if ($endpoint && $bucket) {
             // 去掉协议前缀，避免 https://bucket.https://endpoint 的问题
             $host = preg_replace('#^https?://#', '', $endpoint);
-            return 'https://' . $bucket . '.' . $host . '/' . $path;
+
+            return 'https://'.$bucket.'.'.$host.'/'.$path;
         }
 
         return Storage::disk($this->diskName)->url($path);
@@ -68,6 +69,7 @@ class OssStorageDriver extends S3StorageDriver
     {
         try {
             Storage::disk($this->diskName)->files();
+
             return true;
         } catch (\Throwable) {
             return false;

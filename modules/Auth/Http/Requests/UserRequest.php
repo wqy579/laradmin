@@ -23,10 +23,10 @@ class UserRequest extends BaseFormRequest
                 'status' => 'nullable|integer|in:0,1',
             ],
             'update' => [
-                'username' => 'nullable|string|max:50|unique:auth_user,username,' . $this->route('id'),
+                'username' => 'nullable|string|max:50|unique:auth_user,username,'.$this->route('id'),
                 'password' => 'nullable|string|min:6',
                 'real_name' => 'nullable|string|max:50',
-                'email' => 'nullable|email|unique:auth_user,email,' . $this->route('id'),
+                'email' => 'nullable|email|unique:auth_user,email,'.$this->route('id'),
                 'phone' => 'nullable|string|max:20',
                 'avatar' => 'nullable|string|max:500',
                 'department_id' => 'nullable|integer|exists:auth_departments,id',

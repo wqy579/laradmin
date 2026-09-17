@@ -3,8 +3,8 @@
 namespace Modules\System\Http\Requests;
 
 use App\Http\Requests\BaseFormRequest;
-use Modules\System\Models\DictionaryItem;
 use Modules\System\Models\Dictionary;
+use Modules\System\Models\DictionaryItem;
 
 class NotificationRequest extends BaseFormRequest
 {
@@ -36,8 +36,8 @@ class NotificationRequest extends BaseFormRequest
             'user_ids.*' => 'integer',
             'title' => 'required|string|max:200',
             'content' => 'required|string',
-            'type' => 'required|string|in:' . implode(',', $typeValues),
-            'category' => 'nullable|string|in:' . implode(',', $categoryValues),
+            'type' => 'required|string|in:'.implode(',', $typeValues),
+            'category' => 'nullable|string|in:'.implode(',', $categoryValues),
             'data' => 'nullable|array',
             'action_type' => 'nullable|string|in:link,modal,none',
             'action_data' => 'nullable|array',
@@ -47,7 +47,7 @@ class NotificationRequest extends BaseFormRequest
     protected function getDictionaryValues(string $code): array
     {
         $dictionary = Dictionary::where('code', $code)->first();
-        if (!$dictionary) {
+        if (! $dictionary) {
             // 回退到模型常量
             return $code === 'notification_type'
                 ? ['info', 'success', 'warning', 'error', 'task', 'system']

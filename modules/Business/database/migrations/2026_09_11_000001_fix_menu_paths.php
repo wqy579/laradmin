@@ -19,7 +19,7 @@ return new class extends Migration
             ['name' => 'auth.user',         'path' => '/auth/user',          'new_path' => '/auth/users'],
             // 业务模块：单数→复数 / 命名调整
             ['name' => 'data.customer',     'path' => '/business/customer',  'new_path' => '/business/customers'],
-            ['name' => 'price.cost',        'path' => '/business/cost-prices','new_path' => '/business/cost-price'],
+            ['name' => 'price.cost',        'path' => '/business/cost-prices', 'new_path' => '/business/cost-price'],
             ['name' => 'finance.expense',   'path' => '/business/expenses',  'new_path' => '/business/expense'],
             ['name' => 'inventory.stock-check', 'path' => '/business/stock-check', 'new_path' => '/business/stock-monitor'],
             // 拜访管理：根路径指向logs

@@ -39,7 +39,7 @@ return new class extends Migration
     public function up(): void
     {
         foreach (self::INDEXES as $table => $columns) {
-            if (!Schema::hasTable($table)) {
+            if (! Schema::hasTable($table)) {
                 continue;
             }
 
@@ -59,13 +59,13 @@ return new class extends Migration
     public function down(): void
     {
         foreach (self::INDEXES as $table => $columns) {
-            if (!Schema::hasTable($table)) {
+            if (! Schema::hasTable($table)) {
                 continue;
             }
 
             foreach (array_reverse($columns) as $cols) {
                 $name = $this->indexName($table, $cols);
-                if (!Schema::hasIndex($table, $name)) {
+                if (! Schema::hasIndex($table, $name)) {
                     continue;
                 }
 

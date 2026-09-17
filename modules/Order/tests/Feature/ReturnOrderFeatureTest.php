@@ -2,8 +2,8 @@
 
 namespace Tests\Order\Feature;
 
-use Modules\Stock\Models\Stock;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Stock\Models\Stock;
 use Tests\TestCase;
 
 /**
@@ -21,6 +21,7 @@ class ReturnOrderFeatureTest extends TestCase
     use RefreshDatabase;
 
     private int $productId;
+
     private int $adminId;
 
     protected function setUp(): void

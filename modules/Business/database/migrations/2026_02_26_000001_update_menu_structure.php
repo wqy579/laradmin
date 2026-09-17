@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
@@ -226,7 +225,7 @@ return new class extends Migration
             ['name' => 'miniapp.setting'],
             [
                 'title' => '小程序设置',
-                'parent_id' => (int)DB::table('auth_permission')->where('name', 'miniapp')->value('id'),
+                'parent_id' => (int) DB::table('auth_permission')->where('name', 'miniapp')->value('id'),
                 'path' => '/business/mini-program-settings',
                 'component' => null,
                 'sort' => 1,

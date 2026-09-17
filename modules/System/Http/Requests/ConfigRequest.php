@@ -74,7 +74,7 @@ class ConfigRequest extends BaseFormRequest
         }
 
         return [
-            'key' => 'sometimes|required|string|max:100|unique:system_setting,key,' . $id,
+            'key' => 'sometimes|required|string|max:100|unique:system_setting,key,'.$id,
             'name' => 'sometimes|required|string|max:100',
             'type' => 'sometimes|required|string|in:string,text,number,boolean,select,radio,checkbox,file,json',
             'parent_id' => 'nullable|integer|exists:system_setting,id',

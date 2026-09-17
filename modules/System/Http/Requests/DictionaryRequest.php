@@ -20,7 +20,7 @@ class DictionaryRequest extends BaseFormRequest
             ],
             'update' => [
                 'name' => 'sometimes|required|string|max:100',
-                'code' => 'sometimes|required|string|max:50|unique:system_dictionary,code,' . $this->route('id'),
+                'code' => 'sometimes|required|string|max:50|unique:system_dictionary,code,'.$this->route('id'),
                 'description' => 'nullable|string',
                 'sort' => 'nullable|integer|min:0',
                 'status' => 'nullable|boolean',

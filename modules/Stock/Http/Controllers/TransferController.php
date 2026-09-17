@@ -3,11 +3,11 @@
 namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Stock\Models\Transfer;
-use Modules\Stock\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Stock\Models\Transfer;
+use Modules\Stock\Models\Warehouse;
 
 class TransferController extends Controller
 {
@@ -15,7 +15,7 @@ class TransferController extends Controller
     {
         $query = Transfer::with(['fromWarehouse', 'toWarehouse', 'items.product']);
         if ($request->filled('keyword')) {
-            $query->where('order_no', 'like', '%' . $request->keyword . '%');
+            $query->where('order_no', 'like', '%'.$request->keyword.'%');
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -23,12 +23,14 @@ class TransferController extends Controller
         $query->orderBy('id', 'desc');
         $transfers = $query->paginate($request->integer('per_page', 20));
         $warehouses = Warehouse::where('is_active', true)->get();
+
         return response()->json(['data' => $transfers, 'warehouses' => $warehouses]);
     }
 
     public function show(Transfer $transfer)
     {
         $transfer->load(['fromWarehouse', 'toWarehouse', 'items.product']);
+
         return response()->json(['data' => $transfer]);
     }
 
@@ -43,7 +45,7 @@ class TransferController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
         ]);
-        $orderNo = 'TF' . date('YmdHis') . strtoupper(Str::random(4));
+        $orderNo = 'TF'.date('YmdHis').strtoupper(Str::random(4));
         $totalAmount = 0;
         $totalQty = 0;
         DB::beginTransaction();
@@ -64,10 +66,12 @@ class TransferController extends Controller
             }
             $transfer->update(['total_amount' => $totalAmount, 'total_qty' => $totalQty]);
             DB::commit();
+
             return response()->json(['data' => $transfer->fresh(['items.product']), 'message' => '创建成功']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '创建失败: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => '创建失败: '.$e->getMessage()], 500);
         }
     }
 
@@ -100,10 +104,12 @@ class TransferController extends Controller
             }
             $transfer->update(['total_amount' => $totalAmount, 'total_qty' => $totalQty]);
             DB::commit();
+
             return response()->json(['data' => $transfer->fresh(['items.product']), 'message' => '更新成功']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '更新失败: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => '更新失败: '.$e->getMessage()], 500);
         }
     }
 
@@ -113,6 +119,7 @@ class TransferController extends Controller
             return response()->json(['message' => '只有草稿状态可以删除'], 422);
         }
         $transfer->delete();
+
         return response()->json(['message' => '删除成功']);
     }
 
@@ -122,6 +129,7 @@ class TransferController extends Controller
             return response()->json(['message' => '只有草稿状态的调拨单可以审批'], 422);
         }
         $transfer->update(['status' => 'approved']);
+
         return response()->json(['message' => '审批成功']);
     }
 
@@ -143,6 +151,7 @@ class TransferController extends Controller
                 $available = (int) ($source->quantity ?? 0);
                 if ($available < $item->quantity) {
                     DB::rollBack();
+
                     return response()->json([
                         'message' => "库存不足：源仓库该商品现有 {$available} 件，无法调拨 {$item->quantity} 件",
                     ], 422);
@@ -173,10 +182,12 @@ class TransferController extends Controller
             }
             $transfer->update(['status' => 'completed']);
             DB::commit();
+
             return response()->json(['message' => '调拨成功']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['message' => '调拨失败: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => '调拨失败: '.$e->getMessage()], 500);
         }
     }
 
@@ -189,6 +200,7 @@ class TransferController extends Controller
             'approved' => Transfer::where('status', 'approved')->count(),
             'completed' => Transfer::where('status', 'completed')->count(),
         ];
+
         return response()->json(['data' => $stats]);
     }
 }

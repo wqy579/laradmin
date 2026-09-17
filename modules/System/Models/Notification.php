@@ -6,7 +6,7 @@ use App\Contracts\TaskNotification;
 use App\Traits\ModelTrait;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Auth\Models\User;
 
 class Notification extends Model
 {
@@ -50,21 +50,33 @@ class Notification extends Model
      * 唯一来源放在契约上，这里不重复写字面量，避免两处漂移。
      */
     const TYPE_INFO = TaskNotification::TYPE_INFO;
+
     const TYPE_SUCCESS = TaskNotification::TYPE_SUCCESS;
+
     const TYPE_WARNING = TaskNotification::TYPE_WARNING;
+
     const TYPE_ERROR = TaskNotification::TYPE_ERROR;
+
     const TYPE_TASK = TaskNotification::TYPE_TASK;
+
     const TYPE_SYSTEM = TaskNotification::TYPE_SYSTEM;
 
     const CATEGORY_SYSTEM = TaskNotification::CATEGORY_SYSTEM;
+
     const CATEGORY_TASK = TaskNotification::CATEGORY_TASK;
+
     const CATEGORY_MESSAGE = TaskNotification::CATEGORY_MESSAGE;
+
     const CATEGORY_REMINDER = TaskNotification::CATEGORY_REMINDER;
+
     const CATEGORY_ANNOUNCEMENT = TaskNotification::CATEGORY_ANNOUNCEMENT;
 
     const ACTION_LINK = TaskNotification::ACTION_LINK;
+
     const ACTION_DOWNLOAD = TaskNotification::ACTION_DOWNLOAD;
+
     const ACTION_MODAL = TaskNotification::ACTION_MODAL;
+
     const ACTION_NONE = TaskNotification::ACTION_NONE;
 
     /**
@@ -76,8 +88,8 @@ class Notification extends Model
         $userIds = $this->user_ids ?? [];
 
         // 获取部门下的所有用户
-        if (!empty($this->department_ids)) {
-            $departmentUsers = \Modules\Auth\Models\User::whereIn('department_id', $this->department_ids)
+        if (! empty($this->department_ids)) {
+            $departmentUsers = User::whereIn('department_id', $this->department_ids)
                 ->where('status', 1)
                 ->pluck('id')
                 ->toArray();
@@ -98,8 +110,8 @@ class Notification extends Model
         }
 
         // 检查部门用户
-        if (!empty($this->department_ids)) {
-            $user = \Modules\Auth\Models\User::find($userId);
+        if (! empty($this->department_ids)) {
+            $user = User::find($userId);
             if ($user && in_array($user->department_id, $this->department_ids)) {
                 return true;
             }
@@ -115,6 +127,7 @@ class Notification extends Model
     {
         $this->is_read = true;
         $this->read_at = now();
+
         return $this->save();
     }
 
@@ -125,6 +138,7 @@ class Notification extends Model
     {
         $this->is_read = false;
         $this->read_at = null;
+
         return $this->save();
     }
 
@@ -135,6 +149,7 @@ class Notification extends Model
     {
         $this->sent_via_websocket = true;
         $this->sent_at = now();
+
         return $this->save();
     }
 
@@ -144,6 +159,7 @@ class Notification extends Model
     public function incrementRetry(): bool
     {
         $this->increment('retry_count');
+
         return true;
     }
 

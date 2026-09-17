@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class DictionaryItem extends Model
 {
     use ModelTrait;
+
     protected $table = 'system_dictionary_item';
 
     protected $fillable = [
