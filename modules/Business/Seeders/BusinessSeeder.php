@@ -89,6 +89,10 @@ class BusinessSeeder extends Seeder
         // db:seed / 换库 / 从备份恢复都会丢掉它。2026-09-16 线上就因为这个
         // 丢过一次（见 2026_09_16_000001_restore_inventory_stock_check_menu）。
         //
+        // 菜单路径与路由前缀严格对应：path 是前端路由 path，component 是
+        // ../views/{component}/index.vue。改 URL 必须前后端同步，
+        // 回归由 tests/Feature/InventoryMenuTest.php 的三条用例兜底。
+        //
         // scrap / inventory-check 没有任何后端路由和前端 view，点了是 404，
         // 按 status=0 入库；页面补上后改回 1 即可。
         $inventoryMenus = [
@@ -100,7 +104,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'inventory.scrap', 'title' => '报废管理', 'parent' => 'inventory', 'path' => '/business/scrap', 'sort' => 6, 'status' => 0],
             ['name' => 'inventory.check', 'title' => '盘点管理', 'parent' => 'inventory', 'path' => '/business/inventory-check', 'sort' => 7, 'status' => 0],
             ['name' => 'inventory.query', 'title' => '库存查询', 'parent' => 'inventory', 'path' => '/business/stock', 'component' => 'business/stock/index', 'sort' => 8],
-            ['name' => 'inventory.stock-check', 'title' => '库存核对', 'parent' => 'inventory', 'path' => '/business/liankai-stock-check', 'component' => 'business/liankai-stock-check/index', 'sort' => 9],
+            ['name' => 'inventory.stock-check', 'title' => '库存核对', 'parent' => 'inventory', 'path' => '/business/stock-check', 'component' => 'business/stock-check/index', 'sort' => 9],
         ];
 
         foreach ($inventoryMenus as $menu) {

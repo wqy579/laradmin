@@ -54,7 +54,7 @@ class MigrationSmokeTest extends TestCase
             'units', 'product_categories', 'products', 'warehouses', 'customers', 'suppliers',
             'vehicles', 'routes', 'route_customers', 'employees', 'attendances', 'visit_logs',
             // 库存
-            'stocks', 'stocks_history', 'stock_snapshots', 'liankai_stock_checks', 'liankai_stock_change_logs',
+            'stocks', 'stocks_history', 'stock_snapshots',
             // 交易单据
             'sales_orders', 'sales_order_items', 'purchase_orders', 'purchase_order_items',
             'stock_ins', 'stock_in_items', 'stock_outs', 'stock_out_items',

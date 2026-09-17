@@ -253,7 +253,7 @@ async function fetchData() {
 				params[k] = searchForm[k]
 			}
 		})
-		const res = await businessApi.liankaiStockCheck.list.get(params)
+		const res = await businessApi.stockCheck.list.get(params)
 		const d = res.data || {}
 		data.value = (d.list || []).map(item => ({ ...item }))
 		total.value = d.total || 0

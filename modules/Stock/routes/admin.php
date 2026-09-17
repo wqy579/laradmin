@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 // 库存模块（Stock）路由
 //
 // 领域边界：商品档案 / 单位 / 仓库 / 车辆 / 库存查询 / 出入库 / 调拨 /
-//           成本价格 / 连凯库存监控与核对
+//           成本价格 / 库存核对与监控
 //
 // 由 bootstrap/app.php 统一套内核信封（api + stock.snapshot + /admin 前缀 + admin. 命名），
 // 本文件只声明 Stock 模块自己的路由。
@@ -41,7 +41,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::put('/{warehouse}', [\Modules\Stock\Http\Controllers\WarehouseController::class, 'update']);
         Route::delete('/{warehouse}', [\Modules\Stock\Http\Controllers\WarehouseController::class, 'destroy']);
     });
-    // 车辆（仅连凯库存核对引用，随库存模块归属）
+    // 车辆（订单发货/销售单引用，随库存模块归属）
     Route::prefix('business/vehicle')->group(function () {
         Route::get('/', [\Modules\Stock\Http\Controllers\VehicleController::class, 'index']);
         Route::get('/{vehicle}', [\Modules\Stock\Http\Controllers\VehicleController::class, 'show']);
@@ -68,11 +68,9 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/batch', [\Modules\Stock\Http\Controllers\CostPriceController::class, 'batchUpdate']);
         Route::put('/{product}', [\Modules\Stock\Http\Controllers\CostPriceController::class, 'update']);
     });
-    // 连凯库存监控（监控库存变动）
-    Route::get('business/liankai-stock-monitor', [\Modules\Stock\Http\Controllers\LiankaiStockCheckController::class, 'monitor']);
-    Route::get('business/liankai-stock-check', [\Modules\Stock\Http\Controllers\LiankaiStockCheckController::class, 'index']);
-    Route::post('business/liankai-stock-check/sync', [\Modules\Stock\Http\Controllers\LiankaiStockCheckController::class, 'sync']);
-    Route::post('business/liankai-stock-monitor/sync', [\Modules\Stock\Http\Controllers\LiankaiStockCheckController::class, 'sync']);
+    // 库存核对与监控
+    Route::get('business/stock-monitor', [\Modules\Stock\Http\Controllers\StockCheckController::class, 'monitor']);
+    Route::get('business/stock-check', [\Modules\Stock\Http\Controllers\StockCheckController::class, 'index']);
     // 库存查询
     Route::prefix('business/stock')->group(function () {
         Route::get('/', [\Modules\Stock\Http\Controllers\StockController::class, 'index']);

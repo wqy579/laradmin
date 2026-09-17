@@ -9,7 +9,7 @@ return new class extends Migration
     {
         // 删除所有库存监控相关的重复菜单，只保留 inventory.query
         $menusToDelete = [
-            'inventory.liankai-stock-check',
+            'inventory.stock-check',
             'inventory.monitor',
         ];
 
@@ -24,7 +24,7 @@ return new class extends Migration
             ->where('name', 'inventory.query')
             ->update([
                 'title' => '库存监控',
-                'path' => '/business/liankai-stock-monitor',
+                'path' => '/business/stock-monitor',
                 'updated_at' => now(),
             ]);
     }
@@ -39,17 +39,17 @@ return new class extends Migration
                 'path' => '/business/stock',
             ]);
 
-        // 恢复 inventory.liankai-stock-check
+        // 恢复 inventory.stock-check
         $inventoryId = DB::table('auth_permission')->where('name', 'inventory')->value('id');
         if ($inventoryId) {
             DB::table('auth_permission')->insertOrIgnore([
                 [
-                    'name' => 'inventory.liankai-stock-check',
+                    'name' => 'inventory.stock-check',
                     'title' => '库存核对',
                     'type' => 'menu',
                     'parent_id' => $inventoryId,
-                    'path' => '/business/liankai-stock-check',
-                    'component' => 'business/liankai-stock-check/index',
+                    'path' => '/business/stock-check',
+                    'component' => 'business/stock-check/index',
                     'sort' => 9,
                     'status' => 1,
                     'created_at' => now(),

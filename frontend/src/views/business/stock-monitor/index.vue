@@ -171,7 +171,7 @@ function barWidth(qty) {
 async function fetchData() {
 	loading.value = true
 	try {
-		const res = await businessApi.liankaiStockMonitor.list.get({ days: days.value })
+		const res = await businessApi.stockMonitor.list.get({ days: days.value })
 		const d = res.data || {}
 		summary.value = d.summary || {}
 		trend.value = d.trend || []

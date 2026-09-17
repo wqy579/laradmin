@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Schema;
  *                              对「按仓库筛」没有用
  *   - stocks_history.warehouse_id  同上，变动明细列表按仓库过滤
  *   - transfers.warehouse_id   调拨按仓库看流向
- *   - liankai_stock_checks.vehicle_id  连凯核对按车辆查
  *
  * 幂等：用 Schema::hasIndex 判断，重复执行不会失败，也不会在 CI 的
  * RefreshDatabase 里因「索引已存在」而炸掉。
@@ -34,9 +33,6 @@ return new class extends Migration
         ],
         'transfers' => [
             ['warehouse_id'],
-        ],
-        'liankai_stock_checks' => [
-            ['vehicle_id'],
         ],
     ];
 

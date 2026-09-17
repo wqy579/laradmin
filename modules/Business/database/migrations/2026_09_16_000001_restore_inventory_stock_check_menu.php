@@ -9,8 +9,8 @@ return new class extends Migration
      * 恢复「库存核对」菜单，并隐藏两个没有落地页的死菜单。
      *
      * 症状：侧边栏「库存管理」下没有「库存核对」，后端路由
-     * business/liankai-stock-check 与前端页面
-     * frontend/src/views/business/liankai-stock-check 都已就绪，页面完全不可达。
+     * business/stock-check 与前端页面
+     * frontend/src/views/business/stock-check 都已就绪，页面完全不可达。
      *
      * 起因分两层：
      * ① 2026_09_11_000003_restore_stock_check_and_group_auth 确实插入过
@@ -20,9 +20,9 @@ return new class extends Migration
      *    AuthSeeder 在 BusinessSeeder 之前 Permission::truncate() 整张
      *    auth_permission，所以任何一次 db:seed / 换库 / 从备份恢复都会把
      *    这个菜单永久清掉，而它只靠一条一次性迁移撑着。
-     *    这一族菜单在 5 天内被 9 条迁移反复增删改名（liankai-stock-check →
-     *    monitor → query → stock-check），每次都只修当前库、不改 seeder，
-     *    所以问题必然复发。这条迁移负责把当前库修好，seeder 负责以后不再丢。
+     *    这一族菜单在 5 天内被 9 条迁移反复增删改名（stock-check → monitor →
+     *    query → stock-check），每次都只修当前库、不改 seeder，所以问题必然复发。
+     *    这条迁移负责把当前库修好，seeder 负责以后不再丢。
      *
      * 顺带处理：inventory.scrap（报废录单 → /business/scrap）与
      * inventory.check（盘点单 → /business/inventory-check）既没有后端路由，
@@ -41,8 +41,8 @@ return new class extends Migration
             $this->insertMenu($inventoryId, [
                 'name' => 'inventory.stock-check',
                 'title' => '库存核对',
-                'path' => '/business/liankai-stock-check',
-                'component' => 'business/liankai-stock-check/index',
+                'path' => '/business/stock-check',
+                'component' => 'business/stock-check/index',
                 'sort' => 20,
             ]);
         }

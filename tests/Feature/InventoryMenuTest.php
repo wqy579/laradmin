@@ -17,7 +17,7 @@ use Tests\TestCase;
  * 插入过，BusinessSeeder 的 $inventoryMenus 里从来没有这一项；而 AuthSeeder
  * 会在 BusinessSeeder 之前 Permission::truncate() 整张 auth_permission，
  * 任何一次 db:seed / 换库 / 从备份恢复都会把它永久清掉。同一族菜单在 5 天内
- * 被 9 条迁移反复增删改名（liankai-stock-check → monitor → query →
+ * 被 9 条迁移反复增删改名（stock-check → monitor → query →
  * stock-check），每次都只修当前库、不改 seeder，所以问题必然复发。
  *
  * 这三条用例钉住：菜单定义必须落在 seeder 里（不只靠迁移）、恢复迁移必须
@@ -40,8 +40,8 @@ class InventoryMenuTest extends TestCase
         $this->assertSame('库存核对', $menu->title);
         $this->assertSame('menu', $menu->type);
         $this->assertSame($inventoryId, $menu->parent_id, '库存核对必须挂在库存管理下');
-        $this->assertSame('/business/liankai-stock-check', $menu->path);
-        $this->assertSame('business/liankai-stock-check/index', $menu->component);
+        $this->assertSame('/business/stock-check', $menu->path);
+        $this->assertSame('business/stock-check/index', $menu->component);
         $this->assertSame(1, (int) $menu->status, '库存核对必须启用，否则侧边栏不显示');
 
         // 侧边栏可见性走 getUserMenu()：type=menu 且 status=1

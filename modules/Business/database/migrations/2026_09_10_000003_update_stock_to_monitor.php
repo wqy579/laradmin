@@ -12,7 +12,7 @@ return new class extends Migration
             ->where('name', 'inventory.query')
             ->update([
                 'title' => '库存监控',
-                'path' => '/business/liankai-stock-monitor',
+                'path' => '/business/stock-monitor',
                 'updated_at' => now(),
             ]);
     }

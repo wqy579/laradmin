@@ -21,7 +21,7 @@ return new class extends Migration
             ['name' => 'data.customer',     'path' => '/business/customer',  'new_path' => '/business/customers'],
             ['name' => 'price.cost',        'path' => '/business/cost-prices','new_path' => '/business/cost-price'],
             ['name' => 'finance.expense',   'path' => '/business/expenses',  'new_path' => '/business/expense'],
-            ['name' => 'inventory.liankai-stock-check', 'path' => '/business/liankai-stock-check', 'new_path' => '/business/liankai-stock-monitor'],
+            ['name' => 'inventory.stock-check', 'path' => '/business/stock-check', 'new_path' => '/business/stock-monitor'],
             // 拜访管理：根路径指向logs
             ['name' => 'visit.visit',       'path' => '/business/visit',     'new_path' => '/business/visit/logs'],
         ];
@@ -36,8 +36,8 @@ return new class extends Migration
         // 修复库存监控组件路径（cleanup迁移只更新了path，遗漏了component）
         DB::table('auth_permission')
             ->where('name', 'inventory.query')
-            ->where('path', '/business/liankai-stock-monitor')
-            ->update(['component' => 'business/liankai-stock-monitor/index']);
+            ->where('path', '/business/stock-monitor')
+            ->update(['component' => 'business/stock-monitor/index']);
 
         // 删除无对应路由的菜单项（拜访明细 无独立视图，复用 logs 即可）
         DB::table('auth_permission')
@@ -55,7 +55,7 @@ return new class extends Migration
             ['name' => 'data.customer',     'path' => '/business/customer'],
             ['name' => 'price.cost',        'path' => '/business/cost-prices'],
             ['name' => 'finance.expense',   'path' => '/business/expenses'],
-            ['name' => 'inventory.liankai-stock-check', 'path' => '/business/liankai-stock-check'],
+            ['name' => 'inventory.stock-check', 'path' => '/business/stock-check'],
             ['name' => 'visit.visit',       'path' => '/business/visit'],
         ];
 

@@ -73,7 +73,7 @@ uri 与 middleware 零变化）。历史基线为 106 用例 / 616 断言。
 |---|---|---|
 | `Auth` | `Modules\Auth` | 用户 / 角色 / 权限 / 菜单 |
 | `System` | `Modules\System` | 通知 / 日志 / 调度 / WebSocket |
-| **`Stock`** | `Modules\Stock` | 库存 / 出入库 / 调拨 / 盘点 / 连凯核对 + **商品 / 分类 / 单位 / 仓库 / 车辆主数据** |
+| **`Stock`** | `Modules\Stock` | 库存 / 出入库 / 调拨 / 盘点 / 库存核对与监控 + **商品 / 分类 / 单位 / 仓库 / 车辆主数据** |
 | **`Order`** | `Modules\Order` | 销售 / 采购 / 退货 / 发货订单 + 客户 / 供应商 / 线路 / 拜访 + 收付款 |
 | `Business` | `Modules\Business` | 残部：员工 / 考勤 / 费用 + 菜单与主数据 Seeder + 历史迁移 |
 

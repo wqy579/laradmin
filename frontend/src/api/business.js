@@ -127,15 +127,14 @@ const businessApi = {
 		detail: { get: (id) => request.get(`business/stock/${id}`) },
 	},
 
-	liankaiStockMonitor: {
-		list: { get: (params) => request.get('business/liankai-stock-monitor', { params }) },
-		sync: { post: (params) => request.post('business/liankai-stock-monitor/sync', params) },
+	// 库存监控
+	stockMonitor: {
+		list: { get: (params) => request.get('business/stock-monitor', { params }) },
 	},
 
-	// 连凯库存核对
-	liankaiStockCheck: {
-		list: { get: (params) => request.get('business/liankai-stock-check', { params }) },
-		sync: { post: (params) => request.post('business/liankai-stock-check/sync', params) },
+	// 库存核对
+	stockCheck: {
+		list: { get: (params) => request.get('business/stock-check', { params }) },
 	},
 
 	// 成本价格

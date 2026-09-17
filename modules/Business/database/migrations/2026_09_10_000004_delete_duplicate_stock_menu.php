@@ -7,10 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 删除旧的库存核对菜单（inventory.liankai-stock-check）
+        // 删除旧的库存核对菜单（inventory.stock-check）
         // 保留更新后的 inventory.query（库存监控）
         DB::table('auth_permission')
-            ->where('name', 'inventory.liankai-stock-check')
+            ->where('name', 'inventory.stock-check')
             ->delete();
     }
 
@@ -21,12 +21,12 @@ return new class extends Migration
         if ($inventoryId) {
             DB::table('auth_permission')->insertOrIgnore([
                 [
-                    'name' => 'inventory.liankai-stock-check',
+                    'name' => 'inventory.stock-check',
                     'title' => '库存核对',
                     'type' => 'menu',
                     'parent_id' => $inventoryId,
-                    'path' => '/business/liankai-stock-check',
-                    'component' => 'business/liankai-stock-check/index',
+                    'path' => '/business/stock-check',
+                    'component' => 'business/stock-check/index',
                     'sort' => 9,
                     'status' => 1,
                     'created_at' => now(),

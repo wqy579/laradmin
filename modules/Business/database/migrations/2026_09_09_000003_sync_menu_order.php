@@ -6,12 +6,12 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * 菜单顺序调整 - 按连凯系统菜单排序，不新增菜单
+     * 菜单顺序调整 - 按库存菜单排序，不新增菜单
      */
     public function up(): void
     {
-        // 连凯菜单顺序映射（仅包含新系统已有的菜单）
-        // 新系统菜单名称 -> 连凯菜单名称映射
+        // 库存菜单顺序映射（仅包含新系统已有的菜单）
+        // 新系统菜单名称 -> 旧系统菜单名称映射
         $nameMapping = [
             // 首页
             'home' => '首页',
@@ -109,9 +109,9 @@ return new class extends Migration
             'miniapp.setting' => '小程序设置',
         ];
         
-        // 按连凯菜单顺序重新排序
-        // 连凯菜单顺序（从 JSON 提取，仅保留与新系统有映射的项）
-        $liankaiOrder = [
+        // 按库存菜单顺序重新排序
+        // 库存菜单顺序（从旧系统导出，仅保留与新系统有映射的项）
+        $stockOrder = [
             'home' => 1,
             'data.product' => 1, 'data.customer' => 2, 'data.supplier' => 3,
             'data.warehouse' => 4, 'data.employee' => 5, 'data.vehicle' => 6,
@@ -175,7 +175,7 @@ return new class extends Migration
         }
         
         // 更新子菜单排序
-        foreach ($liankaiOrder as $menuName => $sort) {
+        foreach ($stockOrder as $menuName => $sort) {
             $parentId = DB::table('auth_permission')->where('name', $menuName)->value('parent_id');
             if ($parentId) {
                 DB::table('auth_permission')
@@ -184,7 +184,7 @@ return new class extends Migration
             }
         }
         
-        // 更新菜标题（与连凯保持一致）
+        // 更新菜标题（与旧系统保持一致）
         $titleUpdates = [
             'home' => ['title' => '首页'],
             'data.product' => ['title' => '商品档案'],

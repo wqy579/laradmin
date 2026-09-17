@@ -17,14 +17,14 @@ return new class extends Migration
         $inventoryId = DB::table('auth_permission')->where('name', 'inventory')->value('id');
         if ($inventoryId) {
             DB::table('auth_permission')->updateOrInsert(
-                ['name' => 'inventory.liankai-stock-check'],
+                ['name' => 'inventory.stock-check'],
                 [
                     'title' => '库存核对',
-                    'name' => 'inventory.liankai-stock-check',
+                    'name' => 'inventory.stock-check',
                     'type' => 'menu',
                     'parent_id' => $inventoryId,
-                    'path' => '/business/liankai-stock-check',
-                    'component' => 'business/liankai-stock-check/index',
+                    'path' => '/business/stock-check',
+                    'component' => 'business/stock-check/index',
                     'sort' => 9,
                     'status' => 1,
                 ]
@@ -39,7 +39,7 @@ return new class extends Migration
             DB::table('auth_permission')->where('name', 'finance.payment')->update(['parent_id' => $financeId]);
         }
 
-        // 3. 修复顶级菜单排序（按连凯菜单顺序）
+        // 3. 修复顶级菜单排序（按库存菜单顺序）
         // 首页(1) 资料管理(2) 价格管理(3) 库存管理(4) 订单管理(5) 财务管理(6)
         // 报表管理(7) 办公管理(8) 拜访管理(9) 小程序管理(10) 权限(15) 系统(20)
         $topMenus = [
@@ -81,7 +81,7 @@ return new class extends Migration
             'inventory.scrap'   => 6,
             'inventory.check'   => 7,
             'inventory.query'   => 8,
-            'inventory.liankai-stock-check' => 9,
+            'inventory.stock-check' => 9,
             'order.sales'       => 1,
             'order.delivery'    => 2,
             'order.dispatch'    => 3,
@@ -122,7 +122,7 @@ return new class extends Migration
     public function down(): void
     {
         // 删除库存核对
-        DB::table('auth_permission')->where('name', 'inventory.liankai-stock-check')->delete();
+        DB::table('auth_permission')->where('name', 'inventory.stock-check')->delete();
 
         // 恢复费用/付款/收款到顶级
         DB::table('auth_permission')->whereIn('name', [

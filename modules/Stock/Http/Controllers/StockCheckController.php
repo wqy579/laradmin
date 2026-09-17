@@ -3,16 +3,21 @@
 namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use Modules\Stock\Models\LiankaiStockCheck;
-use Modules\Stock\Models\Vehicle;
-use Modules\Stock\Services\LiankaiWarehouseMapper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class LiankaiStockCheckController extends Controller
+/**
+ * 库存核对与库存监控
+ *
+ * 两个入口共用同一套数据：`stocks` 当前库存 + `stock_snapshots` 每日快照
+ * （见 StockSnapshotService，惰性触发）。核对看「今日 vs 昨日」的商品级明细，
+ * 监控看「最新快照 vs 上一快照」的仓库/趋势级对比。
+ */
+class StockCheckController extends Controller
 {
     /**
-     * 库存总表（参考旧系统库存核对）
+     * 库存核对总表
+     *
      * 数据源：stocks × products × warehouses + 昨日快照(stock_snapshots) + 今日出入库(已审核单据)
      * 筛选：主分类 / 副分类 / 仓库 / 关键词 / 库存状态
      */
@@ -193,7 +198,7 @@ class LiankaiStockCheckController extends Controller
                 ->where('snapshot_date', $latestDate);
 
             // 仓库维度变化（最新 vs 前一）
-            $warehouseChanges = [];
+            $warehouseChanges = collect();
             if ($prevDate) {
                 $prevSnap = DB::table('stock_snapshots')
                     ->select('warehouse_id', DB::raw('SUM(quantity) as qty'))
@@ -329,209 +334,5 @@ class LiankaiStockCheckController extends Controller
         }
 
         return $tree;
-    }
-
-    /**
-     * 连凯库存核对列表（基于 liankai_stock_checks 表，含车辆映射）
-     */
-    public function checkList(Request $request)
-    {
-        try {
-            $date = $request->input('date');
-            $page = max(1, $request->integer('page', 1));
-            $pageSize = min(500, max(10, $request->integer('page_size', 30)));
-            $filterDate = $date ?: date('Y-m-d');
-            $vehicleId = $request->integer('vehicle_id');
-            $warehouse = trim((string) $request->input('warehouse', ''));
-            $keyword = trim((string) $request->input('keyword', ''));
-
-            $query = DB::table('liankai_stock_checks as s')
-                ->select('s.*')
-                ->whereDate('s.check_date', $filterDate);
-
-            if ($vehicleId) {
-                $query->where('s.vehicle_id', $vehicleId);
-            }
-            if ($warehouse !== '') {
-                $query->where('s.warehouse', 'like', '%' . $warehouse . '%');
-            }
-            if ($keyword !== '') {
-                $query->where(function ($q) use ($keyword) {
-                    $q->where('s.product_name', 'like', '%' . $keyword . '%')
-                      ->orWhere('s.barcode', 'like', '%' . $keyword . '%');
-                });
-            }
-            $query->orderBy('s.warehouse')->orderBy('s.product_name');
-
-            $allItems = $query->get();
-            $total = $allItems->count();
-            $offset = ($page - 1) * $pageSize;
-            $list = $allItems->slice($offset, $pageSize)->values();
-
-            // 获取所有关联车辆
-            $vehicles = Vehicle::where('is_active', true)
-                ->select('id', 'plate_no', 'driver_name', 'driver_phone')
-                ->orderBy('id')
-                ->get();
-
-            // 关联车辆信息到每条记录
-            $vehicleMap = $vehicles->keyBy('id');
-            $list = $list->map(function ($item) use ($vehicleMap) {
-                $item->vehicle = $vehicleMap[$item->vehicle_id] ?? null;
-                return $item;
-            });
-
-            // 当日有数据的车辆ID列表（用于前端筛选）
-            $activeVehicleIds = DB::table('liankai_stock_checks')
-                ->whereDate('check_date', $filterDate)
-                ->whereNotNull('vehicle_id')
-                ->distinct()
-                ->pluck('vehicle_id')
-                ->toArray();
-            $activeVehicles = $vehicles->filter(fn ($v) => in_array($v->id, $activeVehicleIds));
-
-            return response()->json([
-                'code' => 200,
-                'message' => 'success',
-                'data' => [
-                    'list' => $list,
-                    'total' => $total,
-                    'page' => $page,
-                    'page_size' => $pageSize,
-                    'last_page' => (int) ceil($total / $pageSize),
-                    'vehicles' => $activeVehicles,
-                ],
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'code' => 500,
-                'message' => '服务器错误: ' . $e->getMessage(),
-                'data' => null,
-            ], 500);
-        }
-    }
-
-    /**
-     * 同步连凯库存数据（记录变动日志）——保留接口，页面不再使用
-     */
-    public function sync(Request $request)
-    {
-        try {
-            $file = storage_path('app/liankai_stock_data.json');
-
-            if (!file_exists($file)) {
-                return response()->json(['code' => 404, 'message' => '数据文件不存在，请先运行同步命令'], 404);
-            }
-
-            $data = json_decode(file_get_contents($file), true);
-
-            if (!isset($data['rows']) || empty($data['rows'])) {
-                return response()->json(['code' => 400, 'message' => '数据文件格式错误'], 400);
-            }
-
-            $date = $request->input('date', date('Y-m-d'));
-            $insertData = [];
-            $changeLogs = [];
-
-            foreach ($data['rows'] as $row) {
-                if (count($row) >= 12 && $row[0] && $row[1]) {
-                    $insertData[] = [
-                        'warehouse' => $row[0] ?? '',
-                        'vehicle_id' => LiankaiWarehouseMapper::map($row[0] ?? ''),
-                        'product_name' => $row[1] ?? '',
-                        'barcode' => trim($row[2] ?? '', ','),
-                        'product_code' => $row[3] ?? '',
-                        'spec' => $row[4] ?? '',
-                        'prod_date' => $row[5] ?? null,
-                        'yesterday_stock' => $row[6] ?? '',
-                        'out_qty' => $row[7] ?? '',
-                        'in_qty' => $row[8] ?? '',
-                        'adjust_qty' => $row[9] ?? '',
-                        'frozen_qty' => $row[10] ?? '',
-                        'today_stock' => $row[11] ?? '',
-                        'check_date' => $date,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-
-                    $changeLogs[] = $this->buildChangeLogs($row, $date);
-                }
-            }
-
-            if (empty($insertData)) {
-                return response()->json(['code' => 400, 'message' => '没有有效数据'], 400);
-            }
-
-            DB::table('liankai_stock_checks')->where('check_date', $date)->delete();
-            DB::table('liankai_stock_checks')->insert($insertData);
-
-            $this->saveChangeLogs($changeLogs, $date);
-
-            return response()->json([
-                'code' => 200,
-                'message' => "成功同步 " . count($insertData) . " 条库存数据",
-                'count' => count($insertData),
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'code' => 500,
-                'message' => '同步失败: ' . $e->getMessage(),
-                'data' => null,
-            ], 500);
-        }
-    }
-
-    /**
-     * 构建变动日志数据
-     */
-    private function buildChangeLogs(array $row, string $date): array
-    {
-        $logs = [];
-        $before = intval(preg_replace('/[^0-9]/', '', $row[6] ?? '') ?: 0);
-        $after  = intval(preg_replace('/[^0-9]/', '', $row[11] ?? '') ?: 0);
-
-        $map = [
-            'out'    => [7, -1],
-            'in'     => [8, 1],
-            'adjust' => [9, 1],
-            'freeze' => [10, -1],
-        ];
-
-        foreach ($map as $type => [$idx, $dir]) {
-            $qty = intval(preg_replace('/[^0-9]/', '', $row[$idx] ?? '') ?: 0);
-            if ($qty <= 0) {
-                continue;
-            }
-            $logs[] = [
-                'warehouse'    => $row[0] ?? '',
-                'product_name' => $row[1] ?? '',
-                'barcode'      => trim($row[2] ?? '', ','),
-                'change_type'  => $type,
-                'change_qty'   => $qty * $dir,
-                'before_qty'   => $before,
-                'after_qty'    => $after,
-                'check_date'   => $date,
-                'reference'    => '库存核对同步',
-                'remark'       => '来自同步文件',
-                'created_at'   => now(),
-                'updated_at'   => now(),
-            ];
-        }
-
-        return $logs;
-    }
-
-    /**
-     * 保存变动日志
-     */
-    private function saveChangeLogs(array $logs, string $date): void
-    {
-        if (empty($logs)) {
-            return;
-        }
-        DB::table('liankai_stock_change_logs')->where('check_date', $date)->delete();
-        foreach (array_chunk($logs, 200) as $chunk) {
-            DB::table('liankai_stock_change_logs')->insert($chunk);
-        }
     }
 }

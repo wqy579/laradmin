@@ -1005,54 +1005,6 @@
     },
     {
         "method": "GET",
-        "uri": "admin/business/liankai-stock-check",
-        "name": "admin.",
-        "action": "Modules\\Stock\\Http\\Controllers\\LiankaiStockCheckController@index",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/liankai-stock-check/sync",
-        "name": "admin.",
-        "action": "Modules\\Stock\\Http\\Controllers\\LiankaiStockCheckController@sync",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/liankai-stock-monitor",
-        "name": "admin.",
-        "action": "Modules\\Stock\\Http\\Controllers\\LiankaiStockCheckController@monitor",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/liankai-stock-monitor/sync",
-        "name": "admin.",
-        "action": "Modules\\Stock\\Http\\Controllers\\LiankaiStockCheckController@sync",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
         "uri": "admin/business/pay",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@index",
@@ -1785,6 +1737,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/stock-check",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\StockCheckController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/stock-in",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\StockInController@index",
@@ -1800,6 +1764,18 @@
         "uri": "admin/business/stock-in",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\StockInController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock-monitor",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\StockCheckController@monitor",
         "middleware": [
             "api",
             "stock.snapshot",

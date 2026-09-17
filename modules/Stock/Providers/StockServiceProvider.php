@@ -21,7 +21,7 @@ class StockServiceProvider extends ServiceProvider
         // 库存模块自持迁移：注册后普通 migrate 也会执行本目录。
         //
         // ⚠️ 历史包袱说明：本项目 2026-09 之前的库存相关表结构
-        // （products/warehouses/stocks/stock_ins/stock_outs/transfers/liankai_stock_checks 等）
+        // （products/warehouses/stocks/stock_ins/stock_outs/transfers 等）
         // 是由 modules/Business/database/migrations 下的「混合表」迁移一次性创建的
         // （create_business_tables / create_transaction_tables 一个文件里跨多个领域建表），
         // 无法按领域拆分而不重写已执行的迁移，因此**保留在 Business 模块内**。

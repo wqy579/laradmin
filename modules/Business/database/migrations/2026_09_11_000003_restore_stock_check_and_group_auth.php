@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * 1. 恢复"库存核对"菜单：liankai-stock-check 页面在"库存监控"重构时被取代，
+     * 1. 恢复"库存核对"菜单：stock-check 页面在"库存监控"重构时被取代，
      *    菜单、前端路由、后端路由均缺失，用户侧看不到库存核对入口。
      * 2. 权限管理（用户/角色/权限/部门）归入"系统管理"分组，不再作为顶级主菜单。
      * 3. 隐藏空壳顶级菜单 auth（无子菜单、无路由，点击无效）。
@@ -23,8 +23,8 @@ return new class extends Migration
                 'name'       => 'inventory.stock-check',
                 'type'       => 'menu',
                 'parent_id'  => $inventoryId,
-                'path'       => '/business/liankai-stock-check',
-                'component'  => 'business/liankai-stock-check/index',
+                'path'       => '/business/stock-check',
+                'component'  => 'business/stock-check/index',
                 'sort'       => 20,
                 'status'     => 1,
                 'created_at' => now(),
