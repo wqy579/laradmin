@@ -172,7 +172,7 @@ class SalesOrderCreateFeatureTest extends TestCase
         $this->assertSame(0.0, (float) $item->amount);
     }
 
-    /** @test 普通模式不写 price_source，避免把「特殊」标记误存到正常订单 */
+    /** 普通模式不写 price_source，避免把「特殊」标记误存到正常订单 */
     public function test_normal_mode_leaves_price_source_empty(): void
     {
         $this->postJson('/admin/business/sales-order', $this->basePayload([
@@ -188,7 +188,7 @@ class SalesOrderCreateFeatureTest extends TestCase
         $this->assertSame(6.0, (float) $item->amount);
     }
 
-    /** @test 非法 price_source 值不允许入库，只认空值和「特殊」 */
+    /** 非法 price_source 值不允许入库，只认空值和「特殊」 */
     public function test_rejects_unknown_price_source(): void
     {
         $this->postJson('/admin/business/sales-order', $this->basePayload([
