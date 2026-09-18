@@ -219,6 +219,7 @@ class DeliveryController extends Controller
             return $this->success(null, '发货成功');
         } catch (StockRuleException $e) {
             DB::rollBack();
+
             // 库存不足是业务拒绝，不是服务器错误，按 422 返回
             return $this->error($e->getMessage(), 422);
         } catch (\Exception $e) {
