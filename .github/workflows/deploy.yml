@@ -120,9 +120,13 @@ jobs:
             rm -rf storage/admin.prev
             if [ -d public/admin ]; then cp -r public/admin storage/admin.prev; fi
 
-            # 1. 同步源码（排除运行态目录；--delete 保持与仓库一致）
+            # 1. 同步源码（排除运行态目录与前端产物；--delete 保持与仓库一致）
+            #    public/admin 由步骤 4 用 dist 原子替换，不参与 rsync --delete：
+            #    若让它参与，线上前端会在替换就绪前被清空，一旦中途任一步骤
+            #    （package:discover / migrate）失败，public/admin 就停在空目录
+            #    状态却被健康检查标绿——正是本次线上 /admin/* 全 404 的形态。
             rsync -a --delete --exclude .env --exclude storage --exclude vendor \
-              --exclude node_modules --exclude .git \
+              --exclude node_modules --exclude .git --exclude public/admin \
               /tmp/laradmin-deploy/source/ /www/wwwroot/laradmin/
 
             # 2. 后端依赖：显式用 php8.5 执行 composer——部署 CLI 与 laravels worker 统一运行时
@@ -146,11 +150,20 @@ jobs:
             php8.5 artisan view:clear 2>/dev/null || true
             php8.5 artisan cache:clear 2>/dev/null || true
 
-            # 4. 替换前端产物（云端构建好的）
+            # 4. 原子替换前端产物（云端构建好的）
+            #    先落 public/admin.new 并校验 index.html 存在，再 mv 切换：
+            #    dist 为空（CI 构建失败 / scp 上传缺失）时不动线上目录，并令部署
+            #    明确失败——宁可红，也不要空着 public/admin 还被健康检查标绿。
+            rm -rf public/admin.new
+            cp -r /tmp/laradmin-deploy/dist public/admin.new
+            chown -R root:root public/admin.new
+            if [ ! -f public/admin.new/index.html ]; then
+              echo "dist 为空（缺 index.html）— 中止，保留现有 public/admin"
+              rm -rf public/admin.new
+              exit 1
+            fi
             rm -rf public/admin
-            mkdir -p public/admin
-            cp -r /tmp/laradmin-deploy/dist/* public/admin/
-            chown -R root:root public/admin
+            mv public/admin.new public/admin
 
             # 5. 完整重启（不用 reload）。
             #    关键教训：worker/timer/task 进程由 master fork 而来，继承 master 的
