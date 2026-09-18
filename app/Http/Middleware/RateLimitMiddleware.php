@@ -114,7 +114,11 @@ class RateLimitMiddleware
      */
     protected function clientIp(Request $request): string
     {
-        return $request->ip();
+        // $request->ip() 在拿不到对端地址时返回 null（CLI、未传 REMOTE_ADDR 的代理、
+        // 或 toIlluminateRequest 没拼上 x-real-ip 的边界场景），而本方法签名是 : string，
+        // 直接 return 会触发 TypeError 让整条限流链路 500——登录/注册首当其冲。
+        // 给一个稳定占位：无法识别来源的请求共享同一桶，语义上等价于「未知出口」。
+        return $request->ip() ?? '0.0.0.0';
     }
 
     /**
