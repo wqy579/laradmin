@@ -1,0 +1,6 @@
+# Business 是拆分（ca93a96）后的残部模块：员工/考勤/费用，目前无测试。
+# 留此占位让 tests/ 目录随 git 检出存在——phpunit.xml 声明了 Business testsuite，
+# 目录缺失会让 PHPUnit 11 中止整个 run（exit 2，零测试执行，见
+# tests/Unit/ArchitectureTest::test_declared_testsuite_directories_exist）。
+# 空目录 git 不跟踪，故用 .gitkeep 占位（非 .php 后缀，不会被当成测试收进去）。
+# 将来本模块补上测试后，此文件可删可留。
