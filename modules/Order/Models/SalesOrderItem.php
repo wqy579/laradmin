@@ -14,7 +14,7 @@ class SalesOrderItem extends Model
         'sales_order_id', 'product_id', 'quantity', 'actual_qty',
         'qty_large', 'qty_medium', 'qty_small',
         'price', 'price_large', 'price_medium', 'price_small',
-        'amount', 'remark', 'sale_mode',
+        'amount', 'remark', 'sale_mode', 'price_source',
     ];
 
     public function salesOrder(): BelongsTo

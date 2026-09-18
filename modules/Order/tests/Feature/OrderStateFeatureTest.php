@@ -327,7 +327,7 @@ class OrderStateFeatureTest extends TestCase
             'warehouse_id' => $warehouse->id,
         ]));
 
-        $response->assertOk()->assertJsonPath('message', '创建成功');
+        $response->assertOk()->assertJsonPath('message', '订单创建成功');
 
         $order = DB::table('sales_orders')->latest('id')->first();
         $this->assertSame('draft', $order->status);
@@ -417,12 +417,12 @@ class OrderStateFeatureTest extends TestCase
         $this->assertSame(1, (int) $stats['pending']);
         $this->assertSame(1, (int) $stats['approved']);
 
-        // 列表按状态/客户过滤
+        // 列表按状态/客户过滤（分页统一走 paginated 信封：data.list）
         $this->getJson('/admin/business/sales-order?status=approved')
             ->assertOk()
-            ->assertJsonCount(1, 'data.data');
+            ->assertJsonCount(1, 'data.list');
         $this->getJson("/admin/business/sales-order?customer_id={$customer1->id}")
             ->assertOk()
-            ->assertJsonCount(1, 'data.data');
+            ->assertJsonCount(1, 'data.list');
     }
 }

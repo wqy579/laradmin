@@ -5,6 +5,7 @@ namespace Modules\Order\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Auth\Models\User as AdminUser;
 use Modules\Stock\Models\Vehicle;
 use Modules\Stock\Models\Warehouse;
 
@@ -35,6 +36,11 @@ class SalesOrder extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function salesman(): BelongsTo
+    {
+        return $this->belongsTo(AdminUser::class, 'salesman_id');
     }
 
     public function vehicle(): BelongsTo

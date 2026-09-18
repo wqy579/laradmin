@@ -20,7 +20,7 @@
 			</template>
 		</sTable>
 	</div>
-	<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :record="currentOrder" :customers="customers" :warehouses="warehouses" @success="refresh" />
+	<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :record="currentOrder" :customers="customers" :warehouses="warehouses" :salesmen="salesmen" @success="refresh" />
 </template>
 
 <script setup>
@@ -52,6 +52,7 @@ const dialog = reactive({ order: false })
 const currentOrder = ref(null)
 const customers = ref([])
 const warehouses = ref([])
+const salesmen = ref([])
 
 const statusType = (s) => ({ draft: 'info', approved: 'success', cancelled: 'danger' }[s] || 'info')
 const statusLabel = (s) => ({ draft: '草稿', approved: '已审批', cancelled: '已取消' }[s] || s)
@@ -71,6 +72,7 @@ onMounted(() => {
 	Promise.all([
 		businessApi.customer.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) customers.value = r.data?.list || [] }),
 		businessApi.warehouse.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
+		businessApi.employee.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) salesmen.value = r.data?.list || [] }),
 	]).finally(() => refresh())
 })
 </script>
