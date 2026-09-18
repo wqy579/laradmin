@@ -1724,6 +1724,18 @@
         ]
     },
     {
+        "method": "POST",
+        "uri": "admin/business/sales-order/{salesOrder}/cancel",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "GET",
         "uri": "admin/business/stock",
         "name": "admin.",
@@ -3176,15 +3188,6 @@
         ]
     },
     {
-        "method": "POST",
-        "uri": "api/deploy",
-        "name": null,
-        "action": "Modules\\System\\Http\\Controllers\\Api\\PingController@deployNotice",
-        "middleware": [
-            "api"
-        ]
-    },
-    {
         "method": "GET",
         "uri": "api/import/status",
         "name": null,
@@ -3202,15 +3205,6 @@
             "api",
             "auth.check:admin",
             "rate.limit:upload"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "api/test",
-        "name": null,
-        "action": "Modules\\System\\Http\\Controllers\\Api\\PingController@ping",
-        "middleware": [
-            "api"
         ]
     },
     {

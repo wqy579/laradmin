@@ -139,6 +139,18 @@ class SalesOrderController extends Controller
         return response()->json(['message' => '审批成功']);
     }
 
+    public function cancel(SalesOrder $salesOrder)
+    {
+        // 与采购单对称：只有草稿/已审批可取消。已进入发货流程的订单
+        // 库存可能已动，不能一键抹回，避免状态与库存不一致。
+        if (! in_array($salesOrder->status, ['draft', 'approved'], true)) {
+            return response()->json(['message' => '只有草稿或已审批的订单可以取消'], 422);
+        }
+        $salesOrder->update(['status' => 'cancelled']);
+
+        return response()->json(['message' => '取消成功']);
+    }
+
     public function statistics()
     {
         $stats = [

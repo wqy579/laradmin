@@ -69,6 +69,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::put('/{salesOrder}', [SalesOrderController::class, 'update']);
         Route::delete('/{salesOrder}', [SalesOrderController::class, 'destroy']);
         Route::post('/{salesOrder}/approve', [SalesOrderController::class, 'approve']);
+        Route::post('/{salesOrder}/cancel', [SalesOrderController::class, 'cancel']);
     });
     // 采购订单
     Route::prefix('business/purchase-order')->group(function () {

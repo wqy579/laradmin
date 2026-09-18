@@ -8,11 +8,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Order\Models\Delivery;
 use Modules\Order\Models\DeliveryItem;
+use Modules\Stock\Exceptions\StockRuleException;
 use Modules\Stock\Models\Product;
+use Modules\Stock\Services\StockService;
 
 class DeliveryController extends Controller
 {
     use ResponseTrait;
+
+    public function __construct(private readonly StockService $stocks) {}
 
     public function index(Request $request)
     {
@@ -77,11 +81,11 @@ class DeliveryController extends Controller
 
             $delivery = Delivery::create([
                 'delivery_no' => $deliveryNo,
-                'order_id' => $validated['order_id'],
+                'order_id' => $validated['order_id'] ?? null,
                 'warehouse_id' => $validated['warehouse_id'],
-                'vehicle_id' => $validated['vehicle_id'],
-                'driver_id' => $validated['driver_id'],
-                'route_id' => $validated['route_id'],
+                'vehicle_id' => $validated['vehicle_id'] ?? null,
+                'driver_id' => $validated['driver_id'] ?? null,
+                'route_id' => $validated['route_id'] ?? null,
                 'customer_id' => $validated['customer_id'],
                 'delivery_date' => $validated['delivery_date'] ?? date('Y-m-d'),
                 'status' => 0,
@@ -186,7 +190,7 @@ class DeliveryController extends Controller
 
     public function dispatch($id)
     {
-        $delivery = Delivery::find($id);
+        $delivery = Delivery::with('items')->find($id);
         if (! $delivery) {
             return $this->notFound('发货单不存在');
         }
@@ -195,10 +199,33 @@ class DeliveryController extends Controller
             return $this->error('只有待发货状态的单据才能发货');
         }
 
-        $delivery->status = 1;
-        $delivery->save();
+        // 发货即出库：货物一旦发出，对应明细要从所属仓库扣减。
+        // 此前只翻状态不扣库存，导致销售链路库存只进不出、账面持续虚高。
+        // 放在 dispatch 而非 complete——「已发出」就是货物离仓的时点，
+        // 与采购侧「receive 即入库」对称；complete 只做签收确认，不再动库存。
+        DB::beginTransaction();
+        try {
+            foreach ($delivery->items as $item) {
+                $this->stocks->stockOut(
+                    (int) $item->product_id,
+                    (int) $delivery->warehouse_id,
+                    (int) $item->quantity,
+                );
+            }
+            $delivery->status = 1;
+            $delivery->save();
+            DB::commit();
 
-        return $this->success(null, '发货成功');
+            return $this->success(null, '发货成功');
+        } catch (StockRuleException $e) {
+            DB::rollBack();
+            // 库存不足是业务拒绝，不是服务器错误，按 422 返回
+            return $this->error($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return $this->error('发货失败：'.$e->getMessage(), 500);
+        }
     }
 
     public function complete($id)

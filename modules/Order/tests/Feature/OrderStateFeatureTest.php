@@ -362,17 +362,38 @@ class OrderStateFeatureTest extends TestCase
             ->assertJsonPath('message', '只有草稿状态的订单可以审批');
     }
 
-    public function test_sales_order_has_no_cancel_endpoint(): void
+    public function test_sales_order_cancel_only_before_shipping(): void
     {
         $customer = $this->makeCustomer();
         $warehouse = $this->makeWarehouse();
-        $id = $this->postJson('/admin/business/sales-order', $this->orderPayload([
+
+        // 草稿可取消
+        $draftId = $this->postJson('/admin/business/sales-order', $this->orderPayload([
             'customer_id' => $customer->id,
             'warehouse_id' => $warehouse->id,
         ]))->json('data.id');
 
-        $response = $this->postJson("/admin/business/sales-order/{$id}/cancel");
-        $this->assertTrue(in_array($response->status(), [404, 405]), '当前不存在取消端点，若已新增请更新本用例与状态机文档');
+        $this->postJson("/admin/business/sales-order/{$draftId}/cancel")
+            ->assertOk()
+            ->assertJsonPath('message', '取消成功');
+        $this->assertSame('cancelled', \DB::table('sales_orders')->find($draftId)->status);
+
+        // 已审批也可取消
+        $approvedId = $this->postJson('/admin/business/sales-order', $this->orderPayload([
+            'customer_id' => $customer->id,
+            'warehouse_id' => $warehouse->id,
+        ]))->json('data.id');
+        $this->postJson("/admin/business/sales-order/{$approvedId}/approve")->assertOk();
+
+        $this->postJson("/admin/business/sales-order/{$approvedId}/cancel")
+            ->assertOk()
+            ->assertJsonPath('message', '取消成功');
+        $this->assertSame('cancelled', \DB::table('sales_orders')->find($approvedId)->status);
+
+        // 已取消的不能再取消
+        $this->postJson("/admin/business/sales-order/{$approvedId}/cancel")
+            ->assertStatus(422)
+            ->assertJsonPath('message', '只有草稿或已审批的订单可以取消');
     }
 
     public function test_sales_order_statistics_and_list_filter(): void
