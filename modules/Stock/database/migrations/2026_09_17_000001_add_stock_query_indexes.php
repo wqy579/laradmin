@@ -15,7 +15,12 @@ use Illuminate\Support\Facades\Schema;
  *                              现有 unique(product_id, warehouse_id) 的左列是 product_id，
  *                              对「按仓库筛」没有用
  *   - stocks_history.warehouse_id  同上，变动明细列表按仓库过滤
- *   - transfers.warehouse_id   调拨按仓库看流向
+ *
+ *   transfers 不在此列：transfers 表只有 from_warehouse_id / to_warehouse_id
+ *   （调拨有出库仓与入库仓），没有 warehouse_id 列；且这两列是
+ *   foreignId()->constrained()，MySQL 已自动建 FK 索引，无需补建。
+ *   此前误列 transfers.warehouse_id 导致 migrate 在生产 1072 失败、每次
+ *   部署卡死在前端上线之前的步骤、前端长期 404（2026-09-18 修复）。
  *
  * 幂等：用 Schema::hasIndex 判断，重复执行不会失败，也不会在 CI 的
  * RefreshDatabase 里因「索引已存在」而炸掉。
@@ -30,9 +35,6 @@ return new class extends Migration
         'stocks_history' => [
             ['warehouse_id'],
             ['change_type'],
-        ],
-        'transfers' => [
-            ['warehouse_id'],
         ],
     ];
 
