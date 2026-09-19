@@ -20,7 +20,7 @@
 				<el-col :span="6">
 					<el-form-item label="业务员">
 						<el-select v-model="form.salesman_id" placeholder="请选择业务员" filterable clearable style="width:100%">
-							<el-option v-for="s in salesmen" :key="s.id" :label="s.real_name || s.username" :value="s.id" />
+							<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
 						</el-select>
 					</el-form-item>
 				</el-col>
@@ -34,6 +34,51 @@
 				<el-input v-model="form.remark" placeholder="输入备注..." clearable style="width:100%" />
 			</el-form-item>
 		</el-form>
+
+		<!-- 三栏商品选择：主分类 / 子分类 / 商品输入（仿商品资料页），点商品填入下方表格空行 -->
+		<div class="cat-picker">
+			<div class="cat-col">
+				<div class="cat-col-title">主分类</div>
+				<div class="cat-col-body">
+					<div v-for="m in categories" :key="m.id" :class="['cat-item', { active: picker.mainId === m.id }]" @click="selectPickerMain(m)">
+						<span class="cat-name">{{ m.name }}</span>
+						<span class="cat-count">{{ m.product_count || 0 }}</span>
+					</div>
+					<el-empty v-if="!categories.length" :image-size="28" description="无分类" />
+				</div>
+			</div>
+			<div class="cat-col">
+				<div class="cat-col-title">
+					子分类
+					<span v-if="picker.mainName" class="cat-col-sub">{{ picker.mainName }}</span>
+				</div>
+				<div class="cat-col-body">
+					<template v-if="picker.mainId && pickerSubs.length">
+						<div v-for="s in pickerSubs" :key="s.id" :class="['cat-item', { active: picker.subId === s.id }]" @click="selectPickerSub(s)">
+							<span class="cat-name">{{ s.name }}</span>
+							<span class="cat-count">{{ s.product_count || 0 }}</span>
+						</div>
+					</template>
+					<el-empty v-else :image-size="28" :description="picker.mainId ? '无子分类' : '请先选主分类'" />
+				</div>
+			</div>
+			<div class="cat-col cat-col-prod">
+				<div class="cat-col-title">
+					<span>商品输入</span>
+					<el-input v-model="picker.prodKeyword" size="small" placeholder="搜索商品..." clearable style="width:150px" @input="filterPickerProducts" />
+				</div>
+				<div class="cat-col-body">
+					<template v-if="picker.subId && pickerProducts.length">
+						<div v-for="p in pickerProducts" :key="p.id" class="cat-prod-item" @click="pickProduct(p)" title="点击加入订单">
+							<span class="cat-prod-name">{{ p.name }}</span>
+							<span class="cat-prod-spec">{{ p.spec_display || p.spec || '-' }}</span>
+							<span class="cat-prod-price">¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ p.price_unit_small || '个' }}</span>
+						</div>
+					</template>
+					<el-empty v-else :image-size="28" :description="picker.prodLoading ? '加载中…' : (picker.subId ? '无商品' : '请先选子分类')" />
+				</div>
+			</div>
+		</div>
 
 		<!-- 商品表格：10 列，与旧系统新增订单的商品表格逐列对齐 -->
 		<div class="items-wrap">
@@ -238,6 +283,78 @@ const applyProduct = (item, p) => {
 
 const productLabel = (p) => `${p.name}${p.code ? ` (${p.code})` : ''}`
 const smallUnitName = (p) => p.price_unit_small || '小'
+
+// ---------------------------------------------------------------- 三栏分类选择（主分类/子分类/商品输入，仿商品资料页）
+
+// 本地日期字符串 YYYY-MM-DD：避免 toISOString() 的 UTC 偏差导致凌晨取到昨天
+const todayStr = () => {
+	const d = new Date()
+	const y = d.getFullYear()
+	const m = String(d.getMonth() + 1).padStart(2, '0')
+	const day = String(d.getDate()).padStart(2, '0')
+	return `${y}-${m}-${day}`
+}
+
+const categories = ref([])  // 主分类树（带 children / product_count）
+const picker = reactive({
+	mainId: null, mainName: '',
+	subId: null, subName: '',
+	prodKeyword: '', prodLoading: false,
+})
+const pickerSubs = computed(() => categories.value.find(m => m.id === picker.mainId)?.children || [])
+const pickerProducts = ref([])
+let pickerAllProducts = []  // 当前子分类全量商品，供关键字过滤
+
+const loadCategories = async () => {
+	const res = await businessApi.product.categories.get().catch(() => null)
+	if (res && res.code === 200) categories.value = res.data || []
+}
+const resetPicker = () => {
+	picker.mainId = null; picker.mainName = ''
+	picker.subId = null; picker.subName = ''
+	picker.prodKeyword = ''; picker.prodLoading = false
+	pickerProducts.value = []; pickerAllProducts = []
+}
+const selectPickerMain = (m) => {
+	picker.mainId = m.id
+	picker.mainName = m.name
+	picker.subId = null; picker.subName = ''
+	picker.prodKeyword = ''
+	pickerProducts.value = []; pickerAllProducts = []
+}
+const selectPickerSub = async (s) => {
+	picker.subId = s.id
+	picker.subName = s.name
+	picker.prodKeyword = ''
+	await loadPickerProducts()
+}
+const loadPickerProducts = async () => {
+	if (!picker.subId) { pickerProducts.value = []; pickerAllProducts = []; return }
+	picker.prodLoading = true
+	const res = await businessApi.product.list.get({ sub_category_id: picker.subId, is_active: 1, per_page: 9999 }).catch(() => null)
+	picker.prodLoading = false
+	if (res && res.code === 200) {
+		pickerAllProducts = res.data?.list || []
+		pickerProducts.value = pickerAllProducts
+	}
+}
+const filterPickerProducts = () => {
+	const q = (picker.prodKeyword || '').trim().toLowerCase()
+	if (!q) { pickerProducts.value = pickerAllProducts; return }
+	pickerProducts.value = pickerAllProducts.filter(p =>
+		(p.name || '').toLowerCase().includes(q) || (p.spec_display || p.spec || '').toLowerCase().includes(q)
+	)
+}
+/** 点击商品 → 填入第一个空行（无 product_id），没有空行则追加一行 */
+const pickProduct = (p) => {
+	let row = form.items.find(i => !i.product_id)
+	if (!row) { row = blankRow(); form.items.push(row) }
+	row._options = [p]
+	applyProduct(row, p)
+	row.price_source = CLEAR_PRICE_MODES.includes(row.sale_mode) ? '特殊' : ''
+	calcAmount(row)
+	checkStock(row)
+}
 
 // ---------------------------------------------------------------- 库存
 
@@ -589,7 +706,7 @@ const initBlank = () => {
 	form.customer_id = null
 	form.warehouse_id = null
 	form.salesman_id = null
-	form.order_date = new Date().toISOString().split('T')[0]
+	form.order_date = todayStr()
 	form.remark = ''
 	form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
 }
@@ -599,6 +716,8 @@ watch(
 	async (open) => {
 		if (!open) return
 		await loadSalesmen()
+		resetPicker()
+		await loadCategories()
 		if (props.record) {
 			form.customer_id = props.record.customer_id
 			form.warehouse_id = props.record.warehouse_id
@@ -647,7 +766,8 @@ const loadSalesmen = async () => {
 		salesmen.value = props.salesmen
 		return
 	}
-	const res = await businessApi.employee.list.get({ per_page: 9999 }).catch(() => null)
+	// 仅取在职员工（排除作废 is_active=0）
+	const res = await businessApi.employee.list.get({ is_active: 1, per_page: 9999 }).catch(() => null)
 	if (res && res.code === 200) salesmen.value = res.data?.list || []
 }
 
@@ -677,4 +797,67 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .text-danger { color: var(--el-color-danger); }
 .summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color); border-radius: 4px; }
 .summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 16px; }
+
+/* 三栏分类选择：主分类 / 子分类 / 商品输入 */
+.cat-picker {
+	display: flex;
+	gap: 1px;
+	background: var(--el-border-color-lighter);
+	border: 1px solid var(--el-border-color-lighter);
+	border-radius: 4px;
+	margin-bottom: 10px;
+	height: 168px;
+}
+.cat-col {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	background: var(--el-bg-color);
+	overflow: hidden;
+}
+.cat-col-prod { flex: 1.4; }
+.cat-col-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 10px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--el-text-color-primary);
+	border-bottom: 1px solid var(--el-border-color-lighter);
+	flex-shrink: 0;
+}
+.cat-col-sub { font-size: 11px; font-weight: 400; color: var(--el-text-color-secondary); margin-left: 4px; }
+.cat-col-body { flex: 1; overflow-y: auto; padding: 2px 0; }
+.cat-col-body::-webkit-scrollbar { width: 4px; }
+.cat-col-body::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 2px; }
+.cat-item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 5px 10px;
+	font-size: 12px;
+	cursor: pointer;
+	color: var(--el-text-color-regular);
+	transition: background 0.1s;
+}
+.cat-item:hover { background: var(--el-fill-color-light); }
+.cat-item.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); font-weight: 500; }
+.cat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-count { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
+.cat-prod-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 10px;
+	font-size: 12px;
+	cursor: pointer;
+	color: var(--el-text-color-regular);
+	transition: background 0.1s;
+}
+.cat-prod-item:hover { background: var(--el-color-primary-light-9); }
+.cat-prod-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-prod-spec { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
+.cat-prod-price { font-size: 11px; color: var(--el-color-danger); flex-shrink: 0; }
 </style>
