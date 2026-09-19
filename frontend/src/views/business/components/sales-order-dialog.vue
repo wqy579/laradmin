@@ -390,9 +390,8 @@ const addCheckedProducts = () => {
 const stockMap = ref({})
 
 /**
- * 与旧系统 formatStock 对齐并修正三单位分支：
- * 1大 = c 中 = c*mc 小，1中 = mc 小。先按 c*mc 整除得大单位，
- * 余数再按 mc 折成中/小单位。
+ * 与旧系统 formatStock 一致：1 大=c 小、1 中=mc 小，逐级取余。
+ * cn=大→小(如 480)、mcn=中→小(如 120)，库存按小单位存，逐级整除展示。
  */
 const formatStock = (totalSmall, c, mc, unitLarge, unitMedium, unitSmall) => {
 	if (!totalSmall) return '-'
@@ -404,9 +403,8 @@ const formatStock = (totalSmall, c, mc, unitLarge, unitMedium, unitSmall) => {
 	const us = unitSmall || '袋'
 	const parts = []
 	if (cn > 0 && mcn > 0) {
-		const largeToSmall = cn * mcn
-		const large = Math.floor(num / largeToSmall)
-		const remainder = num % largeToSmall
+		const large = Math.floor(num / cn)
+		const remainder = num % cn
 		const medium = Math.floor(remainder / mcn)
 		const small = remainder % mcn
 		if (large > 0) parts.push(`${large}${ul}`)
@@ -478,8 +476,8 @@ const calcAmount = (item) => {
 }
 
 // ---------------------------------------------------------------- 单价换算
-// 三组换算对齐 quantity/requiredSmall 的小单位折算口径：
-// 1大 = c 中 = c*mc 小，1中 = mc 小。改一档价，另两档据此自动带出。
+// 三组换算用物理口径：c=大→小(1大=c小)、mc=中→小(1中=mc小)，大→中=c/mc。
+// 改一档价，另两档据此自动带出。quantity/requiredSmall 走后端膨胀口径 c*mc，与此处不同。
 
 const onSmallPriceChange = (item) => {
 	const sm = Number(item.price_small) || 0
@@ -487,7 +485,7 @@ const onSmallPriceChange = (item) => {
 	const c = Number(item.unit_conversion) || 0
 	if (c > 0 && mc > 0) {
 		item.price_medium = Math.round(sm * mc * 100) / 100
-		item.price_large = Math.round(sm * c * mc * 100) / 100
+		item.price_large = Math.round(sm * c * 100) / 100
 	} else if (mc > 0) {
 		item.price_medium = Math.round(sm * mc * 100) / 100
 		item.price_large = 0
@@ -507,7 +505,7 @@ const onMediumPriceChange = (item) => {
 	const c = Number(item.unit_conversion) || 0
 	if (c > 0 && mc > 0) {
 		item.price_small = Math.round(md / mc * 100) / 100
-		item.price_large = Math.round(md * c * 100) / 100
+		item.price_large = Math.round((md / mc) * c * 100) / 100
 	} else if (mc > 0) {
 		item.price_small = Math.round(md / mc * 100) / 100
 		item.price_large = 0
@@ -523,8 +521,8 @@ const onLargePriceChange = (item) => {
 	const mc = Number(item.unit_conversion_medium) || 0
 	const c = Number(item.unit_conversion) || 0
 	if (c > 0 && mc > 0) {
-		item.price_small = Math.round(lg / (c * mc) * 100) / 100
-		item.price_medium = Math.round(lg / c * 100) / 100
+		item.price_small = Math.round(lg / c * 100) / 100
+		item.price_medium = Math.round((lg / c) * mc * 100) / 100
 	} else if (c > 0) {
 		item.price_small = Math.round(lg / c * 100) / 100
 		item.price_medium = 0
