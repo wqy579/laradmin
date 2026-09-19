@@ -69,7 +69,14 @@
 				</div>
 				<div class="cat-col-body">
 					<template v-if="picker.subId && pickerProducts.length">
-						<div v-for="p in pickerProducts" :key="p.id" class="cat-prod-item" @click="pickProduct(p)" title="点击加入订单">
+						<div class="cat-prod-toolbar">
+							<el-checkbox :model-value="allChecked" :indeterminate="picker.checkedIds.length > 0 && !allChecked" size="small" @change="togglePickerCheckAll">全选</el-checkbox>
+							<el-button size="small" type="primary" link :disabled="!picker.checkedIds.length" @click="addCheckedProducts">
+								添加选中{{ picker.checkedIds.length ? `(${picker.checkedIds.length})` : '' }}
+							</el-button>
+						</div>
+						<div v-for="p in pickerProducts" :key="p.id" class="cat-prod-item" @click="pickProduct(p)" title="点击加入订单；或勾选后批量添加">
+							<el-checkbox :model-value="picker.checkedIds.includes(p.id)" size="small" class="cat-prod-check" @click.stop @change="togglePickerCheck(p)" />
 							<span class="cat-prod-name">{{ p.name }}</span>
 							<span class="cat-prod-spec">{{ p.spec_display || p.spec || '-' }}</span>
 							<span class="cat-prod-price">¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ p.price_unit_small || '个' }}</span>
@@ -300,6 +307,7 @@ const picker = reactive({
 	mainId: null, mainName: '',
 	subId: null, subName: '',
 	prodKeyword: '', prodLoading: false,
+	checkedIds: [],   // 三栏第三列勾选待批量加入订单的商品 id
 })
 const pickerSubs = computed(() => categories.value.find(m => m.id === picker.mainId)?.children || [])
 const pickerProducts = ref([])
@@ -313,6 +321,7 @@ const resetPicker = () => {
 	picker.mainId = null; picker.mainName = ''
 	picker.subId = null; picker.subName = ''
 	picker.prodKeyword = ''; picker.prodLoading = false
+	picker.checkedIds = []
 	pickerProducts.value = []; pickerAllProducts = []
 }
 const selectPickerMain = (m) => {
@@ -320,12 +329,14 @@ const selectPickerMain = (m) => {
 	picker.mainName = m.name
 	picker.subId = null; picker.subName = ''
 	picker.prodKeyword = ''
+	picker.checkedIds = []
 	pickerProducts.value = []; pickerAllProducts = []
 }
 const selectPickerSub = async (s) => {
 	picker.subId = s.id
 	picker.subName = s.name
 	picker.prodKeyword = ''
+	picker.checkedIds = []
 	await loadPickerProducts()
 }
 const loadPickerProducts = async () => {
@@ -356,11 +367,33 @@ const pickProduct = (p) => {
 	checkStock(row)
 }
 
+// 三栏第三列批量多选：勾选若干商品后一次性铺到表格空行，对齐旧系统"全选添加"
+const allChecked = computed(() => pickerProducts.value.length > 0 && picker.checkedIds.length === pickerProducts.value.length)
+const togglePickerCheck = (p) => {
+	const i = picker.checkedIds.indexOf(p.id)
+	if (i >= 0) picker.checkedIds.splice(i, 1)
+	else picker.checkedIds.push(p.id)
+}
+const togglePickerCheckAll = (val) => {
+	picker.checkedIds = val ? pickerProducts.value.map(p => p.id) : []
+}
+const addCheckedProducts = () => {
+	picker.checkedIds
+		.map(id => pickerProducts.value.find(p => p.id === id))
+		.filter(Boolean)
+		.forEach(pickProduct)
+	picker.checkedIds = []
+}
+
 // ---------------------------------------------------------------- 库存
 
 const stockMap = ref({})
 
-/** 与旧系统 formatStock 一致：1 大=c 小、1 中=mc 小，逐级取余 */
+/**
+ * 与旧系统 formatStock 对齐并修正三单位分支：
+ * 1大 = c 中 = c*mc 小，1中 = mc 小。先按 c*mc 整除得大单位，
+ * 余数再按 mc 折成中/小单位。
+ */
 const formatStock = (totalSmall, c, mc, unitLarge, unitMedium, unitSmall) => {
 	if (!totalSmall) return '-'
 	const num = Number(totalSmall) || 0
@@ -371,8 +404,9 @@ const formatStock = (totalSmall, c, mc, unitLarge, unitMedium, unitSmall) => {
 	const us = unitSmall || '袋'
 	const parts = []
 	if (cn > 0 && mcn > 0) {
-		const large = Math.floor(num / cn)
-		const remainder = num % cn
+		const largeToSmall = cn * mcn
+		const large = Math.floor(num / largeToSmall)
+		const remainder = num % largeToSmall
 		const medium = Math.floor(remainder / mcn)
 		const small = remainder % mcn
 		if (large > 0) parts.push(`${large}${ul}`)
@@ -444,8 +478,8 @@ const calcAmount = (item) => {
 }
 
 // ---------------------------------------------------------------- 单价换算
-// 完全照搬旧系统 09-handlers-order.js 的三组换算：改一档价，另外两档按
-// unit_conversion(1大=c小) 与 unit_conversion_medium(1中=mc小) 自动带出。
+// 三组换算对齐 quantity/requiredSmall 的小单位折算口径：
+// 1大 = c 中 = c*mc 小，1中 = mc 小。改一档价，另两档据此自动带出。
 
 const onSmallPriceChange = (item) => {
 	const sm = Number(item.price_small) || 0
@@ -453,7 +487,7 @@ const onSmallPriceChange = (item) => {
 	const c = Number(item.unit_conversion) || 0
 	if (c > 0 && mc > 0) {
 		item.price_medium = Math.round(sm * mc * 100) / 100
-		item.price_large = Math.round(sm * c * 100) / 100
+		item.price_large = Math.round(sm * c * mc * 100) / 100
 	} else if (mc > 0) {
 		item.price_medium = Math.round(sm * mc * 100) / 100
 		item.price_large = 0
@@ -473,7 +507,7 @@ const onMediumPriceChange = (item) => {
 	const c = Number(item.unit_conversion) || 0
 	if (c > 0 && mc > 0) {
 		item.price_small = Math.round(md / mc * 100) / 100
-		item.price_large = Math.round((md / mc) * c * 100) / 100
+		item.price_large = Math.round(md * c * 100) / 100
 	} else if (mc > 0) {
 		item.price_small = Math.round(md / mc * 100) / 100
 		item.price_large = 0
@@ -489,8 +523,8 @@ const onLargePriceChange = (item) => {
 	const mc = Number(item.unit_conversion_medium) || 0
 	const c = Number(item.unit_conversion) || 0
 	if (c > 0 && mc > 0) {
-		item.price_small = Math.round(lg / c * 100) / 100
-		item.price_medium = Math.round(lg / mc * 100) / 100
+		item.price_small = Math.round(lg / (c * mc) * 100) / 100
+		item.price_medium = Math.round(lg / c * 100) / 100
 	} else if (c > 0) {
 		item.price_small = Math.round(lg / c * 100) / 100
 		item.price_medium = 0
@@ -846,6 +880,19 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .cat-item.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); font-weight: 500; }
 .cat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cat-count { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
+.cat-prod-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 4px 10px;
+	border-bottom: 1px solid var(--el-border-color-lighter);
+	background: var(--el-fill-color-lighter);
+	position: sticky;
+	top: 0;
+	z-index: 1;
+}
+.cat-prod-check { flex-shrink: 0; }
 .cat-prod-item {
 	display: flex;
 	align-items: center;
