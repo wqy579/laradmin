@@ -785,7 +785,8 @@ watch(
 			if (!loadDraft()) initBlank()
 		}
 		await loadStock()
-	}
+	},
+	{ immediate: true }
 )
 
 watch(form, saveDraft, { deep: true })
