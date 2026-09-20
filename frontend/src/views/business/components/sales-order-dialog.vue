@@ -743,6 +743,19 @@ const initBlank = () => {
 	form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
 }
 
+// 业务员下拉：优先用列表页传入的，没有就自己在对话框里拉一次（不依赖父级回调）
+const salesmen = ref([])
+
+const loadSalesmen = async () => {
+	if (props.salesmen.length) {
+		salesmen.value = props.salesmen
+		return
+	}
+	// 仅取在职员工（排除作废 is_active=0）
+	const res = await businessApi.employee.list.get({ is_active: 1, per_page: 9999 }).catch(() => null)
+	if (res && res.code === 200) salesmen.value = res.data?.list || []
+}
+
 watch(
 	() => props.visible,
 	async (open) => {
@@ -790,19 +803,6 @@ watch(
 )
 
 watch(form, saveDraft, { deep: true })
-
-// 业务员下拉：优先用列表页传入的，没有就自己在对话框里拉一次（不依赖父级回调）
-const salesmen = ref([])
-
-const loadSalesmen = async () => {
-	if (props.salesmen.length) {
-		salesmen.value = props.salesmen
-		return
-	}
-	// 仅取在职员工（排除作废 is_active=0）
-	const res = await businessApi.employee.list.get({ is_active: 1, per_page: 9999 }).catch(() => null)
-	if (res && res.code === 200) salesmen.value = res.data?.list || []
-}
 
 watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immediate: true })
 </script>
