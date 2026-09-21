@@ -309,13 +309,16 @@ const picker = reactive({
 	prodKeyword: '', prodLoading: false,
 	checkedIds: [],   // 三栏第三列勾选待批量加入订单的商品 id
 })
-const pickerSubs = computed(() => categories.value.find(m => m.id === picker.mainId)?.children || [])
+const pickerSubs = computed(() => {
+	const subs = categories.value.find(m => m.id === picker.mainId)?.children || []
+	return subs.slice().sort((a, b) => (b.product_count || 0) - (a.product_count || 0))
+})
 const pickerProducts = ref([])
 let pickerAllProducts = []  // 当前子分类全量商品，供关键字过滤
 
 const loadCategories = async () => {
 	const res = await businessApi.product.categories.get().catch(() => null)
-	if (res && res.code === 200) categories.value = res.data || []
+	if (res && res.code === 200) categories.value = (res.data || []).slice().sort((a, b) => (b.product_count || 0) - (a.product_count || 0))
 }
 const resetPicker = () => {
 	picker.mainId = null; picker.mainName = ''
