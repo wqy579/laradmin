@@ -35,7 +35,7 @@
 			</el-form-item>
 		</el-form>
 
-		<!-- 三栏商品选择：主分类 / 子分类 / 商品输入（仿商品资料页），点商品填入下方表格空行 -->
+		<!-- 三栏商品选择：主分类 / 子分类 / 商品输入（仿商品资料页）。第三栏直接在框内输入商品名/编码，结果即时列在下，点选填入下方表格空行 -->
 		<div class="cat-picker">
 			<div class="cat-col">
 				<div class="cat-col-title">主分类</div>
@@ -65,24 +65,17 @@
 			<div class="cat-col cat-col-prod">
 				<div class="cat-col-title">
 					<span>商品输入</span>
-					<el-input v-model="picker.prodKeyword" size="small" placeholder="搜索商品..." clearable style="width:150px" @input="filterPickerProducts" />
+					<el-input v-model="picker.prodKeyword" size="small" placeholder="输入商品名/编码，回车或点结果填入" clearable style="flex:1;margin-left:8px" @input="filterPickerProducts" @keydown.enter="pickProduct(pickerProducts[0])" />
 				</div>
 				<div class="cat-col-body">
 					<template v-if="picker.subId && pickerProducts.length">
-						<div class="cat-prod-toolbar">
-							<el-checkbox :model-value="allChecked" :indeterminate="picker.checkedIds.length > 0 && !allChecked" size="small" @change="togglePickerCheckAll">全选</el-checkbox>
-							<el-button size="small" type="primary" link :disabled="!picker.checkedIds.length" @click="addCheckedProducts">
-								添加选中{{ picker.checkedIds.length ? `(${picker.checkedIds.length})` : '' }}
-							</el-button>
-						</div>
-						<div v-for="p in pickerProducts" :key="p.id" class="cat-prod-item" @click="pickProduct(p)" title="点击加入订单；或勾选后批量添加">
-							<el-checkbox :model-value="picker.checkedIds.includes(p.id)" size="small" class="cat-prod-check" @click.stop @change="togglePickerCheck(p)" />
+						<div v-for="p in pickerProducts" :key="p.id" class="cat-prod-item" @click="pickProduct(p)" title="点击填入下方表格空行">
 							<span class="cat-prod-name">{{ p.name }}</span>
 							<span class="cat-prod-spec">{{ p.spec_display || p.spec || '-' }}</span>
 							<span class="cat-prod-price">¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ p.price_unit_small || '个' }}</span>
 						</div>
 					</template>
-					<el-empty v-else :image-size="28" :description="picker.prodLoading ? '加载中…' : (picker.subId ? '无商品' : '请先选子分类')" />
+					<el-empty v-else :image-size="28" :description="picker.prodLoading ? '加载中…' : (picker.prodKeyword ? '无匹配商品' : (picker.subId ? '输入商品名搜索' : '请先选子分类'))" />
 				</div>
 			</div>
 		</div>
@@ -307,7 +300,6 @@ const picker = reactive({
 	mainId: null, mainName: '',
 	subId: null, subName: '',
 	prodKeyword: '', prodLoading: false,
-	checkedIds: [],   // 三栏第三列勾选待批量加入订单的商品 id
 })
 const pickerSubs = computed(() => {
 	const subs = categories.value.find(m => m.id === picker.mainId)?.children || []
@@ -324,7 +316,6 @@ const resetPicker = () => {
 	picker.mainId = null; picker.mainName = ''
 	picker.subId = null; picker.subName = ''
 	picker.prodKeyword = ''; picker.prodLoading = false
-	picker.checkedIds = []
 	pickerProducts.value = []; pickerAllProducts = []
 }
 const selectPickerMain = (m) => {
@@ -332,14 +323,12 @@ const selectPickerMain = (m) => {
 	picker.mainName = m.name
 	picker.subId = null; picker.subName = ''
 	picker.prodKeyword = ''
-	picker.checkedIds = []
 	pickerProducts.value = []; pickerAllProducts = []
 }
 const selectPickerSub = async (s) => {
 	picker.subId = s.id
 	picker.subName = s.name
 	picker.prodKeyword = ''
-	picker.checkedIds = []
 	await loadPickerProducts()
 }
 const loadPickerProducts = async () => {
@@ -368,24 +357,6 @@ const pickProduct = (p) => {
 	row.price_source = CLEAR_PRICE_MODES.includes(row.sale_mode) ? '特殊' : ''
 	calcAmount(row)
 	checkStock(row)
-}
-
-// 三栏第三列批量多选：勾选若干商品后一次性铺到表格空行，对齐旧系统"全选添加"
-const allChecked = computed(() => pickerProducts.value.length > 0 && picker.checkedIds.length === pickerProducts.value.length)
-const togglePickerCheck = (p) => {
-	const i = picker.checkedIds.indexOf(p.id)
-	if (i >= 0) picker.checkedIds.splice(i, 1)
-	else picker.checkedIds.push(p.id)
-}
-const togglePickerCheckAll = (val) => {
-	picker.checkedIds = val ? pickerProducts.value.map(p => p.id) : []
-}
-const addCheckedProducts = () => {
-	picker.checkedIds
-		.map(id => pickerProducts.value.find(p => p.id === id))
-		.filter(Boolean)
-		.forEach(pickProduct)
-	picker.checkedIds = []
 }
 
 // ---------------------------------------------------------------- 库存
@@ -882,19 +853,6 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .cat-item.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); font-weight: 500; }
 .cat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cat-count { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
-.cat-prod-toolbar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	padding: 4px 10px;
-	border-bottom: 1px solid var(--el-border-color-lighter);
-	background: var(--el-fill-color-lighter);
-	position: sticky;
-	top: 0;
-	z-index: 1;
-}
-.cat-prod-check { flex-shrink: 0; }
 .cat-prod-item {
 	display: flex;
 	align-items: center;
