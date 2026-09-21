@@ -734,30 +734,32 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 </script>
 
 <style scoped>
-.items-wrap { flex: 1 1 0; min-width: 0; overflow: auto; border: none; border-radius: 0; margin: 0; background: var(--el-bg-color); }
+.items-wrap {
+	flex: 1 1 0;
+	min-width: 0;
+	min-height: 0;
+	overflow: auto;
+	border: none;
+	border-radius: 0;
+	margin: 0;
+	background: var(--el-bg-color);
+}
 /* 表格 10 列各列宽相加 ≈1050px；再压一档 min-width，配合收窄的分类栏，
    1366 宽的常规屏也能把横向滚动条挤掉 */
 /* 对话框贴顶：默认 --el-dialog-margin-top 是 15vh，把整窗顶到中上部、下方留一大片空白。
-   表格行多时那空白纯属浪费，改成 2vh 顶到最上方，高度全部让给下面的三栏 */
+   改成 2vh 顶到最上方 */
 .so-dialog :deep(.sales-order-dialog) {
-	/* 显式给定可视高度：el-dialog 默认按内容撑高（869px 固定值），
-	   与视口无关，大屏上永远留着一片空白。用 calc(96vh) 顶掉上下的 2vh 边距 */
-	height: calc(96vh);
-	max-height: calc(96vh);
+	/* 对话框按内容撑高（不再写死 96vh）：三栏已限定为 20 行高，
+	   表单 + 三栏(定高) + 合计的总高自然收敛，不再顶满整屏留大片空白 */
+	max-height: 96vh;
+	overflow: auto;
 	margin-bottom: 2vh;
 }
 
-/* 三栏撑满对话框剩余高度：body 是块级容器，给高度比例用 flex 分配比写死 vh 更稳
-   （46vh 在 800 高的窗口只有 368px，撑不到表格该有的空间） */
+/* body 按内容撑高即可：三栏定高，整框高度自然收敛 */
 .so-dialog :deep(.el-dialog__body) {
 	display: flex;
 	flex-direction: column;
-	overflow: hidden;
-	/* 对话框 96vh - 上下 2*2vh 边距 - 标题栏 56px = 可用内容高度；
-	   不给明确高度时 body 会按内容撑高，flex:1 的子项拿不到剩余空间 */
-	height: calc(96vh - 4vh - 56px);
-	max-height: calc(96vh - 4vh - 56px);
-	min-height: 0;
 }
 
 .items-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 920px; }
@@ -782,9 +784,12 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color); border-radius: 4px; }
 .summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 16px; }
 
-/* 三栏：主分类 / 子分类 / 商品表格 */
+/* 三栏：主分类 / 子分类 / 商品表格
+   高度限定为「输入框 20 行」(20 行 * 31px ≈ 620 + 表头 34 + 内边距 ≈ 680px)：
+   之前 flex:1 按剩余空间撑高，分类列无上限、整框被拉得非常高。
+   这里写死定高，三栏同高对齐，对话框随之收敛 */
 .cat-picker {
-	flex: 1 1 auto;
+	height: 680px;
 	min-height: 0;
 	display: flex;
 	gap: 1px;
@@ -796,6 +801,8 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .cat-col {
 	flex: 0 0 112px;
 	min-width: 0;
+	min-height: 0;
+	height: 100%;
 	display: flex;
 	flex-direction: column;
 	background: var(--el-bg-color);
