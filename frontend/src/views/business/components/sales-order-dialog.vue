@@ -1,5 +1,5 @@
 <template>
-	<el-dialog v-model="visible" :title="record ? '编辑销售订单' : '新增销售订单'" width="96%" destroy-on-close class="sales-order-dialog">
+	<el-dialog v-model="visible" :title="record ? '编辑销售订单' : '新增销售订单'" width="98%" destroy-on-close class="sales-order-dialog">
 		<!-- 表头：客户 / 仓库 / 业务员 / 日期 / 备注，顺序与旧系统一致 -->
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="70px" size="small">
 			<el-row :gutter="16">
@@ -730,7 +730,9 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 
 <style scoped>
 .items-wrap { flex: 1 1 0; min-width: 0; overflow: auto; border: none; border-radius: 0; margin: 0; background: var(--el-bg-color); }
-.items-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1040px; }
+/* 表格 10 列各列宽相加 ≈1050px；再压一档 min-width，配合收窄的分类栏，
+   1366 宽的常规屏也能把横向滚动条挤掉 */
+.items-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 920px; }
 .items-table th { position: sticky; top: 0; z-index: 2; background: var(--el-color-primary-light-9); color: var(--el-text-color-primary); font-weight: 600; text-align: center; padding: 6px 4px; border-bottom: 1px solid var(--el-border-color); }
 .items-table td { padding: 3px 4px; border: 1px solid var(--el-border-color-lighter); vertical-align: middle; }
 .item-row:nth-child(even) { background: var(--el-fill-color-lighter); }
@@ -763,7 +765,7 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 	height: 46vh;
 }
 .cat-col {
-	flex: 0 0 128px;
+	flex: 0 0 112px;
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
