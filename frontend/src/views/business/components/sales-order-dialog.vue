@@ -35,7 +35,7 @@
 			</el-form-item>
 		</el-form>
 
-		<!-- 两栏商品分类：主分类 / 子分类。商品在下方表格行内远程搜索选择 -->
+		<!-- 三栏：主分类 / 子分类 / 商品表格，行内远程搜索选择 -->
 		<div class="cat-picker">
 			<div class="cat-col">
 				<div class="cat-col-title">主分类</div>
@@ -62,98 +62,97 @@
 					<el-empty v-else :image-size="28" :description="picker.mainId ? '无子分类' : '请先选主分类'" />
 				</div>
 			</div>
-		</div>
-
-		<!-- 商品表格：10 列，与旧系统新增订单的商品表格逐列对齐 -->
-		<div class="items-wrap">
-			<table class="items-table">
-				<thead>
-					<tr>
-						<th class="c-idx">#</th>
-						<th class="c-product">商品</th>
-						<th class="c-spec">规格</th>
-						<th class="c-mode">销售模式</th>
-						<th class="c-stock">库存</th>
-						<th class="c-qty">数量</th>
-						<th class="c-price">单价</th>
-						<th class="c-amount">金额</th>
-						<th class="c-remark">备注</th>
-						<th class="c-action">操作</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="(item, idx) in form.items" :key="item.id" class="item-row">
-						<td class="c-idx">{{ idx + 1 }}</td>
-						<td class="c-product">
-							<el-select
-								v-model="item.product_id"
-								placeholder="选择商品"
-								filterable
-								remote
-								:remote-method="(q) => searchProducts(q, item)"
-								:loading="item._loading"
-								size="small"
-								style="width:100%"
-								@change="onProductChange(item)"
-							>
-								<el-option v-for="p in item._options" :key="p.id" :label="productLabel(p)" :value="p.id">
-									<span style="float:left">{{ p.name }}</span>
-									<span style="float:right;color:var(--el-text-color-secondary);font-size:12px">
-										{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}
-									</span>
-								</el-option>
-							</el-select>
-						</td>
-						<td class="c-spec">{{ item.spec || '-' }}</td>
-						<td class="c-mode">
-							<el-select v-model="item.sale_mode" size="small" style="width:100%" @change="onModeChange(item)">
-								<el-option v-for="m in saleModes" :key="m" :label="m" :value="m" />
-							</el-select>
-						</td>
-						<td class="c-stock">
-							<span :class="{ 'text-danger': item.stockError }">{{ item.stockDisplay || '-' }}</span>
-						</td>
-						<td class="c-qty">
-							<div class="unit-group">
-								<template v-if="item.unit_large">
-									<el-input v-model="item.qty_large" size="small" class="u-input" placeholder="件" @input="onLargeQtyChange(item)" />
-									<span class="u-name">{{ item.unit_large }}</span>
-								</template>
-								<template v-if="item.unit_medium">
-									<el-input v-model="item.qty_medium" size="small" class="u-input" placeholder="盒" @input="onMediumQtyChange(item)" />
-									<span class="u-name">{{ item.unit_medium }}</span>
-								</template>
-								<el-input v-model="item.qty_small" size="small" class="u-input" placeholder="袋" @input="onSmallQtyChange(item)" />
-								<span v-if="item.unit_small" class="u-name">{{ item.unit_small }}</span>
-							</div>
-						</td>
-						<td class="c-price">
-							<div class="unit-group">
-								<template v-if="item.unit_large">
-									<el-input v-model="item.price_large" size="small" class="p-input" placeholder="件价" @input="onLargePriceChange(item)" />
-									<span class="u-name">元/{{ item.unit_large }}</span>
-								</template>
-								<template v-if="item.unit_medium">
-									<el-input v-model="item.price_medium" size="small" class="p-input" placeholder="盒价" @input="onMediumPriceChange(item)" />
-									<span class="u-name">元/{{ item.unit_medium }}</span>
-								</template>
-								<el-input v-model="item.price_small" size="small" class="p-input" placeholder="袋价" @input="onSmallPriceChange(item)" />
-								<span v-if="item.unit_small" class="u-name">元/{{ item.unit_small }}</span>
-							</div>
-							<div v-if="item.price_source" class="price-source">{{ item.price_source }}</div>
-						</td>
-						<td class="c-amount">{{ Number(item.amount || 0).toFixed(2) }}</td>
-						<td class="c-remark">
-							<el-input v-model="item.remark" size="small" placeholder="备注" />
-						</td>
-						<td class="c-action">
-							<el-button type="primary" link size="small" title="添加" @click="addItem(idx)">＋</el-button>
-							<el-button type="primary" link size="small" title="复制" @click="duplicateItem(idx)">⎘</el-button>
-							<el-button v-if="form.items.length > 1" type="danger" link size="small" title="删除" @click="removeItem(idx)">🗑</el-button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
+			<!-- 第三栏：商品表格（10 列，与旧系统新增订单逐列对齐），行内远程搜索选择 -->
+			<div class="items-wrap">
+				<table class="items-table">
+					<thead>
+						<tr>
+							<th class="c-idx">#</th>
+							<th class="c-product">商品</th>
+							<th class="c-spec">规格</th>
+							<th class="c-mode">销售模式</th>
+							<th class="c-stock">库存</th>
+							<th class="c-qty">数量</th>
+							<th class="c-price">单价</th>
+							<th class="c-amount">金额</th>
+							<th class="c-remark">备注</th>
+							<th class="c-action">操作</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="(item, idx) in form.items" :key="item.id" class="item-row">
+							<td class="c-idx">{{ idx + 1 }}</td>
+							<td class="c-product">
+								<el-select
+									v-model="item.product_id"
+									placeholder="选择商品"
+									filterable
+									remote
+									:remote-method="(q) => searchProducts(q, item)"
+									:loading="item._loading"
+									size="small"
+									style="width:100%"
+									@change="onProductChange(item)"
+								>
+									<el-option v-for="p in item._options" :key="p.id" :label="productLabel(p)" :value="p.id">
+										<span style="float:left">{{ p.name }}</span>
+										<span style="float:right;color:var(--el-text-color-secondary);font-size:12px">
+											{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}
+										</span>
+									</el-option>
+								</el-select>
+							</td>
+							<td class="c-spec">{{ item.spec || '-' }}</td>
+							<td class="c-mode">
+								<el-select v-model="item.sale_mode" size="small" style="width:100%" @change="onModeChange(item)">
+									<el-option v-for="m in saleModes" :key="m" :label="m" :value="m" />
+								</el-select>
+							</td>
+							<td class="c-stock">
+								<span :class="{ 'text-danger': item.stockError }">{{ item.stockDisplay || '-' }}</span>
+							</td>
+							<td class="c-qty">
+								<div class="unit-group">
+									<template v-if="item.unit_large">
+										<el-input v-model="item.qty_large" size="small" class="u-input" placeholder="件" @input="onLargeQtyChange(item)" />
+										<span class="u-name">{{ item.unit_large }}</span>
+									</template>
+									<template v-if="item.unit_medium">
+										<el-input v-model="item.qty_medium" size="small" class="u-input" placeholder="盒" @input="onMediumQtyChange(item)" />
+										<span class="u-name">{{ item.unit_medium }}</span>
+									</template>
+									<el-input v-model="item.qty_small" size="small" class="u-input" placeholder="袋" @input="onSmallQtyChange(item)" />
+									<span v-if="item.unit_small" class="u-name">{{ item.unit_small }}</span>
+								</div>
+							</td>
+							<td class="c-price">
+								<div class="unit-group">
+									<template v-if="item.unit_large">
+										<el-input v-model="item.price_large" size="small" class="p-input" placeholder="件价" @input="onLargePriceChange(item)" />
+										<span class="u-name">元/{{ item.unit_large }}</span>
+									</template>
+									<template v-if="item.unit_medium">
+										<el-input v-model="item.price_medium" size="small" class="p-input" placeholder="盒价" @input="onMediumPriceChange(item)" />
+										<span class="u-name">元/{{ item.unit_medium }}</span>
+									</template>
+									<el-input v-model="item.price_small" size="small" class="p-input" placeholder="袋价" @input="onSmallPriceChange(item)" />
+									<span v-if="item.unit_small" class="u-name">元/{{ item.unit_small }}</span>
+								</div>
+								<div v-if="item.price_source" class="price-source">{{ item.price_source }}</div>
+							</td>
+							<td class="c-amount">{{ Number(item.amount || 0).toFixed(2) }}</td>
+							<td class="c-remark">
+								<el-input v-model="item.remark" size="small" placeholder="备注" />
+							</td>
+							<td class="c-action">
+								<el-button type="primary" link size="small" title="添加" @click="addItem(idx)">＋</el-button>
+								<el-button type="primary" link size="small" title="复制" @click="duplicateItem(idx)">⎘</el-button>
+								<el-button v-if="form.items.length > 1" type="danger" link size="small" title="删除" @click="removeItem(idx)">🗑</el-button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
 		</div>
 
 		<!-- 合计：与旧系统底部一致，大/中/小三档数量 + 总金额 -->
@@ -268,7 +267,7 @@ const applyProduct = (item, p) => {
 const productLabel = (p) => `${p.name}${p.code ? ` (${p.code})` : ''}`
 const smallUnitName = (p) => p.price_unit_small || '小'
 
-// ---------------------------------------------------------------- 两栏分类选择（主分类/子分类）
+// ---------------------------------------------------------------- 三栏分类选择（主分类/子分类/商品表格）
 
 // 本地日期字符串 YYYY-MM-DD：避免 toISOString() 的 UTC 偏差导致凌晨取到昨天
 const todayStr = () => {
@@ -730,7 +729,7 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 </script>
 
 <style scoped>
-.items-wrap { max-height: 46vh; overflow: auto; border: 1px solid var(--el-border-color); border-radius: 4px; margin-bottom: 12px; }
+.items-wrap { flex: 1 1 0; min-width: 0; overflow: auto; border: none; border-radius: 0; margin: 0; background: var(--el-bg-color); }
 .items-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 1040px; }
 .items-table th { position: sticky; top: 0; z-index: 2; background: var(--el-color-primary-light-9); color: var(--el-text-color-primary); font-weight: 600; text-align: center; padding: 6px 4px; border-bottom: 1px solid var(--el-border-color); }
 .items-table td { padding: 3px 4px; border: 1px solid var(--el-border-color-lighter); vertical-align: middle; }
@@ -753,7 +752,7 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color); border-radius: 4px; }
 .summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 16px; }
 
-/* 两栏分类选择：主分类 / 子分类 */
+/* 三栏：主分类 / 子分类 / 商品表格 */
 .cat-picker {
 	display: flex;
 	gap: 1px;
@@ -761,10 +760,10 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 	border: 1px solid var(--el-border-color-lighter);
 	border-radius: 4px;
 	margin-bottom: 10px;
-	height: 168px;
+	height: 46vh;
 }
 .cat-col {
-	flex: 1;
+	flex: 0 0 150px;
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
