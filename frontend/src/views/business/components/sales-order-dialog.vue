@@ -35,7 +35,7 @@
 			</el-form-item>
 		</el-form>
 
-		<!-- 三栏商品选择：主分类 / 子分类 / 商品输入（仿商品资料页）。第三栏直接在框内输入商品名/编码，结果即时列在下，点选填入下方表格空行 -->
+		<!-- 两栏商品分类：主分类 / 子分类。商品在下方表格行内远程搜索选择 -->
 		<div class="cat-picker">
 			<div class="cat-col">
 				<div class="cat-col-title">主分类</div>
@@ -60,30 +60,6 @@
 						</div>
 					</template>
 					<el-empty v-else :image-size="28" :description="picker.mainId ? '无子分类' : '请先选主分类'" />
-				</div>
-			</div>
-			<div class="cat-col cat-col-prod">
-				<div class="cat-col-title">商品输入</div>
-				<div class="cat-col-input">
-					<el-autocomplete
-						v-model="picker.prodKeyword"
-						:fetch-suggestions="queryPickerProducts"
-						:trigger-on-focus="false"
-						clearable
-						:placeholder="picker.subId ? '输入商品名/编码，选中填入' : '请先选子分类'"
-						value-key="name"
-						class="prod-ac"
-						@select="onPickSuggestion"
-					>
-						<template #default="{ item }">
-							<div class="prod-sug">
-								<span class="prod-sug-name">{{ item.name }}</span>
-								<span class="prod-sug-spec">{{ item.spec_display || item.spec || '-' }}</span>
-								<span class="prod-sug-price">¥{{ Number(item.price_small || 0).toFixed(2) }}/{{ item.price_unit_small || '个' }}</span>
-							</div>
-						</template>
-					</el-autocomplete>
-					<div class="cat-col-hint">{{ picker.subId ? '输入即搜，选中填入下方表格' : '先选主分类 → 子分类' }}</div>
 				</div>
 			</div>
 		</div>
@@ -292,7 +268,7 @@ const applyProduct = (item, p) => {
 const productLabel = (p) => `${p.name}${p.code ? ` (${p.code})` : ''}`
 const smallUnitName = (p) => p.price_unit_small || '小'
 
-// ---------------------------------------------------------------- 三栏分类选择（主分类/子分类/商品输入，仿商品资料页）
+// ---------------------------------------------------------------- 两栏分类选择（主分类/子分类）
 
 // 本地日期字符串 YYYY-MM-DD：避免 toISOString() 的 UTC 偏差导致凌晨取到昨天
 const todayStr = () => {
@@ -307,13 +283,11 @@ const categories = ref([])  // 主分类树（带 children / product_count）
 const picker = reactive({
 	mainId: null, mainName: '',
 	subId: null, subName: '',
-	prodKeyword: '', prodLoading: false,
 })
 const pickerSubs = computed(() => {
 	const subs = categories.value.find(m => m.id === picker.mainId)?.children || []
 	return subs.slice().sort((a, b) => (b.product_count || 0) - (a.product_count || 0))
 })
-let pickerAllProducts = []  // 当前子分类全量商品，供输入框搜索匹配
 
 const loadCategories = async () => {
 	const res = await businessApi.product.categories.get().catch(() => null)
@@ -322,56 +296,15 @@ const loadCategories = async () => {
 const resetPicker = () => {
 	picker.mainId = null; picker.mainName = ''
 	picker.subId = null; picker.subName = ''
-	picker.prodKeyword = ''; picker.prodLoading = false
-	pickerAllProducts = []
 }
 const selectPickerMain = (m) => {
 	picker.mainId = m.id
 	picker.mainName = m.name
 	picker.subId = null; picker.subName = ''
-	picker.prodKeyword = ''
-	pickerAllProducts = []
 }
-const selectPickerSub = async (s) => {
+const selectPickerSub = (s) => {
 	picker.subId = s.id
 	picker.subName = s.name
-	picker.prodKeyword = ''
-	await loadPickerProducts()
-}
-const loadPickerProducts = async () => {
-	if (!picker.subId) { pickerAllProducts = []; return }
-	picker.prodLoading = true
-	const res = await businessApi.product.list.get({ sub_category_id: picker.subId, is_active: 1, per_page: 9999 }).catch(() => null)
-	picker.prodLoading = false
-	if (res && res.code === 200) {
-		pickerAllProducts = res.data?.list || []
-	}
-}
-/** 输入框搜索：在当前子分类全量商品里按 名称/规格/编码 过滤，供 autocomplete 下拉 */
-const queryPickerProducts = (queryString, cb) => {
-	const q = (queryString || '').trim().toLowerCase()
-	if (!q || !pickerAllProducts.length) return cb([])
-	cb(pickerAllProducts.filter(p =>
-		(p.name || '').toLowerCase().includes(q) ||
-		(p.spec_display || p.spec || '').toLowerCase().includes(q) ||
-		(p.external_id || p.code || '').toLowerCase().includes(q)
-	))
-}
-/** autocomplete 选中 → 填入下方表格空行，并清空输入框待下一次输入 */
-const onPickSuggestion = (p) => {
-	if (!p || !p.id) return
-	pickProduct(p)
-	picker.prodKeyword = ''
-}
-/** 点击商品 → 填入第一个空行（无 product_id），没有空行则追加一行 */
-const pickProduct = (p) => {
-	let row = form.items.find(i => !i.product_id)
-	if (!row) { row = blankRow(); form.items.push(row) }
-	row._options = [p]
-	applyProduct(row, p)
-	row.price_source = CLEAR_PRICE_MODES.includes(row.sale_mode) ? '特殊' : ''
-	calcAmount(row)
-	checkStock(row)
 }
 
 // ---------------------------------------------------------------- 库存
@@ -820,7 +753,7 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color); border-radius: 4px; }
 .summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 16px; }
 
-/* 三栏分类选择：主分类 / 子分类 / 商品输入 */
+/* 两栏分类选择：主分类 / 子分类 */
 .cat-picker {
 	display: flex;
 	gap: 1px;
@@ -838,7 +771,6 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 	background: var(--el-bg-color);
 	overflow: hidden;
 }
-.cat-col-prod { flex: 1.4; }
 .cat-col-title {
 	display: flex;
 	align-items: center;
@@ -868,12 +800,4 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .cat-item.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); font-weight: 500; }
 .cat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cat-count { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
-.cat-col-input { flex: 1; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; padding: 12px 10px; }
-.cat-col-input .prod-ac { width: 100%; }
-.cat-col-hint { font-size: 11px; color: var(--el-text-color-secondary); text-align: center; }
-/* autocomplete 下拉浮层项 */
-.prod-sug { display: flex; align-items: center; gap: 6px; width: 100%; }
-.prod-sug-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.prod-sug-spec { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
-.prod-sug-price { font-size: 11px; color: var(--el-color-danger); flex-shrink: 0; }
 </style>
