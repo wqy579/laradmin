@@ -63,19 +63,27 @@
 				</div>
 			</div>
 			<div class="cat-col cat-col-prod">
-				<div class="cat-col-title">
-					<span>商品输入</span>
-					<el-input v-model="picker.prodKeyword" size="small" placeholder="输入商品名/编码，回车或点结果填入" clearable style="flex:1;margin-left:8px" @input="filterPickerProducts" @keydown.enter="pickProduct(pickerProducts[0])" />
-				</div>
-				<div class="cat-col-body">
-					<template v-if="picker.subId && pickerProducts.length">
-						<div v-for="p in pickerProducts" :key="p.id" class="cat-prod-item" @click="pickProduct(p)" title="点击填入下方表格空行">
-							<span class="cat-prod-name">{{ p.name }}</span>
-							<span class="cat-prod-spec">{{ p.spec_display || p.spec || '-' }}</span>
-							<span class="cat-prod-price">¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ p.price_unit_small || '个' }}</span>
-						</div>
-					</template>
-					<el-empty v-else :image-size="28" :description="picker.prodLoading ? '加载中…' : (picker.prodKeyword ? '无匹配商品' : (picker.subId ? '输入商品名搜索' : '请先选子分类'))" />
+				<div class="cat-col-title">商品输入</div>
+				<div class="cat-col-input">
+					<el-autocomplete
+						v-model="picker.prodKeyword"
+						:fetch-suggestions="queryPickerProducts"
+						:trigger-on-focus="false"
+						clearable
+						:placeholder="picker.subId ? '输入商品名/编码，选中填入' : '请先选子分类'"
+						value-key="name"
+						class="prod-ac"
+						@select="onPickSuggestion"
+					>
+						<template #default="{ item }">
+							<div class="prod-sug">
+								<span class="prod-sug-name">{{ item.name }}</span>
+								<span class="prod-sug-spec">{{ item.spec_display || item.spec || '-' }}</span>
+								<span class="prod-sug-price">¥{{ Number(item.price_small || 0).toFixed(2) }}/{{ item.price_unit_small || '个' }}</span>
+							</div>
+						</template>
+					</el-autocomplete>
+					<div class="cat-col-hint">{{ picker.subId ? '输入即搜，选中填入下方表格' : '先选主分类 → 子分类' }}</div>
 				</div>
 			</div>
 		</div>
@@ -305,8 +313,7 @@ const pickerSubs = computed(() => {
 	const subs = categories.value.find(m => m.id === picker.mainId)?.children || []
 	return subs.slice().sort((a, b) => (b.product_count || 0) - (a.product_count || 0))
 })
-const pickerProducts = ref([])
-let pickerAllProducts = []  // 当前子分类全量商品，供关键字过滤
+let pickerAllProducts = []  // 当前子分类全量商品，供输入框搜索匹配
 
 const loadCategories = async () => {
 	const res = await businessApi.product.categories.get().catch(() => null)
@@ -316,14 +323,14 @@ const resetPicker = () => {
 	picker.mainId = null; picker.mainName = ''
 	picker.subId = null; picker.subName = ''
 	picker.prodKeyword = ''; picker.prodLoading = false
-	pickerProducts.value = []; pickerAllProducts = []
+	pickerAllProducts = []
 }
 const selectPickerMain = (m) => {
 	picker.mainId = m.id
 	picker.mainName = m.name
 	picker.subId = null; picker.subName = ''
 	picker.prodKeyword = ''
-	pickerProducts.value = []; pickerAllProducts = []
+	pickerAllProducts = []
 }
 const selectPickerSub = async (s) => {
 	picker.subId = s.id
@@ -332,21 +339,29 @@ const selectPickerSub = async (s) => {
 	await loadPickerProducts()
 }
 const loadPickerProducts = async () => {
-	if (!picker.subId) { pickerProducts.value = []; pickerAllProducts = []; return }
+	if (!picker.subId) { pickerAllProducts = []; return }
 	picker.prodLoading = true
 	const res = await businessApi.product.list.get({ sub_category_id: picker.subId, is_active: 1, per_page: 9999 }).catch(() => null)
 	picker.prodLoading = false
 	if (res && res.code === 200) {
 		pickerAllProducts = res.data?.list || []
-		pickerProducts.value = pickerAllProducts
 	}
 }
-const filterPickerProducts = () => {
-	const q = (picker.prodKeyword || '').trim().toLowerCase()
-	if (!q) { pickerProducts.value = pickerAllProducts; return }
-	pickerProducts.value = pickerAllProducts.filter(p =>
-		(p.name || '').toLowerCase().includes(q) || (p.spec_display || p.spec || '').toLowerCase().includes(q)
-	)
+/** 输入框搜索：在当前子分类全量商品里按 名称/规格/编码 过滤，供 autocomplete 下拉 */
+const queryPickerProducts = (queryString, cb) => {
+	const q = (queryString || '').trim().toLowerCase()
+	if (!q || !pickerAllProducts.length) return cb([])
+	cb(pickerAllProducts.filter(p =>
+		(p.name || '').toLowerCase().includes(q) ||
+		(p.spec_display || p.spec || '').toLowerCase().includes(q) ||
+		(p.external_id || p.code || '').toLowerCase().includes(q)
+	))
+}
+/** autocomplete 选中 → 填入下方表格空行，并清空输入框待下一次输入 */
+const onPickSuggestion = (p) => {
+	if (!p || !p.id) return
+	pickProduct(p)
+	picker.prodKeyword = ''
 }
 /** 点击商品 → 填入第一个空行（无 product_id），没有空行则追加一行 */
 const pickProduct = (p) => {
@@ -853,18 +868,12 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 .cat-item.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); font-weight: 500; }
 .cat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cat-count { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
-.cat-prod-item {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 5px 10px;
-	font-size: 12px;
-	cursor: pointer;
-	color: var(--el-text-color-regular);
-	transition: background 0.1s;
-}
-.cat-prod-item:hover { background: var(--el-color-primary-light-9); }
-.cat-prod-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cat-prod-spec { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
-.cat-prod-price { font-size: 11px; color: var(--el-color-danger); flex-shrink: 0; }
+.cat-col-input { flex: 1; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 8px; padding: 12px 10px; }
+.cat-col-input .prod-ac { width: 100%; }
+.cat-col-hint { font-size: 11px; color: var(--el-text-color-secondary); text-align: center; }
+/* autocomplete 下拉浮层项 */
+.prod-sug { display: flex; align-items: center; gap: 6px; width: 100%; }
+.prod-sug-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prod-sug-spec { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
+.prod-sug-price { font-size: 11px; color: var(--el-color-danger); flex-shrink: 0; }
 </style>
