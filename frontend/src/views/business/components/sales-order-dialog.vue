@@ -1,4 +1,8 @@
 <template>
+	<!-- so-dialog 是本组件自己渲染的元素，会带 scoped data-v hash；el-dialog 的根节点
+	     由 Element Plus 拥有并被 teleport 到 body，拿不到 hash，所以 :deep() 必须锚在 so-dialog 上。
+	     之前锚在 .sales-order-dialog 上时选择器变成 .sales-order-dialog[data-v-x]，永远匹配不到 -->
+	<div class="so-dialog">
 	<el-dialog v-model="visible" :title="record ? '编辑销售订单' : '新增销售订单'" width="98%" top="2vh" destroy-on-close class="sales-order-dialog">
 		<!-- 表头：客户 / 仓库 / 业务员 / 日期 / 备注，顺序与旧系统一致 -->
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="70px" size="small">
@@ -167,6 +171,7 @@
 			</el-button>
 		</div>
 	</el-dialog>
+	</div>
 </template>
 
 <script setup>
@@ -734,14 +739,25 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
    1366 宽的常规屏也能把横向滚动条挤掉 */
 /* 对话框贴顶：默认 --el-dialog-margin-top 是 15vh，把整窗顶到中上部、下方留一大片空白。
    表格行多时那空白纯属浪费，改成 2vh 顶到最上方，高度全部让给下面的三栏 */
-.sales-order-dialog { margin-bottom: 2vh; }
+.so-dialog :deep(.sales-order-dialog) {
+	/* 显式给定可视高度：el-dialog 默认按内容撑高（869px 固定值），
+	   与视口无关，大屏上永远留着一片空白。用 calc(96vh) 顶掉上下的 2vh 边距 */
+	height: calc(96vh);
+	max-height: calc(96vh);
+	margin-bottom: 2vh;
+}
 
 /* 三栏撑满对话框剩余高度：body 是块级容器，给高度比例用 flex 分配比写死 vh 更稳
    （46vh 在 800 高的窗口只有 368px，撑不到表格该有的空间） */
-.sales-order-dialog :deep(.el-dialog__body) {
+.so-dialog :deep(.el-dialog__body) {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+	/* 对话框 96vh - 上下 2*2vh 边距 - 标题栏 56px = 可用内容高度；
+	   不给明确高度时 body 会按内容撑高，flex:1 的子项拿不到剩余空间 */
+	height: calc(96vh - 4vh - 56px);
+	max-height: calc(96vh - 4vh - 56px);
+	min-height: 0;
 }
 
 .items-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 920px; }
