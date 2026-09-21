@@ -1,5 +1,5 @@
 <template>
-	<el-dialog v-model="visible" :title="record ? '编辑销售订单' : '新增销售订单'" width="1280px" destroy-on-close class="sales-order-dialog">
+	<el-dialog v-model="visible" :title="record ? '编辑销售订单' : '新增销售订单'" width="96%" destroy-on-close class="sales-order-dialog">
 		<!-- 表头：客户 / 仓库 / 业务员 / 日期 / 备注，顺序与旧系统一致 -->
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="70px" size="small">
 			<el-row :gutter="16">
@@ -763,7 +763,7 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 	height: 46vh;
 }
 .cat-col {
-	flex: 0 0 150px;
+	flex: 0 0 128px;
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
