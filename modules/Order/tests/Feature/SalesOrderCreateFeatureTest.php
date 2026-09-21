@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Modules\Auth\Models\User;
 use Modules\Stock\Models\Product;
+use Modules\Stock\Models\Stock;
 use Tests\TestCase;
 
 /**
@@ -62,6 +63,10 @@ class SalesOrderCreateFeatureTest extends TestCase
 
         $this->warehouseId = $this->makeWarehouse()->id;
         $this->customerId = $this->makeCustomer()->id;
+
+        // 下单即冻结库存，需预置库存供冻结（旧系统下单前同样要求有库存）
+        Stock::create(['product_id' => $this->productId, 'warehouse_id' => $this->warehouseId, 'quantity' => 100000, 'frozen_qty' => 0]);
+        Stock::create(['product_id' => $this->threeUnitProductId, 'warehouse_id' => $this->warehouseId, 'quantity' => 100000, 'frozen_qty' => 0]);
     }
 
     private function basePayload(array $overrides = []): array
@@ -221,7 +226,7 @@ class SalesOrderCreateFeatureTest extends TestCase
         $this->assertSame($salesman->id, (int) $order['salesman_id']);
         $this->assertSame('业务员张', $order['salesman_name']);
         $this->assertSame('整箱配送，上午送达', $order['remark']);
-        $this->assertSame('draft', $order['status']);
+        $this->assertSame('pending', $order['status']);
         $this->assertStringStartsWith('SO', $order['order_no']);
     }
 
@@ -268,14 +273,90 @@ class SalesOrderCreateFeatureTest extends TestCase
         $this->assertSame(0.0, (float) $order['total_amount']);
     }
 
-    public function test_non_draft_order_cannot_be_updated(): void
+    public function test_cancelled_order_cannot_be_updated(): void
     {
         $create = $this->postJson('/admin/business/sales-order', $this->basePayload())->assertOk();
         $id = $create->json('data.id');
 
-        $this->postJson("/admin/business/sales-order/$id/approve")->assertOk();
+        // 对齐旧系统：下单即 pending，取消后不可编辑
+        $this->postJson("/admin/business/sales-order/$id/cancel")->assertOk();
         $this->putJson("/admin/business/sales-order/$id", $this->basePayload())
             ->assertStatus(422)
-            ->assertJsonPath('message', '只有草稿状态可以编辑');
+            ->assertJsonPath('message', '只有待配货状态的订单可以编辑');
+    }
+
+    // ---------------------------------------------------------------- 库存同步 products.stock_qty
+
+    /** 下单冻结后，products.stock_qty（冗余汇总字段）应同步等于 stocks.quantity 之和 */
+    public function test_freeze_syncs_products_stock_qty(): void
+    {
+        $this->postJson('/admin/business/sales-order', $this->basePayload([
+            'items' => [['product_id' => $this->productId, 'qty_small' => 10, 'price_small' => 3.5]],
+        ]))->assertOk();
+
+        // 初始 stocks.quantity=100000，冻结 10 → 99990；products.stock_qty 应同步为 99990
+        $this->assertSame(99990, (int) Stock::where('product_id', $this->productId)->value('quantity'));
+        $this->assertSame(99990.0, (float) \DB::table('products')->where('id', $this->productId)->value('stock_qty'));
+    }
+
+    /** 取消（解冻）后，products.stock_qty 应随之恢复 */
+    public function test_unfreeze_on_cancel_restores_products_stock_qty(): void
+    {
+        $id = $this->postJson('/admin/business/sales-order', $this->basePayload([
+            'items' => [['product_id' => $this->productId, 'qty_small' => 10, 'price_small' => 3.5]],
+        ]))->assertOk()->json('data.id');
+
+        $this->postJson("/admin/business/sales-order/$id/cancel")->assertOk();
+
+        $this->assertSame(100000, (int) Stock::where('product_id', $this->productId)->value('quantity'));
+        $this->assertSame(100000.0, (float) \DB::table('products')->where('id', $this->productId)->value('stock_qty'));
+    }
+
+    // ---------------------------------------------------------------- 操作日志 order_operation_logs
+
+    /** 下单写一条「创建订单」日志，字段对齐旧系统 MpController::logOperation */
+    public function test_store_logs_creation_operation(): void
+    {
+        $resp = $this->postJson('/admin/business/sales-order', $this->basePayload([
+            'items' => [['product_id' => $this->productId, 'qty_small' => 2, 'price_small' => 5]],
+        ]))->assertOk();
+        $orderId = $resp->json('data.id');
+        $orderNo = $resp->json('data.order_no');
+
+        $log = \DB::table('order_operation_logs')->where('order_id', $orderId)->first();
+        $this->assertNotNull($log, '下单应写操作日志');
+        $this->assertSame('创建订单', $log->action);
+        $this->assertSame('sales_order', $log->order_type);
+        $this->assertSame($orderNo, $log->order_no);
+        $this->assertNull($log->from_status);
+        $this->assertSame('pending', $log->to_status);
+        $this->assertStringContainsString('1种商品', $log->detail);
+        $this->assertNotNull($log->operator_id, '应记录操作人');
+    }
+
+    /** 取消写一条「取消订单」日志，记录 pending→cancelled 流转 */
+    public function test_cancel_logs_cancellation_operation(): void
+    {
+        $id = $this->postJson('/admin/business/sales-order', $this->basePayload())->assertOk()->json('data.id');
+        $this->postJson("/admin/business/sales-order/$id/cancel")->assertOk();
+
+        $log = \DB::table('order_operation_logs')
+            ->where('order_id', $id)->where('action', '取消订单')->first();
+        $this->assertNotNull($log);
+        $this->assertSame('pending', $log->from_status);
+        $this->assertSame('cancelled', $log->to_status);
+    }
+
+    /** show 接口带回该单的操作历史 */
+    public function test_show_returns_operation_logs(): void
+    {
+        $id = $this->postJson('/admin/business/sales-order', $this->basePayload())->assertOk()->json('data.id');
+
+        $resp = $this->getJson("/admin/business/sales-order/$id");
+        $resp->assertOk();
+        $logs = $resp->json('data.operation_logs');
+        $this->assertIsArray($logs);
+        $this->assertCount(1, $logs);
+        $this->assertSame('创建订单', $logs[0]['action']);
     }
 }

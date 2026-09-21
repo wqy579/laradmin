@@ -10,10 +10,15 @@ use Modules\Auth\Models\User as AdminUser;
 use Modules\Order\Models\Customer;
 use Modules\Order\Models\SalesOrder;
 use Modules\Stock\Models\Product;
+use Modules\Stock\Models\Stock;
 use Modules\Stock\Models\Warehouse;
+use Modules\Stock\Services\StockService;
 
 class SalesOrderController extends Controller
 {
+    /** 订单冻结/解冻统一走 StockService，保持 stocks 表写入收敛 */
+    public function __construct(private StockService $stocks) {}
+
     /**
      * 明细行金额：大单位 + 中单位 + 小单位三段相加。
      *
@@ -123,12 +128,27 @@ class SalesOrderController extends Controller
     {
         $salesOrder->load(['customer', 'warehouse', 'salesman', 'items.product']);
 
+        // 操作历史：对齐旧系统 MpController show 里 $order->logs 回填。
+        // order_operation_logs 无独立模型，按 order_id 反查挂到响应上。
+        $salesOrder->operation_logs = DB::table('order_operation_logs')
+            ->where('order_id', $salesOrder->id)
+            ->where('order_type', 'sales_order')
+            ->orderBy('id', 'desc')
+            ->get(['id', 'action', 'operator_name', 'detail', 'from_status', 'to_status', 'created_at']);
+
         return $this->success($salesOrder);
     }
 
     public function store(Request $request)
     {
         $validated = $this->validateOrder($request);
+
+        // 前置校验：正常销售价 + 库存充足（下单即冻结，需先确认冻结得到）
+        $errors = $this->validateStockAndPrice($validated['items'], (int) $validated['warehouse_id'], []);
+        if ($errors !== []) {
+            return $this->error(implode('；', $errors), 422);
+        }
+
         $orderNo = 'SO'.date('YmdHis').strtoupper(Str::random(4));
         DB::beginTransaction();
         try {
@@ -144,14 +164,21 @@ class SalesOrderController extends Controller
                 'salesman_id' => $salesmanId,
                 'salesman_name' => $salesmanName,
                 'remark' => $validated['remark'] ?? null,
-                'status' => 'draft',
+                'status' => 'pending',
                 'total_amount' => 0,
                 'total_qty' => 0,
                 'created_by' => auth('admin')->id(),
             ]);
             $totals = $this->storeItems($order, $validated['items']);
             $order->update($totals);
+
+            // 下单即冻结库存（对齐旧系统：quantity 扣减 + frozen_qty 累加 + 写 stocks_history）
+            $this->freezeItems($order);
+
             DB::commit();
+
+            // 操作日志在事务提交后写：单据已落库，日志失败不应回滚业务（对齐旧系统 commit 后再 logOperation）
+            $this->logOperation($order, '创建订单', '下单'.count($validated['items']).'种商品，总金额：'.number_format((float) $order->total_amount, 2), null, 'pending');
 
             return $this->created($order->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '订单创建成功');
         } catch (\Exception $e) {
@@ -161,12 +188,143 @@ class SalesOrderController extends Controller
         }
     }
 
+    /**
+     * 正常销售价 + 库存充足的前置校验（对齐旧系统 storeOrder/updateOrder）。
+     *
+     * $oldFrozen：编辑场景下当前订单已冻结的数量（product_id => 最小单位），
+     * 校验时加回——因为保存前会先释放这部分冻结。
+     * 返回错误信息数组；空数组表示通过。一次性汇总所有问题，
+     * 避免像旧系统那样逐条返回、前端只能看到第一条错误。
+     */
+    private function validateStockAndPrice(array $items, int $warehouseId, array $oldFrozen): array
+    {
+        $errors = [];
+
+        foreach ($items as $item) {
+            $product = Product::find($item['product_id']);
+
+            // 正常销售模式：三档单价 + 兜底单价 price + amount 全为 0/空 → 拒（赠品/陈列费等允许零价）
+            // price 是简单契约（只传 quantity/price）的兜底单价，必须一并算入，
+            // 否则会误拒只传 price 的正常销售单。
+            if (($item['sale_mode'] ?? '正常销售') === '正常销售') {
+                $priceLg = (float) ($item['price_large'] ?? 0);
+                $priceMd = (float) ($item['price_medium'] ?? 0);
+                $priceSm = (float) ($item['price_small'] ?? 0);
+                $priceSimple = (float) ($item['price'] ?? 0);
+                $amount = (float) ($item['amount'] ?? 0);
+                if ($priceLg <= 0 && $priceMd <= 0 && $priceSm <= 0 && $priceSimple <= 0 && $amount <= 0) {
+                    $errors[] = '「'.($product->name ?? '未知商品').'」正常销售模式价格不能为 0 或空';
+                }
+            }
+
+            // 库存充足：可用 = quantity - frozen_qty，编辑时加回本单已冻结量
+            $qty = (int) $this->itemQuantity($item, (int) $item['product_id']);
+            $stock = Stock::where('product_id', $item['product_id'])
+                ->where('warehouse_id', $warehouseId)
+                ->first();
+            $available = $stock ? max(0, (int) $stock->quantity - (int) $stock->frozen_qty) : 0;
+            $editable = $available + (int) ($oldFrozen[$item['product_id']] ?? 0);
+            if ($qty > $editable) {
+                $errors[] = '「'.($product->name ?? '未知商品').'」库存不足(可用:'.$editable.', 需要:'.$qty.')';
+            }
+        }
+
+        return $errors;
+    }
+
+    /** 逐行冻结库存（数量取 item.quantity，即已折算的最小单位） */
+    private function freezeItems(SalesOrder $order): void
+    {
+        foreach ($order->items()->get() as $item) {
+            $this->stocks->freeze(
+                (int) $item->product_id,
+                (int) $order->warehouse_id,
+                (int) $item->quantity,
+                (int) $order->id
+            );
+        }
+    }
+
+    /** 逐行解冻库存（编辑/作废/删除时释放）。$warehouseId 用旧仓库，避免仓库变更后解到错误仓库。 */
+    private function unfreezeItems(SalesOrder $order, int $warehouseId): void
+    {
+        foreach ($order->items()->get() as $item) {
+            $this->stocks->unfreeze(
+                (int) $item->product_id,
+                $warehouseId,
+                (int) $item->quantity,
+                (int) $order->id
+            );
+        }
+    }
+
+    /**
+     * 明细备注清理（对齐旧系统）：非正常销售只保留销售模式名；
+     * 正常销售则剥离「赠品|变价|正常销售|陈列费|试用|特价销售|返利」等标记词并压缩空白。
+     */
+    private function cleanRemark(array $itemData): string
+    {
+        $saleMode = $itemData['sale_mode'] ?? '正常销售';
+        if ($saleMode !== '正常销售') {
+            return $saleMode;
+        }
+
+        $cleaned = preg_replace('/赠品|变价|正常销售|陈列费|试用|特价销售|返利/', '', $itemData['remark'] ?? '');
+        $cleaned = preg_replace('/[,\s;；，；\t]+/u', ' ', $cleaned);
+
+        return trim($cleaned);
+    }
+
+    /**
+     * 写一条订单操作日志到 order_operation_logs（对齐旧系统 MpController::logOperation）。
+     *
+     * 字段与旧系统代码实际写入的列一致：旧系统 migration 漏建了 order_no/operator_id/
+     * operator_name/detail/from_status/to_status 六列（schema 漂移），新系统 migration 补全。
+     * action 统一用中文动作标签；detail 同时写入 detail 与 remark（沿用旧系统约定）。
+     */
+    private function logOperation(SalesOrder $order, string $action, string $detail, ?string $fromStatus, ?string $toStatus): void
+    {
+        $admin = auth('admin')->user();
+
+        DB::table('order_operation_logs')->insert([
+            'order_id' => $order->id,
+            'order_no' => $order->order_no,
+            'order_type' => 'sales_order',
+            'user_id' => $admin?->id,
+            'user_name' => $admin?->username,
+            'operator_id' => $admin?->id,
+            'operator_name' => $admin?->username,
+            'action' => $action,
+            'action_label' => $action,
+            'detail' => mb_substr($detail, 0, 500),
+            'remark' => mb_substr($detail, 0, 500),
+            'from_status' => $fromStatus,
+            'to_status' => $toStatus,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
     public function update(Request $request, SalesOrder $salesOrder)
     {
-        if ($salesOrder->status !== 'draft') {
-            return $this->error('只有草稿状态可以编辑', 422);
+        if ($salesOrder->status !== 'pending') {
+            return $this->error('只有待配货状态的订单可以编辑', 422);
         }
         $validated = $this->validateOrder($request);
+
+        // 编辑校验：加回当前订单已冻结量（保存前会先释放）
+        $oldFrozen = [];
+        foreach ($salesOrder->items()->get() as $old) {
+            $oldFrozen[$old->product_id] = (int) ($oldFrozen[$old->product_id] ?? 0) + (int) $old->quantity;
+        }
+        $errors = $this->validateStockAndPrice($validated['items'], (int) $validated['warehouse_id'], $oldFrozen);
+        if ($errors !== []) {
+            return $this->error(implode('；', $errors), 422);
+        }
+
+        // 旧仓库先留一份：释放冻结必须用旧仓库，仓库变更时否则会解到错误仓库
+        $oldWarehouseId = (int) $salesOrder->warehouse_id;
+
         DB::beginTransaction();
         try {
             // 同 store：nullable 字段可能不存在
@@ -181,10 +339,19 @@ class SalesOrderController extends Controller
                 'salesman_name' => $salesmanName,
                 'remark' => $validated['remark'] ?? null,
             ]);
+
+            // 先释放旧冻结（用旧仓库），再删旧明细
+            $this->unfreezeItems($salesOrder, $oldWarehouseId);
             $salesOrder->items()->delete();
             $totals = $this->storeItems($salesOrder, $validated['items']);
             $salesOrder->update($totals);
+
+            // 按新仓库重新冻结
+            $this->freezeItems($salesOrder);
+
             DB::commit();
+
+            $this->logOperation($salesOrder, '编辑订单', '编辑订单，'.count($validated['items']).'种商品', 'pending', 'pending');
 
             return $this->success($salesOrder->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '更新成功');
         } catch (\Exception $e) {
@@ -283,7 +450,7 @@ class SalesOrderController extends Controller
                 'amount' => $amount,
                 'sale_mode' => $itemData['sale_mode'] ?? '正常销售',
                 'price_source' => ($itemData['price_source'] ?? '') === '特殊' ? '特殊' : null,
-                'remark' => $itemData['remark'] ?? null,
+                'remark' => $this->cleanRemark($itemData),
             ]);
 
             $totalAmount += $amount;
@@ -295,35 +462,55 @@ class SalesOrderController extends Controller
 
     public function destroy(SalesOrder $salesOrder)
     {
-        if ($salesOrder->status !== 'draft') {
-            return response()->json(['message' => '只有草稿状态可以删除'], 422);
+        if ($salesOrder->status !== 'pending') {
+            return $this->error('只有待配货状态的订单可以删除', 422);
         }
-        $salesOrder->delete();
 
-        return response()->json(['message' => '删除成功']);
+        DB::beginTransaction();
+        try {
+            // 先释放冻结再删单，否则库存永久泄漏
+            $this->unfreezeItems($salesOrder, (int) $salesOrder->warehouse_id);
+            // 日志在删除前记（同事务）：单据删除后历史仍可按 order_id/order_no 回溯
+            $this->logOperation($salesOrder, '删除订单', '删除待配货订单', 'pending', null);
+            $salesOrder->delete();
+            DB::commit();
+
+            return $this->success(null, '删除成功');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return $this->error('删除失败: '.$e->getMessage(), 500);
+        }
     }
 
     public function approve(SalesOrder $salesOrder)
     {
-        // 与采购单同一套前置校验：只有草稿能审批，避免状态被反复翻转、审计字段被覆盖
-        if ($salesOrder->status !== 'draft') {
-            return response()->json(['message' => '只有草稿状态的订单可以审批'], 422);
-        }
-        $salesOrder->update(['status' => 'approved', 'approved_by' => auth('admin')->id(), 'approved_at' => now()]);
-
-        return response()->json(['message' => '审批成功']);
+        // 对齐旧系统：销售单下单即生效（pending + 即冻结库存），无审批环节。
+        // 端点保留仅为兼容既有路由（前端可能仍在调用），统一 422。
+        return $this->error('销售单下单即生效，无需审批', 422);
     }
 
     public function cancel(SalesOrder $salesOrder)
     {
-        // 与采购单对称：只有草稿/已审批可取消。已进入发货流程的订单
-        // 库存可能已动，不能一键抹回，避免状态与库存不一致。
-        if (! in_array($salesOrder->status, ['draft', 'approved'], true)) {
-            return response()->json(['message' => '只有草稿或已审批的订单可以取消'], 422);
+        if ($salesOrder->status !== 'pending') {
+            return $this->error('只有待配货状态的订单可以作废', 422);
         }
-        $salesOrder->update(['status' => 'cancelled']);
 
-        return response()->json(['message' => '取消成功']);
+        DB::beginTransaction();
+        try {
+            // 作废即释放冻结（对齐旧系统 cancel：恢复库存 + 释放冻结）
+            $this->unfreezeItems($salesOrder, (int) $salesOrder->warehouse_id);
+            $salesOrder->update(['status' => 'cancelled']);
+            DB::commit();
+
+            $this->logOperation($salesOrder, '取消订单', '订单作废，释放冻结库存', 'pending', 'cancelled');
+
+            return $this->success(null, '取消成功');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return $this->error('取消失败: '.$e->getMessage(), 500);
+        }
     }
 
     public function statistics()
@@ -331,7 +518,7 @@ class SalesOrderController extends Controller
         $stats = [
             'total_orders' => SalesOrder::count(),
             'total_amount' => SalesOrder::sum('total_amount'),
-            'pending' => SalesOrder::where('status', 'draft')->count(),
+            'pending' => SalesOrder::where('status', 'pending')->count(),
             'approved' => SalesOrder::where('status', 'approved')->count(),
         ];
 
