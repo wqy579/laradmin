@@ -80,6 +80,8 @@ class StockService
                 ]);
             }
 
+            $this->syncProductStockQty($productId);
+
             return $stock->fresh(['product', 'warehouse']);
         });
     }
@@ -100,6 +102,8 @@ class StockService
 
             $stock->quantity = (int) $stock->quantity - $quantity;
             $stock->save();
+
+            $this->syncProductStockQty($productId);
 
             return $stock->fresh(['product', 'warehouse']);
         });
@@ -123,5 +127,113 @@ class StockService
             ->get();
 
         return ['stats' => $stats, 'top_products' => $topProducts];
+    }
+
+    /**
+     * 冻结库存：扣减可用数量、累加冻结数量，并写入变动流水。
+     *
+     * 对齐旧系统销售单「下单即冻结」：quantity -= N、frozen_qty += N。
+     * 可用 = quantity - frozen_qty，不足时抛 StockRuleException（控制器映射为 422）。
+     * 与 stockOut 同一套行锁，防并发超卖。
+     */
+    public function freeze(int $productId, int $warehouseId, int $quantity, int $orderId): Stock
+    {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId) {
+            $stock = Stock::where('product_id', $productId)
+                ->where('warehouse_id', $warehouseId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $stock) {
+                throw new StockRuleException('库存不足');
+            }
+
+            if ((int) $stock->quantity - (int) $stock->frozen_qty < $quantity) {
+                throw new StockRuleException('库存不足');
+            }
+
+            $before = (int) $stock->quantity;
+            $stock->quantity = $before - $quantity;
+            $stock->frozen_qty = (int) $stock->frozen_qty + $quantity;
+            $stock->save();
+
+            $this->recordHistory(
+                $productId, $warehouseId, 'sale_freeze', -$quantity,
+                $before, (int) $stock->quantity, $orderId, 'SalesOrder', '销售订单冻结'
+            );
+
+            $this->syncProductStockQty($productId);
+
+            return $stock->fresh(['product', 'warehouse']);
+        });
+    }
+
+    /**
+     * 解冻库存：恢复可用数量、减少冻结数量，并写入变动流水。
+     *
+     * 编辑/作废/删除订单时释放已冻结库存。行不存在时静默跳过（容错，
+     * 避免历史脏数据让整张单据的释放操作失败）。
+     */
+    public function unfreeze(int $productId, int $warehouseId, int $quantity, int $orderId): ?Stock
+    {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId) {
+            $stock = Stock::where('product_id', $productId)
+                ->where('warehouse_id', $warehouseId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $stock) {
+                return null;
+            }
+
+            $before = (int) $stock->quantity;
+            $stock->quantity = $before + $quantity;
+            $stock->frozen_qty = max(0, (int) $stock->frozen_qty - $quantity);
+            $stock->save();
+
+            $this->recordHistory(
+                $productId, $warehouseId, 'sale_unfreeze', $quantity,
+                $before, (int) $stock->quantity, $orderId, 'SalesOrder', '销售订单解冻'
+            );
+
+            $this->syncProductStockQty($productId);
+
+            return $stock->fresh(['product', 'warehouse']);
+        });
+    }
+
+    /** 写一条库存变动流水（stocks_history）。change_qty 正为增加、负为减少。 */
+    private function recordHistory(int $productId, int $warehouseId, string $changeType, int $changeQty, int $beforeQty, int $afterQty, int $relatedId, string $relatedType, string $remark): void
+    {
+        DB::table('stocks_history')->insert([
+            'product_id' => $productId,
+            'warehouse_id' => $warehouseId,
+            'change_type' => $changeType,
+            'change_qty' => $changeQty,
+            'before_qty' => $beforeQty,
+            'after_qty' => $afterQty,
+            'related_id' => $relatedId,
+            'related_type' => $relatedType,
+            'remark' => $remark,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /**
+     * 重算并同步 products.stock_qty = 该商品在所有仓库 stocks.quantity 之和。
+     *
+     * 对齐旧系统：旧系统在下单冻结 / 采购入库 / 退货多处就地维护 products.stock_qty
+     * （冻结用 GREATEST(stock_qty - N, 0)、入库用 sum 重算），散落在各 Controller
+     * 且口径不统一、冻结解冻来回加减会漂移。新系统收敛在此：任何库存写操作后
+     * 重算一次，保证 products.stock_qty 始终等于 stocks 表 quantity 汇总，
+     * 不再做会漂移的就地加减——单值口径与多仓明细严格一致。
+     */
+    private function syncProductStockQty(int $productId): void
+    {
+        DB::table('products')->where('id', $productId)->update([
+            'stock_qty' => (int) DB::table('stocks')->where('product_id', $productId)->sum('quantity'),
+            'updated_at' => now(),
+        ]);
     }
 }

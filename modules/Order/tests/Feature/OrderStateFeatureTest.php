@@ -47,6 +47,17 @@ class OrderStateFeatureTest extends TestCase
         $this->productId = $this->makeProduct()->id;
     }
 
+    /** 下单即冻结库存，需为 (商品, 仓库) 预置库存 */
+    private function seedStock(int $warehouseId, int $qty = 1000): void
+    {
+        Stock::create([
+            'product_id' => $this->productId,
+            'warehouse_id' => $warehouseId,
+            'quantity' => $qty,
+            'frozen_qty' => 0,
+        ]);
+    }
+
     // ---------------------------------------------------------------- 采购单
 
     public function test_purchase_order_store_creates_draft_with_totals(): void
@@ -317,10 +328,11 @@ class OrderStateFeatureTest extends TestCase
 
     // ---------------------------------------------------------------- 销售单
 
-    public function test_sales_order_store_creates_draft_with_totals(): void
+    public function test_sales_order_store_creates_pending_with_totals(): void
     {
         $customer = $this->makeCustomer();
         $warehouse = $this->makeWarehouse();
+        $this->seedStock($warehouse->id);
 
         $response = $this->postJson('/admin/business/sales-order', $this->orderPayload([
             'customer_id' => $customer->id,
@@ -330,16 +342,17 @@ class OrderStateFeatureTest extends TestCase
         $response->assertOk()->assertJsonPath('message', '订单创建成功');
 
         $order = DB::table('sales_orders')->latest('id')->first();
-        $this->assertSame('draft', $order->status);
+        $this->assertSame('pending', $order->status);
         $this->assertStringStartsWith('SO', $order->order_no);
         $this->assertSame(15, (int) $order->total_qty);
         $this->assertSame(45.0, (float) $order->total_amount);
     }
 
-    public function test_sales_order_approve_and_update_guard(): void
+    public function test_sales_order_approve_disabled_pending_editable(): void
     {
         $customer = $this->makeCustomer();
         $warehouse = $this->makeWarehouse();
+        $this->seedStock($warehouse->id);
         $payload = $this->orderPayload([
             'customer_id' => $customer->id,
             'warehouse_id' => $warehouse->id,
@@ -347,53 +360,37 @@ class OrderStateFeatureTest extends TestCase
 
         $id = $this->postJson('/admin/business/sales-order', $payload)->json('data.id');
 
-        $this->postJson("/admin/business/sales-order/{$id}/approve")
-            ->assertOk()
-            ->assertJsonPath('message', '审批成功');
-        $this->assertSame('approved', DB::table('sales_orders')->find($id)->status);
-
-        // 审批后不可编辑/删除
-        $this->putJson("/admin/business/sales-order/{$id}", $payload)->assertStatus(422);
-        $this->deleteJson("/admin/business/sales-order/{$id}")->assertStatus(422);
-
-        // 销售单与采购单同一套前置校验：审批后再审批被拒，状态不会来回翻转
+        // 对齐旧系统：下单即生效，无审批环节，approve 一律 422
         $this->postJson("/admin/business/sales-order/{$id}/approve")
             ->assertStatus(422)
-            ->assertJsonPath('message', '只有草稿状态的订单可以审批');
+            ->assertJsonPath('message', '销售单下单即生效，无需审批');
+
+        // 待配货可编辑 / 可删除
+        $this->putJson("/admin/business/sales-order/{$id}", $payload)->assertOk();
+        $this->deleteJson("/admin/business/sales-order/{$id}")->assertOk();
     }
 
-    public function test_sales_order_cancel_only_before_shipping(): void
+    public function test_sales_order_cancel_only_from_pending(): void
     {
         $customer = $this->makeCustomer();
         $warehouse = $this->makeWarehouse();
+        $this->seedStock($warehouse->id);
 
-        // 草稿可取消
-        $draftId = $this->postJson('/admin/business/sales-order', $this->orderPayload([
+        $id = $this->postJson('/admin/business/sales-order', $this->orderPayload([
             'customer_id' => $customer->id,
             'warehouse_id' => $warehouse->id,
         ]))->json('data.id');
 
-        $this->postJson("/admin/business/sales-order/{$draftId}/cancel")
+        // 待配货可取消（并释放冻结库存）
+        $this->postJson("/admin/business/sales-order/{$id}/cancel")
             ->assertOk()
             ->assertJsonPath('message', '取消成功');
-        $this->assertSame('cancelled', \DB::table('sales_orders')->find($draftId)->status);
-
-        // 已审批也可取消
-        $approvedId = $this->postJson('/admin/business/sales-order', $this->orderPayload([
-            'customer_id' => $customer->id,
-            'warehouse_id' => $warehouse->id,
-        ]))->json('data.id');
-        $this->postJson("/admin/business/sales-order/{$approvedId}/approve")->assertOk();
-
-        $this->postJson("/admin/business/sales-order/{$approvedId}/cancel")
-            ->assertOk()
-            ->assertJsonPath('message', '取消成功');
-        $this->assertSame('cancelled', \DB::table('sales_orders')->find($approvedId)->status);
+        $this->assertSame('cancelled', \DB::table('sales_orders')->find($id)->status);
 
         // 已取消的不能再取消
-        $this->postJson("/admin/business/sales-order/{$approvedId}/cancel")
+        $this->postJson("/admin/business/sales-order/{$id}/cancel")
             ->assertStatus(422)
-            ->assertJsonPath('message', '只有草稿或已审批的订单可以取消');
+            ->assertJsonPath('message', '只有待配货状态的订单可以作废');
     }
 
     public function test_sales_order_statistics_and_list_filter(): void
@@ -401,26 +398,26 @@ class OrderStateFeatureTest extends TestCase
         $customer1 = $this->makeCustomer();
         $customer2 = $this->makeCustomer();
         $warehouse = $this->makeWarehouse();
+        $this->seedStock($warehouse->id);
 
         $this->postJson('/admin/business/sales-order', $this->orderPayload([
             'customer_id' => $customer1->id,
             'warehouse_id' => $warehouse->id,
         ]))->assertOk();
-        $id2 = $this->postJson('/admin/business/sales-order', $this->orderPayload([
+        $this->postJson('/admin/business/sales-order', $this->orderPayload([
             'customer_id' => $customer2->id,
             'warehouse_id' => $warehouse->id,
-        ]))->json('data.id');
-        $this->postJson("/admin/business/sales-order/{$id2}/approve")->assertOk();
+        ]))->assertOk();
 
         $stats = $this->getJson('/admin/business/sales-order/statistics')->json('data');
         $this->assertSame(2, (int) $stats['total_orders']);
-        $this->assertSame(1, (int) $stats['pending']);
-        $this->assertSame(1, (int) $stats['approved']);
+        $this->assertSame(2, (int) $stats['pending']);
+        $this->assertSame(0, (int) $stats['approved']);
 
         // 列表按状态/客户过滤（分页统一走 paginated 信封：data.list）
-        $this->getJson('/admin/business/sales-order?status=approved')
+        $this->getJson('/admin/business/sales-order?status=pending')
             ->assertOk()
-            ->assertJsonCount(1, 'data.list');
+            ->assertJsonCount(2, 'data.list');
         $this->getJson("/admin/business/sales-order?customer_id={$customer1->id}")
             ->assertOk()
             ->assertJsonCount(1, 'data.list');
