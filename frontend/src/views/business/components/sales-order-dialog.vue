@@ -102,7 +102,7 @@
 									<el-option v-for="p in item._options" :key="p.id" :label="productLabel(p)" :value="p.id">
 										<span style="float:left">{{ p.name }}</span>
 										<span style="float:right;color:var(--el-text-color-secondary);font-size:12px">
-											{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}
+											库存{{ stockText(p) }}｜{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}
 										</span>
 									</el-option>
 								</el-select>
@@ -278,12 +278,23 @@ const applyProduct = (item, p) => {
 	if (!item.price_large && sm > 0 && c > 0) {
 		item.price_large = Math.round(sm * c * 100) / 100
 	}
-	item.stock = stockMap.value[p.id] ?? 0
+	// 优先取下拉结果里的 stock_qty（搜索时已按当前仓库关联，最新）；缺了再回落到批量 stockMap
+	item.stock = Number(p.stock_qty ?? stockMap.value[p.id] ?? 0)
 	item.stockDisplay = formatStock(item.stock, item.unit_conversion, item.unit_conversion_medium, item.unit_large, item.unit_medium, item.unit_small)
 }
 
 const productLabel = (p) => `${p.name}${p.code ? ` (${p.code})` : ''}`
 const smallUnitName = (p) => p.price_unit_small || '小'
+// 下拉里的库存显示：与库存核对「当前库存/今日库存」同源（stocks.quantity），
+// 复用 formatStock 按大/中/小单位逐级展示，0 显示为 -
+const stockText = (p) => formatStock(
+	Number(p.stock_qty) || 0,
+	Number(p.unit_conversion) || 0,
+	Number(p.unit_conversion_medium) || 0,
+	p.price_unit,
+	p.barcode_medium_unit,
+	p.price_unit_small,
+)
 
 // ---------------------------------------------------------------- 三栏分类选择（主分类/子分类/商品表格）
 
@@ -370,13 +381,18 @@ const loadStock = async () => {
 		form.items.forEach(i => { i.stock = 0; i.stockDisplay = '-' })
 		return
 	}
+	// stock.list（StockController）走 StockService::query，返回的是分页器，shape 为
+	// { data: { data:[...], ...分页 }, products, warehouses }——没有 code 字段、行在 data.data，
+	// 与 success() 的 { code, data:{ list } } 不同。这里按实际 shape 取，库存读 stocks.quantity
+	// （= 库存核对「当前库存/今日库存」；冻结量在 freeze() 里已从 quantity 扣除，故即可用量）
 	const res = await businessApi.stock.list.get({ warehouse_id: form.warehouse_id, per_page: 9999 }).catch(() => null)
-	if (!res || res.code !== 200) return
+	if (!res) return
+	const rows = res.data?.data || res.data?.list || []
 	const map = {}
-	;(res.data?.list || []).forEach(row => {
+	rows.forEach(row => {
 		const pid = row.product_id
 		if (!pid) return
-		map[pid] = Number(row.available_qty ?? row.quantity ?? 0)
+		map[pid] = Number(row.quantity ?? row.available_qty ?? 0)
 	})
 	stockMap.value = map
 	form.items.forEach(i => {
@@ -499,6 +515,9 @@ const searchProducts = (keyword, item) => {
 		is_active: 1,
 		main_category_id: picker.mainId || undefined,
 		sub_category_id: picker.subId || undefined,
+		// 带库存（库存核对今日库存 = stocks.quantity）并按库存降序，库存越多越靠前
+		with_stock: 1,
+		warehouse_id: form.warehouse_id || undefined,
 	})
 		.then(res => {
 			const list = res.code === 200 ? (res.data?.list || []) : []

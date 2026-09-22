@@ -4,6 +4,7 @@ namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\ProductCategory;
 use Modules\Stock\Models\Unit;
@@ -37,6 +38,9 @@ class ProductController extends Controller
             ->get()
             ->map(fn ($cat) => ['id' => $cat->id, 'name' => $cat->name]);
 
+        $warehouseId = $request->filled('warehouse_id') ? $request->integer('warehouse_id') : null;
+        $withStock = $request->boolean('with_stock');
+
         $query = Product::with(['mainCategory', 'subCategory']);
         if ($request->filled('keyword')) {
             $query->where(function ($q) use ($request) {
@@ -58,14 +62,42 @@ class ProductController extends Controller
         if ($request->is_active !== null && $request->is_active !== '' && $request->is_active !== 'null') {
             $query->where('is_active', (bool) $request->is_active);
         }
-        $query->orderBy('id', 'desc');
+        // 销售单弹窗下拉（with_stock=1）需按库存降序：库存越多越靠前。库存口径与库存核对
+        // 「当前库存/今日库存」同源 = stocks.quantity；选了仓库取该仓实时库存，否则取
+        // products.stock_qty（StockService 维护的全仓 quantity 汇总）。
+        // 排序放 ORDER BY 的相关子查询里、不在 SELECT 加 join 别名——否则 paginate 的
+        // count 查询会带上别名 / products.* 生成 COUNT(products.*) 等非法 SQL。
+        if ($withStock) {
+            if ($warehouseId) {
+                $query->orderByRaw(
+                    '(SELECT COALESCE(SUM(quantity), 0) FROM stocks WHERE stocks.product_id = products.id AND stocks.warehouse_id = ?) DESC',
+                    [$warehouseId]
+                );
+            } else {
+                $query->orderByDesc('products.stock_qty');
+            }
+        }
+        $query->orderBy('products.id', 'desc');
         $products = $query->paginate($request->integer('page_size', 20));
 
-        $products->getCollection()->transform(fn ($p) => [
-            ...$p->toArray(true),
-            'main_category_name' => $p->mainCategory?->name,
-            'sub_category_name' => $p->subCategory?->name,
-        ]);
+        // 选了仓库时，批量取本页商品的该仓库存（stocks 的 product+warehouse 唯一索引，一行一值）
+        $stockMap = [];
+        if ($withStock && $warehouseId) {
+            $stockMap = DB::table('stocks')
+                ->where('warehouse_id', $warehouseId)
+                ->whereIn('product_id', $products->getCollection()->pluck('id')->all())
+                ->pluck('quantity', 'product_id')
+                ->all();
+        }
+
+        $products->getCollection()->transform(function ($p) use ($withStock, $warehouseId, $stockMap) {
+            return [
+                ...$p->toArray(true),
+                'main_category_name' => $p->mainCategory?->name,
+                'sub_category_name' => $p->subCategory?->name,
+                'stock_qty' => (int) (($withStock && $warehouseId) ? ($stockMap[$p->id] ?? 0) : ($p->stock_qty ?? 0)),
+            ];
+        });
 
         return $this->success([
             'list' => $products->items(),
