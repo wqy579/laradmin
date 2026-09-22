@@ -23,16 +23,17 @@ class BusinessDataSeeder extends Seeder
             );
         }
 
-        // 产品分类
-        $categories = [
-            ['name' => '饮料'],
-            ['name' => '食品'],
-            ['name' => '日用品'],
-            ['name' => '电子产品'],
-            ['name' => '服装'],
-        ];
-        foreach ($categories as $cat) {
-            ProductCategory::firstOrCreate(['name' => $cat['name']], $cat);
+        // 产品分类（主分类）：updateOrCreate 回填 is_main/parent_id，
+        // 并记录真实自增 id，供下面商品引用——避免硬编码 1/2/3/4 撞外键
+        // （自增 id 不保证从 1 开始，旧写法在新库上必报 FK 1452）
+        $categories = ['饮料', '食品', '日用品', '电子产品', '服装'];
+        $catIds = [];
+        foreach ($categories as $name) {
+            $cat = ProductCategory::updateOrCreate(
+                ['name' => $name],
+                ['is_main' => true, 'parent_id' => null, 'is_active' => true]
+            );
+            $catIds[$name] = $cat->id;
         }
 
         // 仓库
@@ -74,7 +75,7 @@ class BusinessDataSeeder extends Seeder
         // 产品
         $products = [
             [
-                'main_category_id' => 1,
+                'main_category_id' => $catIds['饮料'],
                 'name' => '矿泉水 550ml',
                 'code' => 'P001',
                 'spec' => '550ml/瓶',
@@ -86,7 +87,7 @@ class BusinessDataSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'main_category_id' => 1,
+                'main_category_id' => $catIds['饮料'],
                 'name' => '可乐 330ml',
                 'code' => 'P002',
                 'spec' => '330ml/罐',
@@ -98,7 +99,7 @@ class BusinessDataSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'main_category_id' => 2,
+                'main_category_id' => $catIds['食品'],
                 'name' => '巧克力饼干',
                 'code' => 'P003',
                 'spec' => '100g/包',
@@ -110,7 +111,7 @@ class BusinessDataSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'main_category_id' => 3,
+                'main_category_id' => $catIds['日用品'],
                 'name' => '洗衣液 2kg',
                 'code' => 'P004',
                 'spec' => '2kg/瓶',
@@ -122,7 +123,7 @@ class BusinessDataSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'main_category_id' => 4,
+                'main_category_id' => $catIds['电子产品'],
                 'name' => 'USB数据线',
                 'code' => 'P005',
                 'spec' => '1m',
