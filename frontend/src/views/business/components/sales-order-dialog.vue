@@ -96,6 +96,7 @@
 									:loading="item._loading"
 									size="small"
 									style="width:100%"
+									@visible-change="(v) => v && searchProducts('', item)"
 									@change="onProductChange(item)"
 								>
 									<el-option v-for="p in item._options" :key="p.id" :label="productLabel(p)" :value="p.id">
@@ -262,9 +263,21 @@ const applyProduct = (item, p) => {
 	item.unit_small = p.price_unit_small || ''
 	item.unit_conversion = Number(p.unit_conversion) || 0
 	item.unit_conversion_medium = Number(p.unit_conversion_medium) || 0
-	item.price_small = Number(p.price_small) || 0
+	const sm = Number(p.price_small) || 0
+	const mc = item.unit_conversion_medium
+	const c = item.unit_conversion
+	item.price_small = sm
 	item.price_medium = Number(p.price_medium) || 0
 	item.price_large = Number(p.price_large) || 0
+	// DB 未存中/大单位价（=0）时按小单位价 × 换算比派生，与 onSmallPriceChange 同口径：
+	// 1 件 = c 小、1 中 = mc 小。例如 c=120、mc=20、sm=2.4 → 件价 288、盒价 48。
+	// 只补缺失值，不覆盖已存的非零目录价（件价可能单独定档）
+	if (!item.price_medium && sm > 0 && mc > 0) {
+		item.price_medium = Math.round(sm * mc * 100) / 100
+	}
+	if (!item.price_large && sm > 0 && c > 0) {
+		item.price_large = Math.round(sm * c * 100) / 100
+	}
 	item.stock = stockMap.value[p.id] ?? 0
 	item.stockDisplay = formatStock(item.stock, item.unit_conversion, item.unit_conversion_medium, item.unit_large, item.unit_medium, item.unit_small)
 }
@@ -479,8 +492,22 @@ const onModeChange = (item) => {
 const searchProducts = (keyword, item) => {
 	item._loading = true
 	item._searchKeyword = keyword
-	businessApi.product.list.get({ keyword: keyword || '', per_page: 20 })
-		.then(res => { item._options = res.code === 200 ? (res.data?.list || []) : [] })
+	// 过滤作废商品（is_active=1）+ 限定当前选中分类（主/子）；未选分类时搜全部在售
+	businessApi.product.list.get({
+		keyword: keyword || '',
+		per_page: 20,
+		is_active: 1,
+		main_category_id: picker.mainId || undefined,
+		sub_category_id: picker.subId || undefined,
+	})
+		.then(res => {
+			const list = res.code === 200 ? (res.data?.list || []) : []
+			// 已选商品若不在当前过滤结果中（重开弹窗分类被重置 / 切换分类后），
+			// 仍保留在选项首位，避免 el-select 找不到对应 option 回显成裸 id
+			const cur = item._options.find(p => p.id === item.product_id)
+			if (item.product_id && cur && !list.some(p => p.id === item.product_id)) list.unshift(cur)
+			item._options = list
+		})
 		.catch(() => { item._options = [] })
 		.finally(() => { item._loading = false })
 }
@@ -654,7 +681,24 @@ const loadDraft = () => {
 		order_date: draft.order_date || null,
 		remark: draft.remark || '',
 	})
-	form.items = draft.items.map(i => ({ ...blankRow(), ...i, _loading: false, _searchKeyword: '', _options: [] }))
+	form.items = draft.items.map(i => {
+		const row = { ...blankRow(), ...i, _loading: false, _searchKeyword: '', _options: [] }
+		// 草稿只存了 product_id，el-select 找不到对应 option 时会回显成裸数字 id；
+		// 用草稿里保存的商品名/规格/单位重建一个 option，让下拉显示名称
+		if (i.product_id && i.product_name) {
+			row._options = [{
+				id: i.product_id,
+				name: i.product_name,
+				spec: i.spec,
+				spec_display: i.spec,
+				price_small: i.price_small,
+				price_unit_small: i.unit_small,
+				price_unit: i.unit_large,
+				barcode_medium_unit: i.unit_medium,
+			}]
+		}
+		return row
+	})
 	return form.items.length > 0
 }
 
@@ -715,6 +759,14 @@ watch(
 				row.unit_small = p.price_unit_small || ''
 				row.unit_conversion = Number(p.unit_conversion) || 0
 				row.unit_conversion_medium = Number(p.unit_conversion_medium) || 0
+				// 同 applyProduct：订单存的中/大单位价为 0 时按小单位价派生，
+				// 修老订单 price_medium 未存导致编辑回显 0 元/盒 的问题
+				if (!row.price_medium && row.price_small > 0 && row.unit_conversion_medium > 0) {
+					row.price_medium = Math.round(row.price_small * row.unit_conversion_medium * 100) / 100
+				}
+				if (!row.price_large && row.price_small > 0 && row.unit_conversion > 0) {
+					row.price_large = Math.round(row.price_small * row.unit_conversion * 100) / 100
+				}
 				row.amount = Number(it.amount) || 0
 				row.remark = it.remark || ''
 				row._options = p.id ? [p] : []
