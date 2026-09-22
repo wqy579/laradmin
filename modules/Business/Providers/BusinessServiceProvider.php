@@ -3,10 +3,18 @@
 namespace Modules\Business\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Business\Console\Commands\SyncCostPrices;
 
 class BusinessServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    protected array $commands = [
+        SyncCostPrices::class,
+    ];
+
+    public function register(): void
+    {
+        $this->commands($this->commands);
+    }
 
     public function boot(): void
     {
