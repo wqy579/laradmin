@@ -1,17 +1,23 @@
 name: Debug Server Log
 
-# 手动触发：SSH 进服务器 tail Laravel 错误日志，定位线上 500/异常根因。
-# dispatch-only，不在 push 上自动跑。完事可保留作日后排障工具。
+# 手动触发：SSH 进服务器排障。
+#   - command 留空 = 默认 tail Laravel 错误日志（配 grep/lines）
+#   - command 传任意 shell = 在 /www/wwwroot/laradmin 下执行（如 SHOW COLUMNS 之类）
+# dispatch-only，不在 push 自动跑。保留作日后排障工具。
 
 on:
   workflow_dispatch:
     inputs:
+      command:
+        description: '要执行的命令（留空=tail 日志）'
+        required: false
+        default: ''
       lines:
         description: 'tail 行数'
         required: false
         default: '200'
       grep:
-        description: '过滤关键字（留空=全部）'
+        description: '日志过滤关键字（留空=全部）'
         required: false
         default: ''
 
@@ -27,6 +33,14 @@ jobs:
           command_timeout: 5m
           script: |
             cd /www/wwwroot/laradmin
+
+            # 传了 command 就原样执行（排查用，如表结构）
+            if [ -n "${{ inputs.command }}" ]; then
+              echo "=== run: ${{ inputs.command }} ==="
+              bash -lc "${{ inputs.command }}"
+              exit 0
+            fi
+
             echo "=== logs dir ==="
             ls -lt storage/logs/ 2>/dev/null | head -10
             # 兼容 laravel.log（单文件）与 laravel-*.log（按日期）
