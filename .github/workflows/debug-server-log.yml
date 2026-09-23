@@ -37,7 +37,9 @@ jobs:
             # 传了 command 就原样执行（排查用，如表结构）
             if [ -n "${{ inputs.command }}" ]; then
               echo "=== run: ${{ inputs.command }} ==="
-              bash -lc "${{ inputs.command }}"
+              # 写临时脚本执行，规避引号嵌套
+              printf '%s\n' "${{ inputs.command }}" > /tmp/dbg.sh
+              bash /tmp/dbg.sh
               exit 0
             fi
 
