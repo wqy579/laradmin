@@ -29,19 +29,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: appleboy/ssh-action@v1.0.0
+        env:
+          CMD: ${{ inputs.command }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 5m
+          envs: CMD
           script: |
             cd /www/wwwroot/laradmin
 
-            # command 输入直接经 script 内插值写入临时脚本（%s 原样，不解析转义）
-            printf '%s\n' '${{ inputs.command }}' > /tmp/dbg.sh
-
-            if [ -s /tmp/dbg.sh ]; then
+            # command 经 envs:CMD 传递，写临时脚本执行（规避 script 字符串引号嵌套）
+            if [ -n "${CMD:-}" ]; then
               echo "=== run (custom command) ==="
+              printf '%s\n' "$CMD" > /tmp/dbg.sh
               bash /tmp/dbg.sh
               exit 0
             fi
