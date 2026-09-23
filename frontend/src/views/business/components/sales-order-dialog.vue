@@ -216,16 +216,9 @@ const rules = {
 }
 const visible = computed({ get: () => props.visible, set: (v) => emit('update:visible', v) })
 
-// 客户下拉只列启用客户；编辑回填时若该客户已作废，仍保留显示其名称，
-// 避免旧单客户被过滤后下拉空白、看不出原值。
-const customerOptions = computed(() => {
-	const active = props.customers.filter((c) => c.is_active)
-	if (form.customer_id && !active.some((c) => c.id === form.customer_id)) {
-		const cur = props.customers.find((c) => c.id === form.customer_id)
-		if (cur) return [cur, ...active]
-	}
-	return active
-})
+// 客户下拉只列启用客户。禁用即作废——作废客户不在下拉出现；
+// 编辑旧单时若该客户已作废，下拉不回填其名（作废即不存在，留空提示重选）。
+const customerOptions = computed(() => props.customers.filter((c) => c.is_active))
 
 // ---------------------------------------------------------------- 行结构
 
