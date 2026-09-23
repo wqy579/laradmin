@@ -70,9 +70,9 @@ const handleApprove = async (row) => {
 
 onMounted(() => {
 	Promise.all([
-		businessApi.customer.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) customers.value = r.data?.list || [] }),
-		businessApi.warehouse.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
-		businessApi.employee.list.get({ is_active: 1, per_page: 9999 }).then(r => { if (r.code === 200) salesmen.value = r.data?.list || [] }),
+		businessApi.customer.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) customers.value = r.data?.list || [] }),
+		businessApi.warehouse.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
+		businessApi.employee.list.get({ is_active: 1, page_size: 9999 }).then(r => { if (r.code === 200) salesmen.value = r.data?.list || [] }),
 	]).finally(() => refresh())
 })
 </script>
