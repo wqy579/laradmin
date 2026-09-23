@@ -35,10 +35,11 @@ jobs:
             cd /www/wwwroot/laradmin
 
             # 传了 command 就原样执行（排查用，如表结构）
-            if [ -n "${{ inputs.command }}" ]; then
-              echo "=== run: ${{ inputs.command }} ==="
+            CMD="${{ inputs.command }}"
+            if [ -n "$CMD" ]; then
+              echo "=== run: $CMD ==="
               # 写临时脚本执行，规避引号嵌套
-              printf '%s\n' "${{ inputs.command }}" > /tmp/dbg.sh
+              printf '%s\n' "$CMD" > /tmp/dbg.sh
               bash /tmp/dbg.sh
               exit 0
             fi
