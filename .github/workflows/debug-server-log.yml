@@ -27,7 +27,10 @@ jobs:
           command_timeout: 5m
           script: |
             cd /www/wwwroot/laradmin
-            LOG=$(ls -t storage/logs/laravel-*.log 2>/dev/null | head -1)
+            echo "=== logs dir ==="
+            ls -lt storage/logs/ 2>/dev/null | head -10
+            # 兼容 laravel.log（单文件）与 laravel-*.log（按日期）
+            LOG=$(ls -t storage/logs/laravel.log storage/logs/laravel-*.log 2>/dev/null | head -1)
             echo "=== latest log: $LOG ==="
             if [ -z "$LOG" ]; then echo "no laravel log found"; exit 0; fi
             if [ -n "${{ inputs.grep }}" ]; then
