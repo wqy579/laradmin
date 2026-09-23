@@ -90,6 +90,13 @@
 							@clear="search"
 						/>
 					</el-form-item>
+					<div class="unit-toggle">
+						<span class="unit-toggle-label">成本价单位</span>
+						<el-radio-group v-model="unitMode" size="small">
+							<el-radio-button value="small">最小单位</el-radio-button>
+							<el-radio-button value="large">最大单位</el-radio-button>
+						</el-radio-group>
+					</div>
 				</div>
 				<div class="right-tools">
 					<el-button type="primary" size="small" :disabled="!selectedRows.length" @click="handleBatchSet">
@@ -132,15 +139,17 @@
 				<template #cost_price="{ row }">
 					<div class="cost-cell" :class="{ 'no-cost': !(Number(row.cost_price) > 0) }">
 						<el-input-number
-							v-model="row.cost_price"
+							:model-value="costDisplay(row)"
 							:min="0"
 							:precision="2"
 							:step="1"
 							:controls="false"
 							size="small"
 							class="cost-input"
-							@change="handleCostChange(row)"
+							@change="(val) => handleCostChange(row, val)"
 						/>
+						<span class="cost-unit" :title="row.conversion_display || ''">{{ unitLabel(row) }}</span>
+						<span v-if="unitMode === 'large' && !canLarge(row)" class="no-conv">无换算</span>
 					</div>
 				</template>
 			</sTable>
@@ -233,14 +242,28 @@ const pageSizes = [30, 50, 100, 200, 500]
 const selectedRows = ref([])
 const savingIds = new Set()
 
-const columns = [
+// ---- 成本价单位切换：小单位（最小单位，原始存储）↔ 大单位（最大单位，动态换算）----
+// unit_conversion = 大→小换算率（1件=N个），>0 时才能折算大单位成本
+const unitMode = ref('small') // 'small' | 'large'
+const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100
+const canLarge = (row) => unitMode.value === 'large' && Number(row.unit_conversion) > 0
+// 展示值：大单位 = 小单位成本 × unit_conversion；否则直接取小单位成本
+const costDisplay = (row) => {
+	const cp = Number(row.cost_price) || 0
+	return canLarge(row) ? round2(cp * Number(row.unit_conversion)) : cp
+}
+const unitLabel = (row) => (canLarge(row) ? row.price_unit || '件' : row.price_unit_small || '个')
+// 该行实际提交给后端的单位：能折算大单位且当前为大单位模式用 large，否则 small（含无换算回退）
+const effectiveUnit = (row) => (canLarge(row) ? 'large' : 'small')
+
+const columns = computed(() => [
 	{ type: 'checkbox', width: 44, fixed: 'left' },
 	{ prop: 'id', title: 'ID', width: 60, align: 'center' },
 	{ prop: 'name', title: '产品名称', minWidth: 200, showOverflowTooltip: true, slots: { default: 'name' } },
 	{ prop: 'barcode_small', title: '条码', width: 120, showOverflowTooltip: true },
 	{ prop: 'price_display', title: '标准价', width: 100, align: 'right', slots: { default: 'price_display' } },
-	{ prop: 'cost_price', title: '成本价', width: 130, align: 'right', slots: { default: 'cost_price' } },
-]
+	{ prop: 'cost_price', title: unitMode.value === 'large' ? '成本价(大单位)' : '成本价(小单位)', width: 150, align: 'right', slots: { default: 'cost_price' } },
+])
 
 async function fetchData() {
 	loading.value = true
@@ -290,15 +313,18 @@ function refresh() {
 	fetchData()
 }
 
-// 行内修改成本价：自动保存并同步库存
-async function handleCostChange(row) {
+// 行内修改成本价：按当前单位模式提交，后端折算为最小单位存储并同步库存
+async function handleCostChange(row, val) {
 	if (savingIds.has(row.id)) return
-	const price = Number(row.cost_price ?? 0)
+	const price = Number(val)
 	if (isNaN(price) || price < 0) return
 	savingIds.add(row.id)
 	try {
-		const res = await businessApi.costPrice.edit.put(row.id, { cost_price: price })
-		if (res.code !== 200) {
+		const res = await businessApi.costPrice.edit.put(row.id, { cost_price: price, unit: effectiveUnit(row) })
+		if (res.code === 200) {
+			// 用后端权威的最小单位成本刷新展示（round-trip 后大单位展示值随之更新）
+			if (res.data && res.data.cost_price !== undefined) row.cost_price = res.data.cost_price
+		} else {
 			ElMessage.error(res.message || '保存失败')
 			fetchData()
 		}
@@ -309,22 +335,25 @@ async function handleCostChange(row) {
 	}
 }
 
-// 批量设置成本价
+// 批量设置成本价：按当前单位模式提交，大单位时后端按各商品换算率折算
 async function handleBatchSet() {
 	if (!selectedRows.value.length) {
 		ElMessage.warning('请先勾选产品')
 		return
 	}
+	const large = unitMode.value === 'large'
+	const unitText = large ? '最大单位' : '最小单位'
+	const hint = large ? '（按各商品换算率折算为最小单位存储）' : ''
 	try {
-		const { value } = await ElMessageBox.prompt('请输入批量设置的成本价', '批量设置成本价', {
+		const { value } = await ElMessageBox.prompt(`请输入批量设置的成本价${hint}`, `批量设置成本价 · ${unitText}`, {
 			confirmButtonText: '确定',
 			cancelButtonText: '取消',
-			inputPlaceholder: '成本价',
+			inputPlaceholder: `成本价（${unitText}）`,
 			inputValidator: (v) => (v !== '' && !isNaN(Number(v)) && Number(v) >= 0 ? true : '请输入有效的成本价'),
 		})
 		if (value === null || value === undefined) return
 		const ids = selectedRows.value.map((r) => r.id)
-		const res = await businessApi.costPrice.batch.post({ ids, cost_price: Number(value) })
+		const res = await businessApi.costPrice.batch.post({ ids, cost_price: Number(value), unit: large ? 'large' : 'small' })
 		if (res.code === 200) {
 			ElMessage.success(`已为 ${ids.length} 个产品设置成本价`)
 			search()
@@ -614,9 +643,35 @@ onMounted(() => {
 .search-box :deep(.el-input__wrapper) {
 	width: 260px;
 }
+.unit-toggle {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.unit-toggle-label {
+	font-size: 12px;
+	color: var(--el-text-color-secondary);
+	white-space: nowrap;
+}
 
+.cost-cell {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 4px;
+}
 .cost-cell .cost-input {
-	width: 112px;
+	width: 100px;
+}
+.cost-unit {
+	font-size: 12px;
+	color: var(--el-text-color-secondary);
+	white-space: nowrap;
+}
+.no-conv {
+	font-size: 10px;
+	color: var(--el-text-color-placeholder);
+	white-space: nowrap;
 }
 .cost-cell.no-cost :deep(.el-input__wrapper) {
 	background: var(--el-color-warning-light-9);

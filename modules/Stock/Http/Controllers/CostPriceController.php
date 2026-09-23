@@ -72,16 +72,21 @@ class CostPriceController extends Controller
 
     /**
      * 更新单个产品成本价，并同步所有库存记录的成本价与库存金额
+     *
+     * cost_price 始终以最小单位存储；unit=large 时传入的是最大单位价，
+     * 按 unit_conversion（大→小，1件=N个）折算为最小单位后存储。
      */
     public function update(Request $request, Product $product)
     {
         $validated = $request->validate([
             'cost_price' => 'required|numeric|min:0',
+            'unit' => 'nullable|in:small,large',
         ]);
 
         try {
             DB::transaction(function () use ($product, $validated) {
-                $cost = (float) $validated['cost_price'];
+                $cost = $this->toSmallUnitCost($product, (float) $validated['cost_price'], $validated['unit'] ?? 'small');
+
                 $product->update(['cost_price' => $cost]);
 
                 // 同步库存成本价与库存金额
@@ -99,6 +104,9 @@ class CostPriceController extends Controller
 
     /**
      * 批量设置产品成本价，并同步各产品库存记录
+     *
+     * unit=large 时传入的是最大单位价，各商品按自身 unit_conversion（大→小）
+     * 折算为最小单位后存储——不同换算率的商品会得到不同的小单位成本价。
      */
     public function batchUpdate(Request $request)
     {
@@ -106,23 +114,57 @@ class CostPriceController extends Controller
             'ids' => 'required|array|min:1',
             'ids.*' => 'integer',
             'cost_price' => 'required|numeric|min:0',
+            'unit' => 'nullable|in:small,large',
         ]);
 
         try {
             $ids = array_values(array_filter($validated['ids'], fn ($id) => $id > 0));
-            $cost = (float) $validated['cost_price'];
+            $value = (float) $validated['cost_price'];
+            $unit = $validated['unit'] ?? 'small';
 
-            DB::transaction(function () use ($ids, $cost) {
-                Product::whereIn('id', $ids)->update(['cost_price' => $cost]);
-                Stock::whereIn('product_id', $ids)->update([
-                    'cost_price' => $cost,
-                    'total_amount' => DB::raw('quantity * '.$cost),
-                ]);
+            DB::transaction(function () use ($ids, $value, $unit) {
+                if ($unit === 'large') {
+                    // 大单位批量：各商品按自身 unit_conversion 折算为最小单位
+                    foreach (Product::whereIn('id', $ids)->get() as $product) {
+                        $cost = $this->toSmallUnitCost($product, $value, 'large');
+                        $product->update(['cost_price' => $cost]);
+                        Stock::where('product_id', $product->id)->update([
+                            'cost_price' => $cost,
+                            'total_amount' => DB::raw('quantity * '.$cost),
+                        ]);
+                    }
+                } else {
+                    $cost = round($value, 2);
+                    Product::whereIn('id', $ids)->update(['cost_price' => $cost]);
+                    Stock::whereIn('product_id', $ids)->update([
+                        'cost_price' => $cost,
+                        'total_amount' => DB::raw('quantity * '.$cost),
+                    ]);
+                }
             });
 
             return $this->success(null, '批量设置成功');
         } catch (\Exception $e) {
             return $this->error('批量设置失败：'.$e->getMessage());
         }
+    }
+
+    /**
+     * 将输入成本价折算为最小单位成本价（products.cost_price 始终以最小单位存储）。
+     * unit=large：大单位价 ÷ unit_conversion（大→小，1件=N个）= 最小单位价。
+     * unit=small 或商品无换算关系：原值四舍五入到 2 位。
+     */
+    private function toSmallUnitCost(Product $product, float $value, string $unit): float
+    {
+        if ($unit !== 'large') {
+            return round($value, 2);
+        }
+
+        $uc = (float) ($product->unit_conversion ?? 0);
+        if ($uc <= 0) {
+            return round($value, 2);
+        }
+
+        return round($value / $uc, 2);
     }
 }
