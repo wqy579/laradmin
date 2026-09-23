@@ -2,8 +2,11 @@ name: Debug Server Log
 
 # 手动触发：SSH 进服务器排障。
 #   - command 留空 = 默认 tail Laravel 错误日志（配 grep/lines）
-#   - command 传任意 shell = 在 /www/wwwroot/laradmin 下执行（如 SHOW COLUMNS 之类）
+#   - command 传任意 shell = 在 /www/wwwroot/laradmin 下执行（如查表结构）
 # dispatch-only，不在 push 自动跑。保留作日后排障工具。
+#
+# 注：appleboy/ssh-action 的 env 不支持 workflow_dispatch 输入，
+# 所以 command 直接经 script 字符串写入临时脚本执行（printf %s 安全承载引号）。
 
 on:
   workflow_dispatch:
@@ -31,23 +34,17 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 5m
-          env:
-            CMD_ENV: ${{ inputs.command }}
           script: |
             cd /www/wwwroot/laradmin
 
-            # 传了 command 就原样执行（排查用，如表结构）
-            cmd_env="${CMD_ENV:-}"
-            run_cmd() {
-              if [ -n "$cmd_env" ]; then
-                echo "=== run (env) ==="
-                # 从 env 读命令，彻底规避引号嵌套
-                printf '%b' "$cmd_env" > /tmp/dbg.sh
-                bash /tmp/dbg.sh
-                exit 0
-              fi
-            }
-            run_cmd
+            # command 输入直接经 script 内插值写入临时脚本（%s 原样，不解析转义）
+            printf '%s\n' '${{ inputs.command }}' > /tmp/dbg.sh
+
+            if [ -s /tmp/dbg.sh ]; then
+              echo "=== run (custom command) ==="
+              bash /tmp/dbg.sh
+              exit 0
+            fi
 
             echo "=== logs dir ==="
             ls -lt storage/logs/ 2>/dev/null | head -10
