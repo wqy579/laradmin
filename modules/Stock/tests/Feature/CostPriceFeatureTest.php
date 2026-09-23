@@ -3,6 +3,7 @@
 namespace Tests\Stock\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Stock;
 use Modules\Stock\Models\Warehouse;
@@ -174,7 +175,7 @@ class CostPriceFeatureTest extends TestCase
     private function makeStock(Product $product, int $quantity): Stock
     {
         $warehouse = Warehouse::create([
-            'code' => 'WH'.strtoupper(\Illuminate\Support\Str::random(6)),
+            'code' => 'WH'.strtoupper(Str::random(6)),
             'name' => '测试仓库',
             'is_active' => true,
         ]);

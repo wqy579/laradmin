@@ -28,14 +28,16 @@ class SyncCostPrices extends Command
 
     public function handle(): int
     {
-        if (!is_file(self::DATA_FILE)) {
+        if (! is_file(self::DATA_FILE)) {
             $this->error('数据文件不存在: '.self::DATA_FILE);
+
             return self::FAILURE;
         }
 
         $data = json_decode((string) file_get_contents(self::DATA_FILE), true);
-        if (!is_array($data)) {
+        if (! is_array($data)) {
             $this->error('数据文件解析失败');
+
             return self::FAILURE;
         }
 
@@ -59,8 +61,9 @@ class SyncCostPrices extends Command
         $mismatched = 0;
         $toUpdate = [];
         foreach ($data as $cpid => $cb) {
-            if (!array_key_exists($cpid, $map)) {
+            if (! array_key_exists($cpid, $map)) {
                 $notFound++;
+
                 continue;
             }
             $found++;
@@ -81,11 +84,13 @@ class SyncCostPrices extends Command
 
         if ($this->option('dry-run')) {
             $this->info('【dry-run】未写入。去掉 --dry-run 执行替换。');
+
             return self::SUCCESS;
         }
 
         if (empty($toUpdate)) {
             $this->info('无不一致，无需更新。');
+
             return self::SUCCESS;
         }
 
@@ -99,6 +104,7 @@ class SyncCostPrices extends Command
         });
 
         $this->info('已替换(更新行数): '.$updated);
+
         return self::SUCCESS;
     }
 }
