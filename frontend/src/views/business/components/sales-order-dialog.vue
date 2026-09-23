@@ -10,7 +10,7 @@
 				<el-col :span="6">
 					<el-form-item label="客户" prop="customer_id">
 						<el-select v-model="form.customer_id" placeholder="请选择客户" filterable clearable style="width:100%">
-							<el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
+							<el-option v-for="c in customerOptions" :key="c.id" :label="c.name" :value="c.id" />
 						</el-select>
 					</el-form-item>
 				</el-col>
@@ -215,6 +215,17 @@ const rules = {
 	order_date: [{ required: true, message: '请选择日期', trigger: 'change' }],
 }
 const visible = computed({ get: () => props.visible, set: (v) => emit('update:visible', v) })
+
+// 客户下拉只列启用客户；编辑回填时若该客户已作废，仍保留显示其名称，
+// 避免旧单客户被过滤后下拉空白、看不出原值。
+const customerOptions = computed(() => {
+	const active = props.customers.filter((c) => c.is_active)
+	if (form.customer_id && !active.some((c) => c.id === form.customer_id)) {
+		const cur = props.customers.find((c) => c.id === form.customer_id)
+		if (cur) return [cur, ...active]
+	}
+	return active
+})
 
 // ---------------------------------------------------------------- 行结构
 
