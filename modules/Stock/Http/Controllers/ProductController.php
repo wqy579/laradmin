@@ -63,10 +63,11 @@ class ProductController extends Controller
             $query->where('is_active', (bool) $request->is_active);
         }
         // 销售单弹窗下拉（with_stock=1）需按库存降序：库存越多越靠前。库存口径与库存核对
-        // 「当前库存/今日库存」同源 = stocks.quantity；选了仓库取该仓实时库存，否则取
-        // products.stock_qty（StockService 维护的全仓 quantity 汇总）。
-        // 排序放 ORDER BY 的相关子查询里、不在 SELECT 加 join 别名——否则 paginate 的
-        // count 查询会带上别名 / products.* 生成 COUNT(products.*) 等非法 SQL。
+        // 「当前库存/今日库存」同源 = stocks.quantity；选了仓库取该仓实时库存，否则取全仓汇总。
+        // 两条分支都用 ORDER BY 相关子查询、不碰 products.stock_qty 冗余列——该列建表迁移
+        // 事后补列、生产未落库（2026-09-23 生产 500 根因），排序直接从 stocks 算最稳。
+        // 不放 SELECT 加 join 别名——否则 paginate 的 count 查询会带上别名 / products.*
+        // 生成 COUNT(products.*) 等非法 SQL。
         if ($withStock) {
             if ($warehouseId) {
                 $query->orderByRaw(
@@ -74,28 +75,33 @@ class ProductController extends Controller
                     [$warehouseId]
                 );
             } else {
-                $query->orderByDesc('products.stock_qty');
+                $query->orderByRaw(
+                    '(SELECT COALESCE(SUM(quantity), 0) FROM stocks WHERE stocks.product_id = products.id) DESC'
+                );
             }
         }
         $query->orderBy('products.id', 'desc');
         $products = $query->paginate($request->integer('page_size', 20));
 
-        // 选了仓库时，批量取本页商品的该仓库存（stocks 的 product+warehouse 唯一索引，一行一值）
+        // 批量取本页商品的库存：选仓库取该仓明细，否则取全仓汇总。
+        // 不用 products.stock_qty 冗余列（生产未落库，见上）。
         $stockMap = [];
-        if ($withStock && $warehouseId) {
+        if ($withStock) {
             $stockMap = DB::table('stocks')
-                ->where('warehouse_id', $warehouseId)
+                ->when($warehouseId, fn ($q) => $q->where('warehouse_id', $warehouseId))
                 ->whereIn('product_id', $products->getCollection()->pluck('id')->all())
-                ->pluck('quantity', 'product_id')
+                ->groupBy('product_id')
+                ->selectRaw('product_id, SUM(quantity) as qty')
+                ->pluck('qty', 'product_id')
                 ->all();
         }
 
-        $products->getCollection()->transform(function ($p) use ($withStock, $warehouseId, $stockMap) {
+        $products->getCollection()->transform(function ($p) use ($withStock, $stockMap) {
             return [
                 ...$p->toArray(true),
                 'main_category_name' => $p->mainCategory?->name,
                 'sub_category_name' => $p->subCategory?->name,
-                'stock_qty' => (int) (($withStock && $warehouseId) ? ($stockMap[$p->id] ?? 0) : ($p->stock_qty ?? 0)),
+                'stock_qty' => (int) ($withStock ? ($stockMap[$p->id] ?? 0) : 0),
             ];
         });
 
