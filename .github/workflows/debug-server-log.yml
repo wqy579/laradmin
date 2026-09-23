@@ -31,7 +31,8 @@ jobs:
             echo "=== latest log: $LOG ==="
             if [ -z "$LOG" ]; then echo "no laravel log found"; exit 0; fi
             if [ -n "${{ inputs.grep }}" ]; then
-              grep -Ei "${{ inputs.grep }}" "$LOG" | tail -n ${{ inputs.lines }}
+              # -A 带后续行，抓异常栈帧
+              grep -EiA 25 "${{ inputs.grep }}" "$LOG" | tail -n ${{ inputs.lines }}
             else
               tail -n ${{ inputs.lines }} "$LOG"
             fi
