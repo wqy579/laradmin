@@ -20,9 +20,9 @@
 				<div v-if="mainCategories.length" class="main-list">
 					<div
 						v-for="cat in mainCategories" :key="cat.id"
-						:class="['main-item', { active: activeMainId === cat.id }]"
+						class="main-item"
 					>
-						<div class="main-row" @click.stop="selectMain(cat)">
+						<div class="main-row" :class="{ active: activeMainId === cat.id }" @click.stop="selectMain(cat)">
 							<el-icon class="main-icon"><Folder /></el-icon>
 							<span class="main-name">{{ cat.name }}</span>
 							<span class="main-count">{{ cat.product_count || 0 }}</span>
