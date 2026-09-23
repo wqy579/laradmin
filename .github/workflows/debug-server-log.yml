@@ -31,18 +31,23 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           command_timeout: 5m
+          env:
+            CMD_ENV: ${{ inputs.command }}
           script: |
             cd /www/wwwroot/laradmin
 
             # 传了 command 就原样执行（排查用，如表结构）
-            CMD="${{ inputs.command }}"
-            if [ -n "$CMD" ]; then
-              echo "=== run: $CMD ==="
-              # 写临时脚本执行，规避引号嵌套
-              printf '%s\n' "$CMD" > /tmp/dbg.sh
-              bash /tmp/dbg.sh
-              exit 0
-            fi
+            cmd_env="${CMD_ENV:-}"
+            run_cmd() {
+              if [ -n "$cmd_env" ]; then
+                echo "=== run (env) ==="
+                # 从 env 读命令，彻底规避引号嵌套
+                printf '%b' "$cmd_env" > /tmp/dbg.sh
+                bash /tmp/dbg.sh
+                exit 0
+              fi
+            }
+            run_cmd
 
             echo "=== logs dir ==="
             ls -lt storage/logs/ 2>/dev/null | head -10
