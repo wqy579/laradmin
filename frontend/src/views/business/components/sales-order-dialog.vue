@@ -44,6 +44,10 @@
 			<div class="cat-col">
 				<div class="cat-col-title">主分类</div>
 				<div class="cat-col-body">
+					<div :class="['cat-item', { active: !picker.mainId }]" @click="selectPickerAllMain">
+						<span class="cat-name">全部</span>
+						<span class="cat-count">{{ totalProductCount }}</span>
+					</div>
 					<div v-for="m in categories" :key="m.id" :class="['cat-item', { active: picker.mainId === m.id }]" @click="selectPickerMain(m)">
 						<span class="cat-name">{{ m.name }}</span>
 						<span class="cat-count">{{ m.product_count || 0 }}</span>
@@ -57,13 +61,18 @@
 					<span v-if="picker.mainName" class="cat-col-sub">{{ picker.mainName }}</span>
 				</div>
 				<div class="cat-col-body">
-					<template v-if="picker.mainId && pickerSubs.length">
+					<template v-if="picker.mainId">
+						<div :class="['cat-item', { active: !picker.subId }]" @click="selectPickerAllSub">
+							<span class="cat-name">全部</span>
+							<span class="cat-count">{{ currentMainProductCount }}</span>
+						</div>
 						<div v-for="s in pickerSubs" :key="s.id" :class="['cat-item', { active: picker.subId === s.id }]" @click="selectPickerSub(s)">
 							<span class="cat-name">{{ s.name }}</span>
 							<span class="cat-count">{{ s.product_count || 0 }}</span>
 						</div>
+						<el-empty v-if="!pickerSubs.length" :image-size="28" description="无子分类" />
 					</template>
-					<el-empty v-else :image-size="28" :description="picker.mainId ? '无子分类' : '请先选主分类'" />
+					<el-empty v-else :image-size="28" description="请先选主分类" />
 				</div>
 			</div>
 			<!-- 第三栏：商品表格（10 列，与旧系统新增订单逐列对齐），行内远程搜索选择 -->
@@ -369,6 +378,13 @@ const selectPickerSub = (s) => {
 	picker.subName = s.name
 	refreshOpenSuggestions()
 }
+// 「全部」：主分类全部 = 不限主分类（搜所有在售）；子分类全部 = 不限子分类（搜该主分类下全部）。
+// 没有这两项时选了分类就回不到全部，不知道分类的商品会找不到
+const selectPickerAllMain = () => { resetPicker(); refreshOpenSuggestions() }
+const selectPickerAllSub = () => { picker.subId = null; picker.subName = ''; refreshOpenSuggestions() }
+// 全部项的计数：主分类全部 = 各主分类 product_count 之和；子分类全部 = 当前主分类的 product_count
+const totalProductCount = computed(() => categories.value.reduce((s, m) => s + (m.product_count || 0), 0))
+const currentMainProductCount = computed(() => categories.value.find(m => m.id === picker.mainId)?.product_count || 0)
 
 // ---------------------------------------------------------------- 库存
 
