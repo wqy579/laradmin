@@ -68,6 +68,30 @@
 			</div>
 			<!-- 第三栏：商品表格（10 列，与旧系统新增订单逐列对齐），行内远程搜索选择 -->
 			<div class="items-wrap">
+				<!-- 商品多选输入：勾选多个商品一次性铺到空行（行内 el-select 仍用于事后改单行） -->
+				<div class="multi-pick">
+					<el-select
+						v-model="pickerMulti.selectedIds"
+						multiple filterable remote collapse-tags collapse-tags-tooltip
+						:remote-method="searchPickerProducts"
+						:loading="pickerMulti.loading"
+						placeholder="搜索商品名/编码/规格，可多选后批量添加"
+						class="multi-pick-select"
+						@visible-change="(v) => v && searchPickerProducts('')"
+					>
+						<el-option v-for="p in pickerMulti.options" :key="p.id" :label="productLabel(p)" :value="p.id">
+							<span style="float:left">{{ p.name }}</span>
+							<span style="float:right;color:var(--el-text-color-secondary);font-size:12px">
+								库存{{ stockText(p) }}｜{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}
+							</span>
+						</el-option>
+					</el-select>
+					<el-button type="primary" size="small" :disabled="!pickerMulti.selectedIds.length" @click="addPickedProducts">
+						添加选中({{ pickerMulti.selectedIds.length }})
+					</el-button>
+					<el-button size="small" link @click="selectAllPicker">全选</el-button>
+					<el-button size="small" link :disabled="!pickerMulti.selectedIds.length" @click="pickerMulti.selectedIds = []">清空</el-button>
+				</div>
 				<table class="items-table">
 					<thead>
 						<tr>
@@ -535,13 +559,18 @@ const searchProducts = (keyword, item) => {
 		.finally(() => { item._loading = false })
 }
 
+/** 用商品对象填一行（与 onProductChange 同口径，供单选/批量多选复用） */
+const fillRowWithProduct = (row, p) => {
+	applyProduct(row, p)
+	row.stockError = false
+	row.price_source = CLEAR_PRICE_MODES.includes(row.sale_mode) ? '特殊' : ''
+	calcAmount(row)
+	checkStock(row)
+}
+
 const onProductChange = (item) => {
 	const p = item._options.find(x => x.id === item.product_id)
-	applyProduct(item, p)
-	item.stockError = false
-	item.price_source = CLEAR_PRICE_MODES.includes(item.sale_mode) ? '特殊' : ''
-	calcAmount(item)
-	checkStock(item)
+	fillRowWithProduct(item, p)
 }
 
 // ---------------------------------------------------------------- 行操作
@@ -572,6 +601,67 @@ const duplicateItem = (idx) => {
 const removeItem = (idx) => {
 	if (form.items.length <= 1) return
 	form.items.splice(idx, 1)
+}
+
+// ---------------------------------------------------------------- 商品多选输入（批量添加）
+const pickerMulti = reactive({ selectedIds: [], options: [], loading: false })
+const resetPickerMulti = () => { pickerMulti.selectedIds = []; pickerMulti.options = [] }
+// 与单选 searchProducts 同源：作废商品(is_active=1) + 当前分类过滤 + 带库存按库存降序
+const searchPickerProducts = (keyword) => {
+	pickerMulti.loading = true
+	businessApi.product.list.get({
+		keyword: keyword || '',
+		per_page: 20,
+		is_active: 1,
+		main_category_id: picker.mainId || undefined,
+		sub_category_id: picker.subId || undefined,
+		with_stock: 1,
+		warehouse_id: form.warehouse_id || undefined,
+	})
+		.then(res => {
+			const list = res.code === 200 ? (res.data?.list || []) : []
+			// 已选商品若不在当前结果里，保留其选项，避免折叠标签回显成裸 id
+			const kept = pickerMulti.options.filter(p => pickerMulti.selectedIds.includes(p.id))
+			const merged = [...list]
+			kept.forEach(p => { if (!merged.some(x => x.id === p.id)) merged.unshift(p) })
+			pickerMulti.options = merged
+		})
+		.catch(() => { pickerMulti.options = [] })
+		.finally(() => { pickerMulti.loading = false })
+}
+const selectAllPicker = () => { pickerMulti.selectedIds = pickerMulti.options.map(p => p.id) }
+/** 批量添加：每个选中商品铺一行，优先填现有空行（无 product_id）保持顶对齐，去重已入单商品 */
+const addPickedProducts = () => {
+	const ids = pickerMulti.selectedIds
+	if (!ids.length) return
+	const existing = new Set(form.items.map(i => i.product_id).filter(Boolean))
+	const toAdd = []
+	for (const id of ids) {
+		const p = pickerMulti.options.find(x => x.id === id)
+		if (!p || existing.has(id)) continue
+		toAdd.push(p); existing.add(id)
+	}
+	if (!toAdd.length) { ElMessage.warning('所选商品已全部在单中'); return }
+	let cursor = 0
+	for (const p of toAdd) {
+		let bi = -1
+		for (let k = cursor; k < form.items.length; k++) {
+			if (!form.items[k].product_id) { bi = k; break }
+		}
+		if (bi >= 0) {
+			const row = form.items[bi]
+			row._options = [p]
+			fillRowWithProduct(row, p)
+			cursor = bi + 1
+		} else {
+			const row = blankRow()
+			row._options = [p]
+			fillRowWithProduct(row, p)
+			form.items.push(row)
+		}
+	}
+	pickerMulti.selectedIds = []
+	ElMessage.success(`已添加 ${toAdd.length} 个商品`)
 }
 
 // ---------------------------------------------------------------- 库存校验
@@ -755,6 +845,7 @@ watch(
 		if (!open) return
 		await loadSalesmen()
 		resetPicker()
+		resetPickerMulti()
 		await loadCategories()
 		if (props.record) {
 			form.customer_id = props.record.customer_id
@@ -819,6 +910,16 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 	margin: 0;
 	background: var(--el-bg-color);
 }
+/* 商品多选输入条：搜索 + 添加选中/全选/清空，铺在表格上方 */
+.multi-pick {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--el-border-color-lighter);
+	background: var(--el-fill-color-lighter);
+}
+.multi-pick-select { flex: 1; min-width: 0; }
 /* 表格 10 列各列宽相加 ≈1050px；再压一档 min-width，配合收窄的分类栏，
    1366 宽的常规屏也能把横向滚动条挤掉 */
 /* 对话框贴顶：默认 --el-dialog-margin-top 是 15vh，把整窗顶到中上部、下方留一大片空白。
