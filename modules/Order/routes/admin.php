@@ -64,6 +64,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/sales-order')->group(function () {
         Route::get('/', [SalesOrderController::class, 'index']);
         Route::get('/statistics', [SalesOrderController::class, 'statistics']);
+        Route::get('/summary', [SalesOrderController::class, 'summary']);
         Route::get('/{salesOrder}', [SalesOrderController::class, 'show']);
         Route::post('/', [SalesOrderController::class, 'store']);
         Route::put('/{salesOrder}', [SalesOrderController::class, 'update']);

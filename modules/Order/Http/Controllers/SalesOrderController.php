@@ -96,15 +96,7 @@ class SalesOrderController extends Controller
     public function index(Request $request)
     {
         $query = SalesOrder::with(['customer', 'warehouse', 'salesman', 'items.product']);
-        if ($request->filled('keyword')) {
-            $query->where('order_no', 'like', '%'.$request->keyword.'%');
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-        if ($request->filled('customer_id')) {
-            $query->where('customer_id', $request->customer_id);
-        }
+        $this->applyOrderFilters($query, $request);
         $query->orderBy('id', 'desc');
         $orders = $query->paginate($request->integer('per_page', 20));
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
@@ -122,6 +114,83 @@ class SalesOrderController extends Controller
             'warehouses' => $warehouses,
             'salesmen' => $salesmen,
         ]);
+    }
+
+    /**
+     * 订单列表/汇总共用的搜索条件：keyword(订单号) / status / customer_id
+     * + 左侧汇总联动筛选 salesman_id / vehicle_id / route_id(按客户线路)
+     */
+    private function applyOrderFilters($query, Request $request): void
+    {
+        if ($request->filled('keyword')) {
+            $query->where('order_no', 'like', '%'.$request->keyword.'%');
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
+        }
+        if ($request->filled('salesman_id')) {
+            $query->where('salesman_id', $request->salesman_id);
+        }
+        if ($request->filled('vehicle_id')) {
+            $query->where('vehicle_id', $request->vehicle_id);
+        }
+        if ($request->filled('route_id')) {
+            $query->whereHas('customer', fn ($q) => $q->where('route_id', $request->route_id));
+        }
+    }
+
+    /**
+     * 左侧汇总面板：按 业务员 / 车辆 / 客户线路 三维度分组统计订单数、金额、数量。
+     * 复用 applyOrderFilters，跟随右侧搜索条件；null 分组归「未分配」。
+     */
+    public function summary(Request $request)
+    {
+        $totals = $this->baseSummaryQuery($request)
+            ->selectRaw('count(*) as order_count, sum(total_amount) as total_amount, sum(total_qty) as total_qty')
+            ->first();
+
+        // 业务员：用订单冗余的 salesman_name，不 join auth_user
+        $bySalesman = $this->baseSummaryQuery($request)
+            ->selectRaw('salesman_id, salesman_name as name, count(*) as order_count, sum(total_amount) as total_amount, sum(total_qty) as total_qty')
+            ->groupBy('salesman_id', 'salesman_name')
+            ->orderByDesc('order_count')
+            ->get();
+
+        // 车辆：join vehicles 取车牌
+        $byVehicle = $this->baseSummaryQuery($request)
+            ->leftJoin('vehicles', 'sales_orders.vehicle_id', '=', 'vehicles.id')
+            ->selectRaw('sales_orders.vehicle_id, vehicles.plate_no as name, count(*) as order_count, sum(sales_orders.total_amount) as total_amount, sum(sales_orders.total_qty) as total_qty')
+            ->groupBy('sales_orders.vehicle_id', 'vehicles.plate_no')
+            ->orderByDesc('order_count')
+            ->get();
+
+        // 客户线路：join customers → routes
+        $byRoute = $this->baseSummaryQuery($request)
+            ->join('customers', 'sales_orders.customer_id', '=', 'customers.id')
+            ->leftJoin('routes', 'customers.route_id', '=', 'routes.id')
+            ->selectRaw('customers.route_id, routes.name as name, count(*) as order_count, sum(sales_orders.total_amount) as total_amount, sum(sales_orders.total_qty) as total_qty')
+            ->groupBy('customers.route_id', 'routes.name')
+            ->orderByDesc('order_count')
+            ->get();
+
+        return $this->success([
+            'totals' => $totals,
+            'bySalesman' => $bySalesman,
+            'byVehicle' => $byVehicle,
+            'byRoute' => $byRoute,
+        ]);
+    }
+
+    /** summary 的基础 query（带搜索过滤，不含 select/group） */
+    private function baseSummaryQuery(Request $request)
+    {
+        $query = SalesOrder::query();
+        $this->applyOrderFilters($query, $request);
+
+        return $query;
     }
 
     public function show(SalesOrder $salesOrder)

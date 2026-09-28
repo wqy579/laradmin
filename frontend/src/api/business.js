@@ -86,6 +86,7 @@ const businessApi = {
 		edit: { put: (id, params) => request.put(`business/sales-order/${id}`, params) },
 		delete: { delete: (id) => request.delete(`business/sales-order/${id}`) },
 		approve: { post: (id) => request.post(`business/sales-order/${id}/approve`) },
+		summary: { get: (params) => request.get('business/sales-order/summary', { params }) },
 	},
 
 	// 采购订单
