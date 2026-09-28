@@ -68,41 +68,7 @@
 			</div>
 			<!-- 第三栏：商品表格（10 列，与旧系统新增订单逐列对齐），行内远程搜索选择 -->
 			<div class="items-wrap">
-				<!-- 商品多选：每个商品名前一个复选框，勾选后批量添加到下方订单表格 -->
-				<div class="multi-pick">
-					<div class="multi-pick-bar">
-						<el-input
-							v-model="pickerMulti.keyword"
-							size="small" clearable
-							placeholder="搜索商品名/编码/规格"
-							class="multi-pick-search"
-							@input="(val) => onPickSearch(val)"
-							@clear="searchPickerProducts('')"
-						/>
-						<el-checkbox
-							:model-value="pickerMultiAll"
-							:indeterminate="pickerMultiIndeterminate"
-							class="multi-pick-all"
-							@change="toggleAllPicker"
-						>全选</el-checkbox>
-						<span class="multi-pick-count">已选 {{ pickerMulti.selectedIds.length }}</span>
-						<el-button type="primary" size="small" :disabled="!pickerMulti.selectedIds.length" @click="addPickedProducts">
-							添加选中({{ pickerMulti.selectedIds.length }})
-						</el-button>
-						<el-button size="small" link :disabled="!pickerMulti.selectedIds.length" @click="pickerMulti.selectedIds = []">清空</el-button>
-					</div>
-					<div class="multi-pick-list">
-						<el-empty v-if="!pickerMulti.options.length" :image-size="36" :description="pickerMulti.loading ? '加载中...' : '暂无商品，请选择分类或搜索'" />
-						<el-checkbox-group v-else v-model="pickerMulti.selectedIds" class="pick-group">
-							<div v-for="p in pickerMulti.options" :key="p.id" class="pick-row">
-								<el-checkbox :value="p.id" class="pick-check">
-									<span class="pick-name">{{ p.name }}</span>
-								</el-checkbox>
-								<span class="pick-meta">库存{{ stockText(p) }}｜{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}</span>
-							</div>
-						</el-checkbox-group>
-					</div>
-				</div>
+				<!-- 商品行内搜索 + 下拉建议多选（对齐旧系统新增订单）：勾选即填行、全选添加一键全铺 -->
 				<div class="items-table-scroll">
 				<table class="items-table">
 					<thead>
@@ -123,25 +89,46 @@
 						<tr v-for="(item, idx) in form.items" :key="item.id" class="item-row">
 							<td class="c-idx">{{ idx + 1 }}</td>
 							<td class="c-product">
-								<el-select
-									v-model="item.product_id"
-									placeholder="选择商品"
-									filterable
-									remote
-									:remote-method="(q) => searchProducts(q, item)"
-									:loading="item._loading"
-									size="small"
-									style="width:100%"
-									@visible-change="(v) => v && searchProducts('', item)"
-									@change="onProductChange(item)"
-								>
-									<el-option v-for="p in item._options" :key="p.id" :label="productLabel(p)" :value="p.id">
-										<span style="float:left">{{ p.name }}</span>
-										<span style="float:right;color:var(--el-text-color-secondary);font-size:12px">
-											库存{{ stockText(p) }}｜{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}
-										</span>
-									</el-option>
-								</el-select>
+								<div class="prod-cell">
+									<input
+										class="prod-search"
+										:value="item.product_id ? item.product_name : item._searchKeyword"
+										:placeholder="item.product_id ? '' : '搜索商品名/编码/规格'"
+										:readonly="!!item.product_id"
+										@input="onProdInput(item, $event)"
+										@focus="onProdFocus(item)"
+										@blur="onProdBlur(item)"
+									/>
+									<span v-if="item.product_id" class="prod-clear" title="清除重选" @mousedown.prevent="clearProductFromRow(item, true)">✕</span>
+									<div
+										v-if="item.showSuggestions && item._options.length"
+										class="prod-suggestions"
+										@mousedown.prevent
+										@mouseenter="onProdSuggEnter(item)"
+										@mouseleave="onProdSuggLeave(item)"
+									>
+										<div class="prod-sugg-bar">
+											<span>{{ item._searchKeyword ? '搜索结果' : '全部商品（按库存排序）' }}</span>
+											<span class="prod-sugg-all" title="全选并添加" @click="selectAllProducts(item)">全选添加</span>
+										</div>
+										<div
+											v-for="(p, sidx) in item._options"
+											:key="p.id"
+											class="prod-sugg-row"
+											:class="{ selected: item.checkedProducts[sidx] }"
+											@click="toggleProductCheck(item, sidx, p)"
+										>
+											<input type="checkbox" class="prod-sugg-check" :checked="item.checkedProducts[sidx]" @click.stop="toggleProductCheck(item, sidx, p)" />
+											<div class="prod-sugg-info">
+												<div class="prod-sugg-name">{{ p.name }}</div>
+												<div class="prod-sugg-meta">
+													{{ p.spec_display || p.spec || '-' }} ｜ ¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }} ｜ 库存{{ stockText(p) }}
+												</div>
+											</div>
+										</div>
+									</div>
+									<div v-else-if="item.showSuggestions && !item._loading" class="prod-suggestions prod-sugg-empty">暂无商品</div>
+								</div>
 							</td>
 							<td class="c-spec">{{ item.spec || '-' }}</td>
 							<td class="c-mode">
@@ -291,6 +278,12 @@ const blankRow = () => ({
 	_options: [],
 	_loading: false,
 	_searchKeyword: '',
+	// 行内搜索下拉状态（对齐旧系统新增订单）：聚焦/输入时弹建议，勾选即填行
+	showSuggestions: false,
+	checkedProducts: [],
+	_blurTimer: null,
+	_suggHover: false,
+	_prevOptions: [],
 })
 
 /** 把后端/商品列表的商品映射成行内字段（旧系统 applyProduct 的同款取值） */
@@ -324,7 +317,6 @@ const applyProduct = (item, p) => {
 	item.stockDisplay = formatStock(item.stock, item.unit_conversion, item.unit_conversion_medium, item.unit_large, item.unit_medium, item.unit_small)
 }
 
-const productLabel = (p) => `${p.name}${p.code ? ` (${p.code})` : ''}`
 const smallUnitName = (p) => p.price_unit_small || '小'
 // 下拉里的库存显示：与库存核对「当前库存/今日库存」同源（stocks.quantity），
 // 复用 formatStock 按大/中/小单位逐级展示，0 显示为 -
@@ -370,14 +362,12 @@ const selectPickerMain = (m) => {
 	picker.mainId = m.id
 	picker.mainName = m.name
 	picker.subId = null; picker.subName = ''
-	pickerMulti.keyword = ''
-	searchPickerProducts('')
+	refreshOpenSuggestions()
 }
 const selectPickerSub = (s) => {
 	picker.subId = s.id
 	picker.subName = s.name
-	pickerMulti.keyword = ''
-	searchPickerProducts('')
+	refreshOpenSuggestions()
 }
 
 // ---------------------------------------------------------------- 库存
@@ -566,28 +556,27 @@ const searchProducts = (keyword, item) => {
 	})
 		.then(res => {
 			const list = res.code === 200 ? (res.data?.list || []) : []
-			// 已选商品若不在当前过滤结果中（重开弹窗分类被重置 / 切换分类后），
-			// 仍保留在选项首位，避免 el-select 找不到对应 option 回显成裸 id
-			const cur = item._options.find(p => p.id === item.product_id)
-			if (item.product_id && cur && !list.some(p => p.id === item.product_id)) list.unshift(cur)
 			item._options = list
+			// 同步勾选状态（对齐旧系统 doSearchProduct）：已在订单里的商品标勾，
+			// 上次结果里勾过的同 id 商品保留勾选，翻页/重搜不丢勾选
+			const inOrder = new Set(form.items.map(i => i.product_id).filter(Boolean))
+			const prev = item.checkedProducts || []
+			const prevIds = (item._prevOptions || []).map(p => p?.id)
+			item.checkedProducts = list.map(p => inOrder.has(p.id) || !!prev[prevIds.indexOf(p.id)])
+			item._prevOptions = list.slice()
 		})
 		.catch(() => { item._options = [] })
 		.finally(() => { item._loading = false })
 }
 
-/** 用商品对象填一行（与 onProductChange 同口径，供单选/批量多选复用） */
+/** 用商品对象填一行（行内下拉勾选/全选添加复用，与 applyProduct 同口径） */
 const fillRowWithProduct = (row, p) => {
 	applyProduct(row, p)
+	row._searchKeyword = ''
 	row.stockError = false
 	row.price_source = CLEAR_PRICE_MODES.includes(row.sale_mode) ? '特殊' : ''
 	calcAmount(row)
 	checkStock(row)
-}
-
-const onProductChange = (item) => {
-	const p = item._options.find(x => x.id === item.product_id)
-	fillRowWithProduct(item, p)
 }
 
 // ---------------------------------------------------------------- 行操作
@@ -620,85 +609,131 @@ const removeItem = (idx) => {
 	form.items.splice(idx, 1)
 }
 
-// ---------------------------------------------------------------- 商品多选输入（批量添加）
-const pickerMulti = reactive({ selectedIds: [], options: [], loading: false, keyword: '' })
-const resetPickerMulti = () => { pickerMulti.selectedIds = []; pickerMulti.options = []; pickerMulti.keyword = '' }
-// 与单选 searchProducts 同源：作废商品(is_active=1) + 当前分类过滤 + 带库存按库存降序
-const searchPickerProducts = (keyword) => {
-	pickerMulti.loading = true
-	businessApi.product.list.get({
-		keyword: keyword || '',
-		per_page: 50,
-		is_active: 1,
-		main_category_id: picker.mainId || undefined,
-		sub_category_id: picker.subId || undefined,
-		with_stock: 1,
-		warehouse_id: form.warehouse_id || undefined,
-	})
-		.then(res => {
-			const list = res.code === 200 ? (res.data?.list || []) : []
-			// 已选商品若不在当前结果里，保留其选项，避免折叠标签回显成裸 id
-			const kept = pickerMulti.options.filter(p => pickerMulti.selectedIds.includes(p.id))
-			const merged = [...list]
-			kept.forEach(p => { if (!merged.some(x => x.id === p.id)) merged.unshift(p) })
-			pickerMulti.options = merged
-		})
-		.catch(() => { pickerMulti.options = [] })
-		.finally(() => { pickerMulti.loading = false })
+// ---------------------------------------------------------------- 商品行内搜索下拉（对齐旧系统新增订单）
+// 每行商品格 = 搜索输入框 + 下拉建议；每条建议带 checkbox：勾=填下一空行、取消=清该行；
+// 下拉顶部「全选添加」一键把全部建议商品铺成新行。一整套 per-row，无独立面板。
+let prodSearchTimer = null
+const onProdInput = (item, e) => {
+	item._searchKeyword = e.target.value
+	clearTimeout(prodSearchTimer)
+	prodSearchTimer = setTimeout(() => searchProducts(item._searchKeyword, item), 300)
 }
-const pickerMultiAll = computed(() => pickerMulti.options.length > 0 && pickerMulti.options.every(p => pickerMulti.selectedIds.includes(p.id)))
-const pickerMultiIndeterminate = computed(() => {
-	const n = pickerMulti.options.filter(p => pickerMulti.selectedIds.includes(p.id)).length
-	return n > 0 && n < pickerMulti.options.length
-})
-const toggleAllPicker = (val) => {
-	const listed = pickerMulti.options.map(p => p.id)
-	if (val) {
-		const set = new Set(pickerMulti.selectedIds)
-		listed.forEach(id => set.add(id))
-		pickerMulti.selectedIds = [...set]
-	} else {
-		const rm = new Set(listed)
-		pickerMulti.selectedIds = pickerMulti.selectedIds.filter(id => !rm.has(id))
-	}
+// 聚焦：校验客户/仓库 → 开下拉 → 搜索（对齐旧系统 onFocusProduct；业务员非必填故不校验）
+const onProdFocus = (item) => {
+	if (item._blurTimer) { clearTimeout(item._blurTimer); item._blurTimer = null }
+	if (!form.customer_id) { ElMessage.error('请先选择客户'); item.showSuggestions = false; return }
+	if (!form.warehouse_id) { ElMessage.error('请先选择仓库'); item.showSuggestions = false; return }
+	item.showSuggestions = true
+	searchProducts(item._searchKeyword || '', item)
 }
-let pickSearchTimer = null
-const onPickSearch = (q) => {
-	clearTimeout(pickSearchTimer)
-	pickSearchTimer = setTimeout(() => searchPickerProducts(q || ''), 250)
+// 失焦：延迟 200ms 关下拉，悬停在下拉内时不关（对齐旧系统 onBlurProduct）
+const onProdBlur = (item) => {
+	if (item._suggHover) return
+	if (item._blurTimer) clearTimeout(item._blurTimer)
+	item._blurTimer = setTimeout(() => { item.showSuggestions = false }, 200)
 }
-/** 批量添加：每个选中商品铺一行，优先填现有空行（无 product_id）保持顶对齐，去重已入单商品 */
-const addPickedProducts = () => {
-	const ids = pickerMulti.selectedIds
-	if (!ids.length) return
-	const existing = new Set(form.items.map(i => i.product_id).filter(Boolean))
-	const toAdd = []
-	for (const id of ids) {
-		const p = pickerMulti.options.find(x => x.id === id)
-		if (!p || existing.has(id)) continue
-		toAdd.push(p); existing.add(id)
-	}
-	if (!toAdd.length) { ElMessage.warning('所选商品已全部在单中'); return }
-	let cursor = 0
-	for (const p of toAdd) {
-		let bi = -1
-		for (let k = cursor; k < form.items.length; k++) {
-			if (!form.items[k].product_id) { bi = k; break }
+const onProdSuggEnter = (item) => {
+	item._suggHover = true
+	if (item._blurTimer) { clearTimeout(item._blurTimer); item._blurTimer = null }
+}
+const onProdSuggLeave = (item) => {
+	item._suggHover = false
+	onProdBlur(item)
+}
+// 切换主/子分类时刷新任何已打开的下拉（旧系统是刷共享面板，这里是刷各行打开的下拉）
+const refreshOpenSuggestions = () => {
+	form.items.forEach(i => { if (i.showSuggestions) searchProducts(i._searchKeyword || '', i) })
+}
+/** 勾选/取消单个商品（对齐旧系统 toggleProductCheck）
+ *  勾 → 填进搜索行起的第一个空行（含搜索行本身，没有则在其后插新行），保持下拉打开、清关键字
+ *  取消 → 找到含该 product_id 的行清空回空行，保持下拉打开 */
+const toggleProductCheck = (item, sidx, p) => {
+	const opts = item._options
+	if (!opts[sidx]) return
+	if (!item.checkedProducts) item.checkedProducts = []
+	while (item.checkedProducts.length < opts.length) item.checkedProducts.push(false)
+	item.checkedProducts = item.checkedProducts.slice(0, opts.length)
+	const now = !item.checkedProducts[sidx]
+	item.checkedProducts = item.checkedProducts.map((v, i) => (i === sidx ? now : v))
+	if (now) {
+		const items = form.items
+		const sIdx = items.indexOf(item)
+		if (sIdx < 0) return
+		let targetIdx = -1
+		for (let k = sIdx; k < items.length; k++) {
+			if (!items[k].product_id) { targetIdx = k; break }
 		}
-		if (bi >= 0) {
-			const row = form.items[bi]
-			row._options = [p]
-			fillRowWithProduct(row, p)
-			cursor = bi + 1
+		let row
+		if (targetIdx >= 0) {
+			row = items[targetIdx]
 		} else {
-			const row = blankRow()
-			row._options = [p]
-			fillRowWithProduct(row, p)
-			form.items.push(row)
+			row = blankRow()
+			items.splice(sIdx + 1, 0, row)
 		}
+		fillRowWithProduct(row, p)
+		row._options = [p]
+		item._searchKeyword = ''
+		item.showSuggestions = true
+	} else {
+		for (const row of form.items) {
+			if (row.product_id === p.id) { clearProductFromRow(row); break }
+		}
+		item.showSuggestions = true
 	}
-	pickerMulti.selectedIds = []
-	ElMessage.success(`已添加 ${toAdd.length} 个商品`)
+}
+/** 全选添加（对齐旧系统 selectMultipleProducts）：把当前搜索行的全部建议商品逐个建新行
+ *  插到搜索行之后，跳过已在单中的商品，然后清空搜索行关键字、关下拉 */
+const selectAllProducts = (item) => {
+	const products = item._options
+	if (!products || !products.length) return
+	if (!form.customer_id) { ElMessage.error('请先选择客户'); return }
+	if (!form.warehouse_id) { ElMessage.error('请先选择仓库'); return }
+	const sIdx = form.items.indexOf(item)
+	if (sIdx < 0) return
+	const inOrder = new Set(form.items.map(i => i.product_id).filter(Boolean))
+	let added = 0
+	let insertAt = sIdx + 1
+	for (const p of products) {
+		if (inOrder.has(p.id)) continue
+		const row = blankRow()
+		fillRowWithProduct(row, p)
+		row._options = [p]
+		form.items.splice(insertAt, 0, row)
+		insertAt++
+		added++
+		inOrder.add(p.id)
+	}
+	item._searchKeyword = ''
+	item.showSuggestions = false
+	item._options = []
+	item.checkedProducts = []
+	item._prevOptions = []
+	if (added) ElMessage.success(`已添加 ${added} 个商品`)
+	else ElMessage.warning('所选商品已全部在单中')
+}
+/** 把行清空回空行（对齐旧系统 clearProductFromRow）：供取消勾选 / ✕ 重选。reopen=true 时重开下拉 */
+const clearProductFromRow = (row, reopen = false) => {
+	row.product_id = null
+	row.product_name = ''
+	row.spec = ''
+	row.price_source = ''
+	row.stock = 0
+	row.stockDisplay = '-'
+	row.stockError = false
+	row.qty_large = 0
+	row.qty_medium = 0
+	row.qty_small = 0
+	row.price_large = 0
+	row.price_medium = 0
+	row.price_small = 0
+	row.amount = 0
+	row.remark = ''
+	row._searchKeyword = ''
+	row._options = []
+	row.checkedProducts = []
+	row._prevOptions = []
+	row.showSuggestions = reopen
+	if (reopen && form.customer_id && form.warehouse_id) searchProducts('', row)
 }
 
 // ---------------------------------------------------------------- 库存校验
@@ -812,7 +847,8 @@ const saveDraft = () => {
 		order_date: rest.order_date,
 		remark: rest.remark,
 		items: rest.items.map(i => {
-			const { _loading: _l, _searchKeyword: _k, _options: _o, ...row } = i
+			// 剥掉行内搜索下拉的瞬态字段（_ 前缀 + showSuggestions/checkedProducts），只落业务字段
+			const { _loading: _l, _searchKeyword: _k, _options: _o, showSuggestions: _s, checkedProducts: _c, _blurTimer: _bt, _suggHover: _sh, _prevOptions: _po, ...row } = i
 			return row
 		}),
 	}
@@ -831,24 +867,18 @@ const loadDraft = () => {
 		order_date: draft.order_date || null,
 		remark: draft.remark || '',
 	})
-	form.items = draft.items.map(i => {
-		const row = { ...blankRow(), ...i, _loading: false, _searchKeyword: '', _options: [] }
-		// 草稿只存了 product_id，el-select 找不到对应 option 时会回显成裸数字 id；
-		// 用草稿里保存的商品名/规格/单位重建一个 option，让下拉显示名称
-		if (i.product_id && i.product_name) {
-			row._options = [{
-				id: i.product_id,
-				name: i.product_name,
-				spec: i.spec,
-				spec_display: i.spec,
-				price_small: i.price_small,
-				price_unit_small: i.unit_small,
-				price_unit: i.unit_large,
-				barcode_medium_unit: i.unit_medium,
-			}]
-		}
-		return row
-	})
+	form.items = draft.items.map(i => ({
+		...blankRow(),
+		...i,
+		_loading: false,
+		_searchKeyword: '',
+		_options: [],
+		showSuggestions: false,
+		checkedProducts: [],
+		_prevOptions: [],
+		_blurTimer: null,
+		_suggHover: false,
+	}))
 	return form.items.length > 0
 }
 
@@ -882,9 +912,7 @@ watch(
 		if (!open) return
 		await loadSalesmen()
 		resetPicker()
-		resetPickerMulti()
 		await loadCategories()
-		searchPickerProducts('')
 		if (props.record) {
 			form.customer_id = props.record.customer_id
 			form.warehouse_id = props.record.warehouse_id
@@ -955,58 +983,37 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 	min-height: 0;
 	overflow: auto;
 }
-/* 商品多选：搜索框 + 全选/已选/添加/清空 工具条 + 下方复选框列表（每个商品名前一个复选框） */
-.multi-pick {
-	flex: 0 0 auto;
-	display: flex;
-	flex-direction: column;
-	border-bottom: 1px solid var(--el-border-color-lighter);
-	background: var(--el-fill-color-lighter);
-}
-.multi-pick-bar {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-	padding: 6px 8px;
-	flex-wrap: wrap;
-}
-.multi-pick-search { width: 240px; flex: 0 0 auto; }
-.multi-pick-all { margin: 0 0 0 8px; flex-shrink: 0; }
-.multi-pick-count { font-size: 12px; color: var(--el-text-color-secondary); flex: 1 1 auto; text-align: right; padding-right: 4px; }
-.multi-pick-list {
-	max-height: 210px;
-	overflow-y: auto;
+/* 商品行内搜索下拉（对齐旧系统新增订单）：每行商品格的搜索输入 + 下拉建议，
+   勾选即填行、全选添加一键全铺；下拉锚在 .prod-cell 上，宽度同列、内容截断 */
+.prod-cell { position: relative; width: 100%; }
+.prod-search {
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid var(--el-border-color);
+	border-radius: 3px;
+	padding: 2px 6px;
+	font-size: 12px;
+	line-height: 20px;
 	background: var(--el-bg-color);
-	border-top: 1px solid var(--el-border-color-lighter);
 }
-.multi-pick-list::-webkit-scrollbar { width: 6px; }
-.multi-pick-list::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 3px; }
-.pick-group { display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; }
-.pick-row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 3px 10px;
-	min-width: 0;
-	font-size: 12px;
-	border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.pick-row:nth-child(odd) { border-right: 1px solid var(--el-border-color-lighter); }
-.pick-check { flex: 1 1 auto; min-width: 0; margin-right: 0; }
-.pick-check :deep(.el-checkbox__label) {
-	flex: 1 1 auto;
-	min-width: 0;
-	font-size: 12px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-.pick-meta {
-	flex: 0 0 auto;
-	font-size: 11px;
-	color: var(--el-text-color-secondary);
-	white-space: nowrap;
-}
+.prod-search[readonly] { background: var(--el-fill-color-lighter); color: var(--el-text-color-primary); font-weight: 500; cursor: default; }
+.prod-search:focus { outline: none; border-color: var(--el-color-primary); }
+.prod-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1; padding: 2px; }
+.prod-clear:hover { color: var(--el-color-danger); }
+.prod-suggestions { position: absolute; top: 100%; left: 0; width: 100%; min-width: 220px; max-height: 260px; overflow-y: auto; z-index: 1000; margin-top: 2px; background: var(--el-bg-color); border: 1px solid var(--el-border-color); border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+.prod-suggestions::-webkit-scrollbar { width: 6px; }
+.prod-suggestions::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 3px; }
+.prod-sugg-bar { display: flex; justify-content: space-between; align-items: center; padding: 4px 10px; font-size: 11px; color: var(--el-text-color-secondary); background: var(--el-fill-color-lighter); border-bottom: 1px solid var(--el-border-color-lighter); }
+.prod-sugg-all { cursor: pointer; color: var(--el-color-primary); font-weight: 600; }
+.prod-sugg-all:hover { text-decoration: underline; }
+.prod-sugg-row { display: flex; align-items: center; gap: 6px; padding: 5px 10px; cursor: pointer; border-bottom: 1px solid var(--el-border-color-lighter); font-size: 12px; }
+.prod-sugg-row:hover { background: var(--el-fill-color-light); }
+.prod-sugg-row.selected { background: var(--el-color-primary-light-9); }
+.prod-sugg-check { flex: 0 0 auto; margin: 0; cursor: pointer; }
+.prod-sugg-info { flex: 1 1 auto; min-width: 0; }
+.prod-sugg-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prod-sugg-meta { font-size: 11px; color: var(--el-text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prod-sugg-empty { padding: 10px; text-align: center; color: var(--el-text-color-secondary); font-size: 12px; }
 /* 表格 10 列各列宽相加 ≈1050px；再压一档 min-width，配合收窄的分类栏，
    1366 宽的常规屏也能把横向滚动条挤掉 */
 /* 对话框贴顶：默认 --el-dialog-margin-top 是 15vh，把整窗顶到中上部、下方留一大片空白。
