@@ -645,7 +645,8 @@ const refreshOpenSuggestions = () => {
 	form.items.forEach(i => { if (i.showSuggestions) searchProducts(i._searchKeyword || '', i) })
 }
 /** 勾选/取消单个商品（对齐旧系统 toggleProductCheck）
- *  勾 → 填进搜索行起的第一个空行（含搜索行本身，没有则在其后插新行），保持下拉打开、清关键字
+ *  勾 → 搜索行自身保留为选择器不填（否则 _options 被覆盖成单项、下拉只剩刚勾的那个，无法多选）；
+ *       从搜索行之后找第一个空行复用、没有则追加到末尾，保持勾选顺序；下拉保持打开
  *  取消 → 找到含该 product_id 的行清空回空行，保持下拉打开 */
 const toggleProductCheck = (item, sidx, p) => {
 	const opts = item._options
@@ -659,8 +660,9 @@ const toggleProductCheck = (item, sidx, p) => {
 		const items = form.items
 		const sIdx = items.indexOf(item)
 		if (sIdx < 0) return
+		// 跳过搜索行本身（sIdx），从其后找空行复用；没有就追加到末尾，保持勾选顺序
 		let targetIdx = -1
-		for (let k = sIdx; k < items.length; k++) {
+		for (let k = sIdx + 1; k < items.length; k++) {
 			if (!items[k].product_id) { targetIdx = k; break }
 		}
 		let row
@@ -668,7 +670,7 @@ const toggleProductCheck = (item, sidx, p) => {
 			row = items[targetIdx]
 		} else {
 			row = blankRow()
-			items.splice(sIdx + 1, 0, row)
+			items.push(row)
 		}
 		fillRowWithProduct(row, p)
 		row._options = [p]
