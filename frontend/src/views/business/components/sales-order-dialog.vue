@@ -645,8 +645,9 @@ const refreshOpenSuggestions = () => {
 	form.items.forEach(i => { if (i.showSuggestions) searchProducts(i._searchKeyword || '', i) })
 }
 /** 勾选/取消单个商品（对齐旧系统 toggleProductCheck）
- *  勾 → 搜索行自身保留为选择器不填（否则 _options 被覆盖成单项、下拉只剩刚勾的那个，无法多选）；
- *       从搜索行之后找第一个空行复用、没有则追加到末尾，保持勾选顺序；下拉保持打开
+ *  勾 → 填到搜索行自身（在哪勾填哪）；填前快照搜索态，填后该行锁定不再当搜索器，
+ *       从其后找第一个空行复用、没有则追加到末尾作续行，把下拉/关键字/勾选状态移交续行，
+ *       保持连续多选与筛选结果不丢
  *  取消 → 找到含该 product_id 的行清空回空行，保持下拉打开 */
 const toggleProductCheck = (item, sidx, p) => {
 	const opts = item._options
@@ -660,22 +661,34 @@ const toggleProductCheck = (item, sidx, p) => {
 		const items = form.items
 		const sIdx = items.indexOf(item)
 		if (sIdx < 0) return
-		// 跳过搜索行本身（sIdx），从其后找空行复用；没有就追加到末尾，保持勾选顺序
-		let targetIdx = -1
+		// 先快照搜索态：填本行会锁定该行（product_id 有值 → 输入框 readonly），不再当搜索器，
+		// 需把下拉与筛选关键字移交给续行，才能在同一筛选结果里连续勾选多个
+		const optsSnap = (item._options || []).slice()
+		const prevSnap = (item._prevOptions || []).slice()
+		const kwSnap = item._searchKeyword || ''
+		// 填到搜索行自身（而非跳到下一行），对齐「在哪勾填哪」
+		fillRowWithProduct(item, p)
+		// 续行：从搜索行之后找第一个空行复用，没有就追加到末尾
+		let nextIdx = -1
 		for (let k = sIdx + 1; k < items.length; k++) {
-			if (!items[k].product_id) { targetIdx = k; break }
+			if (!items[k].product_id) { nextIdx = k; break }
 		}
-		let row
-		if (targetIdx >= 0) {
-			row = items[targetIdx]
-		} else {
-			row = blankRow()
-			items.push(row)
-		}
-		fillRowWithProduct(row, p)
-		row._options = [p]
+		const next = nextIdx >= 0 ? items[nextIdx] : blankRow()
+		if (nextIdx < 0) items.push(next)
+		if (next._blurTimer) { clearTimeout(next._blurTimer); next._blurTimer = null }
+		// 下拉/搜索态移交续行；已在单中的商品（含刚填的 p）标勾，避免重复勾选
+		next._options = optsSnap
+		next._prevOptions = prevSnap
+		next._searchKeyword = kwSnap
+		const inOrder = new Set(items.map(i => i.product_id).filter(Boolean))
+		next.checkedProducts = optsSnap.map(op => inOrder.has(op.id))
+		next.showSuggestions = true
+		// 本行已填：关闭下拉、清搜索态
+		item.showSuggestions = false
+		item._options = []
+		item.checkedProducts = []
+		item._prevOptions = []
 		item._searchKeyword = ''
-		item.showSuggestions = true
 	} else {
 		for (const row of form.items) {
 			if (row.product_id === p.id) { clearProductFromRow(row); break }
