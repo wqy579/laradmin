@@ -68,30 +68,42 @@
 			</div>
 			<!-- 第三栏：商品表格（10 列，与旧系统新增订单逐列对齐），行内远程搜索选择 -->
 			<div class="items-wrap">
-				<!-- 商品多选输入：勾选多个商品一次性铺到空行（行内 el-select 仍用于事后改单行） -->
+				<!-- 商品多选：每个商品名前一个复选框，勾选后批量添加到下方订单表格 -->
 				<div class="multi-pick">
-					<el-select
-						v-model="pickerMulti.selectedIds"
-						multiple filterable remote collapse-tags collapse-tags-tooltip
-						:remote-method="searchPickerProducts"
-						:loading="pickerMulti.loading"
-						placeholder="搜索商品名/编码/规格，可多选后批量添加"
-						class="multi-pick-select"
-						@visible-change="(v) => v && searchPickerProducts('')"
-					>
-						<el-option v-for="p in pickerMulti.options" :key="p.id" :label="productLabel(p)" :value="p.id">
-							<span style="float:left">{{ p.name }}</span>
-							<span style="float:right;color:var(--el-text-color-secondary);font-size:12px">
-								库存{{ stockText(p) }}｜{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}
-							</span>
-						</el-option>
-					</el-select>
-					<el-button type="primary" size="small" :disabled="!pickerMulti.selectedIds.length" @click="addPickedProducts">
-						添加选中({{ pickerMulti.selectedIds.length }})
-					</el-button>
-					<el-button size="small" link @click="selectAllPicker">全选</el-button>
-					<el-button size="small" link :disabled="!pickerMulti.selectedIds.length" @click="pickerMulti.selectedIds = []">清空</el-button>
+					<div class="multi-pick-bar">
+						<el-input
+							v-model="pickerMulti.keyword"
+							size="small" clearable
+							placeholder="搜索商品名/编码/规格"
+							class="multi-pick-search"
+							@input="(val) => onPickSearch(val)"
+							@clear="searchPickerProducts('')"
+						/>
+						<el-checkbox
+							:model-value="pickerMultiAll"
+							:indeterminate="pickerMultiIndeterminate"
+							class="multi-pick-all"
+							@change="toggleAllPicker"
+						>全选</el-checkbox>
+						<span class="multi-pick-count">已选 {{ pickerMulti.selectedIds.length }}</span>
+						<el-button type="primary" size="small" :disabled="!pickerMulti.selectedIds.length" @click="addPickedProducts">
+							添加选中({{ pickerMulti.selectedIds.length }})
+						</el-button>
+						<el-button size="small" link :disabled="!pickerMulti.selectedIds.length" @click="pickerMulti.selectedIds = []">清空</el-button>
+					</div>
+					<div class="multi-pick-list">
+						<el-empty v-if="!pickerMulti.options.length" :image-size="36" :description="pickerMulti.loading ? '加载中...' : '暂无商品，请选择分类或搜索'" />
+						<el-checkbox-group v-else v-model="pickerMulti.selectedIds" class="pick-group">
+							<div v-for="p in pickerMulti.options" :key="p.id" class="pick-row">
+								<el-checkbox :value="p.id" class="pick-check">
+									<span class="pick-name">{{ p.name }}</span>
+								</el-checkbox>
+								<span class="pick-meta">库存{{ stockText(p) }}｜{{ p.spec_display || p.spec || '-' }}｜¥{{ Number(p.price_small || 0).toFixed(2) }}/{{ smallUnitName(p) }}</span>
+							</div>
+						</el-checkbox-group>
+					</div>
 				</div>
+				<div class="items-table-scroll">
 				<table class="items-table">
 					<thead>
 						<tr>
@@ -181,6 +193,7 @@
 						</tr>
 					</tbody>
 				</table>
+				</div>
 			</div>
 		</div>
 
@@ -357,10 +370,14 @@ const selectPickerMain = (m) => {
 	picker.mainId = m.id
 	picker.mainName = m.name
 	picker.subId = null; picker.subName = ''
+	pickerMulti.keyword = ''
+	searchPickerProducts('')
 }
 const selectPickerSub = (s) => {
 	picker.subId = s.id
 	picker.subName = s.name
+	pickerMulti.keyword = ''
+	searchPickerProducts('')
 }
 
 // ---------------------------------------------------------------- 库存
@@ -604,14 +621,14 @@ const removeItem = (idx) => {
 }
 
 // ---------------------------------------------------------------- 商品多选输入（批量添加）
-const pickerMulti = reactive({ selectedIds: [], options: [], loading: false })
-const resetPickerMulti = () => { pickerMulti.selectedIds = []; pickerMulti.options = [] }
+const pickerMulti = reactive({ selectedIds: [], options: [], loading: false, keyword: '' })
+const resetPickerMulti = () => { pickerMulti.selectedIds = []; pickerMulti.options = []; pickerMulti.keyword = '' }
 // 与单选 searchProducts 同源：作废商品(is_active=1) + 当前分类过滤 + 带库存按库存降序
 const searchPickerProducts = (keyword) => {
 	pickerMulti.loading = true
 	businessApi.product.list.get({
 		keyword: keyword || '',
-		per_page: 20,
+		per_page: 50,
 		is_active: 1,
 		main_category_id: picker.mainId || undefined,
 		sub_category_id: picker.subId || undefined,
@@ -629,7 +646,27 @@ const searchPickerProducts = (keyword) => {
 		.catch(() => { pickerMulti.options = [] })
 		.finally(() => { pickerMulti.loading = false })
 }
-const selectAllPicker = () => { pickerMulti.selectedIds = pickerMulti.options.map(p => p.id) }
+const pickerMultiAll = computed(() => pickerMulti.options.length > 0 && pickerMulti.options.every(p => pickerMulti.selectedIds.includes(p.id)))
+const pickerMultiIndeterminate = computed(() => {
+	const n = pickerMulti.options.filter(p => pickerMulti.selectedIds.includes(p.id)).length
+	return n > 0 && n < pickerMulti.options.length
+})
+const toggleAllPicker = (val) => {
+	const listed = pickerMulti.options.map(p => p.id)
+	if (val) {
+		const set = new Set(pickerMulti.selectedIds)
+		listed.forEach(id => set.add(id))
+		pickerMulti.selectedIds = [...set]
+	} else {
+		const rm = new Set(listed)
+		pickerMulti.selectedIds = pickerMulti.selectedIds.filter(id => !rm.has(id))
+	}
+}
+let pickSearchTimer = null
+const onPickSearch = (q) => {
+	clearTimeout(pickSearchTimer)
+	pickSearchTimer = setTimeout(() => searchPickerProducts(q || ''), 250)
+}
 /** 批量添加：每个选中商品铺一行，优先填现有空行（无 product_id）保持顶对齐，去重已入单商品 */
 const addPickedProducts = () => {
 	const ids = pickerMulti.selectedIds
@@ -847,6 +884,7 @@ watch(
 		resetPicker()
 		resetPickerMulti()
 		await loadCategories()
+		searchPickerProducts('')
 		if (props.record) {
 			form.customer_id = props.record.customer_id
 			form.warehouse_id = props.record.warehouse_id
@@ -904,22 +942,71 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 	flex: 1 1 0;
 	min-width: 0;
 	min-height: 0;
-	overflow: auto;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
 	border: none;
 	border-radius: 0;
 	margin: 0;
 	background: var(--el-bg-color);
 }
-/* 商品多选输入条：搜索 + 添加选中/全选/清空，铺在表格上方 */
+.items-table-scroll {
+	flex: 1 1 0;
+	min-height: 0;
+	overflow: auto;
+}
+/* 商品多选：搜索框 + 全选/已选/添加/清空 工具条 + 下方复选框列表（每个商品名前一个复选框） */
 .multi-pick {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	border-bottom: 1px solid var(--el-border-color-lighter);
+	background: var(--el-fill-color-lighter);
+}
+.multi-pick-bar {
 	display: flex;
 	gap: 8px;
 	align-items: center;
 	padding: 6px 8px;
-	border-bottom: 1px solid var(--el-border-color-lighter);
-	background: var(--el-fill-color-lighter);
+	flex-wrap: wrap;
 }
-.multi-pick-select { flex: 1; min-width: 0; }
+.multi-pick-search { width: 240px; flex: 0 0 auto; }
+.multi-pick-all { margin: 0 0 0 8px; flex-shrink: 0; }
+.multi-pick-count { font-size: 12px; color: var(--el-text-color-secondary); flex: 1 1 auto; text-align: right; padding-right: 4px; }
+.multi-pick-list {
+	max-height: 210px;
+	overflow-y: auto;
+	background: var(--el-bg-color);
+	border-top: 1px solid var(--el-border-color-lighter);
+}
+.multi-pick-list::-webkit-scrollbar { width: 6px; }
+.multi-pick-list::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 3px; }
+.pick-group { display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; }
+.pick-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 3px 10px;
+	min-width: 0;
+	font-size: 12px;
+	border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.pick-row:nth-child(odd) { border-right: 1px solid var(--el-border-color-lighter); }
+.pick-check { flex: 1 1 auto; min-width: 0; margin-right: 0; }
+.pick-check :deep(.el-checkbox__label) {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 12px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pick-meta {
+	flex: 0 0 auto;
+	font-size: 11px;
+	color: var(--el-text-color-secondary);
+	white-space: nowrap;
+}
 /* 表格 10 列各列宽相加 ≈1050px；再压一档 min-width，配合收窄的分类栏，
    1366 宽的常规屏也能把横向滚动条挤掉 */
 /* 对话框贴顶：默认 --el-dialog-margin-top 是 15vh，把整窗顶到中上部、下方留一大片空白。
