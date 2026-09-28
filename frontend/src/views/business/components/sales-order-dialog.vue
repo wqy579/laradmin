@@ -639,6 +639,8 @@ const onProdFocus = (item) => {
 	if (item._blurTimer) { clearTimeout(item._blurTimer); item._blurTimer = null }
 	if (!form.customer_id) { ElMessage.error('请先选择客户'); item.showSuggestions = false; return }
 	if (!form.warehouse_id) { ElMessage.error('请先选择仓库'); item.showSuggestions = false; return }
+	// 已填行 focus：保留下拉供继续勾选，但不重新搜索，避免空关键字覆盖原筛选结果（如「大黄米」）
+	if (item.product_id) { item.showSuggestions = true; return }
 	item.showSuggestions = true
 	searchProducts(item._searchKeyword || '', item)
 }
@@ -661,9 +663,8 @@ const refreshOpenSuggestions = () => {
 	form.items.forEach(i => { if (i.showSuggestions) searchProducts(i._searchKeyword || '', i) })
 }
 /** 勾选/取消单个商品（对齐旧系统 toggleProductCheck）
- *  勾 → 填到搜索行自身（在哪勾填哪）；填前快照搜索态，填后该行锁定不再当搜索器，
- *       从其后找第一个空行复用、没有则追加到末尾作续行，把下拉/关键字/勾选状态移交续行，
- *       保持连续多选与筛选结果不丢
+ *  勾 → 搜索行未填时填自身（第一个勾选填当前行），已填时找其后第一个空行复用、没有则追加（后续勾选）；
+ *       下拉始终锚在搜索行不下移、不关闭，勾选后清空输入的关键字（取消残留），在同一筛选结果里连续勾选多个
  *  取消 → 找到含该 product_id 的行清空回空行，保持下拉打开 */
 const toggleProductCheck = (item, sidx, p) => {
 	const opts = item._options
@@ -677,33 +678,19 @@ const toggleProductCheck = (item, sidx, p) => {
 		const items = form.items
 		const sIdx = items.indexOf(item)
 		if (sIdx < 0) return
-		// 先快照搜索态：填本行会锁定该行（product_id 有值 → 输入框 readonly），不再当搜索器，
-		// 需把下拉与筛选关键字移交给续行，才能在同一筛选结果里连续勾选多个
-		const optsSnap = (item._options || []).slice()
-		const prevSnap = (item._prevOptions || []).slice()
-		const kwSnap = item._searchKeyword || ''
-		// 填到搜索行自身（而非跳到下一行），对齐「在哪勾填哪」
-		fillRowWithProduct(item, p)
-		// 续行：从搜索行之后找第一个空行复用，没有就追加到末尾
-		let nextIdx = -1
-		for (let k = sIdx + 1; k < items.length; k++) {
-			if (!items[k].product_id) { nextIdx = k; break }
+		// 目标行：搜索行未填时填自身（第一个勾选），已填时找其后第一个空行复用、没有就追加（后续勾选）
+		let target = item
+		if (item.product_id) {
+			let targetIdx = -1
+			for (let k = sIdx + 1; k < items.length; k++) {
+				if (!items[k].product_id) { targetIdx = k; break }
+			}
+			target = targetIdx >= 0 ? items[targetIdx] : blankRow()
+			if (targetIdx < 0) items.push(target)
 		}
-		const next = nextIdx >= 0 ? items[nextIdx] : blankRow()
-		if (nextIdx < 0) items.push(next)
-		if (next._blurTimer) { clearTimeout(next._blurTimer); next._blurTimer = null }
-		// 下拉/搜索态移交续行；已在单中的商品（含刚填的 p）标勾，避免重复勾选
-		next._options = optsSnap
-		next._prevOptions = prevSnap
-		next._searchKeyword = kwSnap
-		const inOrder = new Set(items.map(i => i.product_id).filter(Boolean))
-		next.checkedProducts = optsSnap.map(op => inOrder.has(op.id))
-		next.showSuggestions = true
-		// 本行已填：关闭下拉、清搜索态
-		item.showSuggestions = false
-		item._options = []
-		item.checkedProducts = []
-		item._prevOptions = []
+		fillRowWithProduct(target, p)
+		// 下拉保持在搜索行（item）不下移、不关闭；清空输入的关键字，取消「大黄米」之类残留
+		item.showSuggestions = true
 		item._searchKeyword = ''
 	} else {
 		for (const row of form.items) {
