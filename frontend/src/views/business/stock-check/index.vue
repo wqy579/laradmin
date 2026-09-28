@@ -106,7 +106,7 @@
 							'diff-down': row.quantity < row.yesterday_qty,
 							'diff-zero': Number(row.quantity) === 0
 						}">
-							{{ fmt(row.quantity) }}
+							{{ formatStock(row.quantity, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}
 							<template v-if="row.quantity !== row.yesterday_qty">
 								<i :class="row.quantity > row.yesterday_qty ? 'el-icon-top' : 'el-icon-bottom'" style="margin-left: 2px; font-size: 11px;"></i>
 							</template>
@@ -237,6 +237,38 @@ function fmt(v) {
 	const n = Number(v ?? 0)
 	if (Math.abs(n - Math.round(n)) < 0.001) return String(Math.round(n))
 	return String(Math.round(n * 100) / 100)
+}
+
+// 库存按小单位存，逐级整除成 大(件)/中(盒)/小(袋) 展示，与销售单 formatStock 一致
+function formatStock(totalSmall, c, mc, unitLarge, unitMedium, unitSmall) {
+	const num = Math.floor(Number(totalSmall) || 0)
+	if (num <= 0) return String(num)
+	const cn = Number(c) || 0
+	const mcn = Number(mc) || 0
+	const ul = unitLarge || '件'
+	const um = unitMedium || '盒'
+	const us = unitSmall || '袋'
+	const parts = []
+	if (cn > 0 && mcn > 0) {
+		const large = Math.floor(num / cn)
+		const remainder = num % cn
+		const medium = Math.floor(remainder / mcn)
+		const small = remainder % mcn
+		if (large > 0) parts.push(`${large}${ul}`)
+		if (medium > 0) parts.push(`${medium}${um}`)
+		if (small > 0) parts.push(`${small}${us}`)
+	} else if (cn > 0) {
+		const large = Math.floor(num / cn)
+		if (large > 0) parts.push(`${large}${ul}`)
+		if (num % cn > 0) parts.push(`${num % cn}${us}`)
+	} else if (mcn > 0) {
+		const medium = Math.floor(num / mcn)
+		if (medium > 0) parts.push(`${medium}${um}`)
+		if (num % mcn > 0) parts.push(`${num % mcn}${us}`)
+	} else {
+		parts.push(`${num}${us}`)
+	}
+	return parts.join(' ') || String(num)
 }
 
 function fmtMoney(v) {
