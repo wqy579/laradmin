@@ -573,12 +573,9 @@ const searchProducts = (keyword, item) => {
 		.then(res => {
 			const list = res.code === 200 ? (res.data?.list || []) : []
 			item._options = list
-			// 同步勾选状态（对齐旧系统 doSearchProduct）：已在订单里的商品标勾，
-			// 上次结果里勾过的同 id 商品保留勾选，翻页/重搜不丢勾选
-			const inOrder = new Set(form.items.map(i => i.product_id).filter(Boolean))
-			const prev = item.checkedProducts || []
-			const prevIds = (item._prevOptions || []).map(p => p?.id)
-			item.checkedProducts = list.map(p => inOrder.has(p.id) || !!prev[prevIds.indexOf(p.id)])
+			// 点商品即加一行（支持同商品多行），不做"已在单即标勾/再点取消"——否则同商品
+			// 第二次点会被当取消清掉第一行（10件正常+1件赠品丢10件那种）。勾选状态全 false
+			item.checkedProducts = list.map(() => false)
 			item._prevOptions = list.slice()
 		})
 		.catch(() => { item._options = [] })
@@ -662,42 +659,28 @@ const onProdSuggLeave = (item) => {
 const refreshOpenSuggestions = () => {
 	form.items.forEach(i => { if (i.showSuggestions) searchProducts(i._searchKeyword || '', i) })
 }
-/** 勾选/取消单个商品（对齐旧系统 toggleProductCheck）
- *  勾 → 搜索行未填时填自身（第一个勾选填当前行），已填时找其后第一个空行复用、没有则追加（后续勾选）；
- *       下拉始终锚在搜索行不下移、不关闭，勾选后清空输入的关键字（取消残留），在同一筛选结果里连续勾选多个
- *  取消 → 找到含该 product_id 的行清空回空行，保持下拉打开 */
+/** 点商品 = 加一行（搜索行未填填自身、已填找其后第一个空行复用、没有就追加）。
+ *  支持同商品多行：不同销售模式/数量各占一行（如「大黄米锅巴海苔味 10件正常销售 + 1件赠品」）。
+ *  不做 toggle 取消——同商品第二次点不再被当成取消去清第一行；取消某行用行尾 ✕ */
 const toggleProductCheck = (item, sidx, p) => {
 	const opts = item._options
 	if (!opts[sidx]) return
-	if (!item.checkedProducts) item.checkedProducts = []
-	while (item.checkedProducts.length < opts.length) item.checkedProducts.push(false)
-	item.checkedProducts = item.checkedProducts.slice(0, opts.length)
-	const now = !item.checkedProducts[sidx]
-	item.checkedProducts = item.checkedProducts.map((v, i) => (i === sidx ? now : v))
-	if (now) {
-		const items = form.items
-		const sIdx = items.indexOf(item)
-		if (sIdx < 0) return
-		// 目标行：搜索行未填时填自身（第一个勾选），已填时找其后第一个空行复用、没有就追加（后续勾选）
-		let target = item
-		if (item.product_id) {
-			let targetIdx = -1
-			for (let k = sIdx + 1; k < items.length; k++) {
-				if (!items[k].product_id) { targetIdx = k; break }
-			}
-			target = targetIdx >= 0 ? items[targetIdx] : blankRow()
-			if (targetIdx < 0) items.push(target)
+	const items = form.items
+	const sIdx = items.indexOf(item)
+	if (sIdx < 0) return
+	let target = item
+	if (item.product_id) {
+		let targetIdx = -1
+		for (let k = sIdx + 1; k < items.length; k++) {
+			if (!items[k].product_id) { targetIdx = k; break }
 		}
-		fillRowWithProduct(target, p)
-		// 下拉保持在搜索行（item）不下移、不关闭；清空输入的关键字，取消「大黄米」之类残留
-		item.showSuggestions = true
-		item._searchKeyword = ''
-	} else {
-		for (const row of form.items) {
-			if (row.product_id === p.id) { clearProductFromRow(row); break }
-		}
-		item.showSuggestions = true
+		target = targetIdx >= 0 ? items[targetIdx] : blankRow()
+		if (targetIdx < 0) items.push(target)
 	}
+	fillRowWithProduct(target, p)
+	// 下拉保持在搜索行不下移、不关闭；清空输入的关键字
+	item.showSuggestions = true
+	item._searchKeyword = ''
 }
 /** 全选添加（对齐旧系统 selectMultipleProducts）：把当前搜索行的全部建议商品逐个建新行
  *  插到搜索行之后，跳过已在单中的商品，然后清空搜索行关键字、关下拉 */
