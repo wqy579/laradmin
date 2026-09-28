@@ -6,7 +6,7 @@
 			:pageSizes="paginationProps.pageSizes" rowKey="id" height="100%" stripe
 			@refresh="refresh" @search="search" @pageChange="handlePageChange" @pageSizeChange="handlePageSizeChange">
 			<template #quantity_default="{ row }">
-				<span class="text-success">{{ row.quantity }}</span>
+				<span class="text-success">{{ formatStock(row.quantity, row.product?.unit_conversion, row.product?.unit_conversion_medium, row.product?.price_unit, row.product?.barcode_medium_unit, row.product?.price_unit_small) }}</span>
 			</template>
 			<template #action_default="{ row }">
 				<el-button type="primary" link size="small" @click="handleDetail(row)">详情</el-button>
@@ -21,6 +21,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useTable } from '@/hooks/useTable'
 import businessApi from '@/api/business'
+import { formatStock } from '@/utils/formatStock'
 import StockInDialog from '../components/stock-in-dialog.vue'
 
 const searchForm = ref({ product_id: null, warehouse_id: null })

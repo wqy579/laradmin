@@ -27,7 +27,10 @@
 			@pageSizeChange="handlePageSizeChange"
 		>
 			<template #quantity_default="{ row }">
-				<span :class="row.quantity < 10 ? 'text-danger' : ''">{{ row.quantity }}</span>
+				<span :class="row.quantity < 10 ? 'text-danger' : ''">{{ formatStock(row.quantity, row.product?.unit_conversion, row.product?.unit_conversion_medium, row.product?.price_unit, row.product?.barcode_medium_unit, row.product?.price_unit_small) }}</span>
+			</template>
+			<template #frozen_qty_default="{ row }">
+				<span>{{ formatStock(row.frozen_qty, row.product?.unit_conversion, row.product?.unit_conversion_medium, row.product?.price_unit, row.product?.barcode_medium_unit, row.product?.price_unit_small) }}</span>
 			</template>
 			<template #total_amount_default="{ row }">
 				<span>{{ formatMoney(row.total_amount) }}</span>
@@ -45,6 +48,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useTable } from '@/hooks/useTable'
 import businessApi from '@/api/business'
+import { formatStock } from '@/utils/formatStock'
 import sPageSplit from '@/components/sPageSplit/index.vue'
 
 const searchForm = ref({
@@ -64,7 +68,7 @@ const columns = [
 	{ prop: 'product.code', title: '产品编码', width: 100 },
 	{ prop: 'warehouse.name', title: '仓库', width: 100 },
 	{ prop: 'quantity', title: '库存数量', width: 100, align: 'center', slots: { default: 'quantity_default' } },
-	{ prop: 'frozen_qty', title: '冻结库存', width: 100, align: 'center' },
+	{ prop: 'frozen_qty', title: '冻结库存', width: 110, align: 'center', slots: { default: 'frozen_qty_default' } },
 	{ prop: 'cost_price', title: '成本价', width: 100, align: 'right' },
 	{ prop: 'total_amount', title: '库存金额', width: 120, align: 'right', slots: { default: 'total_amount_default' } },
 	{ prop: 'action_col', title: '操作', width: 120, align: 'center', fixed: 'right', slots: { default: 'action_default' } },

@@ -113,13 +113,13 @@
 						</span>
 					</template>
 					<template #yesterday_qty="{ row }">
-						<span>{{ fmt(row.yesterday_qty) }}</span>
+						<span>{{ formatStock(row.yesterday_qty, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}</span>
 					</template>
 					<template #today_in="{ row }">
-						<span class="text-in">{{ fmt(row.today_in) }}</span>
+						<span class="text-in">{{ formatStock(row.today_in, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}</span>
 					</template>
 					<template #today_out="{ row }">
-						<span class="text-out">{{ fmt(row.today_out) }}</span>
+						<span class="text-out">{{ formatStock(row.today_out, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}</span>
 					</template>
 				</sTable>
 			</div>

@@ -102,10 +102,10 @@
 					stripe
 				>
 					<template #yesterday_qty="{ row }">
-						<span>{{ fmt(row.yesterday_qty) }}</span>
+						<span>{{ formatStock(row.yesterday_qty, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}</span>
 					</template>
 					<template #today_qty="{ row }">
-						<span>{{ fmt(row.today_qty) }}</span>
+						<span>{{ formatStock(row.today_qty, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}</span>
 					</template>
 					<template #diff_qty="{ row }">
 						<span :class="diffClass(row.diff_qty)">{{ diffText(row.diff_qty) }}</span>
@@ -123,6 +123,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
+import { formatStock } from '@/utils/formatStock'
 import sTable from '@/components/sTable/index.vue'
 
 const summary = ref({})

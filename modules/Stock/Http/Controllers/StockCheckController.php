@@ -253,6 +253,11 @@ class StockCheckController extends Controller
                         'pr.spec',
                         'pr.barcode_small as barcode',
                         'w.name as warehouse_name',
+                        'pr.unit_conversion',
+                        'pr.unit_conversion_medium',
+                        'pr.price_unit',
+                        'pr.barcode_medium_unit',
+                        'pr.price_unit_small',
                         DB::raw('COALESCE(p.quantity, 0) as yesterday_qty'),
                         'l.quantity as today_qty',
                         'l.frozen_qty'
