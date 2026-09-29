@@ -823,7 +823,11 @@ const handleSubmit = async () => {
 			clearDraft()
 			emit('success')
 			visible.value = false
+		} else {
+			ElMessage.error(res.message || '提交失败')
 		}
+	} catch (e) {
+		// 422/校验错误已由 axios 拦截器弹过 toast；吞掉避免未捕获异常冒泡触发渲染崩溃
 	} finally {
 		submitting.value = false
 	}
