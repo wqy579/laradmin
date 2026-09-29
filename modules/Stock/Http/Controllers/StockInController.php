@@ -102,7 +102,10 @@ class StockInController extends Controller
             $price = (float) $itemData['price'];
         } else {
             $amount = round($qtyLarge * $priceLarge + $qtyMedium * $priceMedium + $qtySmall * $priceSmall, 2);
-            $price = $priceSmall > 0 ? $priceSmall : (float) ($itemData['price'] ?? 0);
+            // 取录入的主单位成本价（大>中>小），用于列表 cost_price 显示，避免录1件却显示袋价
+            $price = $qtyLarge > 0 && $priceLarge > 0 ? $priceLarge
+                : ($qtyMedium > 0 && $priceMedium > 0 ? $priceMedium
+                : ($priceSmall > 0 ? $priceSmall : (float) ($itemData['price'] ?? 0)));
         }
 
         return [$quantity, $amount, $price];

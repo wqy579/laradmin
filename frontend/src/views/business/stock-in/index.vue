@@ -37,7 +37,7 @@ const columns = [
 	{ prop: 'warehouse.name', title: '仓库', width: 100 },
 	{ prop: 'quantity', title: '入库数量', width: 100, align: 'center', slots: { default: 'quantity_default' } },
 	{ prop: 'cost_price', title: '成本价', width: 100, align: 'right' },
-	{ prop: 'created_at', title: '入库时间', width: 160 },
+	{ prop: 'updated_at', title: '入库时间', width: 160 },
 	{ prop: 'action_col', title: '操作', width: 80, align: 'center', fixed: 'right', slots: { default: 'action_default' } },
 ]
 

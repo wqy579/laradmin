@@ -69,6 +69,7 @@ class StockService
                 if ($costPrice !== null) {
                     $stock->cost_price = $costPrice;
                 }
+                $stock->updated_at = now();
                 $stock->save();
             } else {
                 // 唯一索引兜底：并发下重复插入会抛 QueryException 并回滚，不会写坏数据
@@ -77,6 +78,7 @@ class StockService
                     'warehouse_id' => $warehouseId,
                     'quantity' => $quantity,
                     'cost_price' => (float) ($costPrice ?? 0),
+                    'updated_at' => now(),
                 ]);
             }
 
