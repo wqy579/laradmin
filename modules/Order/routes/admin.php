@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use Modules\Order\Http\Controllers\CustomerController;
 use Modules\Order\Http\Controllers\DeliveryController;
 use Modules\Order\Http\Controllers\PayController;
-use Modules\Order\Http\Controllers\PurchaseOrderController;
 use Modules\Order\Http\Controllers\ReceiveController;
 use Modules\Order\Http\Controllers\ReturnController;
 use Modules\Order\Http\Controllers\RouteController;
@@ -73,17 +72,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{salesOrder}/cancel', [SalesOrderController::class, 'cancel']);
     });
     // 采购订单
-    Route::prefix('business/purchase-order')->group(function () {
-        Route::get('/', [PurchaseOrderController::class, 'index']);
-        Route::get('/statistics', [PurchaseOrderController::class, 'statistics']);
-        Route::get('/{purchaseOrder}', [PurchaseOrderController::class, 'show']);
-        Route::post('/', [PurchaseOrderController::class, 'store']);
-        Route::put('/{purchaseOrder}', [PurchaseOrderController::class, 'update']);
-        Route::delete('/{purchaseOrder}', [PurchaseOrderController::class, 'destroy']);
-        Route::post('/{purchaseOrder}/approve', [PurchaseOrderController::class, 'approve']);
-        Route::post('/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive']);
-        Route::post('/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel']);
-    });
+    // 采购订单已移除（进货录单由入库单 stock-in 承担）
     // 退货管理
     Route::prefix('business/return')->group(function () {
         Route::get('/', [ReturnController::class, 'index']);

@@ -37,10 +37,10 @@
 				<div class="card-title">销售订单</div>
 				<div class="card-desc">管理销售订单和审批流程</div>
 			</router-link>
-			<router-link to="/business/purchase-order" class="card">
+			<router-link to="/business/stock-history" class="card">
 				<div class="card-icon" style="background:#f3e5f5">[REDACTED_SK_KEY]</div>
-				<div class="card-title">采购订单</div>
-				<div class="card-desc">管理采购订单和入库流程</div>
+				<div class="card-title">库存流水</div>
+				<div class="card-desc">记录每次库存变化</div>
 			</router-link>
 			<router-link to="/business/stock" class="card">
 				<div class="card-icon" style="background:#e1fbee">[REDACTED_SK_KEY]</div>

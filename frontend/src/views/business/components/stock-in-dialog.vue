@@ -163,7 +163,7 @@
 				大单位 <span>{{ totalLg }}</span> ｜ 中单位 <span>{{ totalMd }}</span> ｜ 小单位 <span>{{ totalSm }}</span>
 				<span class="grand">总金额 <span>{{ totalAmount }}</span> 元</span>
 			</div>
-			<el-button type="primary" :loading="submitting" @click="handleSubmit">
+			<el-button v-if="!record" type="primary" :loading="submitting" @click="handleSubmit">
 				{{ submitting ? '提交中...' : '提交' }}
 			</el-button>
 		</div>
@@ -407,8 +407,30 @@ watch(() => props.visible, async (open) => {
 	if (!open) return
 	resetPicker()
 	await loadCategories()
-	// 入库单暂无编辑接口，统一按新增初始化（record 忽略）
-	initBlank()
+	if (props.record) {
+		// 详情回显（Stock 行，只读）：列表 row 是 Stock with product/warehouse
+		form.supplier_id = null
+		form.warehouse_id = props.record.warehouse_id
+		form.order_date = null
+		form.remark = ''
+		form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
+		const row = form.items[0]
+		const p = props.record.product || {}
+		row.product_id = props.record.product_id
+		row.product_name = p.name || ''
+		row.spec = p.spec_display || p.spec || '-'
+		row.qty_small = Number(props.record.quantity) || 0
+		row.price_small = Number(props.record.cost_price) || 0
+		row.unit_large = p.price_unit || ''
+		row.unit_medium = p.barcode_medium_unit || ''
+		row.unit_small = p.price_unit_small || ''
+		row.unit_conversion = Number(p.unit_conversion) || 0
+		row.unit_conversion_medium = Number(p.unit_conversion_medium) || 0
+		row.amount = Number(props.record.total_amount) || 0
+		calcAmount(row)
+	} else {
+		initBlank()
+	}
 }, { immediate: true })
 
 const handleSubmit = async () => {

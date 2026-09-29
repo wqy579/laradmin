@@ -19,7 +19,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'home', 'title' => '首页', 'parent_id' => 0, 'path' => '/', 'sort' => 1, 'status' => 1],
             ['name' => 'data', 'title' => '资料管理', 'parent_id' => 0, 'path' => '/business/product', 'sort' => 2, 'status' => 1, 'meta' => ['icon' => 'ElIconDataAnalysis']],
             ['name' => 'price', 'title' => '价格管理', 'parent_id' => 0, 'path' => '/business/cost-prices', 'sort' => 3, 'status' => 1, 'meta' => ['icon' => 'ElIconMoney']],
-            ['name' => 'inventory', 'title' => '库存管理', 'parent_id' => 0, 'path' => '/business/purchase-order', 'sort' => 4, 'status' => 1, 'meta' => ['icon' => 'ElIconBox']],
+            ['name' => 'inventory', 'title' => '库存管理', 'parent_id' => 0, 'path' => '/business/stock-check', 'sort' => 4, 'status' => 1, 'meta' => ['icon' => 'ElIconBox']],
             ['name' => 'order', 'title' => '订单管理', 'parent_id' => 0, 'path' => '/business/sales-order', 'sort' => 5, 'status' => 1, 'meta' => ['icon' => 'ElIconDocument']],
             ['name' => 'finance', 'title' => '财务管理', 'parent_id' => 0, 'path' => '/business/payment', 'sort' => 6, 'status' => 1, 'meta' => ['icon' => 'ElIconWallet']],
             ['name' => 'report', 'title' => '报表管理', 'parent_id' => 0, 'path' => '/business/report/sales', 'sort' => 7, 'status' => 1, 'meta' => ['icon' => 'ElIconDataBoard']],
@@ -96,7 +96,7 @@ class BusinessSeeder extends Seeder
         // scrap / inventory-check 没有任何后端路由和前端 view，点了是 404，
         // 按 status=0 入库；页面补上后改回 1 即可。
         $inventoryMenus = [
-            ['name' => 'inventory.purchase', 'title' => '采购管理', 'parent' => 'inventory', 'path' => '/business/purchase-order', 'component' => 'business/purchase-order/index', 'sort' => 1],
+            ['name' => 'inventory.stock-history', 'title' => '库存流水', 'parent' => 'inventory', 'path' => '/business/stock-history', 'component' => 'business/stock-history/index', 'sort' => 1],
             ['name' => 'inventory.stock-in', 'title' => '入库管理', 'parent' => 'inventory', 'path' => '/business/stock-in', 'sort' => 2],
             ['name' => 'inventory.stock-out', 'title' => '出库管理', 'parent' => 'inventory', 'path' => '/business/stock-out', 'sort' => 3],
             ['name' => 'inventory.transfer', 'title' => '调拨管理', 'parent' => 'inventory', 'path' => '/business/transfer', 'sort' => 4],
@@ -254,7 +254,7 @@ class BusinessSeeder extends Seeder
             'business.vehicle' => ['parent' => 'data', 'sort' => 106],
             'business.route' => ['parent' => 'visit', 'sort' => 107],
             'business.sales-order' => ['parent' => 'order', 'sort' => 108],
-            'business.purchase-order' => ['parent' => 'inventory', 'sort' => 109],
+            'business.stock-history' => ['parent' => 'inventory', 'sort' => 109],
             'business.stock' => ['parent' => 'inventory', 'sort' => 110],
             'business.attendance' => ['parent' => 'visit', 'sort' => 111],
         ];

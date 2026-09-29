@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Stock\Http\Controllers\CostPriceController;
 use Modules\Stock\Http\Controllers\ProductController;
 use Modules\Stock\Http\Controllers\StockCheckController;
+use Modules\Stock\Http\Controllers\StockHistoryController;
 use Modules\Stock\Http\Controllers\StockController;
 use Modules\Stock\Http\Controllers\StockInController;
 use Modules\Stock\Http\Controllers\StockOutController;
@@ -80,6 +81,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 库存核对与监控
     Route::get('business/stock-monitor', [StockCheckController::class, 'monitor']);
     Route::get('business/stock-check', [StockCheckController::class, 'index']);
+    Route::get('business/stock-history', [StockHistoryController::class, 'index']);
     // 库存查询
     Route::prefix('business/stock')->group(function () {
         Route::get('/', [StockController::class, 'index']);

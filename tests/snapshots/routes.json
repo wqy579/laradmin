@@ -1233,114 +1233,6 @@
     },
     {
         "method": "GET",
-        "uri": "admin/business/purchase-order",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@index",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/purchase-order",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@store",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/purchase-order/statistics",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@statistics",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "DELETE",
-        "uri": "admin/business/purchase-order/{purchaseOrder}",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@destroy",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/purchase-order/{purchaseOrder}",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@show",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "PUT",
-        "uri": "admin/business/purchase-order/{purchaseOrder}",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@update",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/purchase-order/{purchaseOrder}/approve",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@approve",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/purchase-order/{purchaseOrder}/cancel",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@cancel",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/business/purchase-order/{purchaseOrder}/receive",
-        "name": "admin.",
-        "action": "Modules\\Order\\Http\\Controllers\\PurchaseOrderController@receive",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
         "uri": "admin/business/receive",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@index",
@@ -1764,6 +1656,18 @@
         "uri": "admin/business/stock-check",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\StockCheckController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stock-history",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\StockHistoryController@index",
         "middleware": [
             "api",
             "stock.snapshot",

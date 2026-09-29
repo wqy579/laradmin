@@ -104,10 +104,10 @@ const systemRoutes = [
 				meta: { title: 'salesOrder' },
 			},
 			{
-				path: '/business/purchase-order',
-				name: 'PurchaseOrder',
-				component: () => import('../views/business/purchase-order/index.vue'),
-				meta: { title: 'purchaseOrder' },
+				path: '/business/stock-history',
+				name: 'StockHistory',
+				component: () => import('../views/business/stock-history/index.vue'),
+				meta: { title: 'stockHistory' },
 			},
 			{
 				path: '/business/stock-in',

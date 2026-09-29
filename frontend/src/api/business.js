@@ -89,17 +89,9 @@ const businessApi = {
 		summary: { get: (params) => request.get('business/sales-order/summary', { params }) },
 	},
 
-	// 采购订单
-	purchaseOrder: {
-		list: { get: (params) => request.get('business/purchase-order', { params }) },
-		detail: { get: (id) => request.get(`business/purchase-order/${id}`) },
-		add: { post: (params) => request.post('business/purchase-order', params) },
-		edit: { put: (id, params) => request.put(`business/purchase-order/${id}`, params) },
-		delete: { delete: (id) => request.delete(`business/purchase-order/${id}`) },
-		approve: { post: (id) => request.post(`business/purchase-order/${id}/approve`) },
-		// 入库会把每张明细的数量加进收货仓库；取消仅限草稿/已审批
-		receive: { post: (id) => request.post(`business/purchase-order/${id}/receive`) },
-		cancel: { post: (id) => request.post(`business/purchase-order/${id}/cancel`) },
+	// 库存流水
+	stockHistory: {
+		list: { get: (params) => request.get('business/stock-history', { params }) },
 	},
 
 	// 退货

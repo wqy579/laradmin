@@ -24,11 +24,6 @@ class Pay extends Model
         return $this->belongsTo(Supplier::class);
     }
 
-    public function purchaseOrder(): BelongsTo
-    {
-        return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
-    }
-
     public function handler(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'handler_id');
