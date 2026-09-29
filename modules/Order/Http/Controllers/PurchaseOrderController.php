@@ -197,7 +197,7 @@ class PurchaseOrderController extends Controller
         return response()->json(['message' => '取消成功']);
     }
 
-    /** 折算单行：quantity=大×c+中×mc+小；amount=三档数量×三档单价之和；price 兜底取 price_small */
+    /** 折算单行：三档数量/单价折算 quantity/amount；若三档全 0 且传了 quantity/price（旧契约/测试），按旧口径，避免回归 */
     private function computeItemQtyAmount(array $itemData): array
     {
         $qtyLarge = (int) ($itemData['qty_large'] ?? 0);
@@ -210,10 +210,24 @@ class PurchaseOrderController extends Controller
         $product = Product::find($itemData['product_id']);
         $c = (int) ($product?->unit_conversion ?? 0);
         $mc = (int) ($product?->unit_conversion_medium ?? 0);
-        $quantity = $qtyLarge * $c + $qtyMedium * $mc + $qtySmall;
-        $amount = round($qtyLarge * $priceLarge + $qtyMedium * $priceMedium + $qtySmall * $priceSmall, 2);
 
-        return [$quantity, $amount, $priceSmall > 0 ? $priceSmall : (float) ($itemData['price'] ?? 0)];
+        // 三档数量全 0 且传了 quantity（旧契约），按 quantity 作最小单位
+        if ($qtyLarge === 0 && $qtyMedium === 0 && $qtySmall === 0 && isset($itemData['quantity'])) {
+            $quantity = (int) $itemData['quantity'];
+        } else {
+            $quantity = $qtyLarge * $c + $qtyMedium * $mc + $qtySmall;
+        }
+
+        // 三档单价全 0 且传了 price（旧契约），按 quantity*price 算金额（== 0：priceLarge 是 float 0.0，=== 0 会误判）
+        if ($priceLarge == 0 && $priceMedium == 0 && $priceSmall == 0 && isset($itemData['price'])) {
+            $amount = round((float) $itemData['quantity'] * (float) $itemData['price'], 2);
+            $price = (float) $itemData['price'];
+        } else {
+            $amount = round($qtyLarge * $priceLarge + $qtyMedium * $priceMedium + $qtySmall * $priceSmall, 2);
+            $price = $priceSmall > 0 ? $priceSmall : (float) ($itemData['price'] ?? 0);
+        }
+
+        return [$quantity, $amount, $price];
     }
 
     public function statistics()
