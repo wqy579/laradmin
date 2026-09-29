@@ -11,13 +11,13 @@ class ReturnOrder extends Model
 {
     protected $table = 'returns';
 
-    protected $fillable = ['order_no', 'supplier_id', 'warehouse_id', 'return_date', 'total_amount', 'total_qty', 'status', 'created_by', 'approved_by', 'approved_at', 'remark'];
+    protected $fillable = ['order_no', 'customer_id', 'warehouse_id', 'return_date', 'total_amount', 'total_qty', 'status', 'created_by', 'approved_by', 'approved_at', 'remark'];
 
     protected $casts = ['return_date' => 'date'];
 
-    public function supplier(): BelongsTo
+    public function customer(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
+        return $this->belongsTo(Customer::class);
     }
 
     public function warehouse(): BelongsTo

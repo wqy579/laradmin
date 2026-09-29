@@ -35,10 +35,10 @@ class ReturnOrderFeatureTest extends TestCase
     /** 建一张退货单，返回单据 id */
     private function createReturn(int $warehouseId, ?array $items = null): int
     {
-        $supplier = $this->makeSupplier();
+        $customer = $this->makeCustomer();
 
         $response = $this->postJson('/admin/business/return', [
-            'supplier_id' => $supplier->id,
+            'customer_id' => $customer->id,
             'warehouse_id' => $warehouseId,
             'return_date' => now()->toDateString(),
             'items' => $items ?? [['product_id' => $this->productId, 'quantity' => 3, 'price' => 2]],

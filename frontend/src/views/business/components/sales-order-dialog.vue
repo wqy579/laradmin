@@ -4,16 +4,18 @@
 	     之前锚在 .sales-order-dialog 上时选择器变成 .sales-order-dialog[data-v-x]，永远匹配不到 -->
 	<div class="so-dialog">
 	<el-dialog v-model="visible" :title="dialogTitle" width="98%" top="2vh" destroy-on-close class="sales-order-dialog">
-		<!-- 表头：客户/供应商 / 仓库 / 业务员 / 日期 / 备注 -->
+		<!-- 新增时在窗口内顶部切换普通/退货（编辑时不显示） -->
+		<div v-if="!record" class="order-type-switch">
+			<el-radio-group v-model="orderTypeLocal" size="small">
+				<el-radio-button value="normal">普通订单</el-radio-button>
+				<el-radio-button value="return">退货订单</el-radio-button>
+			</el-radio-group>
+		</div>
+		<!-- 表头：客户 / 仓库 / 业务员 / 日期 / 备注 -->
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="70px" size="small">
 			<el-row :gutter="16">
 				<el-col :span="6">
-					<el-form-item v-if="isReturn" label="供应商" prop="supplier_id">
-						<el-select v-model="form.supplier_id" placeholder="请选择供应商" filterable clearable style="width:100%">
-							<el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
-						</el-select>
-					</el-form-item>
-					<el-form-item v-else label="客户" prop="customer_id">
+					<el-form-item label="客户" prop="customer_id">
 						<el-select v-model="form.customer_id" placeholder="请选择客户" filterable clearable style="width:100%">
 							<el-option v-for="c in customerOptions" :key="c.id" :label="c.name" :value="c.id" />
 						</el-select>
@@ -26,7 +28,7 @@
 						</el-select>
 					</el-form-item>
 				</el-col>
-				<el-col v-if="!isReturn" :span="6">
+				<el-col :span="6">
 					<el-form-item label="业务员">
 						<el-select v-model="form.salesman_id" placeholder="请选择业务员" filterable clearable style="width:100%">
 							<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
@@ -240,7 +242,9 @@ const emit = defineEmits(['update:visible', 'success'])
 const formRef = ref(null)
 const submitting = ref(false)
 const saleModes = SALE_MODES
-const isReturn = computed(() => props.orderType === 'return')
+const isReturn = computed(() => orderTypeLocal.value === 'return')
+// 新增时窗口内切换普通/退货；编辑时按 record 类型判断
+const orderTypeLocal = ref(props.orderType || 'normal')
 const dialogTitle = computed(() => {
 	if (props.record) return isReturn.value ? '编辑退货订单' : '编辑销售订单'
 	return isReturn.value ? '新增退货订单' : '新增销售订单'
@@ -801,9 +805,9 @@ const buildPayload = () => {
 			remark: i.remark || '',
 		})),
 	}
-	// 退货订单：供应商 + return_date；普通订单：客户 + 业务员
+	// 退货订单：客户 + return_date（退客户的货）；普通订单：客户 + 业务员
 	if (isReturn.value) {
-		return { supplier_id: form.supplier_id, return_date: form.order_date, ...base }
+		return { customer_id: form.customer_id, salesman_id: form.salesman_id || null, return_date: form.order_date, ...base }
 	}
 	return { customer_id: form.customer_id, salesman_id: form.salesman_id || null, ...base }
 }

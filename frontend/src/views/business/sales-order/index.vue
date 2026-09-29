@@ -4,7 +4,7 @@
 			<OrderSummary :summary="summary" :activeFilter="activeFilter" @filter="onSummaryFilter" />
 		</aside>
 		<div class="biz-list">
-			<div class="toolbar"><div class="right-panel"><el-button type="primary" @click="handleAdd('normal')">新增订单</el-button><el-button @click="handleAdd('return')">新增退货</el-button></div></div>
+			<div class="toolbar"><div class="right-panel"><el-button type="primary" @click="handleAdd">新增订单</el-button></div></div>
 			<sTable ref="tableRef" tableName="business_sales_order" :data="data" :columns="columns" :searchForm="searchForm"
 				:loading="loading" :total="total" :currentPage="paginationProps.currentPage" :pageSize="paginationProps.pageSize"
 				:pageSizes="paginationProps.pageSizes" rowKey="id" height="100%" stripe
@@ -82,7 +82,7 @@ const onSummaryFilter = ({ type, id }) => {
 const statusType = (s) => ({ draft: 'info', approved: 'success', cancelled: 'danger' }[s] || 'info')
 const statusLabel = (s) => ({ draft: '草稿', approved: '已审批', cancelled: '已取消' }[s] || s)
 
-const handleAdd = (type = 'normal') => { currentOrder.value = null; orderType.value = type; dialog.order = true }
+const handleAdd = () => { currentOrder.value = null; orderType.value = 'normal'; dialog.order = true }
 const handleEdit = (row) => { currentOrder.value = row; dialog.order = true }
 const handleDelete = async (row) => {
 	const res = await businessApi.salesOrder.delete.delete(row.id)

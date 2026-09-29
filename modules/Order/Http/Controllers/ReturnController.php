@@ -6,35 +6,35 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Order\Models\Customer;
 use Modules\Order\Models\ReturnOrder as ReturnModel;
-use Modules\Order\Models\Supplier;
 use Modules\Stock\Models\Warehouse;
 
 class ReturnController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ReturnModel::with(['supplier', 'warehouse', 'items.product']);
+        $query = ReturnModel::with(['customer', 'warehouse', 'items.product']);
         if ($request->filled('keyword')) {
             $query->where('order_no', 'like', '%'.$request->keyword.'%');
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        if ($request->filled('supplier_id')) {
-            $query->where('supplier_id', $request->supplier_id);
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
         }
         $query->orderBy('id', 'desc');
         $returns = $query->paginate($request->integer('per_page', 20));
-        $suppliers = Supplier::where('is_active', true)->orderBy('name')->get();
+        $customers = Customer::where('is_active', true)->orderBy('name')->get();
         $warehouses = Warehouse::where('is_active', true)->get();
 
-        return response()->json(['data' => $returns, 'suppliers' => $suppliers, 'warehouses' => $warehouses]);
+        return response()->json(['data' => $returns, 'customers' => $customers, 'warehouses' => $warehouses]);
     }
 
     public function show(ReturnModel $return)
     {
-        $return->load(['supplier', 'warehouse', 'items.product']);
+        $return->load(['customer', 'warehouse', 'items.product']);
 
         return response()->json(['data' => $return]);
     }
@@ -42,7 +42,7 @@ class ReturnController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
+            'customer_id' => 'required|exists:customers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
             'return_date' => 'required|date',
             'items' => 'required|array|min:1',
@@ -86,7 +86,7 @@ class ReturnController extends Controller
             return response()->json(['message' => '只有草稿状态可以编辑'], 422);
         }
         $validated = $request->validate([
-            'supplier_id' => 'required|exists:suppliers,id',
+            'customer_id' => 'required|exists:customers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
             'return_date' => 'required|date',
             'items' => 'required|array|min:1',
