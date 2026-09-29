@@ -55,14 +55,16 @@ class StockService
     }
 
     /** 入库：记录不存在则创建，存在则累加数量 */
-    public function stockIn(int $productId, int $warehouseId, int $quantity, ?float $costPrice = null): Stock
+    public function stockIn(int $productId, int $warehouseId, int $quantity, ?float $costPrice = null, ?int $relatedId = null, ?string $relatedType = null): Stock
     {
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $costPrice) {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $costPrice, $relatedId, $relatedType) {
             /** @var Stock|null $stock */
             $stock = Stock::where('product_id', $productId)
                 ->where('warehouse_id', $warehouseId)
                 ->lockForUpdate()
                 ->first();
+
+            $before = $stock ? (int) $stock->quantity : 0;
 
             if ($stock) {
                 $stock->quantity = (int) $stock->quantity + $quantity;
@@ -82,6 +84,12 @@ class StockService
                 ]);
             }
 
+            $this->recordHistory(
+                $productId, $warehouseId, 'stock_in', $quantity,
+                $before, (int) $stock->quantity,
+                $relatedId ?? 0, $relatedType ?? 'StockIn', '入库'
+            );
+
             $this->syncProductStockQty($productId);
 
             return $stock->fresh(['product', 'warehouse']);
@@ -89,9 +97,9 @@ class StockService
     }
 
     /** 出库：库存不足时抛 StockRuleException（控制器映射为 422） */
-    public function stockOut(int $productId, int $warehouseId, int $quantity): Stock
+    public function stockOut(int $productId, int $warehouseId, int $quantity, ?int $relatedId = null, ?string $relatedType = null): Stock
     {
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity) {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $relatedId, $relatedType) {
             /** @var Stock|null $stock */
             $stock = Stock::where('product_id', $productId)
                 ->where('warehouse_id', $warehouseId)
@@ -102,8 +110,15 @@ class StockService
                 throw new StockRuleException('库存不足');
             }
 
-            $stock->quantity = (int) $stock->quantity - $quantity;
+            $before = (int) $stock->quantity;
+            $stock->quantity = $before - $quantity;
             $stock->save();
+
+            $this->recordHistory(
+                $productId, $warehouseId, 'stock_out', -$quantity,
+                $before, (int) $stock->quantity,
+                $relatedId ?? 0, $relatedType ?? 'StockOut', '出库'
+            );
 
             $this->syncProductStockQty($productId);
 
