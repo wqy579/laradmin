@@ -11,6 +11,9 @@ class Stock extends Model
 
     protected $fillable = ['product_id', 'warehouse_id', 'quantity', 'frozen_qty', 'cost_price', 'total_amount'];
 
+    // stocks 表无 created_at 列（只有 updated_at），关掉自动 timestamps，否则 Stock::create 写 created_at 会 500
+    public $timestamps = false;
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class, 'product_id');
