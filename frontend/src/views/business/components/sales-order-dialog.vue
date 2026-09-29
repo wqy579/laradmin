@@ -807,9 +807,6 @@ const buildPayload = () => {
 	}
 	return { customer_id: form.customer_id, salesman_id: form.salesman_id || null, ...base }
 }
-		}),
-	}
-}
 
 const handleSubmit = async () => {
 	await formRef.value.validate()
