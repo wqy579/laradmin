@@ -12,7 +12,10 @@ return new class extends Migration
         Schema::table('returns', function (Blueprint $table) {
             if (Schema::hasColumn('returns', 'supplier_id')) {
                 // 先删外键（名字可能不同，容错）
-                try { $table->dropForeign(['supplier_id']); } catch (\Throwable $e) {}
+                try {
+                    $table->dropForeign(['supplier_id']);
+                } catch (Throwable $e) {
+                }
                 $table->renameColumn('supplier_id', 'customer_id');
             }
         });
@@ -27,7 +30,10 @@ return new class extends Migration
     {
         Schema::table('returns', function (Blueprint $table) {
             if (Schema::hasColumn('returns', 'customer_id')) {
-                try { $table->dropForeign(['customer_id']); } catch (\Throwable $e) {}
+                try {
+                    $table->dropForeign(['customer_id']);
+                } catch (Throwable $e) {
+                }
                 $table->renameColumn('customer_id', 'supplier_id');
             }
         });
