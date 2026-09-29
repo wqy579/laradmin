@@ -47,6 +47,7 @@ class StockInController extends Controller
             foreach ($request->items as $itemData) {
                 [$quantity, $amount, $price] = $this->computeItemQtyAmount($itemData);
                 if ($quantity <= 0) {
+                    $errors[] = '入库数量必须大于0';
                     continue;
                 }
                 try {
