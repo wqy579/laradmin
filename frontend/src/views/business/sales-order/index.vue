@@ -4,7 +4,7 @@
 			<OrderSummary :summary="summary" :activeFilter="activeFilter" @filter="onSummaryFilter" />
 		</aside>
 		<div class="biz-list">
-			<div class="toolbar"><div class="right-panel"><el-button type="primary" @click="handleAdd">新增销售订单</el-button></div></div>
+			<div class="toolbar"><div class="right-panel"><el-button type="primary" @click="handleAdd('normal')">新增订单</el-button><el-button @click="handleAdd('return')">新增退货</el-button></div></div>
 			<sTable ref="tableRef" tableName="business_sales_order" :data="data" :columns="columns" :searchForm="searchForm"
 				:loading="loading" :total="total" :currentPage="paginationProps.currentPage" :pageSize="paginationProps.pageSize"
 				:pageSizes="paginationProps.pageSizes" rowKey="id" height="100%" stripe
@@ -25,7 +25,7 @@
 			</sTable>
 		</div>
 	</div>
-	<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :record="currentOrder" :customers="customers" :warehouses="warehouses" :salesmen="salesmen" @success="doRefresh" />
+	<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :orderType="orderType" :record="currentOrder" :customers="customers" :suppliers="suppliers" :warehouses="warehouses" :salesmen="salesmen" @success="doRefresh" />
 </template>
 
 <script setup>
@@ -57,8 +57,10 @@ const columns = [
 const dialog = reactive({ order: false })
 const currentOrder = ref(null)
 const customers = ref([])
+const suppliers = ref([])
 const warehouses = ref([])
 const salesmen = ref([])
+const orderType = ref('normal')
 
 // 左侧汇总面板：跟随右侧搜索条件统计，点项联动过滤
 const summary = ref({ totals: {}, bySalesman: [], byVehicle: [], byRoute: [] })
@@ -80,7 +82,7 @@ const onSummaryFilter = ({ type, id }) => {
 const statusType = (s) => ({ draft: 'info', approved: 'success', cancelled: 'danger' }[s] || 'info')
 const statusLabel = (s) => ({ draft: '草稿', approved: '已审批', cancelled: '已取消' }[s] || s)
 
-const handleAdd = () => { currentOrder.value = null; dialog.order = true }
+const handleAdd = (type = 'normal') => { currentOrder.value = null; orderType.value = type; dialog.order = true }
 const handleEdit = (row) => { currentOrder.value = row; dialog.order = true }
 const handleDelete = async (row) => {
 	const res = await businessApi.salesOrder.delete.delete(row.id)
@@ -96,6 +98,7 @@ onMounted(() => {
 		businessApi.customer.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) customers.value = r.data?.list || [] }),
 		businessApi.warehouse.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
 		businessApi.employee.list.get({ is_active: 1, page_size: 9999 }).then(r => { if (r.code === 200) salesmen.value = r.data?.list || [] }),
+		businessApi.supplier.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) suppliers.value = r.data?.list || [] }),
 	]).finally(() => { refresh(); loadSummary() })
 })
 </script>

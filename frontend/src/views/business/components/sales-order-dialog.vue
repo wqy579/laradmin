@@ -3,12 +3,17 @@
 	     由 Element Plus 拥有并被 teleport 到 body，拿不到 hash，所以 :deep() 必须锚在 so-dialog 上。
 	     之前锚在 .sales-order-dialog 上时选择器变成 .sales-order-dialog[data-v-x]，永远匹配不到 -->
 	<div class="so-dialog">
-	<el-dialog v-model="visible" :title="record ? '编辑销售订单' : '新增销售订单'" width="98%" top="2vh" destroy-on-close class="sales-order-dialog">
-		<!-- 表头：客户 / 仓库 / 业务员 / 日期 / 备注，顺序与旧系统一致 -->
+	<el-dialog v-model="visible" :title="dialogTitle" width="98%" top="2vh" destroy-on-close class="sales-order-dialog">
+		<!-- 表头：客户/供应商 / 仓库 / 业务员 / 日期 / 备注 -->
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="70px" size="small">
 			<el-row :gutter="16">
 				<el-col :span="6">
-					<el-form-item label="客户" prop="customer_id">
+					<el-form-item v-if="isReturn" label="供应商" prop="supplier_id">
+						<el-select v-model="form.supplier_id" placeholder="请选择供应商" filterable clearable style="width:100%">
+							<el-option v-for="s in suppliers" :key="s.id" :label="s.name" :value="s.id" />
+						</el-select>
+					</el-form-item>
+					<el-form-item v-else label="客户" prop="customer_id">
 						<el-select v-model="form.customer_id" placeholder="请选择客户" filterable clearable style="width:100%">
 							<el-option v-for="c in customerOptions" :key="c.id" :label="c.name" :value="c.id" />
 						</el-select>
@@ -21,7 +26,7 @@
 						</el-select>
 					</el-form-item>
 				</el-col>
-				<el-col :span="6">
+				<el-col v-if="!isReturn" :span="6">
 					<el-form-item label="业务员">
 						<el-select v-model="form.salesman_id" placeholder="请选择业务员" filterable clearable style="width:100%">
 							<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
@@ -224,7 +229,9 @@ const DRAFT_KEY = 'sales_order_draft'
 const props = defineProps({
 	visible: { type: Boolean, default: false },
 	record: { type: Object, default: null },
+	orderType: { type: String, default: 'normal' },
 	customers: { type: Array, default: () => [] },
+	suppliers: { type: Array, default: () => [] },
 	warehouses: { type: Array, default: () => [] },
 	salesmen: { type: Array, default: () => [] },
 })
@@ -233,9 +240,15 @@ const emit = defineEmits(['update:visible', 'success'])
 const formRef = ref(null)
 const submitting = ref(false)
 const saleModes = SALE_MODES
+const isReturn = computed(() => props.orderType === 'return')
+const dialogTitle = computed(() => {
+	if (props.record) return isReturn.value ? '编辑退货订单' : '编辑销售订单'
+	return isReturn.value ? '新增退货订单' : '新增销售订单'
+})
 
 const form = reactive({
 	customer_id: null,
+	supplier_id: null,
 	warehouse_id: null,
 	salesman_id: null,
 	order_date: null,
@@ -768,30 +781,32 @@ const totalAmount = computed(() => form.items.reduce((s, i) => s + (Number(i.amo
 
 const buildPayload = () => {
 	const validItems = form.items.filter(i => i.product_id && (Number(i.qty_small) || 0) + (Number(i.qty_medium) || 0) + (Number(i.qty_large) || 0) > 0)
-
-	return {
-		customer_id: form.customer_id,
+	const c = 0, mc = 0  // 占位，保留原结构
+	const base = {
 		warehouse_id: form.warehouse_id,
-		salesman_id: form.salesman_id || null,
 		order_date: form.order_date,
 		remark: form.remark,
-		items: validItems.map(i => {
-			const c = Number(i.unit_conversion) || 0
-			const mc = Number(i.unit_conversion_medium) || 0
-			return {
-				product_id: i.product_id,
-				qty_large: Number(i.qty_large) || 0,
-				qty_medium: Number(i.qty_medium) || 0,
-				qty_small: Number(i.qty_small) || 0,
-				price: Number(i.price_small) || 0,
-				price_large: Number(i.price_large) || 0,
-				price_medium: Number(i.price_medium) || 0,
-				price_small: Number(i.price_small) || 0,
-				amount: Number(i.amount) || 0,
-				sale_mode: i.sale_mode,
-				price_source: i.price_source || '',
-				remark: i.remark || '',
-			}
+		items: validItems.map(i => ({
+			product_id: i.product_id,
+			qty_large: Number(i.qty_large) || 0,
+			qty_medium: Number(i.qty_medium) || 0,
+			qty_small: Number(i.qty_small) || 0,
+			price: Number(i.price_small) || 0,
+			price_large: Number(i.price_large) || 0,
+			price_medium: Number(i.price_medium) || 0,
+			price_small: Number(i.price_small) || 0,
+			amount: Number(i.amount) || 0,
+			sale_mode: i.sale_mode,
+			price_source: i.price_source || '',
+			remark: i.remark || '',
+		})),
+	}
+	// 退货订单：供应商 + return_date；普通订单：客户 + 业务员
+	if (isReturn.value) {
+		return { supplier_id: form.supplier_id, return_date: form.order_date, ...base }
+	}
+	return { customer_id: form.customer_id, salesman_id: form.salesman_id || null, ...base }
+}
 		}),
 	}
 }
@@ -815,9 +830,13 @@ const handleSubmit = async () => {
 
 	submitting.value = true
 	try {
-		const res = props.record
-			? await businessApi.salesOrder.edit.put(props.record.id, payload)
-			: await businessApi.salesOrder.add.post(payload)
+		const res = isReturn.value
+			? (props.record
+				? await businessApi.returnOrder.edit.put(props.record.id, payload)
+				: await businessApi.returnOrder.add.post(payload))
+			: (props.record
+				? await businessApi.salesOrder.edit.put(props.record.id, payload)
+				: await businessApi.salesOrder.add.post(payload))
 		if (res.code === 200) {
 			ElMessage.success(res.message || '订单创建成功')
 			clearDraft()
@@ -891,6 +910,7 @@ const loadDraft = () => {
 
 const initBlank = () => {
 	form.customer_id = null
+	form.supplier_id = null
 	form.warehouse_id = null
 	form.salesman_id = null
 	form.order_date = todayStr()
