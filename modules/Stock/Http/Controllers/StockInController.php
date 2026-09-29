@@ -69,7 +69,7 @@ class StockInController extends Controller
             }
             DB::commit();
 
-            return response()->json(['data' => $results, 'message' => '入库成功']);
+            return response()->json(['code' => 200, 'data' => $results, 'message' => '入库成功']);
         } catch (\Exception $e) {
             DB::rollBack();
 
