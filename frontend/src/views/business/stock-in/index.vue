@@ -13,7 +13,7 @@
 			</template>
 		</sTable>
 	</div>
-	<StockInDialog v-if="dialog.stockIn" v-model:visible="dialog.stockIn" :record="currentStockIn" :products="products" :warehouses="warehouses" @success="refresh" />
+	<StockInDialog v-if="dialog.stockIn" v-model:visible="dialog.stockIn" :record="currentStockIn" :suppliers="suppliers" :products="products" :warehouses="warehouses" @success="refresh" />
 </template>
 
 <script setup>
@@ -45,6 +45,7 @@ const dialog = reactive({ stockIn: false })
 const currentStockIn = ref(null)
 const products = ref([])
 const warehouses = ref([])
+const suppliers = ref([])
 
 const handleAdd = () => { currentStockIn.value = null; dialog.stockIn = true }
 const handleDetail = (row) => { currentStockIn.value = row; dialog.stockIn = true }
@@ -53,6 +54,7 @@ onMounted(() => {
 	Promise.all([
 		businessApi.product.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) products.value = r.data?.list || [] }),
 		businessApi.warehouse.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
+		businessApi.supplier.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) suppliers.value = r.data?.list || [] }),
 	]).finally(() => refresh())
 })
 </script>
