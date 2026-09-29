@@ -48,6 +48,7 @@ class StockInController extends Controller
                 [$quantity, $amount, $price] = $this->computeItemQtyAmount($itemData);
                 if ($quantity <= 0) {
                     $errors[] = '入库数量必须大于0';
+
                     continue;
                 }
                 try {
@@ -63,6 +64,7 @@ class StockInController extends Controller
             }
             if ($errors) {
                 DB::rollBack();
+
                 return response()->json(['message' => implode('；', $errors)], 422);
             }
             DB::commit();
