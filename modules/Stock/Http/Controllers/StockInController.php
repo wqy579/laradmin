@@ -20,6 +20,14 @@ class StockInController extends Controller
 
     public function store(Request $request)
     {
+        // 兼容旧契约：单商品 product_id/quantity/cost_price → items 数组
+        if (! $request->has('items') && $request->has('product_id')) {
+            $request->merge(['items' => [[
+                'product_id' => $request->input('product_id'),
+                'quantity' => $request->input('quantity'),
+                'price' => $request->input('cost_price', 0),
+            ]]]);
+        }
         $validated = $request->validate([
             'warehouse_id' => 'required|exists:warehouses,id',
             'items' => 'required|array|min:1',
