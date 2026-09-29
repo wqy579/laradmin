@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Order\Models\PurchaseOrder;
 use Modules\Order\Models\Supplier;
+use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Warehouse;
 use Modules\Stock\Services\StockService;
 
@@ -50,8 +51,12 @@ class PurchaseOrderController extends Controller
             'order_date' => 'required|date',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric|min:0',
+            'items.*.qty_large' => 'nullable|integer|min:0',
+            'items.*.qty_medium' => 'nullable|integer|min:0',
+            'items.*.qty_small' => 'nullable|integer|min:0',
+            'items.*.price_large' => 'nullable|numeric|min:0',
+            'items.*.price_medium' => 'nullable|numeric|min:0',
+            'items.*.price_small' => 'nullable|numeric|min:0',
         ]);
         $orderNo = 'PO'.date('YmdHis').strtoupper(Str::random(4));
         $totalAmount = 0;
@@ -66,8 +71,11 @@ class PurchaseOrderController extends Controller
                 'created_by' => auth('admin')->id(),
             ]));
             foreach ($request->items as $itemData) {
+                [$quantity, $amount, $price] = $this->computeItemQtyAmount($itemData);
                 $item = $order->items()->create(array_merge($itemData, [
-                    'amount' => $itemData['quantity'] * $itemData['price'],
+                    'quantity' => $quantity,
+                    'price' => $price,
+                    'amount' => $amount,
                 ]));
                 $totalAmount += $item->amount;
                 $totalQty += $item->quantity;
@@ -94,8 +102,12 @@ class PurchaseOrderController extends Controller
             'order_date' => 'required|date',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric|min:0',
+            'items.*.qty_large' => 'nullable|integer|min:0',
+            'items.*.qty_medium' => 'nullable|integer|min:0',
+            'items.*.qty_small' => 'nullable|integer|min:0',
+            'items.*.price_large' => 'nullable|numeric|min:0',
+            'items.*.price_medium' => 'nullable|numeric|min:0',
+            'items.*.price_small' => 'nullable|numeric|min:0',
         ]);
         $totalAmount = 0;
         $totalQty = 0;
@@ -104,8 +116,11 @@ class PurchaseOrderController extends Controller
             $purchaseOrder->update($validated);
             $purchaseOrder->items()->delete();
             foreach ($request->items as $itemData) {
+                [$quantity, $amount, $price] = $this->computeItemQtyAmount($itemData);
                 $item = $purchaseOrder->items()->create(array_merge($itemData, [
-                    'amount' => $itemData['quantity'] * $itemData['price'],
+                    'quantity' => $quantity,
+                    'price' => $price,
+                    'amount' => $amount,
                 ]));
                 $totalAmount += $item->amount;
                 $totalQty += $item->quantity;
@@ -180,6 +195,25 @@ class PurchaseOrderController extends Controller
         $purchaseOrder->update(['status' => 'cancelled']);
 
         return response()->json(['message' => '取消成功']);
+    }
+
+    /** 折算单行：quantity=大×c+中×mc+小；amount=三档数量×三档单价之和；price 兜底取 price_small */
+    private function computeItemQtyAmount(array $itemData): array
+    {
+        $qtyLarge = (int) ($itemData['qty_large'] ?? 0);
+        $qtyMedium = (int) ($itemData['qty_medium'] ?? 0);
+        $qtySmall = (int) ($itemData['qty_small'] ?? 0);
+        $priceLarge = (float) ($itemData['price_large'] ?? 0);
+        $priceMedium = (float) ($itemData['price_medium'] ?? 0);
+        $priceSmall = (float) ($itemData['price_small'] ?? 0);
+
+        $product = Product::find($itemData['product_id']);
+        $c = (int) ($product?->unit_conversion ?? 0);
+        $mc = (int) ($product?->unit_conversion_medium ?? 0);
+        $quantity = $qtyLarge * $c + $qtyMedium * $mc + $qtySmall;
+        $amount = round($qtyLarge * $priceLarge + $qtyMedium * $priceMedium + $qtySmall * $priceSmall, 2);
+
+        return [$quantity, $amount, $priceSmall > 0 ? $priceSmall : (float) ($itemData['price'] ?? 0)];
     }
 
     public function statistics()

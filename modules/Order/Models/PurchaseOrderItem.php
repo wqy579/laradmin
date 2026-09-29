@@ -12,7 +12,9 @@ class PurchaseOrderItem extends Model
 
     protected $fillable = [
         'purchase_order_id', 'product_id', 'quantity',
-        'price', 'amount', 'remark',
+        'qty_large', 'qty_medium', 'qty_small',
+        'price', 'price_large', 'price_medium', 'price_small',
+        'amount', 'remark',
     ];
 
     public function purchaseOrder(): BelongsTo
