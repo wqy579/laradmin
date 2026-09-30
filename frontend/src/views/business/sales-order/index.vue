@@ -159,9 +159,13 @@ const handleDelete = async (row) => {
 	if (res.code === 200) { ElMessage.success('删除成功'); doRefresh() }
 }
 const handleAdvance = async (row, target) => {
-	const res = await businessApi.salesOrder.approve.post(row.id, target ? { target } : {})
-	if (res.code === 200) { ElMessage.success(res.message || '状态已更新'); doRefresh() }
-	else ElMessage.error(res.message || '操作失败')
+	try {
+		const res = await businessApi.salesOrder.approve.post(row.id, target ? { target } : {})
+		if (res.code === 200) { ElMessage.success(res.message || '状态已更新'); doRefresh() }
+		else ElMessage.error(res.message || '操作失败')
+	} catch (e) {
+		ElMessage.error(e?.message || '操作失败')
+	}
 }
 const handleCancel = async (row) => {
 	try {

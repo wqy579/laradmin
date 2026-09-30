@@ -110,9 +110,9 @@ class SalesOrderController extends Controller
             $o->operator_name = $adminNames[$o->created_by] ?? null;
             $o->warehouse_name = $o->warehouse?->name;
             $o->is_return = false;
-            // 赠品/变价标记（从 items 判断）
+            // 赠品：sale_mode 为赠品/陈列费；变价：price_source=特殊 但非赠品（赠品不是变价）
             $o->has_gift = $o->items->contains(fn ($i) => in_array($i->sale_mode, ['赠品', '陈列费']));
-            $o->has_special = $o->items->contains(fn ($i) => $i->price_source === '特殊');
+            $o->has_special = $o->items->contains(fn ($i) => $i->price_source === '特殊' && ! in_array($i->sale_mode, ['赠品', '陈列费']));
 
             return $o;
         });
@@ -626,16 +626,23 @@ class SalesOrderController extends Controller
         if (! $target || $target === $current) {
             return $this->error('当前状态无法流转（'.$current.'）', 422);
         }
-        // 允许从配送中跳到 已收款/待收款
         $allowed = ['pending' => ['配货中'], '配货中' => ['待配送'], '待配送' => ['配送中'], '配送中' => ['已收款', '待收款']];
         if (! in_array($target, $allowed[$current] ?? [], true)) {
             return $this->error('不能从 '.$current.' 流转到 '.$target, 422);
         }
-        $salesOrder->update(['status' => $target]);
+        try {
+            $salesOrder->update(['status' => $target]);
+            // 日志失败不影响流转（日志表字段漂移曾导致 500）
+            try {
+                $this->logOperation($salesOrder, '状态流转', $current.' → '.$target, $current, $target);
+            } catch (\Throwable $e) {
+                \Log::warning('logOperation failed: '.$e->getMessage());
+            }
 
-        $this->logOperation($salesOrder, '状态流转', $current.' → '.$target, $current, $target);
-
-        return $this->success($salesOrder->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '状态已更新为'.$target);
+            return $this->success($salesOrder->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '状态已更新为'.$target);
+        } catch (\Exception $e) {
+            return $this->error('状态流转失败: '.$e->getMessage(), 500);
+        }
     }
 
     public function cancel(SalesOrder $salesOrder)
