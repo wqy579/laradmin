@@ -21,19 +21,38 @@
 				:loading="loading" :total="total" :currentPage="paginationProps.currentPage" :pageSize="paginationProps.pageSize"
 				:pageSizes="paginationProps.pageSizes" rowKey="id" height="100%" stripe
 				@refresh="refresh" @search="doSearch" @pageChange="handlePageChange" @pageSizeChange="handlePageSizeChange">
+				<template #order_no_default="{ row }">
+					<span :title="row.order_no">{{ (row.order_no || '').slice(-6) }}</span>
+				</template>
+				<template #customer_default="{ row }">
+					<div class="customer-cell" @mouseenter="row._hover = true" @mouseleave="row._hover = false">
+						<!-- 操作 hover 覆盖：有地址时覆盖地址区，无地址时直接展示操作 -->
+						<div v-if="row._hover" class="customer-actions">
+							<el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+							<el-button v-if="nextStatus(row.status)" type="success" link size="small" @click="handleAdvance(row)">{{ nextStatus(row.status) }}</el-button>
+							<el-button v-if="row.status==='配送中'" type="warning" link size="small" @click="handleAdvance(row, '待收款')">待收款</el-button>
+							<el-popconfirm v-if="row.status==='pending'" title="确定作废该订单吗？" @confirm="handleCancel(row)">
+								<template #reference><el-button type="danger" link size="small">作废</el-button></template>
+							</el-popconfirm>
+						</div>
+						<div v-else>
+							<div class="customer-name-row">
+								<el-tag :type="row.is_return ? 'danger' : 'primary'" size="small" effect="plain">{{ row.is_return ? '退货' : '普通' }}</el-tag>
+								<span class="customer-name">{{ row.customer_name || row.customer?.name }}</span>
+							</div>
+							<div v-if="row.customer?.address" class="customer-addr">{{ row.customer.address }}</div>
+							<div v-else class="customer-addr customer-addr-empty">（无地址，移入操作）</div>
+						</div>
+					</div>
+				</template>
+				<template #customer_category_default="{ row }">
+					<span>{{ row.customer?.category || row.customer?.route_label || '--' }}</span>
+				</template>
 				<template #status_default="{ row }">
 					<el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
 				</template>
 				<template #total_amount_default="{ row }">
 					<span>¥{{ Number(row.total_amount || 0).toFixed(2) }}</span>
-				</template>
-				<template #action_default="{ row }">
-					<el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-					<el-button v-if="nextStatus(row.status)" type="success" link size="small" @click="handleAdvance(row)">{{ nextStatus(row.status) }}</el-button>
-					<el-button v-if="row.status==='配送中'" type="warning" link size="small" @click="handleAdvance(row, '待收款')">待收款</el-button>
-					<el-popconfirm v-if="row.status==='pending' || row.status==='配货中'" title="确定作废该订单吗？" @confirm="handleCancel(row)">
-						<template #reference><el-button type="danger" link size="small">作废</el-button></template>
-					</el-popconfirm>
 				</template>
 			</sTable>
 		</div>
@@ -74,15 +93,17 @@ const { tableRef, data, total, loading, paginationProps, refresh, search, handle
 })
 
 const columns = [
-	{ prop: 'id', title: 'ID', width: 70, align: 'center' },
-	{ prop: 'order_no', title: '订单编号', width: 160 },
-	{ prop: 'customer_name', title: '客户', width: 150 },
-	{ prop: 'warehouse_name', title: '仓库', width: 120 },
-	{ prop: 'order_date', title: '日期', width: 110 },
-	{ prop: 'total_qty', title: '数量', width: 80, align: 'center' },
-	{ prop: 'total_amount', title: '金额', width: 100, align: 'right', slots: { default: 'total_amount_default' } },
+	{ type: 'checkbox', width: 48, fixed: 'left' },
+	{ prop: 'order_no', title: '订单编号', width: 100, slots: { default: 'order_no_default' } },
+	{ prop: 'customer_name', title: '客户', width: 200, slots: { default: 'customer_default' } },
+	{ prop: 'salesman_name', title: '业务员', width: 90 },
+	{ prop: 'customer_category', title: '客户类别', width: 100, slots: { default: 'customer_category_default' } },
+	{ prop: 'operator_name', title: '操作人', width: 90 },
+	{ prop: 'warehouse_name', title: '仓库', width: 100 },
+	{ prop: 'order_date', title: '日期', width: 100 },
+	{ prop: 'total_qty', title: '数量', width: 70, align: 'center' },
+	{ prop: 'total_amount', title: '金额', width: 90, align: 'right', slots: { default: 'total_amount_default' } },
 	{ prop: 'status', title: '状态', width: 90, align: 'center', slots: { default: 'status_default' } },
-	{ prop: 'action_col', title: '操作', width: 160, align: 'center', fixed: 'right', slots: { default: 'action_default' } },
 ]
 
 const dialog = reactive({ order: false })
@@ -154,4 +175,12 @@ onMounted(() => {
 .quick-label { font-size: 12px; cursor: pointer; padding: 2px 6px; border-radius: 3px; }
 .quick-label.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
 .quick-label input { display: none; }
+
+/* 客户列：名称+地址，hover 显示操作覆盖 */
+.customer-cell { position: relative; }
+.customer-name-row { display: flex; align-items: center; gap: 4px; }
+.customer-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.customer-addr { font-size: 11px; color: var(--el-text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.customer-addr-empty { color: var(--el-text-color-placeholder); }
+.customer-actions { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
 </style>

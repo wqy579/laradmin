@@ -101,11 +101,20 @@ class SalesOrderController extends Controller
         $orders = $query->paginate($request->integer('per_page', 20));
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
         $warehouses = Warehouse::where('is_active', true)->get();
-        // 业务员下拉：前端用 employees 表（id/name），后端同步取 employees，不再用 auth_user（只有 admin/manager）
         $salesmen = \DB::table('employees')->orderBy('id')->get(['id', 'name']);
 
+        // 给每行补 customer_name/operator_name（前端列直接用）
+        $adminNames = \DB::table('auth_user')->pluck('username', 'id');
+        $list = $orders->getCollection()->map(function ($o) use ($adminNames) {
+            $o->customer_name = $o->customer?->name;
+            $o->operator_name = $adminNames[$o->created_by] ?? null;
+            $o->is_return = false; // sales_orders 都是普通订单，退货在 returns 表
+
+            return $o;
+        });
+
         return $this->success([
-            'list' => $orders->items(),
+            'list' => $list,
             'total' => $orders->total(),
             'page' => $orders->currentPage(),
             'page_size' => $orders->perPage(),
