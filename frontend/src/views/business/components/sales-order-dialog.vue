@@ -871,7 +871,8 @@ const handleSubmit = async () => {
 			ElMessage.error(res.message || '提交失败')
 		}
 	} catch (e) {
-		// 422/校验错误已由 axios 拦截器弹过 toast；吞掉避免未捕获异常冒泡触发渲染崩溃
+		// 422/校验错误：console 打印完整响应体方便定位，toast 由拦截器弹
+		console.error('订单提交失败:', e?.response?.status, e?.response?.data, 'payload:', payload)
 	} finally {
 		submitting.value = false
 	}
