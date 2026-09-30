@@ -287,19 +287,19 @@ class SalesOrderCreateFeatureTest extends TestCase
 
     // ---------------------------------------------------------------- 库存同步 products.stock_qty
 
-    /** 下单冻结后，products.stock_qty（冗余汇总字段）应同步等于 stocks.quantity 之和 */
+    /** 下单冻结后：stocks.quantity 不变（freeze 只动 frozen_qty），products.stock_qty=可用量=quantity-frozen */
     public function test_freeze_syncs_products_stock_qty(): void
     {
         $this->postJson('/admin/business/sales-order', $this->basePayload([
             'items' => [['product_id' => $this->productId, 'qty_small' => 10, 'price_small' => 3.5]],
         ]))->assertOk();
 
-        // 初始 stocks.quantity=100000，冻结 10 → 99990；products.stock_qty 应同步为 99990
-        $this->assertSame(99990, (int) Stock::where('product_id', $this->productId)->value('quantity'));
+        // quantity 不变（100000），frozen_qty=10；stock_qty 反映可用 = 99990
+        $this->assertSame(100000, (int) Stock::where('product_id', $this->productId)->value('quantity'));
         $this->assertSame(99990.0, (float) \DB::table('products')->where('id', $this->productId)->value('stock_qty'));
     }
 
-    /** 取消（解冻）后，products.stock_qty 应随之恢复 */
+    /** 取消（解冻）后：quantity 不变，frozen 归零，stock_qty 恢复 */
     public function test_unfreeze_on_cancel_restores_products_stock_qty(): void
     {
         $id = $this->postJson('/admin/business/sales-order', $this->basePayload([

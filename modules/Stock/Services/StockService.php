@@ -240,8 +240,11 @@ class StockService
      */
     private function syncProductStockQty(int $productId): void
     {
+        // stock_qty 反映可用量（quantity - frozen_qty），与 freeze/unfreeze 口径一致
+        $row = DB::table('stocks')->where('product_id', $productId)
+            ->selectRaw('COALESCE(SUM(quantity - frozen_qty), 0) as available')->first();
         DB::table('products')->where('id', $productId)->update([
-            'stock_qty' => (int) DB::table('stocks')->where('product_id', $productId)->sum('quantity'),
+            'stock_qty' => (int) ($row->available ?? 0),
             'updated_at' => now(),
         ]);
     }
