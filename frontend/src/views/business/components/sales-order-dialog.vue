@@ -3,7 +3,7 @@
 	     由 Element Plus 拥有并被 teleport 到 body，拿不到 hash，所以 :deep() 必须锚在 so-dialog 上。
 	     之前锚在 .sales-order-dialog 上时选择器变成 .sales-order-dialog[data-v-x]，永远匹配不到 -->
 	<div class="so-dialog">
-	<el-dialog v-model="visible" :title="dialogTitle" width="98%" top="2vh" destroy-on-close class="sales-order-dialog">
+	<el-dialog v-model="visible" :title="dialogTitle" width="98%" top="2vh" destroy-on-close class="sales-order-dialog" @keydown="onDialogKeydown">
 		<!-- 新增时在窗口内顶部切换普通/退货（编辑时不显示） -->
 		<div v-if="!record" class="order-type-switch">
 			<el-radio-group v-model="orderTypeLocal" size="small">
@@ -158,14 +158,14 @@
 							<td class="c-qty">
 								<div class="unit-group">
 									<template v-if="item.unit_large">
-										<el-input v-model="item.qty_large" size="small" class="u-input" placeholder="件" @input="onLargeQtyChange(item)" />
+										<el-input v-model="item.qty_large" size="small" class="u-input" placeholder="件" :data-nav="idx + ':0'" @input="onLargeQtyChange(item)" />
 										<span class="u-name">{{ item.unit_large }}</span>
 									</template>
 									<template v-if="item.unit_medium">
-										<el-input v-model="item.qty_medium" size="small" class="u-input" placeholder="盒" @input="onMediumQtyChange(item)" />
+										<el-input v-model="item.qty_medium" size="small" class="u-input" placeholder="盒" :data-nav="idx + ':1'" @input="onMediumQtyChange(item)" />
 										<span class="u-name">{{ item.unit_medium }}</span>
 									</template>
-									<el-input v-model="item.qty_small" size="small" class="u-input" placeholder="袋" @input="onSmallQtyChange(item)" />
+									<el-input v-model="item.qty_small" size="small" class="u-input" placeholder="袋" :data-nav="idx + ':2'" @input="onSmallQtyChange(item)" />
 									<span v-if="item.unit_small" class="u-name">{{ item.unit_small }}</span>
 								</div>
 							</td>
@@ -288,9 +288,9 @@ const blankRow = () => ({
 	stock: 0,
 	stockDisplay: '-',
 	stockError: false,
-	qty_large: 0,
-	qty_medium: 0,
-	qty_small: 0,
+	qty_large: '',
+	qty_medium: '',
+	qty_small: '',
 	price_large: 0,
 	price_medium: 0,
 	price_small: 0,
@@ -475,11 +475,11 @@ const onWarehouseChange = () => loadStock()
 // ---------------------------------------------------------------- 数量变更
 
 const qtyHandler = (key) => (item) => {
-	item[key] = Number(item[key]) || 0
-	if (item[key] <= 0) {
-		item[key] = 0
-		ElMessage.error('数量不能为0或负数')
-	}
+	// 允许空字符串（空白显示），只在非空时校验数值
+	const raw = String(item[key] ?? '').trim()
+	if (raw === '') { calcAmount(item); return }
+	let n = Number(raw)
+	if (Number.isNaN(n) || n < 0) { item[key] = ''; ElMessage.error('数量不能为负数'); calcAmount(item); return }
 	calcAmount(item)
 	checkStock(item)
 }
@@ -637,6 +637,8 @@ const duplicateItem = (idx) => {
 const removeItem = (idx) => {
 	if (form.items.length <= 1) return
 	form.items.splice(idx, 1)
+	// 始终补齐到 EMPTY_ROWS 行，避免删行后留下空白
+	while (form.items.length < EMPTY_ROWS) form.items.push(blankRow())
 }
 
 // ---------------------------------------------------------------- 商品行内搜索下拉（对齐旧系统新增订单）
@@ -989,6 +991,22 @@ watch(
 watch(form, saveDraft, { deep: true })
 
 watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immediate: true })
+
+// ---------------------------------------------------------------- 键盘导航（上下左右在表格输入格间移动）
+// 给每个可聚焦输入格打 data-nav="rowIdx:col"，上下键换行、左右键换列，聚焦同列相邻格
+const onDialogKeydown = (e) => {
+	if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return
+	const el = e.target
+	if (!el || !el.dataset || !el.dataset.nav) return
+	const [r, c] = el.dataset.nav.split(':').map(Number)
+	let tr = r, tc = c
+	if (e.key === 'ArrowUp') tr = r - 1
+	else if (e.key === 'ArrowDown') tr = r + 1
+	else if (e.key === 'ArrowLeft') tc = c - 1
+	else if (e.key === 'ArrowRight') tc = c + 1
+	const next = document.querySelector(`[data-nav="${tr}:${tc}"]`)
+	if (next) { e.preventDefault(); next.focus(); if (next.select) next.select() }
+}
 </script>
 
 <style scoped>
@@ -1045,10 +1063,7 @@ watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immedia
 /* 对话框贴顶：默认 --el-dialog-margin-top 是 15vh，把整窗顶到中上部、下方留一大片空白。
    改成 2vh 顶到最上方 */
 .so-dialog :deep(.sales-order-dialog) {
-	/* 对话框按内容撑高（不再写死 96vh）：三栏已限定为 20 行高，
-	   表单 + 三栏(定高) + 合计的总高自然收敛，不再顶满整屏留大片空白 */
-	max-height: 96vh;
-	overflow: auto;
+	/* 按内容自然撑高，去滚动条：三栏定高 20 行 + 表单 + 合计，整体收敛 */
 	margin-bottom: 2vh;
 }
 
