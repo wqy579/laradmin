@@ -92,14 +92,15 @@ class OrderStateFeatureTest extends TestCase
 
         $id = $this->postJson('/admin/business/sales-order', $payload)->json('data.id');
 
-        // 对齐旧系统：下单即生效，无审批环节，approve 一律 422
+        // 状态流转：待配货 → 配货中
         $this->postJson("/admin/business/sales-order/{$id}/approve")
-            ->assertStatus(422)
-            ->assertJsonPath('message', '销售单下单即生效，无需审批');
+            ->assertOk();
+        $this->assertSame('配货中', \DB::table('sales_orders')->find($id)->status);
 
-        // 待配货可编辑 / 可删除
-        $this->putJson("/admin/business/sales-order/{$id}", $payload)->assertOk();
-        $this->deleteJson("/admin/business/sales-order/{$id}")->assertOk();
+        // 待配货可编辑 / 可删除（配货中后不可删）
+        $id2 = $this->postJson('/admin/business/sales-order', $payload)->json('data.id');
+        $this->putJson("/admin/business/sales-order/{$id2}", $payload)->assertOk();
+        $this->deleteJson("/admin/business/sales-order/{$id2}")->assertOk();
     }
 
     public function test_sales_order_cancel_only_from_pending(): void
@@ -122,7 +123,7 @@ class OrderStateFeatureTest extends TestCase
         // 已取消的不能再取消
         $this->postJson("/admin/business/sales-order/{$id}/cancel")
             ->assertStatus(422)
-            ->assertJsonPath('message', '只有待配货状态的订单可以作废');
+            ->assertJsonPath('message', '只有待配货/配货中状态的订单可以作废');
     }
 
     public function test_sales_order_statistics_and_list_filter(): void
