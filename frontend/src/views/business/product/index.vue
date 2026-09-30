@@ -164,7 +164,7 @@
 			>
 				<template #image="{ row }">
 					<div v-if="row.image" class="prod-img">
-						<el-image :src="'/storage/' + row.image" fit="cover" :preview-src-list="['/storage/' + row.image]" style="width:40px;height:40px;border-radius:4px" />
+						<el-image :src="imgUrl(row.image)" fit="cover" :preview-src-list="[imgUrl(row.image)]" style="width:40px;height:40px;border-radius:4px" />
 					</div>
 					<span v-else class="text-muted">-</span>
 				</template>
@@ -287,6 +287,13 @@ import sTable from '@/components/sTable/index.vue'
 import ProductDialog from '../components/product-dialog.vue'
 import CategoryDialog from '../components/category-dialog.vue'
 import { useResponsive } from '@/hooks/useResponsive'
+
+// 图片地址：DB 存相对路径(uploads/...)，后端可能已转成完整 URL，兼容两种
+const imgUrl = (img) => {
+	if (!img) return ''
+	if (img.startsWith('http')) return img  // 已是完整 URL
+	return '/storage/' + img  // 相对路径拼前缀
+}
 
 const { isMobile } = useResponsive()
 // 手机端折叠状态

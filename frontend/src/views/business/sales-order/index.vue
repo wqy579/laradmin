@@ -57,14 +57,16 @@
 						<!-- 地址区：hover 时被操作按钮覆盖 -->
 						<div v-if="row._hover" class="customer-actions">
 							<el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-							<el-button type="primary" link size="small" @click="handlePrint(row)">直接打印</el-button>
-							<el-button v-if="nextStatus(row.status)" type="success" link size="small" @click="handleAdvance(row)">{{ nextStatus(row.status) }}</el-button>
+							<el-button v-if="nextStatus(row.status)" type="success" link size="small" @click="handleAdvance(row)">{{ nextStatusShort(row.status) }}</el-button>
+							<el-button v-if="prevStatus(row.status)" type="warning" link size="small" @click="handleReverse(row)">回{{ prevStatusShort(row.status) }}</el-button>
 							<el-button v-if="row.status==='配送中'" type="warning" link size="small" @click="handleAdvance(row, '待收款')">待收款</el-button>
+							<el-button v-if="row.status==='待收款'" type="warning" link size="small" @click="handleAdvance(row, '配送中')">回配送</el-button>
+							<el-button v-if="row.status !== 'cancelled'" type="primary" link size="small" @click="handlePrint(row)">直接打印</el-button>
 							<el-button v-if="row.status==='pending'" type="danger" link size="small" @click="handleCancel(row)">作废</el-button>
 						</div>
 						<div v-else class="customer-addr-row">
-							<span v-if="row.has_gift" class="tag-gift" title="含赠品">赠</span>
-							<span v-if="row.has_special" class="tag-special" title="变价">变</span>
+							<span v-if="row.has_gift" class="tag-gift" title="含赠品">赠品</span>
+							<span v-if="row.has_special" class="tag-special" title="变价">变价</span>
 							<span v-if="row.customer?.address" class="customer-addr">{{ row.customer.address }}</span>
 							<span class="print-status" :class="{ unprinted: !row.print_count }">{{ row.print_count ? '打印' + row.print_count + '次' : '未打印' }}</span>
 						</div>
@@ -191,6 +193,11 @@ const statusType = (s) => ({ pending: 'warning', '配货中': 'primary', '待配
 const statusLabel = (s) => ({ pending: '待配货', '配货中': '配货中', '待配送': '待配送', '配送中': '配送中', '已收款': '已收款', '待收款': '待收款', cancelled: '已取消' }[s] || s)
 // 下一状态：用于显示流转按钮
 const nextStatus = (s) => ({ pending: '配货中', '配货中': '待配送', '待配送': '配送中', '配送中': '已收款' }[s] || null)
+// 简短流转按钮文案（配货中→配货）
+const nextStatusShort = (s) => ({ pending: '配货', '配货中': '待配送', '待配送': '配送', '配送中': '已收款' }[s] || nextStatus(s))
+// 逆向：可回退到上一状态（已收款→待收款→配送中→待配送→配货中→待配货）
+const prevStatus = (s) => ({ '已收款': '待收款', '待收款': '配送中', '配送中': '待配送', '待配送': '配货中', '配货中': '待配货' }[s] || null)
+const prevStatusShort = (s) => ({ '已收款': '待收款', '待收款': '配送', '配送中': '待配送', '待配送': '配货', '配货中': '待配货' }[s] || prevStatus(s))
 
 const handleAdd = () => { currentOrder.value = null; orderType.value = 'normal'; dialog.order = true }
 const handleEdit = (row) => { currentOrder.value = row; dialog.order = true }
@@ -215,12 +222,24 @@ const handleCancel = async (row) => {
 	if (res.code === 200) { ElMessage.success('作废成功'); doRefresh() }
 }
 const handlePrint = async (row) => {
+	if (row.status === 'cancelled') { ElMessage.warning('已作废的订单不能打印'); return }
 	const res = await businessApi.salesOrder.print.post(row.id)
 	if (res.code === 200) {
 		ElMessage.success('已记录打印')
-		// 触发浏览器打印
 		window.open('about:blank', '_blank')
 		doRefresh()
+	}
+}
+// 逆向操作：回退到上一状态
+const handleReverse = async (row) => {
+	const prev = prevStatus(row.status)
+	if (!prev) return
+	try {
+		const res = await businessApi.salesOrder.approve.post(row.id, { target: prev })
+		if (res.code === 200) { ElMessage.success(res.message || '已回退'); doRefresh() }
+		else ElMessage.error(res.message || '操作失败')
+	} catch (e) {
+		ElMessage.error(e?.message || '操作失败')
 	}
 }
 

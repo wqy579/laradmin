@@ -639,7 +639,15 @@ class SalesOrderController extends Controller
         if (! $target || $target === $current) {
             return $this->error('当前状态无法流转（'.$current.'）', 422);
         }
-        $allowed = ['pending' => ['配货中'], '配货中' => ['待配送'], '待配送' => ['配送中'], '配送中' => ['已收款', '待收款']];
+        // 正向 + 逆向流转都允许（逆向：回退到上一状态）
+        $allowed = [
+            'pending' => ['配货中'],
+            '配货中' => ['待配送', 'pending'],
+            '待配送' => ['配送中', '配货中'],
+            '配送中' => ['已收款', '待收款', '待配送'],
+            '待收款' => ['配送中', '已收款'],
+            '已收款' => ['待收款'],
+        ];
         if (! in_array($target, $allowed[$current] ?? [], true)) {
             return $this->error('不能从 '.$current.' 流转到 '.$target, 422);
         }
