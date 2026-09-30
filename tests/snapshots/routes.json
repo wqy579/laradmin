@@ -1617,6 +1617,18 @@
     },
     {
         "method": "POST",
+        "uri": "admin/business/sales-order/{salesOrder}/advance",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
         "uri": "admin/business/sales-order/{salesOrder}/approve",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@approve",

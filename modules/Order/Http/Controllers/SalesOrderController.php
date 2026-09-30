@@ -585,17 +585,38 @@ class SalesOrderController extends Controller
         }
     }
 
-    public function approve(SalesOrder $salesOrder)
+    /**
+     * 推进订单状态流转：待配货→配货中→待配送→配送中→已收款/待收款。
+     * target 指定目标状态，不传则按顺序推进一档。
+     */
+    public function approve(Request $request, SalesOrder $salesOrder)
     {
-        // 对齐旧系统：销售单下单即生效（pending + 即冻结库存），无审批环节。
-        // 端点保留仅为兼容既有路由（前端可能仍在调用），统一 422。
-        return $this->error('销售单下单即生效，无需审批', 422);
+        $flow = ['pending' => '配货中', '配货中' => '待配送', '待配送' => '配送中', '配送中' => '已收款'];
+        $current = $salesOrder->status;
+        $target = $request->input('target');
+        if (! $target) {
+            $target = $flow[$current] ?? null;
+        }
+        if (! $target || $target === $current) {
+            return $this->error('当前状态无法流转（'.$current.'）', 422);
+        }
+        // 允许从配送中跳到 已收款/待收款
+        $allowed = ['pending' => ['配货中'], '配货中' => ['待配送'], '待配送' => ['配送中'], '配送中' => ['已收款', '待收款']];
+        if (! in_array($target, $allowed[$current] ?? [], true)) {
+            return $this->error('不能从 '.$current.' 流转到 '.$target, 422);
+        }
+        $salesOrder->update(['status' => $target]);
+
+        $this->logOperation($salesOrder, '状态流转', $current.' → '.$target, $current, $target);
+
+        return $this->success($salesOrder->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '状态已更新为'.$target);
     }
 
     public function cancel(SalesOrder $salesOrder)
     {
-        if ($salesOrder->status !== 'pending') {
-            return $this->error('只有待配货状态的订单可以作废', 422);
+        // 待配货/配货中可作废（已配送的不行，库存已动）
+        if (! in_array($salesOrder->status, ['pending', '配货中'], true)) {
+            return $this->error('只有待配货/配货中状态的订单可以作废', 422);
         }
 
         DB::beginTransaction();

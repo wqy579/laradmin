@@ -29,9 +29,10 @@
 				</template>
 				<template #action_default="{ row }">
 					<el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-					<el-button v-if="row.status==='draft'" type="success" link size="small" @click="handleApprove(row)">审批</el-button>
-					<el-popconfirm v-if="row.status==='draft'" title="确定删除该订单吗？" @confirm="handleDelete(row)">
-						<template #reference><el-button type="danger" link size="small">删除</el-button></template>
+					<el-button v-if="nextStatus(row.status)" type="success" link size="small" @click="handleAdvance(row)">{{ nextStatus(row.status) }}</el-button>
+					<el-button v-if="row.status==='配送中'" type="warning" link size="small" @click="handleAdvance(row, '待收款')">待收款</el-button>
+					<el-popconfirm v-if="row.status==='pending' || row.status==='配货中'" title="确定作废该订单吗？" @confirm="handleCancel(row)">
+						<template #reference><el-button type="danger" link size="small">作废</el-button></template>
 					</el-popconfirm>
 				</template>
 			</sTable>
@@ -109,8 +110,10 @@ const onSummaryFilter = ({ type, id }) => {
 	loadSummary()
 }
 
-const statusType = (s) => ({ draft: 'info', approved: 'success', cancelled: 'danger' }[s] || 'info')
-const statusLabel = (s) => ({ draft: '草稿', approved: '已审批', cancelled: '已取消' }[s] || s)
+const statusType = (s) => ({ pending: 'warning', '配货中': 'primary', '待配送': 'info', '配送中': 'primary', '已收款': 'success', '待收款': 'danger', cancelled: 'info' }[s] || 'info')
+const statusLabel = (s) => ({ pending: '待配货', '配货中': '配货中', '待配送': '待配送', '配送中': '配送中', '已收款': '已收款', '待收款': '待收款', cancelled: '已取消' }[s] || s)
+// 下一状态：用于显示流转按钮
+const nextStatus = (s) => ({ pending: '配货中', '配货中': '待配送', '待配送': '配送中', '配送中': '已收款' }[s] || null)
 
 const handleAdd = () => { currentOrder.value = null; orderType.value = 'normal'; dialog.order = true }
 const handleEdit = (row) => { currentOrder.value = row; dialog.order = true }
@@ -118,9 +121,14 @@ const handleDelete = async (row) => {
 	const res = await businessApi.salesOrder.delete.delete(row.id)
 	if (res.code === 200) { ElMessage.success('删除成功'); doRefresh() }
 }
-const handleApprove = async (row) => {
-	const res = await businessApi.salesOrder.approve.post(row.id)
-	if (res.code === 200) { ElMessage.success('审批成功'); doRefresh() }
+const handleAdvance = async (row, target) => {
+	const res = await businessApi.salesOrder.approve.post(row.id, target ? { target } : {})
+	if (res.code === 200) { ElMessage.success(res.message || '状态已更新'); doRefresh() }
+	else ElMessage.error(res.message || '操作失败')
+}
+const handleCancel = async (row) => {
+	const res = await businessApi.salesOrder.cancel.post(row.id)
+	if (res.code === 200) { ElMessage.success('作废成功'); doRefresh() }
 }
 
 onMounted(() => {

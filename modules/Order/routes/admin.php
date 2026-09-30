@@ -70,6 +70,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::delete('/{salesOrder}', [SalesOrderController::class, 'destroy']);
         Route::post('/{salesOrder}/approve', [SalesOrderController::class, 'approve']);
         Route::post('/{salesOrder}/cancel', [SalesOrderController::class, 'cancel']);
+        Route::post('/{salesOrder}/advance', [SalesOrderController::class, 'approve']);
     });
     // 采购订单
     // 采购订单已移除（进货录单由入库单 stock-in 承担）
