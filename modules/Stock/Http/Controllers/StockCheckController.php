@@ -40,21 +40,18 @@ class StockCheckController extends Controller
                 ->select('product_id', 'warehouse_id', 'quantity')
                 ->where('snapshot_date', $yesterday);
 
-            // 今日已审核入库
-            $todayIn = DB::table('stock_in_items as sii')
-                ->join('stock_ins as si', 'si.id', '=', 'sii.stock_in_id')
-                ->select('sii.product_id', 'si.warehouse_id', DB::raw('SUM(sii.quantity) as total'))
-                ->where('si.status', 'approved')
-                ->whereDate('si.stock_date', $today)
-                ->groupBy('sii.product_id', 'si.warehouse_id');
+            // 今日入库/出库：从 stocks_history 流水算（stock_ins/stock_outs 表已弃用，入库直接调 stockIn 写 stocks_history）
+            $todayIn = DB::table('stocks_history')
+                ->select('product_id', 'warehouse_id', DB::raw('SUM(change_qty) as total'))
+                ->where('change_type', 'stock_in')
+                ->whereDate('created_at', $today)
+                ->groupBy('product_id', 'warehouse_id');
 
-            // 今日已审核出库
-            $todayOut = DB::table('stock_out_items as soi')
-                ->join('stock_outs as so', 'so.id', '=', 'soi.stock_out_id')
-                ->select('soi.product_id', 'so.warehouse_id', DB::raw('SUM(soi.quantity) as total'))
-                ->where('so.status', 'approved')
-                ->whereDate('so.stock_date', $today)
-                ->groupBy('soi.product_id', 'so.warehouse_id');
+            $todayOut = DB::table('stocks_history')
+                ->select('product_id', 'warehouse_id', DB::raw('SUM(ABS(change_qty)) as total'))
+                ->where('change_type', 'stock_out')
+                ->whereDate('created_at', $today)
+                ->groupBy('product_id', 'warehouse_id');
 
             $query = DB::table('stocks as s')
                 ->join('products as p', 's.product_id', '=', 'p.id')
