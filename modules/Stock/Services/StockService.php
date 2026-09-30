@@ -147,11 +147,8 @@ class StockService
     }
 
     /**
-     * 冻结库存：扣减可用数量、累加冻结数量，并写入变动流水。
-     *
-     * 对齐旧系统销售单「下单即冻结」：quantity -= N、frozen_qty += N。
-     * 可用 = quantity - frozen_qty，不足时抛 StockRuleException（控制器映射为 422）。
-     * 与 stockOut 同一套行锁，防并发超卖。
+     * 冻结库存：累加冻结数量（不动 quantity 总量），可用 = quantity - frozen_qty。
+     * 之前 freeze 同时减 quantity 加 frozen，导致同商品多行时可用被双重扣（第二行 quantity 已减、frozen 又加，可用 = (q-N)-(f+N) = q-f-2N）。改为只加 frozen，可用口径正确。
      */
     public function freeze(int $productId, int $warehouseId, int $quantity, int $orderId): Stock
     {
@@ -169,14 +166,13 @@ class StockService
                 throw new StockRuleException('库存不足');
             }
 
-            $before = (int) $stock->quantity;
-            $stock->quantity = $before - $quantity;
-            $stock->frozen_qty = (int) $stock->frozen_qty + $quantity;
+            $beforeFrozen = (int) $stock->frozen_qty;
+            $stock->frozen_qty = $beforeFrozen + $quantity;
             $stock->save();
 
             $this->recordHistory(
-                $productId, $warehouseId, 'sale_freeze', -$quantity,
-                $before, (int) $stock->quantity, $orderId, 'SalesOrder', '销售订单冻结'
+                $productId, $warehouseId, 'sale_freeze', $quantity,
+                $beforeFrozen, (int) $stock->frozen_qty, $orderId, 'SalesOrder', '销售订单冻结'
             );
 
             $this->syncProductStockQty($productId);
@@ -186,10 +182,7 @@ class StockService
     }
 
     /**
-     * 解冻库存：恢复可用数量、减少冻结数量，并写入变动流水。
-     *
-     * 编辑/作废/删除订单时释放已冻结库存。行不存在时静默跳过（容错，
-     * 避免历史脏数据让整张单据的释放操作失败）。
+     * 解冻库存：减少冻结数量（不动 quantity），与 freeze 对称。
      */
     public function unfreeze(int $productId, int $warehouseId, int $quantity, int $orderId): ?Stock
     {
@@ -203,14 +196,13 @@ class StockService
                 return null;
             }
 
-            $before = (int) $stock->quantity;
-            $stock->quantity = $before + $quantity;
-            $stock->frozen_qty = max(0, (int) $stock->frozen_qty - $quantity);
+            $beforeFrozen = (int) $stock->frozen_qty;
+            $stock->frozen_qty = max(0, $beforeFrozen - $quantity);
             $stock->save();
 
             $this->recordHistory(
-                $productId, $warehouseId, 'sale_unfreeze', $quantity,
-                $before, (int) $stock->quantity, $orderId, 'SalesOrder', '销售订单解冻'
+                $productId, $warehouseId, 'sale_unfreeze', -$quantity,
+                $beforeFrozen, (int) $stock->frozen_qty, $orderId, 'SalesOrder', '销售订单解冻'
             );
 
             $this->syncProductStockQty($productId);
