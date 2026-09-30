@@ -149,20 +149,23 @@ class SalesOrderController extends Controller
     public function summary(Request $request)
     {
         $totals = $this->baseSummaryQuery($request)
-            ->selectRaw('count(*) as order_count, sum(total_amount) as total_amount, sum(total_qty) as total_qty')
+            ->leftJoin('sales_order_items as soi', 'sales_orders.id', '=', 'soi.sales_order_id')
+            ->selectRaw('count(distinct sales_orders.id) as order_count, sum(sales_orders.total_amount) as total_amount, sum(soi.qty_large) as qty_large, sum(soi.qty_medium) as qty_medium, sum(soi.qty_small) as qty_small')
             ->first();
 
-        // 业务员：用订单冗余的 salesman_name，不 join auth_user
+        // 业务员：用订单冗余的 salesman_name，join items 汇总大中小数量
         $bySalesman = $this->baseSummaryQuery($request)
-            ->selectRaw('salesman_id, salesman_name as name, count(*) as order_count, sum(total_amount) as total_amount, sum(total_qty) as total_qty')
-            ->groupBy('salesman_id', 'salesman_name')
+            ->leftJoin('sales_order_items as soi', 'sales_orders.id', '=', 'soi.sales_order_id')
+            ->selectRaw('sales_orders.salesman_id, sales_orders.salesman_name as name, count(distinct sales_orders.id) as order_count, sum(sales_orders.total_amount) as total_amount, sum(soi.qty_large) as qty_large, sum(soi.qty_medium) as qty_medium, sum(soi.qty_small) as qty_small')
+            ->groupBy('sales_orders.salesman_id', 'sales_orders.salesman_name')
             ->orderByDesc('order_count')
             ->get();
 
         // 车辆：join vehicles 取车牌
         $byVehicle = $this->baseSummaryQuery($request)
             ->leftJoin('vehicles', 'sales_orders.vehicle_id', '=', 'vehicles.id')
-            ->selectRaw('sales_orders.vehicle_id, vehicles.plate_no as name, count(*) as order_count, sum(sales_orders.total_amount) as total_amount, sum(sales_orders.total_qty) as total_qty')
+            ->leftJoin('sales_order_items as soi', 'sales_orders.id', '=', 'soi.sales_order_id')
+            ->selectRaw('sales_orders.vehicle_id, vehicles.plate_no as name, count(distinct sales_orders.id) as order_count, sum(sales_orders.total_amount) as total_amount, sum(soi.qty_large) as qty_large, sum(soi.qty_medium) as qty_medium, sum(soi.qty_small) as qty_small')
             ->groupBy('sales_orders.vehicle_id', 'vehicles.plate_no')
             ->orderByDesc('order_count')
             ->get();
@@ -171,7 +174,8 @@ class SalesOrderController extends Controller
         $byRoute = $this->baseSummaryQuery($request)
             ->join('customers', 'sales_orders.customer_id', '=', 'customers.id')
             ->leftJoin('routes', 'customers.route_id', '=', 'routes.id')
-            ->selectRaw('customers.route_id, routes.name as name, count(*) as order_count, sum(sales_orders.total_amount) as total_amount, sum(sales_orders.total_qty) as total_qty')
+            ->leftJoin('sales_order_items as soi', 'sales_orders.id', '=', 'soi.sales_order_id')
+            ->selectRaw('customers.route_id, routes.name as name, count(distinct sales_orders.id) as order_count, sum(sales_orders.total_amount) as total_amount, sum(soi.qty_large) as qty_large, sum(soi.qty_medium) as qty_medium, sum(soi.qty_small) as qty_small')
             ->groupBy('customers.route_id', 'routes.name')
             ->orderByDesc('order_count')
             ->get();

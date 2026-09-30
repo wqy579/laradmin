@@ -2,21 +2,43 @@
 	<div class="order-summary">
 		<el-tabs v-model="activeTab" class="summary-tabs">
 			<el-tab-pane v-for="t in tabs" :key="t.type" :label="t.label" :name="t.type">
-				<ul class="summary-list">
-					<li :class="['summary-row', 'summary-total', { active: activeId(t.type) == null }]" @click="onPick(t.type, null)">
-						<span class="row-name">{{ t.totalLabel }}</span>
-						<span class="row-count">{{ totals.order_count || 0 }}</span>
-						<span class="row-amount">¥{{ fmt(totals.total_amount) }}</span>
-						<span class="row-qty">{{ totals.total_qty || 0 }}</span>
-					</li>
-					<li v-for="(r, i) in rows(t.type)" :key="t.type + i" :class="['summary-row', { active: eq(activeId(t.type), r[t.idKey]) }]" @click="onPick(t.type, r[t.idKey])">
-						<span class="row-name">{{ r.name || t.emptyName }}</span>
-						<span class="row-count">{{ r.order_count }}</span>
-						<span class="row-amount">¥{{ fmt(r.total_amount) }}</span>
-						<span class="row-qty">{{ r.total_qty || 0 }}</span>
-					</li>
-					<li v-if="!rows(t.type).length" class="summary-empty">暂无数据</li>
-				</ul>
+				<div class="summary-list">
+					<!-- 合计/全部行 -->
+					<div :class="['sum-item', { active: activeId(t.type) == null }]" @click="onPick(t.type, null)">
+						<div class="sum-top">
+							<span class="sum-name">{{ t.totalLabel }}</span>
+							<span class="sum-amount"><b style="color:#FF5500">{{ fmt(totals.total_amount) }}</b><span class="unit">元</span></span>
+							<span v-if="(totals.order_count || 0) > 0" class="sum-badge">{{ totals.order_count || 0 }}</span>
+						</div>
+						<div class="sum-sub">
+							<span>普:{{ (totals.order_count || 0) > 0 ? totals.order_count : '--' }}</span>
+							<span>退:--</span>
+						</div>
+						<div class="sum-sub">
+							<span>大:{{ (totals.qty_large || 0) > 0 ? totals.qty_large : '--' }}</span>
+							<span>中:{{ (totals.qty_medium || 0) > 0 ? totals.qty_medium : '--' }}</span>
+							<span>小:{{ (totals.qty_small || 0) > 0 ? totals.qty_small : '--' }}</span>
+						</div>
+					</div>
+					<!-- 各分组项 -->
+					<div v-for="(r, i) in rows(t.type)" :key="t.type + i" :class="['sum-item', { active: eq(activeId(t.type), r[t.idKey]) }]" @click="onPick(t.type, r[t.idKey])">
+						<div class="sum-top">
+							<span class="sum-name">{{ r.name || t.emptyName }}</span>
+							<span class="sum-amount"><b style="color:#FF5500">{{ fmt(r.total_amount) }}</b><span class="unit">元</span></span>
+							<span v-if="(r.order_count || 0) > 0" class="sum-badge">{{ r.order_count }}</span>
+						</div>
+						<div class="sum-sub">
+							<span>普:{{ (r.order_count || 0) > 0 ? r.order_count : '--' }}</span>
+							<span>退:--</span>
+						</div>
+						<div class="sum-sub">
+							<span>大:{{ (r.qty_large || 0) > 0 ? r.qty_large : '--' }}</span>
+							<span>中:{{ (r.qty_medium || 0) > 0 ? r.qty_medium : '--' }}</span>
+							<span>小:{{ (r.qty_small || 0) > 0 ? r.qty_small : '--' }}</span>
+						</div>
+					</div>
+					<div v-if="!rows(t.type).length" class="summary-empty">暂无数据</div>
+				</div>
 			</el-tab-pane>
 		</el-tabs>
 	</div>
@@ -31,7 +53,6 @@ const props = defineProps({
 })
 const emit = defineEmits(['filter'])
 const activeTab = ref('salesman')
-// 三维度配置：type 与父 searchForm 字段、active 键一致
 const tabs = [
 	{ type: 'salesman', label: '业务员', idKey: 'salesman_id', emptyName: '未分配业务员', totalLabel: '合计' },
 	{ type: 'vehicle', label: '车辆', idKey: 'vehicle_id', emptyName: '未分配车辆', totalLabel: '合计' },
@@ -44,32 +65,37 @@ const rows = (type) => {
 }
 const activeId = (type) => props.activeFilter?.[type] ?? null
 const fmt = (n) => Number(n || 0).toFixed(2)
-// 松等：id 数字/null 统一比较
 const eq = (a, b) => String(a ?? '') === String(b ?? '')
 const onPick = (type, id) => emit('filter', { type, id })
 </script>
 
 <style scoped>
-.order-summary { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+/* 背景与项目主背景一致，去掉填充色 */
+.order-summary { height: 100%; display: flex; flex-direction: column; min-height: 0; background: var(--el-bg-color); }
 .summary-tabs { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .summary-tabs :deep(.el-tabs__content) { flex: 1; overflow: auto; min-height: 0; }
 .summary-tabs :deep(.el-tabs__header) { margin: 0 8px; }
-.summary-list { list-style: none; margin: 0; padding: 0; }
-.summary-row {
-	display: grid;
-	grid-template-columns: 1fr 44px 76px 44px;
-	gap: 4px;
-	padding: 6px 10px;
-	cursor: pointer;
-	font-size: 12px;
-	align-items: center;
-	border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.summary-row:hover { background: var(--el-fill-color-light); }
-.summary-row.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); font-weight: 600; }
-.summary-total { background: var(--el-fill-color); font-weight: 600; position: sticky; top: 0; z-index: 1; }
+.summary-list { }
 .summary-empty { padding: 12px; text-align: center; color: var(--el-text-color-placeholder); font-size: 12px; }
-.row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.row-count, .row-qty { text-align: right; color: var(--el-text-color-regular); }
-.row-amount { text-align: right; color: var(--el-color-success); }
+
+.sum-item {
+	cursor: pointer;
+	border-bottom: 1px solid #e0e0e0;
+	padding: 4px 8px;
+	background: var(--el-bg-color);
+}
+.sum-item:hover { background: var(--el-fill-color-light); }
+.sum-item.active { background: var(--el-color-primary-light-9); }
+.sum-top { display: flex; align-items: center; height: 30px; font-size: 14px; }
+.sum-name { flex: 1; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sum-amount { text-align: right; }
+.sum-amount .unit { color: #ACACAC; font-size: 12px; margin-left: 2px; }
+.sum-badge {
+	min-width: 20px; height: 20px; line-height: 20px; text-align: center;
+	background: var(--el-color-danger); color: #fff; border-radius: 10px;
+	font-size: 11px; padding: 0 5px; margin-left: 6px;
+}
+.sum-sub { display: flex; font-size: 12px; height: 22px; align-items: center; color: var(--el-text-color-regular); }
+.sum-sub span { width: 22%; padding-left: 2px; }
+.sum-sub span:last-child { width: auto; }
 </style>
