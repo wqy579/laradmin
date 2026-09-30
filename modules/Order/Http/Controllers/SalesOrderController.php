@@ -101,8 +101,8 @@ class SalesOrderController extends Controller
         $orders = $query->paginate($request->integer('per_page', 20));
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
         $warehouses = Warehouse::where('is_active', true)->get();
-        // 业务员沿用旧系统的业务员下拉：取后台用户（auth_user），新增订单时按人选择
-        $salesmen = AdminUser::orderBy('id')->get(['id', 'username', 'real_name']);
+        // 业务员下拉：前端用 employees 表（id/name），后端同步取 employees，不再用 auth_user（只有 admin/manager）
+        $salesmen = \DB::table('employees')->orderBy('id')->get(['id', 'name']);
 
         return $this->success([
             'list' => $orders->items(),
@@ -223,7 +223,12 @@ class SalesOrderController extends Controller
         try {
             // 注意不能用 AdminUser::value($id, 'real_name')——那会忽略 id 直接取第一条。
             $salesmanId = $validated['salesman_id'] ?? null;
-            $salesmanName = $salesmanId ? AdminUser::firstWhere('id', $salesmanId)?->real_name : null;
+            // 业务员名优先取 auth_user.real_name，取不到回落到 employees.name（前端业务员下拉用 employees 表）
+            $salesmanName = null;
+            if ($salesmanId) {
+                $salesmanName = AdminUser::firstWhere('id', $salesmanId)?->real_name
+                    ?: \DB::table('employees')->where('id', $salesmanId)->value('name');
+            }
 
             $order = SalesOrder::create([
                 'order_no' => $orderNo,
@@ -398,7 +403,12 @@ class SalesOrderController extends Controller
         try {
             // 同 store：nullable 字段可能不存在
             $salesmanId = $validated['salesman_id'] ?? null;
-            $salesmanName = $salesmanId ? AdminUser::firstWhere('id', $salesmanId)?->real_name : null;
+            // 业务员名优先取 auth_user.real_name，取不到回落到 employees.name（前端业务员下拉用 employees 表）
+            $salesmanName = null;
+            if ($salesmanId) {
+                $salesmanName = AdminUser::firstWhere('id', $salesmanId)?->real_name
+                    ?: \DB::table('employees')->where('id', $salesmanId)->value('name');
+            }
 
             $salesOrder->update([
                 'customer_id' => $validated['customer_id'],
@@ -444,7 +454,7 @@ class SalesOrderController extends Controller
             'customer_id' => 'required|exists:customers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
             'order_date' => 'required|date',
-            'salesman_id' => 'nullable|exists:auth_user,id',
+            'salesman_id' => 'nullable|integer',
             'remark' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
