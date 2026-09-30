@@ -4,6 +4,18 @@
 			<OrderSummary :summary="summary" :activeFilter="activeFilter" @filter="onSummaryFilter" />
 		</aside>
 		<div class="biz-list">
+			<!-- 顶部状态 tab + 快捷筛选 -->
+			<div class="status-tabs">
+				<div v-for="t in statusTabs" :key="t.value" :class="['status-tab', { active: searchForm.status_tab === t.value }]" @click="pickStatusTab(t.value)">
+					{{ t.label }}
+					<span v-if="t.count > 0" class="tab-badge">{{ t.count }}</span>
+				</div>
+				<div class="quick-filters">
+					<label v-for="q in quickFilters" :key="q.value" :class="['quick-label', { active: searchForm.quick_filter === q.value }]">
+						<input type="radio" :value="q.value" v-model="searchForm.quick_filter" @change="doSearch" />{{ q.label }}{{ q.count > 0 ? q.count : '' }}
+					</label>
+				</div>
+			</div>
 			<div class="toolbar"><div class="right-panel"><el-button type="primary" @click="handleAdd">新增订单</el-button></div></div>
 			<sTable ref="tableRef" tableName="business_sales_order" :data="data" :columns="columns" :searchForm="searchForm"
 				:loading="loading" :total="total" :currentPage="paginationProps.currentPage" :pageSize="paginationProps.pageSize"
@@ -36,7 +48,25 @@ import businessApi from '@/api/business'
 import SalesOrderDialog from '../components/sales-order-dialog.vue'
 import OrderSummary from './components/order-summary.vue'
 
-const searchForm = ref({ keyword: '', status: null, customer_id: null, salesman_id: null, vehicle_id: null, route_id: null })
+const searchForm = ref({ keyword: '', status: null, customer_id: null, salesman_id: null, vehicle_id: null, route_id: null, status_tab: '5', quick_filter: -1 })
+
+// 顶部状态 tab（新系统只有 pending，1-4 都映射 pending，5 全部）
+const statusTabs = ref([
+	{ value: '1', label: '待配货', count: 0 },
+	{ value: '2', label: '待调度', count: 0 },
+	{ value: '3', label: '待配送', count: 0 },
+	{ value: '4', label: '已发货收款', count: 0 },
+	{ value: '5', label: '全部单据', count: 0 },
+])
+// 快捷筛选
+const quickFilters = ref([
+	{ value: -1, label: '全部 ', count: 0 },
+	{ value: 0, label: '未打印', count: 0 },
+	{ value: 1, label: '变价', count: 0 },
+	{ value: 2, label: '含赠品', count: 0 },
+	{ value: 3, label: '含备注', count: 0 },
+])
+const pickStatusTab = (v) => { searchForm.value.status_tab = v; doSearch() }
 const { tableRef, data, total, loading, paginationProps, refresh, search, handlePageChange, handlePageSizeChange } = useTable({
 	apiObj: { get: (params) => businessApi.salesOrder.list.get(params) },
 	searchForm: searchForm.value,
@@ -106,4 +136,14 @@ onMounted(() => {
 <style scoped>
 .sales-order-page { display: flex; height: 100%; min-height: 0; }
 .summary-aside { width: 300px; flex-shrink: 0; border-right: 1px solid var(--el-border-color); overflow: hidden; }
+
+/* 顶部状态 tab + 快捷筛选 */
+.status-tabs { display: flex; align-items: center; border-bottom: 1px solid var(--el-border-color); padding: 0 8px; flex-wrap: wrap; gap: 4px; }
+.status-tab { position: relative; padding: 6px 12px; cursor: pointer; font-size: 13px; color: var(--el-text-color-regular); border: 1px solid transparent; border-bottom: none; }
+.status-tab.active { color: var(--el-color-primary); font-weight: 600; border-color: var(--el-border-color); border-bottom-color: var(--el-bg-color); background: var(--el-bg-color); margin-bottom: -1px; }
+.tab-badge { position: absolute; top: 2px; right: 2px; background: #FF6400; color: #fff; font-size: 10px; font-weight: bold; border-radius: 8px; padding: 0 4px; line-height: 14px; }
+.quick-filters { display: flex; gap: 8px; margin-left: 20px; }
+.quick-label { font-size: 12px; cursor: pointer; padding: 2px 6px; border-radius: 3px; }
+.quick-label.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); }
+.quick-label input { display: none; }
 </style>
