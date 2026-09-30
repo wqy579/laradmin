@@ -817,11 +817,33 @@ const buildPayload = () => {
 const handleSubmit = async () => {
 	await formRef.value.validate()
 
-	const stockErrors = form.items
-		.filter(i => i.product_id && i.stock > 0 && requiredSmall(i) > i.stock)
-		.map(i => `「${i.product_name}」库存不足，可用: ${formatStock(i.stock, i.unit_conversion, i.unit_conversion_medium, i.unit_large, i.unit_medium, i.unit_small)}，需要: ${requiredSmall(i)}`)
-	if (stockErrors.length) {
-		ElMessage.error(`以下商品库存不足，请调整数量：\n${stockErrors.join('\n')}`)
+	// 提交前前端校验：数量空、正常销售价格 0、库存不足（退货不校验库存）
+	const errs = []
+	for (const i of form.items) {
+		if (!i.product_id) continue
+		const ql = Number(i.qty_large) || 0, qm = Number(i.qty_medium) || 0, qs = Number(i.qty_small) || 0
+		if (ql + qm + qs <= 0) {
+			errs.push(`「${i.product_name}」数量未填写`)
+			continue
+		}
+		// 正常销售模式价格不能为 0（赠品/陈列费等允许零价）
+		if (i.sale_mode === '正常销售') {
+			const pl = Number(i.price_large) || 0, pm = Number(i.price_medium) || 0, ps = Number(i.price_small) || 0
+			if (pl <= 0 && pm <= 0 && ps <= 0) {
+				errs.push(`「${i.product_name}」正常销售模式价格不能为 0`)
+				continue
+			}
+		}
+		// 库存校验：退货模块跳过；无 stocks 行(stock<=0)也算不足
+		if (!isReturn.value) {
+			const need = requiredSmall(i)
+			if (need > (Number(i.stock) || 0)) {
+				errs.push(`「${i.product_name}」库存不足，可用: ${formatStock(i.stock, i.unit_conversion, i.unit_conversion_medium, i.unit_large, i.unit_medium, i.unit_small)}，需要: ${need}`)
+			}
+		}
+	}
+	if (errs.length) {
+		ElMessage.error(`以下问题需处理：\n${errs.join('\n')}`)
 		return
 	}
 

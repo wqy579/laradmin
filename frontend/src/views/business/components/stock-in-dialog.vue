@@ -435,6 +435,14 @@ watch(() => props.visible, async (open) => {
 
 const handleSubmit = async () => {
 	await formRef.value.validate()
+	// 提交前前端校验：数量未填写（入库无销售模式、无库存校验，价格允许 0）
+	const errs = []
+	for (const i of form.items) {
+		if (!i.product_id) continue
+		const ql = Number(i.qty_large) || 0, qm = Number(i.qty_medium) || 0, qs = Number(i.qty_small) || 0
+		if (ql + qm + qs <= 0) errs.push(`「${i.product_name}」数量未填写`)
+	}
+	if (errs.length) { ElMessage.error(`以下问题需处理：\n${errs.join('\n')}`); return }
 	const validItems = form.items.filter(i => i.product_id && (Number(i.qty_small) || 0) + (Number(i.qty_medium) || 0) + (Number(i.qty_large) || 0) > 0)
 	if (!validItems.length) { ElMessage.warning('请至少添加一个商品并填写数量'); return }
 	submitting.value = true
