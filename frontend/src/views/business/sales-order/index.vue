@@ -16,11 +16,35 @@
 					</label>
 				</div>
 			</div>
-			<div class="toolbar"><div class="right-panel"><el-button type="primary" @click="handleAdd">新增订单</el-button></div></div>
+			<div class="toolbar">
+				<div class="left-panel">
+					<!-- 日期筛选 -->
+					<el-radio-group v-model="searchForm.quick_date" size="small" @change="doSearch">
+						<el-radio-button value="">全部</el-radio-button>
+						<el-radio-button value="today">今天</el-radio-button>
+						<el-radio-button value="yesterday">昨天</el-radio-button>
+						<el-radio-button value="week">近7天</el-radio-button>
+					</el-radio-group>
+					<el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" size="small" style="width:220px" value-format="YYYY-MM-DD" @change="onDateRange" />
+					<el-input v-model="searchForm.keyword" placeholder="单号/客户/业务员" clearable size="small" style="width:180px" @keyup.enter="doSearch" @clear="doSearch" />
+					<el-button size="small" type="primary" @click="doSearch">查询</el-button>
+				</div>
+				<div class="right-panel"><el-button type="primary" @click="handleAdd">新增订单</el-button></div>
+			</div>
+			<!-- 多选统计条 -->
+			<div v-if="selectedRows.length" class="select-bar">
+				<span>已选 {{ selectedRows.length }} 条</span>
+				<span class="sep">|</span>
+				<span>总金额: <b style="color:#FF6400;font-size:14px">{{ selectedTotal }}</b> 元</span>
+				<span class="sep">|</span>
+				<span>大: <b>{{ selectedQty.lg }}</b> 中: <b>{{ selectedQty.md }}</b> 小: <b>{{ selectedQty.sm }}</b></span>
+				<el-button size="small" link @click="clearSelection">取消选择</el-button>
+			</div>
 			<sTable ref="tableRef" tableName="business_sales_order" :data="data" :columns="columns" :searchForm="searchForm"
 				:loading="loading" :total="total" :currentPage="paginationProps.currentPage" :pageSize="paginationProps.pageSize"
 				:pageSizes="paginationProps.pageSizes" rowKey="id" height="100%" stripe
-				@refresh="refresh" @search="doSearch" @pageChange="handlePageChange" @pageSizeChange="handlePageSizeChange">
+				@refresh="refresh" @search="doSearch" @pageChange="handlePageChange" @pageSizeChange="handlePageSizeChange"
+				@selectionChange="selectedRows = $event">
 				<template #order_no_default="{ row }">
 					<span :title="row.order_no">{{ (row.order_no || '').slice(-6) }}</span>
 				</template>
@@ -62,14 +86,30 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTable } from '@/hooks/useTable'
 import businessApi from '@/api/business'
 import SalesOrderDialog from '../components/sales-order-dialog.vue'
 import OrderSummary from './components/order-summary.vue'
 
-const searchForm = ref({ keyword: '', status: null, customer_id: null, salesman_id: null, vehicle_id: null, route_id: null, status_tab: '5', quick_filter: -1 })
+const searchForm = ref({ keyword: '', status: null, customer_id: null, salesman_id: null, vehicle_id: null, route_id: null, status_tab: '5', quick_filter: -1, quick_date: '', start_date: null, end_date: null })
+const dateRange = ref(null)
+const onDateRange = (v) => {
+	searchForm.value.start_date = v?.[0] || null
+	searchForm.value.end_date = v?.[1] || null
+	doSearch()
+}
+// 多选统计
+const selectedRows = ref([])
+const selectedTotal = computed(() => selectedRows.value.reduce((s, r) => s + Number(r.total_amount || 0), 0).toFixed(2))
+const selectedQty = computed(() => {
+	const lg = selectedRows.value.reduce((s, r) => s + (Number(r.items?.reduce((a, i) => a + Number(i.qty_large || 0), 0)) || 0), 0)
+	const md = selectedRows.value.reduce((s, r) => s + (Number(r.items?.reduce((a, i) => a + Number(i.qty_medium || 0), 0)) || 0), 0)
+	const sm = selectedRows.value.reduce((s, r) => s + (Number(r.items?.reduce((a, i) => a + Number(i.qty_small || 0), 0)) || 0), 0)
+	return { lg, md, sm }
+})
+const clearSelection = () => { selectedRows.value = []; tableRef.value?.clearCheckboxRow?.() }
 
 // 顶部状态 tab（新系统只有 pending，1-4 都映射 pending，5 全部）
 const statusTabs = ref([
@@ -220,4 +260,14 @@ onMounted(() => {
 .tag-special { background: #f56c6c; color: #fff; font-size: 10px; padding: 0 3px; border-radius: 2px; }
 .print-status { font-size: 10px; color: var(--el-text-color-secondary); margin-left: 4px; white-space: nowrap; }
 .print-status.unprinted { color: var(--el-color-danger); }
+
+/* toolbar 日期筛选 */
+.toolbar { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; gap: 8px; flex-wrap: wrap; }
+.toolbar .left-panel { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar .right-panel { display: flex; align-items: center; gap: 4px; }
+
+/* 多选统计条 */
+.select-bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--el-color-primary-light-9); border-bottom: 1px solid var(--el-border-color); font-size: 12px; }
+.select-bar b { font-weight: 600; }
+.select-bar .sep { color: var(--el-text-color-placeholder); }
 </style>

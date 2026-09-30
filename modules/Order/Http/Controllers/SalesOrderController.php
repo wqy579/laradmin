@@ -177,13 +177,26 @@ class SalesOrderController extends Controller
         if ($quickFilter === 0) {
             $query->where('print_count', 0);
         } elseif ($quickFilter === 1) {
-            // 变价：明细含 price_source=特殊
-            $query->whereHas('items', fn ($q) => $q->where('price_source', '特殊'));
+            $query->whereHas('items', fn ($q) => $q->where('price_source', '特殊')->whereNotIn('sale_mode', ['赠品', '陈列费']));
         } elseif ($quickFilter === 2) {
-            // 含赠品：明细含 sale_mode=赠品/陈列费等
             $query->whereHas('items', fn ($q) => $q->whereIn('sale_mode', ['赠品', '陈列费']));
         } elseif ($quickFilter === 3) {
             $query->whereNotNull('remark')->where('remark', '!=', '');
+        }
+        // 日期筛选：quick_date（today/yesterday/week）或 start_date/end_date
+        $quickDate = $request->input('quick_date');
+        if ($quickDate === 'today') {
+            $query->whereDate('order_date', now()->toDateString());
+        } elseif ($quickDate === 'yesterday') {
+            $query->whereDate('order_date', now()->subDay()->toDateString());
+        } elseif ($quickDate === 'week') {
+            $query->whereDate('order_date', '>=', now()->subDays(6)->toDateString());
+        }
+        if ($request->filled('start_date')) {
+            $query->whereDate('order_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->whereDate('order_date', '<=', $request->end_date);
         }
     }
 
