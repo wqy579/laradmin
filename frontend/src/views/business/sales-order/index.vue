@@ -119,7 +119,7 @@ const clearSelection = () => { selectedRows.value = []; tableRef.value?.clearChe
 // 顶部状态 tab（新系统只有 pending，1-4 都映射 pending，5 全部）
 const statusTabs = ref([
 	{ value: '1', label: '待配货', count: 0 },
-	{ value: '2', label: '待调度', count: 0 },
+	{ value: '2', label: '配货中', count: 0 },
 	{ value: '3', label: '待配送', count: 0 },
 	{ value: '4', label: '已发货收款', count: 0 },
 	{ value: '5', label: '全部单据', count: 0 },

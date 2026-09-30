@@ -166,11 +166,14 @@ class SalesOrderController extends Controller
         if ($request->filled('route_id')) {
             $query->whereHas('customer', fn ($q) => $q->where('route_id', $request->route_id));
         }
-        // 顶部状态 tab：1待配货(pending) 2待调度 3待配送 4已发货收款 5全部单据
-        // 新系统订单下单即 pending，无后续流转；1-4 都映射 pending，5 不筛选
+        // 顶部状态 tab：1待配货(pending) 2配货中 3待配送 4已发货收款(配送中+已收款+待收款) 5全部
         $statusTab = $request->input('status_tab');
-        if ($statusTab && $statusTab !== '5') {
-            $query->where('status', 'pending');
+        $tabStatusMap = ['1' => 'pending', '2' => '配货中', '3' => '待配送'];
+        if (isset($tabStatusMap[$statusTab])) {
+            $query->where('status', $tabStatusMap[$statusTab]);
+        } elseif ($statusTab === '4') {
+            // 已发货收款：配送中/已收款/待收款
+            $query->whereIn('status', ['配送中', '已收款', '待收款']);
         }
         // 快捷筛选：-1全部 0未打印 1变价 2含赠品 3含备注
         $quickFilter = (int) $request->input('quick_filter', -1);
