@@ -26,22 +26,21 @@
 				</template>
 				<template #customer_default="{ row }">
 					<div class="customer-cell" @mouseenter="row._hover = true" @mouseleave="row._hover = false">
-						<!-- 操作 hover 覆盖：有地址时覆盖地址区，无地址时直接展示操作 -->
+						<div class="customer-name-row">
+							<el-tag :type="row.is_return ? 'danger' : 'primary'" size="small" effect="plain">{{ row.is_return ? '退货' : '普通' }}</el-tag>
+							<span class="customer-name">{{ row.customer_name || row.customer?.name }}</span>
+						</div>
+						<!-- 地址区：hover 时被操作按钮覆盖；无地址直接显示操作 -->
 						<div v-if="row._hover" class="customer-actions">
 							<el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
 							<el-button v-if="nextStatus(row.status)" type="success" link size="small" @click="handleAdvance(row)">{{ nextStatus(row.status) }}</el-button>
 							<el-button v-if="row.status==='配送中'" type="warning" link size="small" @click="handleAdvance(row, '待收款')">待收款</el-button>
-							<el-popconfirm v-if="row.status==='pending'" title="确定作废该订单吗？" @confirm="handleCancel(row)">
-								<template #reference><el-button type="danger" link size="small">作废</el-button></template>
-							</el-popconfirm>
+							<el-button v-if="row.status==='pending'" type="danger" link size="small" @click="handleCancel(row)">作废</el-button>
 						</div>
-						<div v-else>
-							<div class="customer-name-row">
-								<el-tag :type="row.is_return ? 'danger' : 'primary'" size="small" effect="plain">{{ row.is_return ? '退货' : '普通' }}</el-tag>
-								<span class="customer-name">{{ row.customer_name || row.customer?.name }}</span>
-							</div>
-							<div v-if="row.customer?.address" class="customer-addr">{{ row.customer.address }}</div>
-							<div v-else class="customer-addr customer-addr-empty">（无地址，移入操作）</div>
+						<div v-else class="customer-addr-row">
+							<span v-if="row.has_gift" class="tag-gift" title="含赠品">赠</span>
+							<span v-if="row.has_special" class="tag-special" title="变价">变</span>
+							<span v-if="row.customer?.address" class="customer-addr">{{ row.customer.address }}</span>
 						</div>
 					</div>
 				</template>
@@ -62,7 +61,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTable } from '@/hooks/useTable'
 import businessApi from '@/api/business'
 import SalesOrderDialog from '../components/sales-order-dialog.vue'
@@ -121,8 +120,23 @@ const loadSummary = async () => {
 	const res = await businessApi.salesOrder.summary.get(searchForm.value)
 	if (res.code === 200) summary.value = res.data || {}
 }
-const doSearch = (...args) => { search(...args); loadSummary() }
-const doRefresh = () => { refresh(); loadSummary() }
+const statusCounts = ref({})
+const loadStatusCounts = async () => {
+	// 跟随当前搜索条件（除 status_tab）统计各状态数
+	const params = { ...searchForm.value, status_tab: undefined }
+	const res = await businessApi.salesOrder.list.get({ ...params, page: 1, page_size: 1 })
+	if (res.code === 200) {
+		const c = res.data?.status_counts || {}
+		statusCounts.value = c
+		statusTabs.value[0].count = c.pending || 0
+		statusTabs.value[1].count = c['配货中'] || 0
+		statusTabs.value[2].count = c['待配送'] || 0
+		statusTabs.value[3].count = c['配送中'] || 0
+		statusTabs.value[4].count = c.all || 0
+	}
+}
+const doSearch = (...args) => { search(...args); loadSummary(); loadStatusCounts() }
+const doRefresh = () => { refresh(); loadSummary(); loadStatusCounts() }
 const onSummaryFilter = ({ type, id }) => {
 	const field = type === 'salesman' ? 'salesman_id' : type === 'vehicle' ? 'vehicle_id' : 'route_id'
 	searchForm.value[field] = id
@@ -148,6 +162,9 @@ const handleAdvance = async (row, target) => {
 	else ElMessage.error(res.message || '操作失败')
 }
 const handleCancel = async (row) => {
+	try {
+		await ElMessageBox.confirm('确定作废该订单吗？', '提示', { type: 'warning' })
+	} catch { return }
 	const res = await businessApi.salesOrder.cancel.post(row.id)
 	if (res.code === 200) { ElMessage.success('作废成功'); doRefresh() }
 }
@@ -158,7 +175,7 @@ onMounted(() => {
 		businessApi.warehouse.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
 		businessApi.employee.list.get({ is_active: 1, page_size: 9999 }).then(r => { if (r.code === 200) salesmen.value = r.data?.list || [] }),
 		businessApi.supplier.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) suppliers.value = r.data?.list || [] }),
-	]).finally(() => { refresh(); loadSummary() })
+	]).finally(() => { refresh(); loadSummary(); loadStatusCounts() })
 })
 </script>
 
@@ -183,4 +200,7 @@ onMounted(() => {
 .customer-addr { font-size: 11px; color: var(--el-text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .customer-addr-empty { color: var(--el-text-color-placeholder); }
 .customer-actions { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.customer-addr-row { display: flex; align-items: center; gap: 3px; }
+.tag-gift { background: #ec971f; color: #fff; font-size: 10px; padding: 0 3px; border-radius: 2px; }
+.tag-special { background: #f56c6c; color: #fff; font-size: 10px; padding: 0 3px; border-radius: 2px; }
 </style>

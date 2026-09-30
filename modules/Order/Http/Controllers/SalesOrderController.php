@@ -103,15 +103,31 @@ class SalesOrderController extends Controller
         $warehouses = Warehouse::where('is_active', true)->get();
         $salesmen = \DB::table('employees')->orderBy('id')->get(['id', 'name']);
 
-        // 给每行补 customer_name/operator_name（前端列直接用）
+        // 给每行补 customer_name/operator_name/warehouse_name + 赠品/变价标记
         $adminNames = \DB::table('auth_user')->pluck('username', 'id');
         $list = $orders->getCollection()->map(function ($o) use ($adminNames) {
             $o->customer_name = $o->customer?->name;
             $o->operator_name = $adminNames[$o->created_by] ?? null;
-            $o->is_return = false; // sales_orders 都是普通订单，退货在 returns 表
+            $o->warehouse_name = $o->warehouse?->name;
+            $o->is_return = false;
+            // 赠品/变价标记（从 items 判断）
+            $o->has_gift = $o->items->contains(fn ($i) => in_array($i->sale_mode, ['赠品', '陈列费']));
+            $o->has_special = $o->items->contains(fn ($i) => $i->price_source === '特殊');
 
             return $o;
         });
+
+        // 各状态订单数（顶部 tab badge）
+        $baseQuery = SalesOrder::query();
+        $this->applyOrderFilters($baseQuery, $request);
+        $statusCounts = (clone $baseQuery)->select('status', \DB::raw('count(*) as cnt'))->groupBy('status')->pluck('cnt', 'status');
+        $counts = [
+            'pending' => $statusCounts['pending'] ?? 0,
+            '配货中' => $statusCounts['配货中'] ?? 0,
+            '待配送' => $statusCounts['待配送'] ?? 0,
+            '配送中' => $statusCounts['配送中'] ?? 0,
+            'all' => (clone $baseQuery)->count(),
+        ];
 
         return $this->success([
             'list' => $list,
@@ -122,6 +138,7 @@ class SalesOrderController extends Controller
             'customers' => $customers,
             'warehouses' => $warehouses,
             'salesmen' => $salesmen,
+            'status_counts' => $counts,
         ]);
     }
 
