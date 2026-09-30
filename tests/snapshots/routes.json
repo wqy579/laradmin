@@ -1652,6 +1652,18 @@
         ]
     },
     {
+        "method": "POST",
+        "uri": "admin/business/sales-order/{salesOrder}/print",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@print",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "GET",
         "uri": "admin/business/stock",
         "name": "admin.",

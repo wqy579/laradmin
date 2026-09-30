@@ -662,6 +662,15 @@ class SalesOrderController extends Controller
         }
     }
 
+    /** 打印：递增 print_count，返回订单详情供前端打印 */
+    public function print(SalesOrder $salesOrder)
+    {
+        $salesOrder->increment('print_count');
+        $salesOrder->load(['customer', 'warehouse', 'salesman', 'items.product']);
+
+        return $this->success($salesOrder, '打印准备就绪');
+    }
+
     public function statistics()
     {
         $stats = [

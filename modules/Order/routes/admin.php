@@ -70,6 +70,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::delete('/{salesOrder}', [SalesOrderController::class, 'destroy']);
         Route::post('/{salesOrder}/approve', [SalesOrderController::class, 'approve']);
         Route::post('/{salesOrder}/cancel', [SalesOrderController::class, 'cancel']);
+        Route::post('/{salesOrder}/print', [SalesOrderController::class, 'print']);
         Route::post('/{salesOrder}/advance', [SalesOrderController::class, 'approve']);
     });
     // 采购订单

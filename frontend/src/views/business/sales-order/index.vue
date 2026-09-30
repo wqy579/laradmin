@@ -30,9 +30,10 @@
 							<el-tag :type="row.is_return ? 'danger' : 'primary'" size="small" effect="plain">{{ row.is_return ? '退货' : '普通' }}</el-tag>
 							<span class="customer-name">{{ row.customer_name || row.customer?.name }}</span>
 						</div>
-						<!-- 地址区：hover 时被操作按钮覆盖；无地址直接显示操作 -->
+						<!-- 地址区：hover 时被操作按钮覆盖 -->
 						<div v-if="row._hover" class="customer-actions">
 							<el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+							<el-button type="primary" link size="small" @click="handlePrint(row)">直接打印</el-button>
 							<el-button v-if="nextStatus(row.status)" type="success" link size="small" @click="handleAdvance(row)">{{ nextStatus(row.status) }}</el-button>
 							<el-button v-if="row.status==='配送中'" type="warning" link size="small" @click="handleAdvance(row, '待收款')">待收款</el-button>
 							<el-button v-if="row.status==='pending'" type="danger" link size="small" @click="handleCancel(row)">作废</el-button>
@@ -41,6 +42,7 @@
 							<span v-if="row.has_gift" class="tag-gift" title="含赠品">赠</span>
 							<span v-if="row.has_special" class="tag-special" title="变价">变</span>
 							<span v-if="row.customer?.address" class="customer-addr">{{ row.customer.address }}</span>
+							<span class="print-status" :class="{ unprinted: !row.print_count }">{{ row.print_count ? '打印' + row.print_count + '次' : '未打印' }}</span>
 						</div>
 					</div>
 				</template>
@@ -168,6 +170,15 @@ const handleCancel = async (row) => {
 	const res = await businessApi.salesOrder.cancel.post(row.id)
 	if (res.code === 200) { ElMessage.success('作废成功'); doRefresh() }
 }
+const handlePrint = async (row) => {
+	const res = await businessApi.salesOrder.print.post(row.id)
+	if (res.code === 200) {
+		ElMessage.success('已记录打印')
+		// 触发浏览器打印
+		window.open('about:blank', '_blank')
+		doRefresh()
+	}
+}
 
 onMounted(() => {
 	Promise.all([
@@ -203,4 +214,6 @@ onMounted(() => {
 .customer-addr-row { display: flex; align-items: center; gap: 3px; }
 .tag-gift { background: #ec971f; color: #fff; font-size: 10px; padding: 0 3px; border-radius: 2px; }
 .tag-special { background: #f56c6c; color: #fff; font-size: 10px; padding: 0 3px; border-radius: 2px; }
+.print-status { font-size: 10px; color: var(--el-text-color-secondary); margin-left: 4px; white-space: nowrap; }
+.print-status.unprinted { color: var(--el-color-danger); }
 </style>
