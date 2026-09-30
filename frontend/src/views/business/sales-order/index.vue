@@ -95,11 +95,14 @@ import businessApi from '@/api/business'
 import SalesOrderDialog from '../components/sales-order-dialog.vue'
 import OrderSummary from './components/order-summary.vue'
 
-const searchForm = ref({ keyword: '', status: null, customer_id: null, salesman_id: null, vehicle_id: null, route_id: null, status_tab: '5', quick_filter: -1, quick_date: '', start_date: null, end_date: null })
+const { tableRef, data, total, loading, paginationProps, refresh, search, handlePageChange, handlePageSizeChange, searchForm } = useTable({
+	apiObj: { get: (params) => businessApi.salesOrder.list.get(params) },
+	searchForm: { keyword: '', status: null, customer_id: null, salesman_id: null, vehicle_id: null, route_id: null, status_tab: '5', quick_filter: -1, quick_date: '', start_date: null, end_date: null },
+})
 const dateRange = ref(null)
 const onDateRange = (v) => {
-	searchForm.value.start_date = v?.[0] || null
-	searchForm.value.end_date = v?.[1] || null
+	searchForm.start_date = v?.[0] || null
+	searchForm.end_date = v?.[1] || null
 	doSearch()
 }
 // 多选统计
@@ -129,11 +132,7 @@ const quickFilters = ref([
 	{ value: 2, label: '含赠品', count: 0 },
 	{ value: 3, label: '含备注', count: 0 },
 ])
-const pickStatusTab = (v) => { searchForm.value.status_tab = v; doSearch() }
-const { tableRef, data, total, loading, paginationProps, refresh, search, handlePageChange, handlePageSizeChange } = useTable({
-	apiObj: { get: (params) => businessApi.salesOrder.list.get(params) },
-	searchForm: searchForm.value,
-})
+const pickStatusTab = (v) => { searchForm.status_tab = v; doSearch() }
 
 const columns = [
 	{ type: 'checkbox', width: 48, fixed: 'left' },
@@ -161,13 +160,13 @@ const orderType = ref('normal')
 const summary = ref({ totals: {}, bySalesman: [], byVehicle: [], byRoute: [] })
 const activeFilter = ref({ salesman: null, vehicle: null, route: null })
 const loadSummary = async () => {
-	const res = await businessApi.salesOrder.summary.get(searchForm.value)
+	const res = await businessApi.salesOrder.summary.get(searchForm)
 	if (res.code === 200) summary.value = res.data || {}
 }
 const statusCounts = ref({})
 const loadStatusCounts = async () => {
 	// 跟随当前搜索条件（除 status_tab）统计各状态数
-	const params = { ...searchForm.value, status_tab: undefined }
+	const params = { ...searchForm, status_tab: undefined }
 	const res = await businessApi.salesOrder.list.get({ ...params, page: 1, page_size: 1 })
 	if (res.code === 200) {
 		const c = res.data?.status_counts || {}
@@ -183,7 +182,7 @@ const doSearch = (...args) => { search(...args); loadSummary(); loadStatusCounts
 const doRefresh = () => { refresh(); loadSummary(); loadStatusCounts() }
 const onSummaryFilter = ({ type, id }) => {
 	const field = type === 'salesman' ? 'salesman_id' : type === 'vehicle' ? 'vehicle_id' : 'route_id'
-	searchForm.value[field] = id
+	searchForm[field] = id
 	activeFilter.value[type] = id
 	search()
 	loadSummary()
