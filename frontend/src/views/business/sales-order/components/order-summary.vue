@@ -1,46 +1,44 @@
 <template>
 	<div class="order-summary">
-		<!-- 三个维度都显示，tab 只高亮当前维度，不隐藏其他 -->
+		<!-- tab 切换显示当前维度，同维度内所有项都显示（不因选中而折叠） -->
 		<div class="dim-tabs">
 			<div v-for="t in tabs" :key="t.type" :class="['dim-tab', { active: activeTab === t.type }]" @click="activeTab = t.type">{{ t.label }}</div>
 		</div>
 		<div class="summary-scroll">
-			<div v-for="t in tabs" :key="t.type" class="summary-section">
-				<div class="section-title">{{ t.label }}</div>
-				<div class="summary-list">
-					<div :class="['sum-item', { active: activeId(t.type) == null }]" @click="onPick(t.type, null)">
-						<div class="sum-top">
-							<span class="sum-name">{{ t.totalLabel }}</span>
-							<span class="sum-amount"><b style="color:#FF5500">{{ fmt(totals.total_amount) }}</b><span class="unit">元</span></span>
-							<span v-if="(totals.order_count || 0) > 0" class="sum-badge">{{ totals.order_count || 0 }}</span>
-						</div>
-						<div class="sum-sub">
-							<span>普:{{ (totals.order_count || 0) > 0 ? totals.order_count : '--' }}</span>
-							<span>退:--</span>
-						</div>
-						<div class="sum-sub">
-							<span>大:{{ (totals.qty_large || 0) > 0 ? totals.qty_large : '--' }}</span>
-							<span>中:{{ (totals.qty_medium || 0) > 0 ? totals.qty_medium : '--' }}</span>
-							<span>小:{{ (totals.qty_small || 0) > 0 ? totals.qty_small : '--' }}</span>
-						</div>
+			<div v-for="t in tabs" :key="t.type" v-show="activeTab === t.type" class="summary-list">
+				<div :class="['sum-item', { active: activeId(t.type) == null }]" @click="onPick(t.type, null)">
+					<div class="sum-top">
+						<span class="sum-name">{{ t.totalLabel }}</span>
+						<span class="sum-amount"><b style="color:#FF5500">{{ fmt(totals.total_amount) }}</b><span class="unit">元</span></span>
+						<span v-if="(totals.order_count || 0) > 0" class="sum-badge">{{ totals.order_count || 0 }}</span>
 					</div>
-					<div v-for="(r, i) in rows(t.type)" :key="t.type + i" :class="['sum-item', { active: eq(activeId(t.type), r[t.idKey]) }]" @click="onPick(t.type, r[t.idKey])">
-						<div class="sum-top">
-							<span class="sum-name">{{ r.name || t.emptyName }}</span>
-							<span class="sum-amount"><b style="color:#FF5500">{{ fmt(r.total_amount) }}</b><span class="unit">元</span></span>
-							<span v-if="(r.order_count || 0) > 0" class="sum-badge">{{ r.order_count }}</span>
-						</div>
-						<div class="sum-sub">
-							<span>普:{{ (r.order_count || 0) > 0 ? r.order_count : '--' }}</span>
-							<span>退:--</span>
-						</div>
-						<div class="sum-sub">
-							<span>大:{{ (r.qty_large || 0) > 0 ? r.qty_large : '--' }}</span>
-							<span>中:{{ (r.qty_medium || 0) > 0 ? r.qty_medium : '--' }}</span>
-							<span>小:{{ (r.qty_small || 0) > 0 ? r.qty_small : '--' }}</span>
-						</div>
+					<div class="sum-sub">
+						<span>普:{{ (totals.order_count || 0) > 0 ? totals.order_count : '--' }}</span>
+						<span>退:--</span>
+					</div>
+					<div class="sum-sub">
+						<span>大:{{ (totals.qty_large || 0) > 0 ? totals.qty_large : '--' }}</span>
+						<span>中:{{ (totals.qty_medium || 0) > 0 ? totals.qty_medium : '--' }}</span>
+						<span>小:{{ (totals.qty_small || 0) > 0 ? totals.qty_small : '--' }}</span>
 					</div>
 				</div>
+				<div v-for="(r, i) in rows(t.type)" :key="t.type + i" :class="['sum-item', { active: eq(activeId(t.type), r[t.idKey]) }]" @click="onPick(t.type, r[t.idKey])">
+					<div class="sum-top">
+						<span class="sum-name">{{ r.name || t.emptyName }}</span>
+						<span class="sum-amount"><b style="color:#FF5500">{{ fmt(r.total_amount) }}</b><span class="unit">元</span></span>
+						<span v-if="(r.order_count || 0) > 0" class="sum-badge">{{ r.order_count }}</span>
+					</div>
+					<div class="sum-sub">
+						<span>普:{{ (r.order_count || 0) > 0 ? r.order_count : '--' }}</span>
+						<span>退:--</span>
+					</div>
+					<div class="sum-sub">
+						<span>大:{{ (r.qty_large || 0) > 0 ? r.qty_large : '--' }}</span>
+						<span>中:{{ (r.qty_medium || 0) > 0 ? r.qty_medium : '--' }}</span>
+						<span>小:{{ (r.qty_small || 0) > 0 ? r.qty_small : '--' }}</span>
+					</div>
+				</div>
+				<div v-if="!rows(t.type).length" class="summary-empty">暂无数据</div>
 			</div>
 		</div>
 	</div>
