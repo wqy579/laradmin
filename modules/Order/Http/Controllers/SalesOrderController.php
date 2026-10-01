@@ -668,8 +668,15 @@ class SalesOrderController extends Controller
             return $this->error('不能从 '.$current.' 流转到 '.$target, 422);
         }
         try {
-            $salesOrder->update(['status' => $target]);
-            // 日志失败不影响流转（日志表字段漂移曾导致 500）
+            $updateData = ['status' => $target];
+            // 待配送→配送中：保存配送员和车辆
+            if ($target === '配送中' && $request->filled('delivery_person_id')) {
+                $updateData['delivery_person_id'] = (int) $request->input('delivery_person_id');
+            }
+            if ($target === '配送中' && $request->filled('vehicle_id')) {
+                $updateData['vehicle_id'] = (int) $request->input('vehicle_id');
+            }
+            $salesOrder->update($updateData);
             try {
                 $this->logOperation($salesOrder, '状态流转', $current.' → '.$target, $current, $target);
             } catch (\Throwable $e) {

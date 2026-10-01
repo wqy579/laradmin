@@ -85,6 +85,26 @@
 		</div>
 	</div>
 	<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :orderType="orderType" :record="currentOrder" :customers="customers" :suppliers="suppliers" :warehouses="warehouses" :salesmen="salesmen" @success="doRefresh" />
+
+	<!-- 配送选择弹框 -->
+	<el-dialog v-model="dialog.delivery" title="选择配送员和车辆" width="400px" destroy-on-close>
+		<el-form label-width="80px" size="small">
+			<el-form-item label="配送员">
+				<el-select v-model="deliveryForm.delivery_person_id" placeholder="请选择配送员" filterable style="width:100%">
+					<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
+				</el-select>
+			</el-form-item>
+			<el-form-item label="车辆">
+				<el-select v-model="deliveryForm.vehicle_id" placeholder="请选择车辆" filterable clearable style="width:100%">
+					<el-option v-for="v in vehicles" :key="v.id" :label="v.plate_no" :value="v.id" />
+				</el-select>
+			</el-form-item>
+		</el-form>
+		<template #footer>
+			<el-button @click="dialog.delivery = false">取消</el-button>
+			<el-button type="primary" :loading="submitting" @click="confirmDelivery">确认配送</el-button>
+		</template>
+	</el-dialog>
 </template>
 
 <script setup>
@@ -148,13 +168,28 @@ const columns = [
 	{ prop: 'status', title: '状态', width: 90, align: 'center', slots: { default: 'status_default' } },
 ]
 
-const dialog = reactive({ order: false })
+const dialog = reactive({ order: false, delivery: false })
 const currentOrder = ref(null)
 const customers = ref([])
 const suppliers = ref([])
 const warehouses = ref([])
 const salesmen = ref([])
+const vehicles = ref([])
 const orderType = ref('normal')
+const submitting = ref(false)
+const deliveryForm = reactive({ delivery_person_id: null, vehicle_id: null })
+let pendingDeliveryRow = null
+
+const confirmDelivery = async () => {
+	if (!deliveryForm.delivery_person_id) { ElMessage.error('请选择配送员'); return }
+	submitting.value = true
+	try {
+		const res = await businessApi.salesOrder.approve.post(pendingDeliveryRow.id, { target: '配送中', delivery_person_id: deliveryForm.delivery_person_id, vehicle_id: deliveryForm.vehicle_id || null })
+		if (res.code === 200) { ElMessage.success(res.message || '已配送'); dialog.delivery = false; doRefresh() }
+		else ElMessage.error(res.message || '操作失败')
+	} catch (e) { ElMessage.error(e?.message || '操作失败') }
+	finally { submitting.value = false }
+}
 
 // 左侧汇总面板：跟随右侧搜索条件统计，点项联动过滤
 const summary = ref({ totals: {}, bySalesman: [], byVehicle: [], byRoute: [] })
@@ -217,6 +252,15 @@ const handleDelete = async (row) => {
 	if (res.code === 200) { ElMessage.success('删除成功'); doRefresh() }
 }
 const handleAdvance = async (row, target) => {
+	const realTarget = target || nextStatus(row.status)
+	// 待配送→配送中：弹框选配送员+车辆
+	if (realTarget === '配送中' && row.status === '待配送') {
+		pendingDeliveryRow = row
+		deliveryForm.delivery_person_id = null
+		deliveryForm.vehicle_id = null
+		dialog.delivery = true
+		return
+	}
 	try {
 		const res = await businessApi.salesOrder.approve.post(row.id, target ? { target } : {})
 		if (res.code === 200) { ElMessage.success(res.message || '状态已更新'); doRefresh() }
@@ -260,6 +304,7 @@ onMounted(() => {
 		businessApi.warehouse.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
 		businessApi.employee.list.get({ is_active: 1, page_size: 9999 }).then(r => { if (r.code === 200) salesmen.value = r.data?.list || [] }),
 		businessApi.supplier.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) suppliers.value = r.data?.list || [] }),
+		businessApi.vehicle.list.get({ is_active: 1, page_size: 9999 }).then(r => { if (r.code === 200) vehicles.value = r.data?.list || [] }),
 	]).finally(() => { refresh(); loadSummary(); loadStatusCounts() })
 })
 </script>
