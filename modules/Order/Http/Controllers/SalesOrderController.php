@@ -130,6 +130,7 @@ class SalesOrderController extends Controller
         $counts = [
             'pending' => $statusCounts['pending'] ?? 0,
             '配货中' => $statusCounts['配货中'] ?? 0,
+            '待调度' => $statusCounts['待调度'] ?? 0,
             '待配送' => $statusCounts['待配送'] ?? 0,
             '配送中' => $statusCounts['配送中'] ?? 0,
             '已收款' => $statusCounts['已收款'] ?? 0,
