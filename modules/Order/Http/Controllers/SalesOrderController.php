@@ -179,13 +179,12 @@ class SalesOrderController extends Controller
         if ($request->filled('route_id')) {
             $query->whereHas('customer', fn ($q) => $q->where('route_id', $request->route_id));
         }
-        // 顶部状态 tab：1待配货(pending) 2配货中 3待配送 4已发货收款(配送中+已收款+待收款) 5全部
+        // 顶部状态 tab：1待配货 2配货中 6待调度 3待配送 4已发货收款 5全部
         $statusTab = $request->input('status_tab');
-        $tabStatusMap = ['1' => 'pending', '2' => '配货中', '3' => '待配送'];
+        $tabStatusMap = ['1' => 'pending', '2' => '配货中', '6' => '待调度', '3' => '待配送'];
         if (isset($tabStatusMap[$statusTab])) {
             $query->where('status', $tabStatusMap[$statusTab]);
         } elseif ($statusTab === '4') {
-            // 已发货收款：配送中/已收款/待收款
             $query->whereIn('status', ['配送中', '已收款', '待收款']);
         }
         // 快捷筛选：-1全部 0未打印 1变价 2含赠品 3含备注
@@ -646,7 +645,7 @@ class SalesOrderController extends Controller
      */
     public function approve(Request $request, SalesOrder $salesOrder)
     {
-        $flow = ['pending' => '配货中', '配货中' => '待配送', '待配送' => '配送中', '配送中' => '已收款'];
+        $flow = ['pending' => '配货中', '配货中' => '待调度', '待调度' => '待配送', '待配送' => '配送中', '配送中' => '已收款'];
         $current = $salesOrder->status;
         $target = $request->input('target');
         if (! $target) {
@@ -658,8 +657,9 @@ class SalesOrderController extends Controller
         // 正向 + 逆向流转都允许（逆向：回退到上一状态）
         $allowed = [
             'pending' => ['配货中'],
-            '配货中' => ['待配送', 'pending'],
-            '待配送' => ['配送中', '配货中'],
+            '配货中' => ['待调度', 'pending'],
+            '待调度' => ['待配送', '配货中'],
+            '待配送' => ['配送中', '待调度'],
             '配送中' => ['已收款', '待收款', '待配送'],
             '待收款' => ['配送中', '已收款'],
             '已收款' => ['待收款'],
@@ -669,11 +669,11 @@ class SalesOrderController extends Controller
         }
         try {
             $updateData = ['status' => $target];
-            // 待配送→配送中：保存配送员和车辆
-            if ($target === '配送中' && $request->filled('delivery_person_id')) {
+            // 待调度→待配送：调度时保存配送员和车辆
+            if ($target === '待配送' && $request->filled('delivery_person_id')) {
                 $updateData['delivery_person_id'] = (int) $request->input('delivery_person_id');
             }
-            if ($target === '配送中' && $request->filled('vehicle_id')) {
+            if ($target === '待配送' && $request->filled('vehicle_id')) {
                 $updateData['vehicle_id'] = (int) $request->input('vehicle_id');
             }
             $salesOrder->update($updateData);

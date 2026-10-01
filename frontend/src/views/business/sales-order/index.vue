@@ -87,7 +87,7 @@
 	<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :orderType="orderType" :record="currentOrder" :customers="customers" :suppliers="suppliers" :warehouses="warehouses" :salesmen="salesmen" @success="doRefresh" />
 
 	<!-- 配送选择弹框 -->
-	<el-dialog v-model="dialog.delivery" title="选择配送员和车辆" width="400px" destroy-on-close>
+	<el-dialog v-model="dialog.delivery" title="调度——选择配送员和车辆" width="400px" destroy-on-close>
 		<el-form label-width="80px" size="small">
 			<el-form-item label="配送员">
 				<el-select v-model="deliveryForm.delivery_person_id" placeholder="请选择配送员" filterable style="width:100%">
@@ -102,7 +102,7 @@
 		</el-form>
 		<template #footer>
 			<el-button @click="dialog.delivery = false">取消</el-button>
-			<el-button type="primary" :loading="submitting" @click="confirmDelivery">确认配送</el-button>
+			<el-button type="primary" :loading="submitting" @click="confirmDelivery">确认调度</el-button>
 		</template>
 	</el-dialog>
 </template>
@@ -141,6 +141,7 @@ const statusTabs = ref([
 	{ value: '5', label: '全部单据', count: 0 },
 	{ value: '1', label: '待配货', count: 0 },
 	{ value: '2', label: '配货中', count: 0 },
+	{ value: '6', label: '待调度', count: 0 },
 	{ value: '3', label: '待配送', count: 0 },
 	{ value: '4', label: '已发货收款', count: 0 },
 ])
@@ -184,8 +185,8 @@ const confirmDelivery = async () => {
 	if (!deliveryForm.delivery_person_id) { ElMessage.error('请选择配送员'); return }
 	submitting.value = true
 	try {
-		const res = await businessApi.salesOrder.approve.post(pendingDeliveryRow.id, { target: '配送中', delivery_person_id: deliveryForm.delivery_person_id, vehicle_id: deliveryForm.vehicle_id || null })
-		if (res.code === 200) { ElMessage.success(res.message || '已配送'); dialog.delivery = false; doRefresh() }
+		const res = await businessApi.salesOrder.approve.post(pendingDeliveryRow.id, { target: '待配送', delivery_person_id: deliveryForm.delivery_person_id, vehicle_id: deliveryForm.vehicle_id || null })
+		if (res.code === 200) { ElMessage.success(res.message || '调度完成'); dialog.delivery = false; doRefresh() }
 		else ElMessage.error(res.message || '操作失败')
 	} catch (e) { ElMessage.error(e?.message || '操作失败') }
 	finally { submitting.value = false }
@@ -212,8 +213,9 @@ const loadStatusCounts = async () => {
 		statusTabs.value[0].count = c.all || 0
 		statusTabs.value[1].count = c.pending || 0
 		statusTabs.value[2].count = c['配货中'] || 0
-		statusTabs.value[3].count = c['待配送'] || 0
-		statusTabs.value[4].count = (c['配送中'] || 0) + (c['已收款'] || 0) + (c['待收款'] || 0)
+		statusTabs.value[3].count = c['待调度'] || 0
+		statusTabs.value[4].count = c['待配送'] || 0
+		statusTabs.value[5].count = (c['配送中'] || 0) + (c['已收款'] || 0) + (c['待收款'] || 0)
 	}
 }
 const doSearch = (...args) => {
@@ -235,15 +237,13 @@ const onSummaryFilter = ({ type, id }) => {
 	loadSummary()
 }
 
-const statusType = (s) => ({ pending: 'warning', '配货中': 'primary', '待配送': 'info', '配送中': 'primary', '已收款': 'success', '待收款': 'danger', cancelled: 'info' }[s] || 'info')
-const statusLabel = (s) => ({ pending: '待配货', '配货中': '配货中', '待配送': '待配送', '配送中': '配送中', '已收款': '已收款', '待收款': '待收款', cancelled: '已取消' }[s] || s)
-// 下一状态：用于显示流转按钮
-const nextStatus = (s) => ({ pending: '配货中', '配货中': '待配送', '待配送': '配送中', '配送中': '已收款' }[s] || null)
-// 简短流转按钮文案（配货中→配货）
-const nextStatusShort = (s) => ({ pending: '配货', '配货中': '待配送', '待配送': '配送', '配送中': '已收款' }[s] || nextStatus(s))
-// 逆向：可回退到上一状态（已收款→待收款→配送中→待配送→配货中→待配货）
-const prevStatus = (s) => ({ '已收款': '待收款', '待收款': '配送中', '配送中': '待配送', '待配送': '配货中', '配货中': '待配货' }[s] || null)
-const prevStatusShort = (s) => ({ '已收款': '待收款', '待收款': '配送', '配送中': '待配送', '待配送': '配货', '配货中': '待配货' }[s] || prevStatus(s))
+const statusType = (s) => ({ pending: 'warning', '配货中': 'primary', '待调度': 'info', '待配送': 'info', '配送中': 'primary', '已收款': 'success', '待收款': 'danger', cancelled: 'info' }[s] || 'info')
+const statusLabel = (s) => ({ pending: '待配货', '配货中': '配货中', '待调度': '待调度', '待配送': '待配送', '配送中': '配送中', '已收款': '已收款', '待收款': '待收款', cancelled: '已取消' }[s] || s)
+// 流程：待配货→配货中→待调度→待配送→配送中→已收款/待收款
+const nextStatus = (s) => ({ pending: '配货中', '配货中': '待调度', '待调度': '待配送', '待配送': '配送中', '配送中': '已收款' }[s] || null)
+const nextStatusShort = (s) => ({ pending: '配货', '配货中': '待调度', '待调度': '调度', '待配送': '配送', '配送中': '已收款' }[s] || nextStatus(s))
+const prevStatus = (s) => ({ '已收款': '待收款', '待收款': '配送中', '配送中': '待配送', '待配送': '待调度', '待调度': '配货中', '配货中': '待配货' }[s] || null)
+const prevStatusShort = (s) => ({ '已收款': '待收款', '待收款': '配送', '配送中': '待配送', '待配送': '待调度', '待调度': '配货', '配货中': '待配货' }[s] || prevStatus(s))
 
 const handleAdd = () => { currentOrder.value = null; orderType.value = 'normal'; dialog.order = true }
 const handleEdit = (row) => { currentOrder.value = row; dialog.order = true }
@@ -253,8 +253,8 @@ const handleDelete = async (row) => {
 }
 const handleAdvance = async (row, target) => {
 	const realTarget = target || nextStatus(row.status)
-	// 待配送→配送中：弹框选配送员+车辆
-	if (realTarget === '配送中' && row.status === '待配送') {
+	// 待调度→待配送：调度时选配送员+车辆
+	if (realTarget === '待配送' && row.status === '待调度') {
 		pendingDeliveryRow = row
 		deliveryForm.delivery_person_id = null
 		deliveryForm.vehicle_id = null
