@@ -166,14 +166,14 @@ const loadSummary = async () => {
 	if (res.code === 200) summary.value = res.data || {}
 }
 const statusCounts = ref({})
+// status_counts 从 list 响应取（useTable 不暴露响应，用 onLoaded 回调或单独轻量请求）
+// 简化：loadSummary 已含 totals.order_count（=all），状态 tab count 用 summary 的各分组 sum 近似
+// 但精确各状态数需要 list 的 status_counts——用独立轻量请求（只 count，不分页）
 const loadStatusCounts = async () => {
-	// 跟随当前搜索条件（除 status_tab）统计各状态数
-	const params = { ...searchForm, status_tab: undefined }
-	const res = await businessApi.salesOrder.list.get({ ...params, page: 1, page_size: 1 })
+	const { salesman_id, vehicle_id, route_id, ...rest } = searchForm
+	const res = await businessApi.salesOrder.list.get({ ...rest, page: 1, page_size: 1 })
 	if (res.code === 200) {
 		const c = res.data?.status_counts || {}
-		statusCounts.value = c
-		// 顺序：全部/待配货/配货中/待配送/已发货收款
 		statusTabs.value[0].count = c.all || 0
 		statusTabs.value[1].count = c.pending || 0
 		statusTabs.value[2].count = c['配货中'] || 0
@@ -181,8 +181,13 @@ const loadStatusCounts = async () => {
 		statusTabs.value[4].count = (c['配送中'] || 0) + (c['已收款'] || 0) + (c['待收款'] || 0)
 	}
 }
-const doSearch = (...args) => { search(...args); loadSummary(); loadStatusCounts() }
-const doRefresh = () => { refresh(); loadSummary(); loadStatusCounts() }
+const doSearch = (...args) => {
+	// list + summary + statusCounts 并行
+	Promise.all([Promise.resolve(search(...args)), loadSummary(), loadStatusCounts()])
+}
+const doRefresh = () => {
+	Promise.all([Promise.resolve(refresh()), loadSummary(), loadStatusCounts()])
+}
 const onSummaryFilter = ({ type, id }) => {
 	const field = type === 'salesman' ? 'salesman_id' : type === 'vehicle' ? 'vehicle_id' : 'route_id'
 	// 三个维度互斥：选一个时清掉另外两个，避免叠加过滤

@@ -95,51 +95,64 @@ class SalesOrderController extends Controller
 
     public function index(Request $request)
     {
-        $query = SalesOrder::with(['customer', 'warehouse', 'salesman', 'items.product']);
+        // 列表只 load 必要关联（不 load items.product——大对象拖慢，赠品/变价标记单独查）
+        $query = SalesOrder::with(['customer:id,name,address,category,route_id', 'warehouse:id,name', 'salesman:id']);
         $this->applyOrderFilters($query, $request);
         $query->orderBy('id', 'desc');
         $orders = $query->paginate($request->integer('per_page', 20));
-        $customers = Customer::where('is_active', true)->orderBy('name')->get();
-        $warehouses = Warehouse::where('is_active', true)->get();
-        $salesmen = \DB::table('employees')->orderBy('id')->get(['id', 'name']);
 
-        // 给每行补 customer_name/operator_name/warehouse_name + 赠品/变价标记
+        // 批量查当前页订单的赠品/变价标记（一次查询代替 N+1）
+        $orderIds = $orders->getCollection()->pluck('id')->all();
+        $giftFlags = \DB::table('sales_order_items')
+            ->whereIn('sales_order_id', $orderIds)
+            ->selectRaw('sales_order_id, MAX(CASE WHEN sale_mode IN ("赠品","陈列费") THEN 1 ELSE 0 END) as has_gift, MAX(CASE WHEN price_source = "特殊" AND sale_mode NOT IN ("赠品","陈列费") THEN 1 ELSE 0 END) as has_special')
+            ->groupBy('sales_order_id')
+            ->get()->keyBy('sales_order_id');
+
         $adminNames = \DB::table('auth_user')->pluck('username', 'id');
-        $list = $orders->getCollection()->map(function ($o) use ($adminNames) {
+        $list = $orders->getCollection()->map(function ($o) use ($adminNames, $giftFlags) {
             $o->customer_name = $o->customer?->name;
             $o->operator_name = $adminNames[$o->created_by] ?? null;
             $o->warehouse_name = $o->warehouse?->name;
             $o->is_return = false;
-            // 赠品：sale_mode 为赠品/陈列费；变价：price_source=特殊 但非赠品（赠品不是变价）
-            $o->has_gift = $o->items->contains(fn ($i) => in_array($i->sale_mode, ['赠品', '陈列费']));
-            $o->has_special = $o->items->contains(fn ($i) => $i->price_source === '特殊' && ! in_array($i->sale_mode, ['赠品', '陈列费']));
+            $flags = $giftFlags->get($o->id);
+            $o->has_gift = (bool) ($flags?->has_gift);
+            $o->has_special = (bool) ($flags?->has_special);
 
             return $o;
         });
 
-        // 各状态订单数（顶部 tab badge）
+        // status_counts 合并成一次 groupBy 查询（all = 各状态之和）
         $baseQuery = SalesOrder::query();
         $this->applyOrderFilters($baseQuery, $request);
         $statusCounts = (clone $baseQuery)->select('status', \DB::raw('count(*) as cnt'))->groupBy('status')->pluck('cnt', 'status');
+        $allCount = $statusCounts->sum();
         $counts = [
             'pending' => $statusCounts['pending'] ?? 0,
             '配货中' => $statusCounts['配货中'] ?? 0,
             '待配送' => $statusCounts['待配送'] ?? 0,
             '配送中' => $statusCounts['配送中'] ?? 0,
-            'all' => (clone $baseQuery)->count(),
+            '已收款' => $statusCounts['已收款'] ?? 0,
+            '待收款' => $statusCounts['待收款'] ?? 0,
+            'all' => $allCount,
         ];
 
-        return $this->success([
+        // customers/warehouses/salesmen 只首次加载（后续翻页不传，减少数据量）
+        $extra = [];
+        if (! $request->has('page') || $request->integer('page', 1) === 1) {
+            $extra['customers'] = Customer::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+            $extra['warehouses'] = Warehouse::where('is_active', true)->get(['id', 'name']);
+            $extra['salesmen'] = \DB::table('employees')->orderBy('id')->get(['id', 'name']);
+        }
+
+        return $this->success(array_merge([
             'list' => $list,
             'total' => $orders->total(),
             'page' => $orders->currentPage(),
             'page_size' => $orders->perPage(),
             'last_page' => $orders->lastPage(),
-            'customers' => $customers,
-            'warehouses' => $warehouses,
-            'salesmen' => $salesmen,
             'status_counts' => $counts,
-        ]);
+        ], $extra));
     }
 
     /**
