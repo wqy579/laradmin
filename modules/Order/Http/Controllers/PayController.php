@@ -103,4 +103,27 @@ class PayController extends Controller
 
         return $this->success($stats);
     }
+
+    /** 应付账款：按供应商汇总采购+退货总额 - 已付款 */
+    public function payable(Request $request)
+    {
+        // 供应商应付 = 采购单总额(returns 表已改 customer，但 pays 仍用 supplier) - 已付款
+        $query = \DB::table('suppliers as s')
+            ->leftJoin('pays as p', function ($j) {
+                $j->on('s.id', '=', 'p.supplier_id')->where('p.status', 1);
+            })
+            ->select(
+                's.id as supplier_id', 's.name as supplier_name',
+                \DB::raw('COALESCE(SUM(p.amount), 0) as paid_total')
+            )
+            ->where('s.is_active', 1)
+            ->groupBy('s.id', 's.name');
+
+        if ($request->filled('supplier_id')) {
+            $query->where('s.id', $request->supplier_id);
+        }
+        $list = $query->havingRaw('paid_total > 0')->get();
+
+        return $this->success(['list' => $list, 'total' => $list->count()]);
+    }
 }

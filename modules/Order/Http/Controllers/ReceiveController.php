@@ -103,4 +103,36 @@ class ReceiveController extends Controller
 
         return $this->success($stats);
     }
+
+    /** 应收账款：按客户汇总订单总额 - 已收款 */
+    public function receivable(Request $request)
+    {
+        // 每个客户的订单总额（排除已取消）vs 已审核收款
+        $query = \DB::table('customers as c')
+            ->leftJoin('sales_orders as so', function ($j) {
+                $j->on('c.id', '=', 'so.customer_id')->whereNotIn('so.status', ['cancelled']);
+            })
+            ->leftJoin('receives as r', function ($j) {
+                $j->on('c.id', '=', 'r.customer_id')->where('r.status', 1);
+            })
+            ->select(
+                'c.id as customer_id', 'c.name as customer_name',
+                \DB::raw('COALESCE(SUM(DISTINCT so.total_amount), 0) as order_total'),
+                \DB::raw('COALESCE(SUM(r.amount), 0) as received_total')
+            )
+            ->where('c.is_active', 1)
+            ->groupBy('c.id', 'c.name');
+
+        if ($request->filled('customer_id')) {
+            $query->where('c.id', $request->customer_id);
+        }
+        $list = $query->havingRaw('order_total > 0 OR received_total > 0')->orderByDesc('order_total')->get()
+            ->map(function ($r) {
+                $r->receivable = round($r->order_total - $r->received_total, 2);
+
+                return $r;
+            });
+
+        return $this->success(['list' => $list, 'total' => $list->count()]);
+    }
 }

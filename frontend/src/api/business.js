@@ -96,6 +96,16 @@ const businessApi = {
 		list: { get: (params) => request.get('business/stock-history', { params }) },
 	},
 
+	// 现金流水
+	cashFlow: {
+		list: { get: (params) => request.get('business/cash-flow', { params }) },
+	},
+
+	// 月度利润
+	profit: {
+		list: { get: (params) => request.get('business/profit', { params }) },
+	},
+
 	// 退货
 	returnOrder: {
 		list: { get: (params) => request.get('business/return', { params }) },
@@ -185,6 +195,7 @@ const businessApi = {
 		approve: { post: (id) => request.post(`business/receive/${id}/approve`) },
 		delete: { delete: (id) => request.delete(`business/receive/${id}`) },
 		statistics: { get: (params) => request.get('business/receive/statistics', { params }) },
+		receivable: { get: (params) => request.get('business/receive/receivable', { params }) },
 	},
 
 	// 付款管理
@@ -196,6 +207,7 @@ const businessApi = {
 		approve: { post: (id) => request.post(`business/pay/${id}/approve`) },
 		delete: { delete: (id) => request.delete(`business/pay/${id}`) },
 		statistics: { get: (params) => request.get('business/pay/statistics', { params }) },
+		payable: { get: (params) => request.get('business/pay/payable', { params }) },
 	},
 
 	// 费用管理

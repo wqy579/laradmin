@@ -621,6 +621,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/cash-flow",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\CashFlowController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/cost-price",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\CostPriceController@index",
@@ -1029,6 +1041,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/pay/payable",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\PayController@payable",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/pay/statistics",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@statistics",
@@ -1233,6 +1257,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/profit",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\ProfitController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/receive",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@index",
@@ -1248,6 +1284,18 @@
         "uri": "admin/business/receive",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/receive/receivable",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@receivable",
         "middleware": [
             "api",
             "stock.snapshot",

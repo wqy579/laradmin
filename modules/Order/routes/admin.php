@@ -1,9 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Order\Http\Controllers\CashFlowController;
 use Modules\Order\Http\Controllers\CustomerController;
 use Modules\Order\Http\Controllers\DeliveryController;
 use Modules\Order\Http\Controllers\PayController;
+use Modules\Order\Http\Controllers\ProfitController;
 use Modules\Order\Http\Controllers\ReceiveController;
 use Modules\Order\Http\Controllers\ReturnController;
 use Modules\Order\Http\Controllers\RouteController;
@@ -111,6 +113,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/receive')->group(function () {
         Route::get('/', [ReceiveController::class, 'index']);
         Route::get('/statistics', [ReceiveController::class, 'statistics']);
+        Route::get('/receivable', [ReceiveController::class, 'receivable']);
         Route::get('/{id}', [ReceiveController::class, 'show']);
         Route::post('/', [ReceiveController::class, 'store']);
         Route::put('/{id}', [ReceiveController::class, 'update']);
@@ -121,10 +124,15 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/pay')->group(function () {
         Route::get('/', [PayController::class, 'index']);
         Route::get('/statistics', [PayController::class, 'statistics']);
+        Route::get('/payable', [PayController::class, 'payable']);
         Route::get('/{id}', [PayController::class, 'show']);
         Route::post('/', [PayController::class, 'store']);
         Route::put('/{id}', [PayController::class, 'update']);
         Route::post('/{id}/approve', [PayController::class, 'approve']);
         Route::delete('/{id}', [PayController::class, 'destroy']);
     });
+    // 现金流水
+    Route::get('business/cash-flow', [CashFlowController::class, 'index']);
+    // 月度利润
+    Route::get('business/profit', [ProfitController::class, 'index']);
 });

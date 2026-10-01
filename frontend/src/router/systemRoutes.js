@@ -188,6 +188,30 @@ const systemRoutes = [
 				component: () => import('../views/business/expense/index.vue'),
 				meta: { title: 'expense' },
 			},
+			{
+				path: '/business/receivable',
+				name: 'Receivable',
+				component: () => import('../views/business/receivable/index.vue'),
+				meta: { title: 'receivable' },
+			},
+			{
+				path: '/business/payable',
+				name: 'Payable',
+				component: () => import('../views/business/payable/index.vue'),
+				meta: { title: 'payable' },
+			},
+			{
+				path: '/business/cash-flow',
+				name: 'CashFlow',
+				component: () => import('../views/business/cash-flow/index.vue'),
+				meta: { title: 'cashFlow' },
+			},
+			{
+				path: '/business/profit',
+				name: 'Profit',
+				component: () => import('../views/business/profit/index.vue'),
+				meta: { title: 'profit' },
+			},
 			// 权限管理
 			{
 				path: '/auth/permission',
