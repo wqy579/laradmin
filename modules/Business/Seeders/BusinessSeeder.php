@@ -125,7 +125,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'order.sales', 'title' => '销售订单', 'parent' => 'order', 'path' => '/business/sales-order', 'component' => 'business/sales-order/index', 'sort' => 1],
             ['name' => 'order.delivery', 'title' => '发货收款', 'parent' => 'order', 'path' => '/business/delivery', 'sort' => 2],
             ['name' => 'order.dispatch', 'title' => '配送管理', 'parent' => 'order', 'path' => '/business/dispatch', 'sort' => 3],
-            ['name' => 'order.transfer', 'title' => '订单移库', 'parent' => 'order', 'path' => '/business/order-transfer', 'sort' => 4],
+
             ['name' => 'order.sales-return', 'title' => '退货订单', 'parent' => 'order', 'path' => '/business/sales-return', 'sort' => 5],
         ];
 
