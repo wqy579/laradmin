@@ -118,11 +118,11 @@ const clearSelection = () => { selectedRows.value = []; tableRef.value?.clearChe
 
 // 顶部状态 tab（新系统只有 pending，1-4 都映射 pending，5 全部）
 const statusTabs = ref([
+	{ value: '5', label: '全部单据', count: 0 },
 	{ value: '1', label: '待配货', count: 0 },
 	{ value: '2', label: '配货中', count: 0 },
 	{ value: '3', label: '待配送', count: 0 },
 	{ value: '4', label: '已发货收款', count: 0 },
-	{ value: '5', label: '全部单据', count: 0 },
 ])
 // 快捷筛选
 const quickFilters = ref([
@@ -173,11 +173,12 @@ const loadStatusCounts = async () => {
 	if (res.code === 200) {
 		const c = res.data?.status_counts || {}
 		statusCounts.value = c
-		statusTabs.value[0].count = c.pending || 0
-		statusTabs.value[1].count = c['配货中'] || 0
-		statusTabs.value[2].count = c['待配送'] || 0
-		statusTabs.value[3].count = c['配送中'] || 0
-		statusTabs.value[4].count = c.all || 0
+		// 顺序：全部/待配货/配货中/待配送/已发货收款
+		statusTabs.value[0].count = c.all || 0
+		statusTabs.value[1].count = c.pending || 0
+		statusTabs.value[2].count = c['配货中'] || 0
+		statusTabs.value[3].count = c['待配送'] || 0
+		statusTabs.value[4].count = (c['配送中'] || 0) + (c['已收款'] || 0) + (c['待收款'] || 0)
 	}
 }
 const doSearch = (...args) => { search(...args); loadSummary(); loadStatusCounts() }

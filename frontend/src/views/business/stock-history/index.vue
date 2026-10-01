@@ -20,7 +20,13 @@
 				<el-tag size="small" :type="row.change_qty > 0 ? 'success' : 'danger'">{{ changeTypeLabel(row.change_type) }}</el-tag>
 			</template>
 			<template #change_qty="{ row }">
-				<span :class="row.change_qty > 0 ? 'text-success' : 'text-danger'">{{ row.change_qty > 0 ? '+' : '' }}{{ row.change_qty }}</span>
+				<span :class="row.change_qty > 0 ? 'text-success' : 'text-danger'">{{ row.change_qty > 0 ? '+' : '' }}{{ formatStock(Math.abs(row.change_qty), row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}</span>
+			</template>
+			<template #before_qty="{ row }">
+				<span>{{ formatStock(row.before_qty, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}</span>
+			</template>
+			<template #after_qty="{ row }">
+				<span>{{ formatStock(row.after_qty, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}</span>
 			</template>
 		</sTable>
 	</div>
@@ -30,6 +36,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
+import { formatStock } from '@/utils/formatStock'
 import sTable from '@/components/sTable/index.vue'
 
 const searchForm = reactive({ warehouse_id: '', change_type: '', keyword: '' })
@@ -57,8 +64,8 @@ const columns = [
 	{ prop: 'warehouse_name', title: '仓库', width: 120 },
 	{ prop: 'change_type', title: '变化类型', width: 100, align: 'center', slots: { default: 'change_type' } },
 	{ prop: 'change_qty', title: '变动量', width: 90, align: 'right', slots: { default: 'change_qty' } },
-	{ prop: 'before_qty', title: '变化前', width: 90, align: 'right' },
-	{ prop: 'after_qty', title: '变化后', width: 90, align: 'right' },
+	{ prop: 'before_qty', title: '变化前', width: 110, align: 'right', slots: { default: 'before_qty' } },
+	{ prop: 'after_qty', title: '变化后', width: 110, align: 'right', slots: { default: 'after_qty' } },
 	{ prop: 'related_type', title: '关联类型', width: 110 },
 	{ prop: 'related_id', title: '关联ID', width: 80, align: 'center' },
 	{ prop: 'remark', title: '备注', width: 140, showOverflowTooltip: true },

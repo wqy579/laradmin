@@ -17,7 +17,9 @@ class StockHistoryController extends Controller
                 'h.id', 'h.product_id', 'p.name as product_name', 'p.spec as product_spec',
                 'h.warehouse_id', 'w.name as warehouse_name',
                 'h.change_type', 'h.change_qty', 'h.before_qty', 'h.after_qty',
-                'h.related_id', 'h.related_type', 'h.remark', 'h.created_at'
+                'h.related_id', 'h.related_type', 'h.remark', 'h.created_at',
+                'p.unit_conversion', 'p.unit_conversion_medium',
+                'p.price_unit', 'p.barcode_medium_unit', 'p.price_unit_small'
             );
 
         if ($request->filled('product_id')) {

@@ -170,9 +170,10 @@ class StockService
             $stock->frozen_qty = $beforeFrozen + $quantity;
             $stock->save();
 
+            // 流水记库存量（quantity），冻结是占用库存 → change_qty 负数
             $this->recordHistory(
-                $productId, $warehouseId, 'sale_freeze', $quantity,
-                $beforeFrozen, (int) $stock->frozen_qty, $orderId, 'SalesOrder', '销售订单冻结'
+                $productId, $warehouseId, 'sale_freeze', -$quantity,
+                (int) $stock->quantity, (int) $stock->quantity, $orderId, 'SalesOrder', '销售订单冻结'
             );
 
             $this->syncProductStockQty($productId);
@@ -200,9 +201,10 @@ class StockService
             $stock->frozen_qty = max(0, $beforeFrozen - $quantity);
             $stock->save();
 
+            // 解冻是释放库存 → change_qty 正数
             $this->recordHistory(
-                $productId, $warehouseId, 'sale_unfreeze', -$quantity,
-                $beforeFrozen, (int) $stock->frozen_qty, $orderId, 'SalesOrder', '销售订单解冻'
+                $productId, $warehouseId, 'sale_unfreeze', $quantity,
+                (int) $stock->quantity, (int) $stock->quantity, $orderId, 'SalesOrder', '销售订单解冻'
             );
 
             $this->syncProductStockQty($productId);
