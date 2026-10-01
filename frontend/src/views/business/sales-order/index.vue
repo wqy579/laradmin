@@ -206,7 +206,8 @@ const statusCounts = ref({})
 // 简化：loadSummary 已含 totals.order_count（=all），状态 tab count 用 summary 的各分组 sum 近似
 // 但精确各状态数需要 list 的 status_counts——用独立轻量请求（只 count，不分页）
 const loadStatusCounts = async () => {
-	const { salesman_id, vehicle_id, route_id, ...rest } = searchForm
+	// 剔除维度筛选 + status_tab（status_counts 要统计所有状态，不能被 tab 过滤）
+	const { salesman_id, vehicle_id, route_id, status_tab, ...rest } = searchForm
 	const res = await businessApi.salesOrder.list.get({ ...rest, page: 1, page_size: 1 })
 	if (res.code === 200) {
 		const c = res.data?.status_counts || {}
