@@ -243,7 +243,8 @@ const statusLabel = (s) => ({ pending: '待配货', '配货中': '配货中', '�
 const nextStatus = (s) => ({ pending: '配货中', '配货中': '待调度', '待调度': '待配送', '待配送': '配送中', '配送中': '已收款' }[s] || null)
 const nextStatusShort = (s) => ({ pending: '配货', '配货中': '待调度', '待调度': '调度', '待配送': '配送', '配送中': '已收款' }[s] || nextStatus(s))
 const prevStatus = (s) => ({ '已收款': '待收款', '待收款': '配送中', '配送中': '待配送', '待配送': '待调度', '待调度': '配货中', '配货中': '待配货' }[s] || null)
-const prevStatusShort = (s) => ({ '已收款': '待收款', '待收款': '配送', '配送中': '待配送', '待配送': '待调度', '待调度': '配货', '配货中': '待配货' }[s] || prevStatus(s))
+// 逆向按钮文案：撤销当前步骤（如配货中→撤销配货=回待配货）
+const prevStatusShort = (s) => ({ '已收款': '撤销收款', '待收款': '撤销待收款', '配送中': '撤销配送', '待配送': '撤销调度', '待调度': '撤销调度', '配货中': '撤销配货' }[s] || prevStatus(s))
 
 const handleAdd = () => { currentOrder.value = null; orderType.value = 'normal'; dialog.order = true }
 const handleEdit = (row) => { currentOrder.value = row; dialog.order = true }
