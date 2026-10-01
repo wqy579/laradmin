@@ -143,6 +143,7 @@ const statusTabs = ref([
 	{ value: '2', label: '配货中', count: 0 },
 	{ value: '6', label: '待调度', count: 0 },
 	{ value: '3', label: '待配送', count: 0 },
+	{ value: '7', label: '配送中', count: 0 },
 	{ value: '4', label: '已发货收款', count: 0 },
 ])
 // 快捷筛选
@@ -216,7 +217,8 @@ const loadStatusCounts = async () => {
 		statusTabs.value[2].count = c['配货中'] || 0
 		statusTabs.value[3].count = c['待调度'] || 0
 		statusTabs.value[4].count = c['待配送'] || 0
-		statusTabs.value[5].count = (c['配送中'] || 0) + (c['已收款'] || 0) + (c['待收款'] || 0)
+		statusTabs.value[5].count = c['配送中'] || 0
+		statusTabs.value[6].count = (c['已收款'] || 0) + (c['待收款'] || 0)
 	}
 }
 const doSearch = (...args) => {
