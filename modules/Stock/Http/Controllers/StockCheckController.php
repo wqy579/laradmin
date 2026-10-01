@@ -35,10 +35,12 @@ class StockCheckController extends Controller
             $today = now()->toDateString();
             $yesterday = now()->subDay()->toDateString();
 
-            // 昨日快照
-            $yesterdaySnap = DB::table('stock_snapshots')
-                ->select('product_id', 'warehouse_id', 'quantity')
-                ->where('snapshot_date', $yesterday);
+            // 昨日库存：取 stocks_history 昨天最后一笔的 after_qty（不依赖快照定时任务，避免多笔入库时快照漏拍）
+            $yesterdaySnap = DB::table('stocks_history as h')
+                ->join(DB::raw('(SELECT product_id, warehouse_id, MAX(id) as max_id FROM stocks_history WHERE DATE(created_at) = "'.$yesterday.'" GROUP BY product_id, warehouse_id) as last'), function ($join) {
+                    $join->on('h.id', '=', 'last.max_id');
+                })
+                ->select('h.product_id', 'h.warehouse_id', 'h.after_qty as quantity');
 
             // 今日入库/出库：从 stocks_history 流水算（stock_ins/stock_outs 表已弃用，入库直接调 stockIn 写 stocks_history）
             $todayIn = DB::table('stocks_history')
