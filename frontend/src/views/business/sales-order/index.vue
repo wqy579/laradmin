@@ -160,7 +160,9 @@ const orderType = ref('normal')
 const summary = ref({ totals: {}, bySalesman: [], byVehicle: [], byRoute: [] })
 const activeFilter = ref({ salesman: null, vehicle: null, route: null })
 const loadSummary = async () => {
-	const res = await businessApi.salesOrder.summary.get(searchForm)
+	// 汇总剔除 salesman/vehicle/route 维度筛选，否则选中一项后汇总只剩该项
+	const { salesman_id, vehicle_id, route_id, ...rest } = searchForm
+	const res = await businessApi.salesOrder.summary.get(rest)
 	if (res.code === 200) summary.value = res.data || {}
 }
 const statusCounts = ref({})
@@ -182,8 +184,12 @@ const doSearch = (...args) => { search(...args); loadSummary(); loadStatusCounts
 const doRefresh = () => { refresh(); loadSummary(); loadStatusCounts() }
 const onSummaryFilter = ({ type, id }) => {
 	const field = type === 'salesman' ? 'salesman_id' : type === 'vehicle' ? 'vehicle_id' : 'route_id'
-	searchForm[field] = id
-	activeFilter.value[type] = id
+	// 三个维度互斥：选一个时清掉另外两个，避免叠加过滤
+	searchForm.salesman_id = type === 'salesman' ? id : null
+	searchForm.vehicle_id = type === 'vehicle' ? id : null
+	searchForm.route_id = type === 'route' ? id : null
+	activeFilter.value = { salesman: null, vehicle: null, route: null, [type]: id }
+	// 汇总始终按全量（不带 salesman/vehicle/route 过滤），否则选中后列表只剩一项
 	search()
 	loadSummary()
 }

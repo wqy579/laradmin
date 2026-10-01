@@ -65,7 +65,8 @@ const rows = (type) => {
 }
 const activeId = (type) => props.activeFilter?.[type] ?? null
 const fmt = (n) => Number(n || 0).toFixed(2)
-const eq = (a, b) => String(a ?? '') === String(b ?? '')
+// 行选中：合计行(id==null)只在 activeId 为 null 时高亮；其他行严格按 id 匹配
+const eq = (active, rowId) => active != null && String(active) === String(rowId ?? '')
 const onPick = (type, id) => emit('filter', { type, id })
 </script>
 

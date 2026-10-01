@@ -1098,7 +1098,7 @@ const onDialogKeydown = (e) => {
 
 .items-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 920px; }
 .items-table th { position: sticky; top: 0; z-index: 2; background: var(--el-color-primary-light-9); color: var(--el-text-color-primary); font-weight: 600; text-align: center; padding: 6px 4px; border-bottom: 1px solid var(--el-border-color); }
-.items-table td { padding: 3px 4px; border: 1px solid var(--el-border-color-lighter); vertical-align: middle; }
+.items-table td { padding: 8px 4px; border: 1px solid var(--el-border-color-lighter); vertical-align: middle; }
 .item-row:nth-child(even) { background: var(--el-fill-color-lighter); }
 .c-idx { width: 26px; text-align: center; }
 .c-product { width: 168px; }
