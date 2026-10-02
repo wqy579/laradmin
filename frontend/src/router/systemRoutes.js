@@ -158,6 +158,12 @@ const systemRoutes = [
 				meta: { title: 'delivery' },
 			},
 			{
+				path: '/business/dispatch',
+				name: 'Dispatch',
+				component: () => import('../views/business/dispatch/index.vue'),
+				meta: { title: 'dispatch' },
+			},
+			{
 				path: '/business/attendance',
 				name: 'Attendance',
 				component: () => import('../views/business/attendance/index.vue'),
