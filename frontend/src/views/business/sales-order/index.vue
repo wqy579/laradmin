@@ -211,6 +211,19 @@ const batchRedFlush = async (type) => {
 		if (res.code === 200) {
 			ElMessage.success(`红冲${type} ${ids.length} 单完成`)
 			clearSelection(); doRefresh()
+			// 改单且只选一单：自动打开新订单编辑页
+			if (type === '改单' && ids.length === 1) {
+				const result = res.data?.results?.[0]
+				if (result?.new_order_id) {
+					// 先加载新订单数据再打开 dialog
+					const detail = await businessApi.salesOrder.detail.get(result.new_order_id)
+					if (detail.code === 200) {
+						currentOrder.value = detail.data
+						orderType.value = 'normal'
+						dialog.order = true
+					}
+				}
+			}
 		} else ElMessage.error(res.message || '红冲失败')
 	} catch (e) {
 		if (e !== 'cancel' && e !== 'close') ElMessage.error(e?.message || '红冲失败')
