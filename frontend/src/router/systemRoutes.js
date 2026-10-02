@@ -230,6 +230,12 @@ const systemRoutes = [
 				component: () => import('../views/business/other-income/index.vue'),
 				meta: { title: 'otherIncome' },
 			},
+			{
+				path: '/business/general-expense',
+				name: 'GeneralExpense',
+				component: () => import('../views/business/general-expense/index.vue'),
+				meta: { title: 'generalExpense' },
+			},
 			// 权限管理
 			{
 				path: '/auth/permission',
