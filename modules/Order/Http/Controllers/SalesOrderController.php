@@ -743,7 +743,7 @@ class SalesOrderController extends Controller
                     continue;
                 }
 
-                // 原订单标记已红冲
+                // 原订单标记已红冲，关联红字冲销单
                 $order->update([
                     'status' => '已红冲',
                     'red_flush_reason' => $validated['reason'],
@@ -768,6 +768,11 @@ class SalesOrderController extends Controller
                     'original_order_id' => $orderId,
                     'payment_status' => '未确认',
                 ]);
+
+                // 原订单反向关联红字冲销单（撤单时 = 冲销单ID；改单时 = 新订单ID）
+                if ($validated['type'] === 'cancel') {
+                    $order->update(['red_flush_order_id' => $flushOrder->id]);
+                }
 
                 $newOrderId = null;
                 // 改单：复制原订单生成新草稿

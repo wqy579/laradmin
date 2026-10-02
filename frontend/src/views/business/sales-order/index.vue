@@ -253,7 +253,7 @@ const batchPrint = async () => {
 const batchPrintPreview = () => { ElMessage.info('打印预览功能开发中') }
 const batchRedFlush = async (type) => {
 	try {
-		const { value } = await ElMessageBox.prompt(`请输入红冲原因（${type === 'cancel' ? '撤单' : '改单'}）`, '红冲确认', {
+		const { value } = await ElMessageBox.prompt(`请输入红冲原因（${type}）`, '红冲确认', {
 			inputType: 'textarea',
 			inputPlaceholder: '红冲原因（必填，财务审计需要）',
 			inputValidator: (v) => v && v.trim() ? true : '请输入红冲原因',
