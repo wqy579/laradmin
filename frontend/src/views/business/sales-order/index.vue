@@ -80,7 +80,7 @@
 				@refresh="refresh" @search="doSearch" @pageChange="handlePageChange" @pageSizeChange="handlePageSizeChange"
 				@selectionChange="selectedRows = $event">
 				<template #order_no_default="{ row }">
-					<span :title="row.order_no">{{ (row.order_no || '').slice(-6) }}</span>
+					<span class="order-no-link" :title="row.order_no" @click="handleDetail(row)">{{ (row.order_no || '').slice(-6) }}</span>
 				</template>
 				<template #customer_default="{ row }">
 					<div class="customer-cell" @mouseenter="row._hover = true" @mouseleave="row._hover = false">
@@ -120,6 +120,43 @@
 		</div>
 	</div>
 	<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :orderType="orderType" :record="currentOrder" :customers="customers" :suppliers="suppliers" :warehouses="warehouses" :salesmen="salesmen" @success="doRefresh" />
+
+	<!-- 订单详情弹窗（只读 + 订单历程） -->
+	<el-dialog v-model="dialog.detail" title="订单详情" width="800px" top="5vh" destroy-on-close>
+		<el-tabs v-model="detailTab">
+			<el-tab-pane label="订单信息" name="info">
+				<el-descriptions :column="2" border size="small" v-if="detailData">
+					<el-descriptions-item label="订单编号">{{ detailData.order_no }}</el-descriptions-item>
+					<el-descriptions-item label="状态"><el-tag :type="statusType(detailData.status)" size="small">{{ statusLabel(detailData.status) }}</el-tag></el-descriptions-item>
+					<el-descriptions-item label="客户">{{ detailData.customer?.name }}</el-descriptions-item>
+					<el-descriptions-item label="业务员">{{ detailData.salesman_name }}</el-descriptions-item>
+					<el-descriptions-item label="仓库">{{ detailData.warehouse?.name }}</el-descriptions-item>
+					<el-descriptions-item label="日期">{{ detailData.order_date }}</el-descriptions-item>
+					<el-descriptions-item label="总金额"><b style="color:#FF6400">¥{{ Number(detailData.total_amount || 0).toFixed(2) }}</b></el-descriptions-item>
+					<el-descriptions-item label="总数量">{{ detailData.total_qty }}</el-descriptions-item>
+					<el-descriptions-item v-if="detailData.red_flush_reason" label="红冲原因" :span="2">{{ detailData.red_flush_reason }}</el-descriptions-item>
+					<el-descriptions-item label="备注" :span="2">{{ detailData.remark || '-' }}</el-descriptions-item>
+				</el-descriptions>
+				<el-table :data="detailData?.items || []" size="small" style="margin-top:12px" border>
+					<el-table-column prop="product.name" label="商品" width="200" />
+					<el-table-column prop="qty_large" label="大" width="50" />
+					<el-table-column prop="qty_medium" label="中" width="50" />
+					<el-table-column prop="qty_small" label="小" width="50" />
+					<el-table-column prop="amount" label="金额" width="90" align="right" />
+					<el-table-column prop="sale_mode" label="模式" width="80" />
+				</el-table>
+			</el-tab-pane>
+			<el-tab-pane label="订单历程" name="history">
+				<el-timeline>
+					<el-timeline-item v-for="log in (detailData?.operation_logs || [])" :key="log.id" :timestamp="log.created_at" :type="log.to_status === '已红冲' ? 'danger' : 'primary'">
+						<b>{{ log.action }}</b> <span style="color:var(--el-text-color-secondary)">— {{ log.operator_name }}</span>
+						<div v-if="log.detail">{{ log.detail }}</div>
+					</el-timeline-item>
+				</el-timeline>
+				<el-empty v-if="!detailData?.operation_logs?.length" description="无操作记录" />
+			</el-tab-pane>
+		</el-tabs>
+	</el-dialog>
 
 	<!-- 配送选择弹框 -->
 	<el-dialog v-model="dialog.delivery" title="调度——选择配送员和车辆" width="400px" destroy-on-close>
@@ -267,7 +304,9 @@ const columns = [
 	{ prop: 'status', title: '状态', width: 90, align: 'center', slots: { default: 'status_default' } },
 ]
 
-const dialog = reactive({ order: false, delivery: false })
+const dialog = reactive({ order: false, delivery: false, detail: false })
+const detailData = ref(null)
+const detailTab = ref('info')
 const currentOrder = ref(null)
 const customers = ref([])
 const suppliers = ref([])
@@ -347,6 +386,13 @@ const prevStatus = (s) => ({ '已收款': '待收款', '待收款': '配送中',
 const prevStatusShort = (s) => ({ '已收款': '撤销收款', '待收款': '撤销待收款', '配送中': '撤销配送', '待配送': '撤销调度', '待调度': '撤销调度', '配货中': '撤销配货' }[s] || prevStatus(s))
 
 const handleAdd = () => { currentOrder.value = null; orderType.value = 'normal'; dialog.order = true }
+const handleDetail = async (row) => {
+	try {
+		const res = await businessApi.salesOrder.detail.get(row.id)
+		if (res.code === 200) { detailData.value = res.data; detailTab.value = 'info'; dialog.detail = true }
+		else ElMessage.error(res.message || '加载失败')
+	} catch (e) { ElMessage.error('加载失败') }
+}
 const handleEdit = (row) => { currentOrder.value = row; dialog.order = true }
 const handleDelete = async (row) => {
 	const res = await businessApi.salesOrder.delete.delete(row.id)
@@ -446,4 +492,5 @@ onMounted(() => {
 .select-bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--el-color-primary-light-9); border-bottom: 1px solid var(--el-border-color); font-size: 12px; }
 .select-bar b { font-weight: 600; }
 .select-bar .sep { color: var(--el-text-color-placeholder); }
+.order-no-link { color: var(--el-color-primary); cursor: pointer; text-decoration: underline; }
 </style>
