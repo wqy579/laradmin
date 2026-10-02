@@ -58,38 +58,67 @@
       </sTable>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="费用类型" prop="expense_type">
-          <el-select v-model="form.expense_type" style="width: 100%">
-            <el-option label="办公用品" value="办公用品" />
-            <el-option label="差旅费" value="差旅费" />
-            <el-option label="交通费" value="交通费" />
-            <el-option label="招待费" value="招待费" />
-            <el-option label="水电费" value="水电费" />
-            <el-option label="租金" value="租金" />
-            <el-option label="工资" value="工资" />
-            <el-option label="其他" value="其他" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="费用金额" prop="amount">
-          <el-input-number v-model="form.amount" :precision="2" :min="0.01" style="width: 100%" />
-        </el-form-item>
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="800px" top="3vh" destroy-on-close>
+      <div class="section-title">基本信息</div>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :inline="true">
         <el-form-item label="费用日期">
-          <el-date-picker v-model="form.expense_date" type="date" value-format="YYYY-MM-DD" />
+          <el-date-picker v-model="form.expense_date" type="date" value-format="YYYY-MM-DD" style="width:160px" />
         </el-form-item>
         <el-form-item label="经手人">
-          <el-select v-model="form.handler_id" placeholder="请选择" clearable style="width: 100%">
-            <el-option v-for="item in employees" :key="item.id" :label="item.real_name" :value="item.id" />
+          <el-select v-model="form.handler_id" placeholder="请选择" clearable filterable style="width:160px">
+            <el-option v-for="item in employees" :key="item.id" :label="item.real_name || item.name" :value="item.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="3" />
+          <el-input v-model="form.remark" style="width:200px" />
         </el-form-item>
       </el-form>
+
+      <div class="section-title">明细信息</div>
+      <el-table :data="form.items" size="small" border style="margin-bottom:8px">
+        <el-table-column label="费用科目" width="180">
+          <template #default="{ row }">
+            <el-select v-model="row.expense_type" placeholder="选择科目" size="small" style="width:100%">
+              <el-option label="办公用品" value="办公用品" />
+              <el-option label="差旅费" value="差旅费" />
+              <el-option label="交通费" value="交通费" />
+              <el-option label="招待费" value="招待费" />
+              <el-option label="水电费" value="水电费" />
+              <el-option label="租金" value="租金" />
+              <el-option label="工资" value="工资" />
+              <el-option label="其他" value="其他" />
+            </el-select>
+          </template>
+        </el-table-column>
+        <el-table-column label="金额" width="120">
+          <template #default="{ row }">
+            <el-input-number v-model="row.amount" :precision="2" :min="0" size="small" style="width:100%" @change="calcTotal" />
+          </template>
+        </el-table-column>
+        <el-table-column label="摘要">
+          <template #default="{ row }">
+            <el-input v-model="row.summary" size="small" placeholder="摘要" />
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="60" align="center">
+          <template #default="{ $index }">
+            <el-button type="danger" link size="small" @click="form.items.splice($index, 1); calcTotal()">删</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-button type="success" size="small" @click="form.items.push({ expense_type: '', amount: 0, summary: '' })">添加</el-button>
+
+      <div class="section-title" style="margin-top:8px">提交信息</div>
+      <el-form :model="form" label-width="100px" :inline="true">
+        <el-form-item label="合计金额">
+          <span style="color:#f56c6c;font-weight:bold;font-size:16px">¥{{ form.amount.toFixed(2) }}</span>
+        </el-form-item>
+        <el-checkbox v-model="form.autoApprove">录单时自动审核</el-checkbox>
+      </el-form>
+
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="warning" @click="handleSubmit">提交(S)</el-button>
       </template>
     </el-dialog>
   </sPageSplit>
@@ -129,12 +158,17 @@ const form = reactive({
   amount: 0,
   expense_date: '',
   handler_id: null,
-  remark: ''
+  remark: '',
+  items: [{ expense_type: '', amount: 0, summary: '' }],
+  autoApprove: false,
 })
 
 const rules = {
-  expense_type: [{ required: true, message: '请选择费用类型', trigger: 'change' }],
-  amount: [{ required: true, message: '请输入费用金额', trigger: 'blur' }]
+  expense_date: [{ required: true, message: '请选择费用日期', trigger: 'change' }],
+}
+
+const calcTotal = () => {
+  form.amount = form.items.reduce((s, i) => s + Number(i.amount || 0), 0)
 }
 
 const columns = [
@@ -199,7 +233,7 @@ const handleSizeChange = (size) => {
 const handleCreate = () => {
   isEdit.value = false
   dialogTitle.value = '新增费用'
-  Object.assign(form, { id: null, expense_type: '', amount: 0, expense_date: '', handler_id: null, remark: '' })
+  Object.assign(form, { id: null, expense_type: '', amount: 0, expense_date: new Date().toISOString().slice(0, 10), handler_id: null, remark: '', items: [{ expense_type: '', amount: 0, summary: '' }], autoApprove: false })
   dialogVisible.value = true
 }
 
@@ -263,9 +297,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.section-title { background: #f5f5f5; color: #333; font-size: 14px; padding: 8px 12px; margin-bottom: 8px; border-left: 3px solid #428bca; }
+</style>
 </style>
