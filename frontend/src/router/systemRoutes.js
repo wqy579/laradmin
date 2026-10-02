@@ -224,6 +224,12 @@ const systemRoutes = [
 				component: () => import('../views/business/history/index.vue'),
 				meta: { title: 'financeHistory' },
 			},
+			{
+				path: '/business/other-incomes',
+				name: 'OtherIncome',
+				component: () => import('../views/business/other-income/index.vue'),
+				meta: { title: 'otherIncome' },
+			},
 			// 权限管理
 			{
 				path: '/auth/permission',
