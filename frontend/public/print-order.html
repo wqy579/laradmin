@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>订单打印</title>
+<style>
+@page { size: 210mm auto; margin: 3mm; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: SimSun, serif; font-size: 9pt; color: #000; }
+.print-page { width: 204mm; page-break-after: always; }
+.print-page:last-child { page-break-after: auto; }
+
+/* 表头 */
+.company-name { font-size: 16pt; font-weight: bold; text-align: center; line-height: 8mm; }
+.doc-title { font-size: 12pt; font-weight: bold; text-align: center; line-height: 6mm; }
+.divider-solid { border-top: 0.5mm solid #000; margin: 1mm 0; }
+.divider-dashed { border-top: 0.3mm dashed #000; margin: 1mm 0; }
+
+/* 基本信息 */
+.info-row { display: flex; line-height: 5mm; font-size: 9pt; }
+.info-col-left { width: 100mm; }
+.info-col-right { width: 104mm; text-align: right; }
+.info-col-right span { float: right; }
+
+/* 表格 */
+.items-table { width: 204mm; border-collapse: collapse; border: 0.5mm solid #000; }
+.items-table th { font-size: 9pt; font-weight: bold; line-height: 6mm; text-align: center; border: 0.3mm solid #000; border-bottom: 0.5mm solid #000; background: #F0F0F0; padding: 0 1mm; }
+.items-table td { font-size: 9pt; line-height: 5mm; border: 0.3mm solid #000; padding: 0 1mm; }
+.items-table .col-idx { width: 10mm; text-align: center; }
+.items-table .col-name { width: 75mm; text-align: left; }
+.items-table .col-spec { width: 25mm; text-align: center; }
+.items-table .col-qty { width: 20mm; text-align: right; }
+.items-table .col-unit { width: 15mm; text-align: center; }
+.items-table .col-price { width: 25mm; text-align: right; }
+.items-table .col-amount { width: 30mm; text-align: right; }
+.items-table .row-total { font-weight: bold; border-top: 0.5mm solid #000; background: #F5F5F5; }
+.items-table .row-total td { border-top: 0.5mm solid #000; }
+
+/* 底部 */
+.remark-row { font-size: 9pt; line-height: 5mm; margin-top: 2mm; }
+.sign-area { display: flex; line-height: 8mm; font-size: 9pt; margin-top: 2mm; }
+.sign-col { width: 68mm; }
+.print-info { font-size: 8pt; color: #888; text-align: right; line-height: 4mm; margin-top: 2mm; }
+</style>
+</head>
+<body>
+<div id="print-content"></div>
+<script>
+// 接收 URL 参数中的订单数据（JSON）
+const params = new URLSearchParams(location.search);
+const data = params.get('data');
+if (data) {
+  const orders = JSON.parse(decodeURIComponent(data));
+  const html = orders.map(order => {
+    const items = (order.items || []).map((item, i) => `
+      <tr>
+        <td class="col-idx">${i + 1}</td>
+        <td class="col-name">${item.product?.name || ''}</td>
+        <td class="col-spec">${item.product?.spec_display || item.product?.spec || '-'}</td>
+        <td class="col-qty">${Number(item.qty_large) > 0 ? item.qty_large : (Number(item.qty_medium) > 0 ? item.qty_medium : item.qty_small)}</td>
+        <td class="col-unit">${Number(item.qty_large) > 0 ? (item.product?.price_unit || '件') : (Number(item.qty_medium) > 0 ? (item.product?.barcode_medium_unit || '盒') : (item.product?.price_unit_small || '袋'))}</td>
+        <td class="col-price">${Number(item.qty_large) > 0 ? Number(item.price_large).toFixed(2) : (Number(item.qty_medium) > 0 ? Number(item.price_medium).toFixed(2) : Number(item.price_small).toFixed(2))}</td>
+        <td class="col-amount">${Number(item.amount).toFixed(2)}</td>
+      </tr>`).join('');
+    const totalQty = (order.items || []).reduce((s, i) => s + Number(i.qty_large || 0) + Number(i.qty_medium || 0) + Number(i.qty_small || 0), 0);
+    return `
+    <div class="print-page">
+      <div class="company-name">${order.company_name || '批发商贸系统'}</div>
+      <div class="doc-title">销售订单</div>
+      <div class="divider-solid"></div>
+      <div class="info-row">
+        <div class="info-col-left">订单号：${order.order_no}</div>
+        <div class="info-col-right">仓库：${order.warehouse?.name || '-'}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-col-left">客户：${order.customer?.name || '-'}</div>
+        <div class="info-col-right">业务员：${order.salesman_name || '-'}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-col-left" style="width:204mm">地址：${order.customer?.address || '-'}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-col-left">日期：${order.order_date || '-'}</div>
+        <div class="info-col-right">电话：${order.customer?.phone || '-'}</div>
+      </div>
+      <div class="divider-dashed"></div>
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th class="col-idx">序号</th>
+            <th class="col-name">商品名称</th>
+            <th class="col-spec">规格</th>
+            <th class="col-qty">数量</th>
+            <th class="col-unit">单位</th>
+            <th class="col-price">单价</th>
+            <th class="col-amount">金额</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items}
+          <tr class="row-total">
+            <td class="col-idx"></td>
+            <td class="col-name" colspan="2">合计</td>
+            <td class="col-qty">${totalQty}</td>
+            <td class="col-unit"></td>
+            <td class="col-price"></td>
+            <td class="col-amount">¥${Number(order.total_amount || 0).toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="remark-row">备注：${order.remark || '无'}</div>
+      <div class="sign-area">
+        <div class="sign-col">客户签字：______________</div>
+        <div class="sign-col">仓库签字：______________</div>
+        <div class="sign-col">业务员签字：____________</div>
+      </div>
+      <div class="print-info">打印人：${order.print_user || 'admin'}  打印时间：${new Date().toLocaleString('zh-CN')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('print-content').innerHTML = html;
+  window.print();
+}
+</script>
+</body>
+</html>

@@ -232,9 +232,21 @@ const batchReceive = async (method) => {
 	}
 	ElMessage.success(`已${method}收款 ${selectedRows.value.length} 单`); clearSelection(); doRefresh()
 }
-const batchPrint = () => {
-	for (const row of selectedRows.value) { businessApi.salesOrder.print.post(row.id) }
-	ElMessage.success(`已打印 ${selectedRows.value.length} 单`); clearSelection(); doRefresh()
+const batchPrint = async () => {
+	// 批量打印：逐个取详情，合并打印
+	const orders = []
+	for (const row of selectedRows.value) {
+		try {
+			const res = await businessApi.salesOrder.print.post(row.id)
+			if (res.code === 200 && res.data) orders.push({ ...res.data, print_user: 'admin' })
+		} catch {}
+	}
+	if (orders.length) {
+		const data = encodeURIComponent(JSON.stringify(orders))
+		window.open(`/print-order.html?data=${data}`, '_blank')
+		ElMessage.success(`已打印 ${orders.length} 单`)
+	}
+	clearSelection(); doRefresh()
 }
 const batchPrintPreview = () => { ElMessage.info('打印预览功能开发中') }
 const batchRedFlush = async (type) => {
@@ -428,7 +440,9 @@ const handlePrint = async (row) => {
 	const res = await businessApi.salesOrder.print.post(row.id)
 	if (res.code === 200) {
 		ElMessage.success('已记录打印')
-		window.open('about:blank', '_blank')
+		// 打开打印页，传订单数据
+		const data = encodeURIComponent(JSON.stringify([{ ...res.data, print_user: 'admin' }]))
+		window.open(`/print-order.html?data=${data}`, '_blank')
 		doRefresh()
 	}
 }
