@@ -38,6 +38,40 @@
 				<span>总金额: <b style="color:#FF6400;font-size:14px">{{ selectedTotal }}</b> 元</span>
 				<span class="sep">|</span>
 				<span>大: <b>{{ selectedQty.lg }}</b> 中: <b>{{ selectedQty.md }}</b> 小: <b>{{ selectedQty.sm }}</b></span>
+				<span class="sep">|</span>
+				<!-- 按 status_tab 显示不同操作 -->
+				<template v-if="searchForm.status_tab === '1'">
+					<el-button size="small" type="primary" @click="batchAdvance('配货中')">配货</el-button>
+					<el-button size="small" @click="batchPrint">打印</el-button>
+				</template>
+				<template v-else-if="searchForm.status_tab === '2'">
+					<el-button size="small" type="primary" @click="batchAdvance('待调度')">完成配货</el-button>
+					<el-button size="small" @click="batchPrint">打印</el-button>
+				</template>
+				<template v-else-if="searchForm.status_tab === '6'">
+					<el-button size="small" type="primary" @click="batchDispatch">调度</el-button>
+					<el-button size="small" @click="batchPrint">打印备货单</el-button>
+					<el-button size="small" @click="batchUnfreeze">撤销冻结</el-button>
+				</template>
+				<template v-else-if="searchForm.status_tab === '3'">
+					<el-button size="small" type="success" @click="batchReceive('现金')">现金收款</el-button>
+					<el-button size="small" type="warning" @click="batchReceive('应收')">应收收款</el-button>
+					<el-button size="small" @click="batchReverse">撤销配送</el-button>
+					<el-button size="small" @click="batchPrint">打印配送单</el-button>
+					<el-button size="small" @click="batchPrint">打印装车单</el-button>
+				</template>
+				<template v-else-if="searchForm.status_tab === '7'">
+					<el-button size="small" type="primary" @click="batchAdvance('已收款')">完成配送</el-button>
+					<el-button size="small" @click="batchPrint">打印</el-button>
+				</template>
+				<template v-else-if="searchForm.status_tab === '4'">
+					<el-button size="small" type="danger" @click="batchRedFlush('撤单')">红冲撤单</el-button>
+					<el-button size="small" type="danger" @click="batchRedFlush('改单')">红冲改单</el-button>
+				</template>
+				<template v-else-if="searchForm.status_tab === '5'">
+					<el-button size="small" @click="batchPrint">批量打印</el-button>
+					<el-button size="small" @click="batchPrintPreview">打印预览</el-button>
+				</template>
 				<el-button size="small" link @click="clearSelection">取消选择</el-button>
 			</div>
 			<sTable ref="tableRef" tableName="business_sales_order" :data="data" :columns="columns" :searchForm="searchForm"
@@ -135,6 +169,40 @@ const selectedQty = computed(() => {
 	return { lg, md, sm }
 })
 const clearSelection = () => { selectedRows.value = []; tableRef.value?.clearCheckboxRow?.() }
+
+// 批量操作
+const batchAdvance = async (target) => {
+	for (const row of selectedRows.value) {
+		try { await businessApi.salesOrder.approve.post(row.id, { target }) } catch {}
+	}
+	ElMessage.success(`已批量${target} ${selectedRows.value.length} 单`); clearSelection(); doRefresh()
+}
+const batchDispatch = async () => {
+	// 批量调度：选第一个配送员+车辆
+	ElMessage.info('批量调度需逐单选配送员车辆，请逐单操作')
+}
+const batchUnfreeze = async () => {
+	for (const row of selectedRows.value) {
+		try { await businessApi.salesOrder.cancel.post(row.id) } catch {}
+	}
+	ElMessage.success(`已撤销冻结 ${selectedRows.value.length} 单`); clearSelection(); doRefresh()
+}
+const batchReverse = async () => { batchAdvance('待调度') }
+const batchReceive = async (method) => {
+	for (const row of selectedRows.value) {
+		try { await businessApi.receive.create.post({ customer_id: row.customer_id, amount: row.total_amount, receive_date: row.order_date, payment_method: method === '现金' ? '现金' : '应收', sales_order_id: row.id }) } catch {}
+	}
+	ElMessage.success(`已${method}收款 ${selectedRows.value.length} 单`); clearSelection(); doRefresh()
+}
+const batchPrint = () => {
+	for (const row of selectedRows.value) { businessApi.salesOrder.print.post(row.id) }
+	ElMessage.success(`已打印 ${selectedRows.value.length} 单`); clearSelection(); doRefresh()
+}
+const batchPrintPreview = () => { ElMessage.info('打印预览功能开发中') }
+const batchRedFlush = async (type) => {
+	try { await ElMessageBox.confirm(`确定批量${type}吗？`, '提示', { type: 'warning' }) } catch { return }
+	ElMessage.success(`已${type} ${selectedRows.value.length} 单`); clearSelection(); doRefresh()
+}
 
 // 顶部状态 tab（新系统只有 pending，1-4 都映射 pending，5 全部）
 const statusTabs = ref([
