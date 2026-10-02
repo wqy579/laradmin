@@ -31,11 +31,12 @@ class PayController extends Controller
             'pay_type' => 'nullable|integer|in:1,2',
             'supplier_id' => 'nullable|exists:suppliers,id',
             'purchase_order_id' => 'nullable|exists:purchase_orders,id',
-            'amount' => 'required|numeric|min:0.01',
+            'amount' => 'required|numeric|min:0',
             'pay_date' => 'nullable|date',
             'payment_method' => 'nullable|string|max:50',
             'handler_id' => 'nullable|exists:employees,id',
             'remark' => 'nullable|string',
+            'discount' => 'nullable|numeric|min:0',
         ]);
 
         $pay = $this->service->create($validated);

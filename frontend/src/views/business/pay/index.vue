@@ -51,34 +51,44 @@
       </sTable>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="付款金额" prop="amount">
-          <el-input-number v-model="form.amount" :precision="2" :min="0.01" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="付款日期">
-          <el-date-picker v-model="form.pay_date" type="date" value-format="YYYY-MM-DD" />
-        </el-form-item>
-        <el-form-item label="供应商">
-          <el-select v-model="form.supplier_id" placeholder="请选择供应商" clearable style="width: 100%">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="900px" top="3vh" destroy-on-close>
+      <div class="section-title">基本信息</div>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :inline="true">
+        <el-form-item label="供应商" prop="supplier_id">
+          <el-select v-model="form.supplier_id" placeholder="请选择供应商" filterable clearable style="width:200px" @change="onSupplierChange">
             <el-option v-for="item in suppliers" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
+        <el-form-item label="付款日期">
+          <el-date-picker v-model="form.pay_date" type="date" value-format="YYYY-MM-DD" style="width:160px" />
+        </el-form-item>
         <el-form-item label="支付方式">
-          <el-select v-model="form.payment_method" style="width: 100%">
+          <el-select v-model="form.payment_method" style="width:120px">
             <el-option label="现金" value="现金" />
-            <el-option label="转账" value="转账" />
+            <el-option label="银行转账" value="银行转账" />
             <el-option label="微信" value="微信" />
             <el-option label="支付宝" value="支付宝" />
           </el-select>
         </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="3" />
+        <el-form-item label="摘要">
+          <el-input v-model="form.remark" style="width:200px" />
         </el-form-item>
       </el-form>
+
+      <div class="section-title">付款信息</div>
+      <el-form :model="form" label-width="100px" :inline="true">
+        <el-form-item label="付款金额" prop="amount">
+          <el-input-number v-model="form.amount" :precision="2" :min="0" style="width:160px" />
+          <span style="margin-left:4px">元</span>
+        </el-form-item>
+        <el-form-item label="优惠">
+          <el-input-number v-model="form.discount" :precision="2" :min="0" style="width:100px" />
+        </el-form-item>
+      </el-form>
+
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="warning" @click="handleSubmit">提交(S)</el-button>
       </template>
     </el-dialog>
   </sPageSplit>
@@ -118,8 +128,10 @@ const form = reactive({
   pay_date: '',
   supplier_id: null,
   payment_method: '现金',
-  remark: ''
+  remark: '',
+  discount: 0,
 })
+const onSupplierChange = () => { /* 供应商变更：可加载未付款单据（暂略） */ }
 
 const rules = {
   amount: [{ required: true, message: '请输入付款金额', trigger: 'blur' }]
@@ -187,7 +199,7 @@ const handleSizeChange = (size) => {
 const handleCreate = () => {
   isEdit.value = false
   dialogTitle.value = '新增付款'
-  Object.assign(form, { id: null, amount: 0, pay_date: '', supplier_id: null, payment_method: '现金', remark: '' })
+  Object.assign(form, { id: null, amount: 0, pay_date: '', supplier_id: null, payment_method: '现金', remark: '', discount: 0 })
   dialogVisible.value = true
 }
 
@@ -251,9 +263,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.section-title { background: #f5f5f5; color: #333; font-size: 14px; padding: 8px 12px; margin-bottom: 8px; border-left: 3px solid #428bca; }
 </style>
