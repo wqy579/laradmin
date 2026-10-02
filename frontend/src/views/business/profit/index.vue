@@ -1,27 +1,49 @@
 <template>
 	<div class="profit-page">
-		<div class="stat-cards">
-			<div class="stat-card">
-				<div class="stat-label">总收入</div>
-				<div class="stat-value text-success">¥{{ Number(stats.total_income || 0).toFixed(2) }}</div>
-			</div>
-			<div class="stat-card">
-				<div class="stat-label">总支出</div>
-				<div class="stat-value text-danger">¥{{ Number(stats.total_expense || 0).toFixed(2) }}</div>
-			</div>
-			<div class="stat-card">
-				<div class="stat-label">净利润</div>
-				<div class="stat-value" :class="profit >= 0 ? 'text-success' : 'text-danger'">¥{{ profit.toFixed(2) }}</div>
-			</div>
-		</div>
 		<div class="toolbar">
-			<el-radio-group v-model="month" size="small" @change="fetchData">
-				<el-radio-button value="">本月</el-radio-button>
-				<el-radio-button value="last">上月</el-radio-button>
-				<el-radio-button value="quarter">本季度</el-radio-button>
-			</el-radio-group>
+			<el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" size="small" style="width:240px" value-format="YYYY-MM-DD" @change="fetchData" />
+			<el-button size="small" type="primary" @click="fetchData">查询(C)</el-button>
 		</div>
-		<sTable ref="tableRef" tableName="finance_profit" :data="data" :columns="columns" :loading="loading" height="100%" stripe />
+		<div class="stat-cards">
+			<div class="stat-card"><div class="stat-label">总收入</div><div class="stat-value text-success">¥{{ Number(stats.total_income || 0).toFixed(2) }}</div></div>
+			<div class="stat-card"><div class="stat-label">总支出</div><div class="stat-value text-danger">¥{{ Number(stats.total_expense || 0).toFixed(2) }}</div></div>
+			<div class="stat-card"><div class="stat-label">净利润</div><div class="stat-value" :class="profit >= 0 ? 'text-success' : 'text-danger'">¥{{ profit.toFixed(2) }}</div></div>
+		</div>
+		<el-tabs v-model="activeTab" class="profit-tabs">
+			<el-tab-pane label="利润表" name="profit">
+				<el-table :data="profitList" size="small" border>
+					<el-table-column prop="category" label="项目" width="200" />
+					<el-table-column prop="amount" label="本期数" align="right">
+						<template #default="{ row }"><span :class="row.amount < 0 ? 'text-danger' : ''">¥{{ Number(row.amount).toFixed(2) }}</span></template>
+					</el-table-column>
+					<el-table-column label="说明">
+						<template #default="{ row }">{{ row.note || '' }}</template>
+					</el-table-column>
+				</el-table>
+			</el-tab-pane>
+			<el-tab-pane label="资产负债表" name="balance">
+				<div class="balance-grid">
+					<div class="balance-col">
+						<div class="balance-title">资产</div>
+						<el-table :data="balanceAssets" size="small" border>
+							<el-table-column prop="name" label="科目" />
+							<el-table-column prop="amount" label="金额" align="right" width="120">
+								<template #default="{ row }">¥{{ Number(row.amount).toFixed(2) }}</template>
+							</el-table-column>
+						</el-table>
+					</div>
+					<div class="balance-col">
+						<div class="balance-title">负债+所有者权益</div>
+						<el-table :data="balanceLiabilities" size="small" border>
+							<el-table-column prop="name" label="科目" />
+							<el-table-column prop="amount" label="金额" align="right" width="120">
+								<template #default="{ row }">¥{{ Number(row.amount).toFixed(2) }}</template>
+							</el-table-column>
+						</el-table>
+					</div>
+				</div>
+			</el-tab-pane>
+		</el-tabs>
 	</div>
 </template>
 
@@ -29,37 +51,56 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
-import sTable from '@/components/sTable/index.vue'
 
-const data = ref([])
-const loading = ref(false)
+const activeTab = ref('profit')
 const stats = ref({})
-const month = ref('')
+const profitList = ref([])
+const balanceAssets = ref([])
+const balanceLiabilities = ref([])
+const dateRange = ref(null)
 const profit = computed(() => Number(stats.value.total_income || 0) - Number(stats.value.total_expense || 0))
-const columns = [
-	{ prop: 'category', title: '类别', width: 150 },
-	{ prop: 'amount', title: '金额', width: 120, align: 'right' },
-	{ prop: 'count', title: '笔数', width: 80, align: 'center' },
-]
 
 async function fetchData() {
-	loading.value = true
 	try {
-		const res = await businessApi.profit.list.get({ month: month.value })
-		if (res.code === 200) { data.value = res.data?.list || []; stats.value = res.data?.stats || {} }
+		const params = {}
+		if (dateRange.value?.[0]) params.start_date = dateRange.value[0]
+		if (dateRange.value?.[1]) params.end_date = dateRange.value[1]
+		const res = await businessApi.profit.list.get(params)
+		if (res.code === 200) {
+			stats.value = res.data?.stats || {}
+			const list = res.data?.list || []
+			profitList.value = list
+			// 资产 = 库存价值 + 应收款
+			const receiveTotal = Number(stats.value.total_income || 0)
+			const payTotal = Number(stats.value.total_expense || 0)
+			balanceAssets.value = [
+				{ name: '应收账款', amount: receiveTotal },
+				{ name: '库存商品', amount: 0 },
+				{ name: '现金', amount: receiveTotal - payTotal },
+				{ name: '资产总计', amount: receiveTotal + (receiveTotal - payTotal) },
+			]
+			balanceLiabilities.value = [
+				{ name: '应付账款', amount: 0 },
+				{ name: '所有者权益', amount: receiveTotal - payTotal },
+				{ name: '负债+权益总计', amount: receiveTotal - payTotal },
+			]
+		}
 	} catch { ElMessage.error('加载失败') }
-	finally { loading.value = false }
 }
 onMounted(() => fetchData())
 </script>
 
 <style scoped>
 .profit-page { height: 100%; display: flex; flex-direction: column; }
-.stat-cards { display: flex; gap: 12px; padding: 12px; }
+.toolbar { padding: 8px; display: flex; gap: 8px; }
+.stat-cards { display: flex; gap: 12px; padding: 0 12px 12px; }
 .stat-card { flex: 1; padding: 16px; border-radius: 8px; background: var(--el-fill-color-light); text-align: center; }
 .stat-label { font-size: 13px; color: var(--el-text-color-secondary); }
 .stat-value { font-size: 22px; font-weight: 700; margin-top: 6px; }
-.toolbar { padding: 0 12px 8px; }
+.profit-tabs { flex: 1; padding: 0 12px; min-height: 0; }
+.balance-grid { display: flex; gap: 16px; }
+.balance-col { flex: 1; }
+.balance-title { font-weight: 600; padding: 8px 0; font-size: 14px; }
 .text-success { color: var(--el-color-success); }
 .text-danger { color: var(--el-color-danger); }
 </style>
