@@ -52,6 +52,7 @@
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="900px" top="3vh" destroy-on-close>
+      <!-- 基本信息 -->
       <div class="section-title">基本信息</div>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :inline="true">
         <el-form-item label="供应商" prop="supplier_id">
@@ -75,11 +76,34 @@
         </el-form-item>
       </el-form>
 
+      <!-- 待付款单据 -->
+      <div class="section-title">待付款单据</div>
+      <div v-if="!form.supplier_id" style="padding:8px;color:#999">请先选择供应商</div>
+      <div v-else-if="pendingBills.length === 0" style="padding:8px;color:#999">该供应商暂无待付款单据</div>
+      <el-table v-else :data="pendingBills" size="small" border @selection-change="onSelectionChange" style="margin-bottom:8px">
+        <el-table-column type="selection" width="40" />
+        <el-table-column prop="bill_no" label="单据号" width="140" />
+        <el-table-column prop="bill_date" label="日期" width="100" />
+        <el-table-column prop="total_amount" label="单据金额" width="100" align="right" />
+        <el-table-column label="已付金额" width="100" align="right">
+          <template #default="{ row }">{{ Number(row.paid_amount || 0).toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column label="待付金额" width="100" align="right">
+          <template #default="{ row }">
+            <b style="color:#f56c6c">{{ (Number(row.total_amount) - Number(row.paid_amount || 0)).toFixed(2) }}</b>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 付款信息 -->
       <div class="section-title">付款信息</div>
       <el-form :model="form" label-width="100px" :inline="true">
         <el-form-item label="付款金额" prop="amount">
           <el-input-number v-model="form.amount" :precision="2" :min="0" style="width:160px" />
           <span style="margin-left:4px">元</span>
+        </el-form-item>
+        <el-form-item label="付款合计">
+          <span style="color:#428bca;font-weight:bold;font-size:16px">¥{{ payTotal }}</span>
         </el-form-item>
         <el-form-item label="优惠">
           <el-input-number v-model="form.discount" :precision="2" :min="0" style="width:100px" />
@@ -95,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import sTable from '@/components/sTable/index.vue'
 import businessApi from '@/api/business'
@@ -131,7 +155,21 @@ const form = reactive({
   remark: '',
   discount: 0,
 })
-const onSupplierChange = () => { /* 供应商变更：可加载未付款单据（暂略） */ }
+
+// 待付款单据
+const pendingBills = ref([])
+const selectedBills = ref([])
+const payTotal = computed(() => selectedBills.value.reduce((s, r) => s + Number(r.total_amount) - Number(r.paid_amount || 0), 0).toFixed(2))
+
+const onSupplierChange = async (supplierId) => {
+  pendingBills.value = []
+  selectedBills.value = []
+  if (!supplierId) return
+}
+
+const onSelectionChange = (rows) => {
+  selectedBills.value = rows
+}
 
 const rules = {
   amount: [{ required: true, message: '请输入付款金额', trigger: 'blur' }]
@@ -200,6 +238,8 @@ const handleCreate = () => {
   isEdit.value = false
   dialogTitle.value = '新增付款'
   Object.assign(form, { id: null, amount: 0, pay_date: '', supplier_id: null, payment_method: '现金', remark: '', discount: 0 })
+  pendingBills.value = []
+  selectedBills.value = []
   dialogVisible.value = true
 }
 
@@ -219,6 +259,10 @@ const handleEdit = (row) => {
 
 const handleSubmit = async () => {
   await formRef.value.validate()
+  if (!form.amount || form.amount <= 0) {
+    ElMessage.warning('请输入付款金额')
+    return
+  }
   try {
     if (isEdit.value) {
       await businessApi.pay.update.put(form.id, form)
