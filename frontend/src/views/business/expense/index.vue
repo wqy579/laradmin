@@ -300,4 +300,3 @@ onMounted(() => {
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .section-title { background: #f5f5f5; color: #333; font-size: 14px; padding: 8px 12px; margin-bottom: 8px; border-left: 3px solid #428bca; }
 </style>
-</style>
