@@ -63,6 +63,8 @@
 				<template v-else-if="searchForm.status_tab === '7'">
 					<el-button size="small" type="primary" @click="batchAdvance('已收款')">完成配送</el-button>
 					<el-button size="small" @click="batchPrint">打印</el-button>
+					<el-button size="small" type="danger" @click="batchRedFlush('撤单')">红冲撤单</el-button>
+					<el-button size="small" type="danger" @click="batchRedFlush('改单')">红冲改单</el-button>
 				</template>
 				<template v-else-if="searchForm.status_tab === '4'">
 					<el-button size="small" type="danger" @click="batchRedFlush('撤单')">红冲撤单</el-button>

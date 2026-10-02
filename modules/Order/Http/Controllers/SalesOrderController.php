@@ -737,7 +737,7 @@ class SalesOrderController extends Controller
             foreach ($validated['ids'] as $orderId) {
                 $order = SalesOrder::find($orderId);
                 // 校验：只有已收款/待收款状态可红冲
-                if (! in_array($order->status, ['已收款', '待收款'], true)) {
+                if (! in_array($order->status, ['配送中', '已收款', '待收款'], true)) {
                     $results[] = ['id' => $orderId, 'success' => false, 'message' => "状态{$order->status}不可红冲"];
 
                     continue;
