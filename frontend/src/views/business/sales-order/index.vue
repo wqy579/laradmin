@@ -200,8 +200,21 @@ const batchPrint = () => {
 }
 const batchPrintPreview = () => { ElMessage.info('打印预览功能开发中') }
 const batchRedFlush = async (type) => {
-	try { await ElMessageBox.confirm(`确定批量${type}吗？`, '提示', { type: 'warning' }) } catch { return }
-	ElMessage.success(`已${type} ${selectedRows.value.length} 单`); clearSelection(); doRefresh()
+	try {
+		const { value } = await ElMessageBox.prompt(`请输入红冲原因（${type === 'cancel' ? '撤单' : '改单'}）`, '红冲确认', {
+			inputType: 'textarea',
+			inputPlaceholder: '红冲原因（必填，财务审计需要）',
+			inputValidator: (v) => v && v.trim() ? true : '请输入红冲原因',
+		})
+		const ids = selectedRows.value.map(r => r.id)
+		const res = await businessApi.salesOrder.batchRedFlush.post({ ids, type: type === '撤单' ? 'cancel' : 'modify', reason: value })
+		if (res.code === 200) {
+			ElMessage.success(`红冲${type} ${ids.length} 单完成`)
+			clearSelection(); doRefresh()
+		} else ElMessage.error(res.message || '红冲失败')
+	} catch (e) {
+		if (e !== 'cancel' && e !== 'close') ElMessage.error(e?.message || '红冲失败')
+	}
 }
 
 // 顶部状态 tab（新系统只有 pending，1-4 都映射 pending，5 全部）
@@ -308,8 +321,8 @@ const onSummaryFilter = ({ type, id }) => {
 	loadSummary()
 }
 
-const statusType = (s) => ({ pending: 'warning', '配货中': 'primary', '待调度': 'info', '待配送': 'info', '配送中': 'primary', '已收款': 'success', '待收款': 'danger', cancelled: 'info' }[s] || 'info')
-const statusLabel = (s) => ({ pending: '待配货', '配货中': '配货中', '待调度': '待调度', '待配送': '待配送', '配送中': '配送中', '已收款': '已收款', '待收款': '待收款', cancelled: '已取消' }[s] || s)
+const statusType = (s) => ({ pending: 'warning', '配货中': 'primary', '待调度': 'info', '待配送': 'info', '配送中': 'primary', '已收款': 'success', '待收款': 'danger', '已红冲': 'info', cancelled: 'info' }[s] || 'info')
+const statusLabel = (s) => ({ pending: '待配货', '配货中': '配货中', '待调度': '待调度', '待配送': '待配送', '配送中': '配送中', '已收款': '已收款', '待收款': '待收款', '已红冲': '已红冲', cancelled: '已取消' }[s] || s)
 // 流程：待配货→配货中→待调度→待配送→配送中→已收款/待收款
 const nextStatus = (s) => ({ pending: '配货中', '配货中': '待调度', '待调度': '待配送', '待配送': '配送中', '配送中': '已收款' }[s] || null)
 const nextStatusShort = (s) => ({ pending: '配货', '配货中': '待调度', '待调度': '调度', '待配送': '配送', '配送中': '已收款' }[s] || nextStatus(s))

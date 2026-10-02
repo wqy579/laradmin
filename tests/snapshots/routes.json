@@ -1604,6 +1604,18 @@
         ]
     },
     {
+        "method": "POST",
+        "uri": "admin/business/sales-order/batch-red-flush",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@batchRedFlush",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "GET",
         "uri": "admin/business/sales-order/statistics",
         "name": "admin.",

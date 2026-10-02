@@ -714,6 +714,96 @@ class SalesOrderController extends Controller
         }
     }
 
+    /**
+     * 批量红冲：撤单(cancel) 或 改单(modify)
+     * - 撤单：原订单标已红冲，生成负金额冲销单
+     * - 改单：撤单 + 复制原订单生成新草稿单
+     * 需要红冲原因（财务审计）
+     */
+    public function batchRedFlush(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'required|exists:sales_orders,id',
+            'type' => 'required|in:cancel,modify',
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $adminId = auth('admin')->id();
+        $results = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($validated['ids'] as $orderId) {
+                $order = SalesOrder::find($orderId);
+                // 校验：只有已收款/待收款状态可红冲
+                if (! in_array($order->status, ['已收款', '待收款'], true)) {
+                    $results[] = ['id' => $orderId, 'success' => false, 'message' => "状态{$order->status}不可红冲"];
+
+                    continue;
+                }
+
+                // 原订单标记已红冲
+                $order->update([
+                    'status' => '已红冲',
+                    'red_flush_reason' => $validated['reason'],
+                    'red_flush_by' => $adminId,
+                    'red_flush_at' => now(),
+                ]);
+
+                // 生成红字冲销单（负金额，关联原订单）
+                $flushOrder = SalesOrder::create([
+                    'order_no' => 'RF'.date('YmdHis').strtoupper(Str::random(4)),
+                    'order_type' => $order->order_type,
+                    'customer_id' => $order->customer_id,
+                    'warehouse_id' => $order->warehouse_id,
+                    'order_date' => now()->toDateString(),
+                    'total_amount' => -abs((float) $order->total_amount),
+                    'total_qty' => 0,
+                    'status' => '已红冲',
+                    'salesman_id' => $order->salesman_id,
+                    'salesman_name' => $order->salesman_name,
+                    'created_by' => $adminId,
+                    'remark' => '红字冲销单：'.$validated['reason'],
+                    'original_order_id' => $orderId,
+                ]);
+
+                $newOrderId = null;
+                // 改单：复制原订单生成新草稿
+                if ($validated['type'] === 'modify') {
+                    $newOrder = $order->replicate();
+                    $newOrder->order_no = 'SO'.date('YmdHis').strtoupper(Str::random(4));
+                    $newOrder->status = 'pending';
+                    $newOrder->total_amount = 0;
+                    $newOrder->total_qty = 0;
+                    $newOrder->original_order_id = $orderId;
+                    $newOrder->red_flush_reason = null;
+                    $newOrder->red_flush_by = null;
+                    $newOrder->red_flush_at = null;
+                    $newOrder->save();
+                    // 复制明细
+                    foreach ($order->items as $item) {
+                        $newItem = $item->replicate();
+                        $newItem->sales_order_id = $newOrder->id;
+                        $newItem->save();
+                    }
+                    $newOrderId = $newOrder->id;
+                    $order->update(['red_flush_order_id' => $newOrderId]);
+                }
+
+                $results[] = ['id' => $orderId, 'success' => true, 'flush_order_id' => $flushOrder->id, 'new_order_id' => $newOrderId];
+            }
+
+            DB::commit();
+
+            return $this->success(['results' => $results], '红冲完成');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return $this->error('红冲失败: '.$e->getMessage(), 500);
+        }
+    }
+
     /** 打印：递增 print_count，返回订单详情供前端打印 */
     public function print(SalesOrder $salesOrder)
     {

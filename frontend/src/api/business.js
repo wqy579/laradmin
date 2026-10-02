@@ -89,6 +89,7 @@ const businessApi = {
 		cancel: { post: (id) => request.post(`business/sales-order/${id}/cancel`) },
 		print: { post: (id) => request.post(`business/sales-order/${id}/print`) },
 		summary: { get: (params) => request.get('business/sales-order/summary', { params }) },
+		batchRedFlush: { post: (params) => request.post('business/sales-order/batch-red-flush', params) },
 	},
 
 	// 库存流水
