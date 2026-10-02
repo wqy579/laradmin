@@ -51,34 +51,68 @@
       </sTable>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px">
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="收款金额" prop="amount">
-          <el-input-number v-model="form.amount" :precision="2" :min="0.01" style="width: 100%" />
-        </el-form-item>
-        <el-form-item label="收款日期">
-          <el-date-picker v-model="form.receive_date" type="date" value-format="YYYY-MM-DD" />
-        </el-form-item>
-        <el-form-item label="客户">
-          <el-select v-model="form.customer_id" placeholder="请选择客户" clearable style="width: 100%">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="900px" top="3vh" destroy-on-close>
+      <!-- 基本信息 -->
+      <div class="section-title">基本信息</div>
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :inline="true">
+        <el-form-item label="客户" prop="customer_id">
+          <el-select v-model="form.customer_id" placeholder="请选择客户" filterable clearable style="width:200px" @change="onCustomerChange">
             <el-option v-for="item in customers" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
+        <el-form-item label="收款日期">
+          <el-date-picker v-model="form.receive_date" type="date" value-format="YYYY-MM-DD" style="width:160px" />
+        </el-form-item>
         <el-form-item label="支付方式">
-          <el-select v-model="form.payment_method" style="width: 100%">
+          <el-select v-model="form.payment_method" style="width:120px">
             <el-option label="现金" value="现金" />
-            <el-option label="转账" value="转账" />
+            <el-option label="银行转账" value="银行转账" />
             <el-option label="微信" value="微信" />
             <el-option label="支付宝" value="支付宝" />
           </el-select>
         </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="form.remark" type="textarea" :rows="3" />
+        <el-form-item label="摘要">
+          <el-input v-model="form.remark" style="width:200px" />
         </el-form-item>
       </el-form>
+
+      <!-- 待收款单据 -->
+      <div class="section-title">待收款单据</div>
+      <div v-if="!form.customer_id" style="padding:8px;color:#999">请先选择客户</div>
+      <el-table v-else :data="pendingOrders" size="small" border @selection-change="onSelectionChange" style="margin-bottom:8px">
+        <el-table-column type="selection" width="40" />
+        <el-table-column prop="order_no" label="订单号" width="140" />
+        <el-table-column prop="order_date" label="日期" width="100" />
+        <el-table-column prop="total_amount" label="应收金额" width="100" align="right" />
+        <el-table-column label="已收金额" width="100" align="right">
+          <template #default="{ row }">{{ Number(row.paid_amount || 0).toFixed(2) }}</template>
+        </el-table-column>
+        <el-table-column label="待收金额" width="100" align="right">
+          <template #default="{ row }">
+            <b style="color:#f56c6c">{{ (Number(row.total_amount) - Number(row.paid_amount || 0)).toFixed(2) }}</b>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 收款信息 -->
+      <div class="section-title">收款信息</div>
+      <el-form :model="form" label-width="100px" :inline="true">
+        <el-form-item label="收款金额">
+          <el-input-number v-model="form.amount" :precision="2" :min="0" style="width:160px" />
+          <span style="margin-left:4px">元</span>
+        </el-form-item>
+        <el-form-item label="收款合计">
+          <span style="color:#428bca;font-weight:bold;font-size:16px">¥{{ receiveTotal }}</span>
+        </el-form-item>
+        <el-form-item label="优惠">
+          <el-input-number v-model="form.discount" :precision="2" :min="0" style="width:100px" />
+        </el-form-item>
+      </el-form>
+
       <template #footer>
+        <el-checkbox v-model="form.auto_print">同时打印单据</el-checkbox>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleSubmit">确定</el-button>
+        <el-button type="warning" @click="handleSubmit">提交(S)</el-button>
       </template>
     </el-dialog>
   </sPageSplit>
@@ -118,8 +152,40 @@ const form = reactive({
   receive_date: '',
   customer_id: null,
   payment_method: '现金',
-  remark: ''
+  remark: '',
+  discount: 0,
+  sales_order_ids: [],
+  auto_print: false,
 })
+
+// 待收款单据
+const pendingOrders = ref([])
+const selectedOrders = ref([])
+const receiveTotal = ref('0.00')
+
+const onCustomerChange = async (customerId) => {
+  pendingOrders.value = []
+  selectedOrders.value = []
+  receiveTotal.value = '0.00'
+  if (!customerId) return
+  try {
+    // 查该客户未收款订单（排除 cancelled/已红冲）
+    const res = await businessApi.salesOrder.list.get({ customer_id: customerId, page_size: 9999 })
+    if (res.code === 200) {
+      pendingOrders.value = (res.data?.list || []).filter(r =>
+        !['cancelled', '已红冲'].includes(r.status) && Number(r.total_amount) > Number(r.paid_amount || 0)
+      )
+    }
+  } catch {}
+}
+
+const onSelectionChange = (rows) => {
+  selectedOrders.value = rows
+  const total = rows.reduce((s, r) => s + Number(r.total_amount) - Number(r.paid_amount || 0), 0)
+  receiveTotal.value = total.toFixed(2)
+  form.amount = total
+  form.sales_order_ids = rows.map(r => r.id)
+}
 
 const rules = {
   amount: [{ required: true, message: '请输入收款金额', trigger: 'blur' }]
@@ -187,7 +253,10 @@ const handleSizeChange = (size) => {
 const handleCreate = () => {
   isEdit.value = false
   dialogTitle.value = '新增收款'
-  Object.assign(form, { id: null, amount: 0, receive_date: '', customer_id: null, payment_method: '现金', remark: '' })
+  Object.assign(form, { id: null, amount: 0, receive_date: '', customer_id: null, payment_method: '现金', remark: '', discount: 0, sales_order_ids: [], auto_print: false })
+  pendingOrders.value = []
+  selectedOrders.value = []
+  receiveTotal.value = '0.00'
   dialogVisible.value = true
 }
 
@@ -251,9 +320,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.section-title { background: #f5f5f5; color: #333; font-size: 14px; padding: 8px 12px; margin-bottom: 8px; border-left: 3px solid #428bca; }
 </style>

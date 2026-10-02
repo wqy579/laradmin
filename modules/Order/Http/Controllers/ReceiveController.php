@@ -5,6 +5,7 @@ namespace Modules\Order\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
+use Modules\Order\Models\SalesOrder;
 use Modules\Order\Services\ReceiveService;
 
 class ReceiveController extends Controller
@@ -31,14 +32,30 @@ class ReceiveController extends Controller
             'receive_type' => 'nullable|integer|in:1,2',
             'customer_id' => 'nullable|exists:customers,id',
             'sales_order_id' => 'nullable|exists:sales_orders,id',
-            'amount' => 'required|numeric|min:0.01',
+            'sales_order_ids' => 'nullable|array',
+            'sales_order_ids.*' => 'exists:sales_orders,id',
+            'amount' => 'required|numeric|min:0',
             'receive_date' => 'nullable|date',
             'payment_method' => 'nullable|string|max:50',
             'handler_id' => 'nullable|exists:employees,id',
             'remark' => 'nullable|string',
+            'discount' => 'nullable|numeric|min:0',
         ]);
 
         $receive = $this->service->create($validated);
+
+        // 核销勾选的订单应收：更新 paid_amount
+        $orderIds = $validated['sales_order_ids'] ?? ($validated['sales_order_id'] ? [$validated['sales_order_id']] : []);
+        if ($orderIds) {
+            $receiveAmount = (float) $validated['amount'];
+            foreach ($orderIds as $oid) {
+                $order = SalesOrder::find($oid);
+                if ($order) {
+                    $order->paid_amount = (float) $order->paid_amount + $receiveAmount;
+                    $order->save();
+                }
+            }
+        }
 
         return $this->created($receive);
     }
