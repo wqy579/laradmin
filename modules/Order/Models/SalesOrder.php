@@ -20,7 +20,7 @@ class SalesOrder extends Model
         'delivery_person_id', 'salesman_name', 'created_by',
         'approved_by', 'dispatched_by', 'approved_at', 'dispatched_at',
         'remark', 'print_count',
-        'red_flush_reason', 'red_flush_by', 'red_flush_at', 'red_flush_order_id', 'original_order_id',
+        'red_flush_reason', 'red_flush_by', 'red_flush_at', 'red_flush_order_id', 'original_order_id', 'payment_status',
     ];
 
     protected $casts = [

@@ -766,6 +766,7 @@ class SalesOrderController extends Controller
                     'created_by' => $adminId,
                     'remark' => '红字冲销单：'.$validated['reason'],
                     'original_order_id' => $orderId,
+                    'payment_status' => '未确认',
                 ]);
 
                 $newOrderId = null;

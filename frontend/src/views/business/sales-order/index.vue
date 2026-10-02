@@ -86,6 +86,7 @@
 					<div class="customer-cell" @mouseenter="row._hover = true" @mouseleave="row._hover = false">
 						<div class="customer-name-row">
 							<el-tag :type="row.is_return ? 'danger' : 'primary'" size="small" effect="plain">{{ row.is_return ? '退货' : '普通' }}</el-tag>
+							<el-tag v-if="row.status === '已红冲'" type="danger" size="small" :title="`原因：${row.red_flush_reason || '无'} 时间：${row.red_flush_at || ''}`">已红冲</el-tag>
 							<span class="customer-name">{{ row.customer_name || row.customer?.name }}</span>
 						</div>
 						<!-- 地址区：hover 时被操作按钮覆盖 -->
@@ -209,13 +210,15 @@ const batchRedFlush = async (type) => {
 		const ids = selectedRows.value.map(r => r.id)
 		const res = await businessApi.salesOrder.batchRedFlush.post({ ids, type: type === '撤单' ? 'cancel' : 'modify', reason: value })
 		if (res.code === 200) {
-			ElMessage.success(`红冲${type} ${ids.length} 单完成`)
+			const msg = type === '撤单'
+				? `红冲撤单 ${ids.length} 单成功，已生成红字冲销单，请到应收款模块进行收款确认`
+				: `红冲改单 ${ids.length} 单成功，已生成新订单${ids.length === 1 ? '，正在打开编辑页...' : ''}`
+			ElMessage.success(msg)
 			clearSelection(); doRefresh()
 			// 改单且只选一单：自动打开新订单编辑页
 			if (type === '改单' && ids.length === 1) {
 				const result = res.data?.results?.[0]
 				if (result?.new_order_id) {
-					// 先加载新订单数据再打开 dialog
 					const detail = await businessApi.salesOrder.detail.get(result.new_order_id)
 					if (detail.code === 200) {
 						currentOrder.value = detail.data
