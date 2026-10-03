@@ -15,8 +15,8 @@ class Receive extends Model
     ];
 
     protected $casts = [
-        'receive_date'      => 'date',
-        'amount'            => 'decimal:2',
+        'receive_date' => 'date',
+        'amount' => 'decimal:2',
         'sales_order_items' => 'array',
     ];
 

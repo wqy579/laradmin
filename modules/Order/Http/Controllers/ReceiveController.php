@@ -41,12 +41,12 @@ class ReceiveController extends Controller
             ->orderByDesc('order_date')
             ->get()
             ->map(function ($o) {
-                $total   = (float) $o->total_amount;
-                $paid    = (float) $o->paid_amount;
+                $total = (float) $o->total_amount;
+                $paid = (float) $o->paid_amount;
                 $o->order_date = $o->order_date?->format('Y-m-d');
-                $o->total_amount     = round($total, 2);
-                $o->paid_amount      = round($paid, 2);
-                $o->unpaid_amount    = round($total - $paid, 2);
+                $o->total_amount = round($total, 2);
+                $o->paid_amount = round($paid, 2);
+                $o->unpaid_amount = round($total - $paid, 2);
 
                 return $o;
             });
@@ -57,20 +57,20 @@ class ReceiveController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'receive_type'    => 'nullable|integer|in:1,2',
-            'customer_id'     => 'nullable|exists:customers,id',
-            'sales_order_id'  => 'nullable|exists:sales_orders,id',
+            'receive_type' => 'nullable|integer|in:1,2',
+            'customer_id' => 'nullable|exists:customers,id',
+            'sales_order_id' => 'nullable|exists:sales_orders,id',
             'sales_order_ids' => 'nullable|array',
             'sales_order_ids.*' => 'exists:sales_orders,id',
             'sales_order_items' => 'nullable|array',
             'sales_order_items.*.order_id' => 'required_with:sales_order_items|exists:sales_orders,id',
             'sales_order_items.*.pay_amount' => 'required_with:sales_order_items|numeric|min:0',
-            'amount'          => 'required|numeric|min:0',
-            'receive_date'    => 'nullable|date',
-            'payment_method'  => 'nullable|string|max:50',
-            'handler_id'      => 'nullable|exists:employees,id',
-            'remark'          => 'nullable|string',
-            'discount'        => 'nullable|numeric|min:0',
+            'amount' => 'required|numeric|min:0',
+            'receive_date' => 'nullable|date',
+            'payment_method' => 'nullable|string|max:50',
+            'handler_id' => 'nullable|exists:employees,id',
+            'remark' => 'nullable|string',
+            'discount' => 'nullable|numeric|min:0',
         ]);
 
         $adminId = auth('admin')?->id();
@@ -88,26 +88,26 @@ class ReceiveController extends Controller
 
             // 构建核销明细（含收款前已收金额快照）
             $salesOrderItems = [];
-            $orderIds          = [];
-            $itemMap           = [];
+            $orderIds = [];
+            $itemMap = [];
             foreach ($items as $item) {
-                $oid    = (int) $item['order_id'];
-                $order  = $orderMap[$oid] ?? null;
-                $orderIds[]       = $oid;
-                $itemMap[$oid]    = (float) ($item['pay_amount'] ?? 0);
+                $oid = (int) $item['order_id'];
+                $order = $orderMap[$oid] ?? null;
+                $orderIds[] = $oid;
+                $itemMap[$oid] = (float) ($item['pay_amount'] ?? 0);
                 $salesOrderItems[] = [
-                    'order_id'     => $oid,
-                    'pay_amount'   => (float) ($item['pay_amount'] ?? 0),
-                    'paid_before'  => $order ? round((float) $order->paid_amount, 2) : 0,
+                    'order_id' => $oid,
+                    'pay_amount' => (float) ($item['pay_amount'] ?? 0),
+                    'paid_before' => $order ? round((float) $order->paid_amount, 2) : 0,
                 ];
             }
 
             $receive = $this->service->create(array_merge($validated, [
                 'sales_order_items' => $salesOrderItems,
-                'sales_order_id'    => count($orderIds) === 1 ? $orderIds[0] : null,
+                'sales_order_id' => count($orderIds) === 1 ? $orderIds[0] : null,
             ]));
             $receiveAmount = (float) $validated['amount'];
-            $discount      = (float) ($validated['discount'] ?? 0);
+            $discount = (float) ($validated['discount'] ?? 0);
             $paymentMethod = $validated['payment_method'] ?? '现金';
 
             // 核销订单应收
@@ -132,7 +132,7 @@ class ReceiveController extends Controller
                         $remainingAmount = $receiveAmount;
                         foreach ($ordersToAllocate as $index => $alloc) {
                             $order = $alloc['order'];
-                            $oid   = $alloc['order_id'];
+                            $oid = $alloc['order_id'];
                             $payAmount = $itemMap[$oid] ?? 0;
                             // 最后一笔用剩余，避免精度丢失
                             if ($index === count($ordersToAllocate) - 1) {
@@ -174,10 +174,10 @@ class ReceiveController extends Controller
                                 ->where('sales_order_id', $oid)
                                 ->where('status', 0)
                                 ->update([
-                                    'status'         => 1,
-                                    'amount'         => max(0, round((float) $order->total_amount - (float) $order->paid_amount, 2)),
+                                    'status' => 1,
+                                    'amount' => max(0, round((float) $order->total_amount - (float) $order->paid_amount, 2)),
                                     'payment_method' => $paymentMethod,
-                                    'updated_at'     => now(),
+                                    'updated_at' => now(),
                                 ]);
                         }
                     }
@@ -197,18 +197,18 @@ class ReceiveController extends Controller
                     $orderSummary = '[订单:'.implode(',', $orderNos).']';
                 }
                 DB::table('cash_flows')->insert([
-                    'flow_no'        => $flowNo,
-                    'flow_type'      => 'receive',
-                    'customer_id'    => $validated['customer_id'],
-                    'related_id'     => $receive->id,
-                    'related_type'   => 'Receive',
-                    'flow_date'      => $validated['receive_date'] ?? now()->toDateString(),
-                    'amount'         => $receiveAmount,
+                    'flow_no' => $flowNo,
+                    'flow_type' => 'receive',
+                    'customer_id' => $validated['customer_id'],
+                    'related_id' => $receive->id,
+                    'related_type' => 'Receive',
+                    'flow_date' => $validated['receive_date'] ?? now()->toDateString(),
+                    'amount' => $receiveAmount,
                     'payment_method' => $paymentMethod,
-                    'remark'         => '收款：'.($validated['remark'] ?? '').' '.$orderSummary,
-                    'created_by'     => $adminId,
-                    'created_at'     => now(),
-                    'updated_at'     => now(),
+                    'remark' => '收款：'.($validated['remark'] ?? '').' '.$orderSummary,
+                    'created_by' => $adminId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
 
@@ -219,8 +219,8 @@ class ReceiveController extends Controller
     /** 更新订单付款状态 */
     private function updatePaymentStatus(SalesOrder $order): void
     {
-        $total   = (float) $order->total_amount;
-        $paid    = (float) $order->paid_amount;
+        $total = (float) $order->total_amount;
+        $paid = (float) $order->paid_amount;
         if ($paid >= $total - 0.01) {
             $order->payment_status = '已收款';
         } elseif ($paid > 0.01) {
@@ -260,7 +260,7 @@ class ReceiveController extends Controller
                 ->keyBy('id');
             foreach ($orderItems as &$item) {
                 $order = $orderList->get($item['order_id']);
-                $item['order_no']  = $order ? $order->order_no : '';
+                $item['order_no'] = $order ? $order->order_no : '';
                 $item['total_amount'] = $order ? (float) $order->total_amount : 0;
                 // paid_before 是 store 时保存的快照，直接用；避免用当前 paid_amount 再算
                 if (! isset($item['paid_before']) && $order) {
@@ -284,10 +284,10 @@ class ReceiveController extends Controller
         }
 
         $validated = $request->validate([
-            'amount'         => 'required|numeric|min:0.01',
-            'receive_date'   => 'nullable|date',
+            'amount' => 'required|numeric|min:0.01',
+            'receive_date' => 'nullable|date',
             'payment_method' => 'nullable|string|max:50',
-            'remark'         => 'nullable|string',
+            'remark' => 'nullable|string',
         ]);
 
         $receive = $this->service->update($receive, $validated);
@@ -323,7 +323,7 @@ class ReceiveController extends Controller
         ]);
 
         $adminId = auth('admin')?->id();
-        $reason  = $validated['reason'] ?? '手动红冲';
+        $reason = $validated['reason'] ?? '手动红冲';
 
         return DB::transaction(function () use ($receive, $adminId, $reason) {
             // 1. 从 sales_order_items 快照恢复各订单的 paid_amount
@@ -361,18 +361,18 @@ class ReceiveController extends Controller
 
             foreach ($flowRecords as $flow) {
                 DB::table('cash_flows')->insert([
-                    'flow_no'        => 'CF'.date('YmdHis').strtoupper(Str::random(4)),
-                    'flow_type'      => 'receive',
-                    'customer_id'    => $receive->customer_id,
-                    'related_id'     => $receive->id,
-                    'related_type'   => 'Receive',
-                    'flow_date'      => now()->toDateString(),
-                    'amount'         => -(float) $flow->amount,
+                    'flow_no' => 'CF'.date('YmdHis').strtoupper(Str::random(4)),
+                    'flow_type' => 'receive',
+                    'customer_id' => $receive->customer_id,
+                    'related_id' => $receive->id,
+                    'related_type' => 'Receive',
+                    'flow_date' => now()->toDateString(),
+                    'amount' => -(float) $flow->amount,
                     'payment_method' => $flow->payment_method,
-                    'remark'         => '红冲：'.$reason.' 原单'.$receive->receive_no,
-                    'created_by'     => $adminId,
-                    'created_at'     => now(),
-                    'updated_at'     => now(),
+                    'remark' => '红冲：'.$reason.' 原单'.$receive->receive_no,
+                    'created_by' => $adminId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
 
@@ -384,9 +384,9 @@ class ReceiveController extends Controller
             DB::table('receives')
                 ->where('id', $receive->id)
                 ->update([
-                    'status'     => 2,
-                    'amount'     => 0,
-                    'remark'     => '收款单红冲：'.$reason,
+                    'status' => 2,
+                    'amount' => 0,
+                    'remark' => '收款单红冲：'.$reason,
                     'updated_at' => now(),
                 ]);
 
@@ -409,7 +409,7 @@ class ReceiveController extends Controller
     public function statistics(Request $request)
     {
         $filters = $request->only(['customer_id', 'start_date', 'end_date']);
-        $stats   = $this->service->statistics($filters);
+        $stats = $this->service->statistics($filters);
 
         return $this->success($stats);
     }
