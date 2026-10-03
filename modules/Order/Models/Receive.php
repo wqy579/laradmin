@@ -11,12 +11,13 @@ class Receive extends Model
 
     protected $fillable = [
         'receive_no', 'receive_type', 'customer_id', 'sales_order_id',
-        'amount', 'receive_date', 'payment_method', 'handler_id', 'remark', 'status',
+        'sales_order_items', 'amount', 'receive_date', 'payment_method', 'handler_id', 'remark', 'status',
     ];
 
     protected $casts = [
-        'receive_date' => 'date',
-        'amount' => 'decimal:2',
+        'receive_date'      => 'date',
+        'amount'            => 'decimal:2',
+        'sales_order_items' => 'array',
     ];
 
     public function customer(): BelongsTo

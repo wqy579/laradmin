@@ -4,28 +4,50 @@ namespace Modules\Order\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Modules\Order\Models\Receive;
 
 class ReceiveService
 {
+    /** 收款单是否支持 sales_order_items JSON 列 */
+    private bool $hasItemsColumn;
+
+    public function __construct()
+    {
+        $this->hasItemsColumn = Schema::hasColumn('receives', 'sales_order_items');
+    }
+
     public function create(array $data): Receive
     {
-        return DB::transaction(function () use ($data) {
-            $receive = Receive::create([
-                'receive_no' => $this->generateNo(),
-                'receive_type' => $data['receive_type'] ?? 1,
-                'customer_id' => $data['customer_id'] ?? null,
-                'sales_order_id' => $data['sales_order_id'] ?? null,
-                'amount' => $data['amount'],
-                'receive_date' => $data['receive_date'] ?? now(),
-                'payment_method' => $data['payment_method'] ?? '现金',
-                'handler_id' => $data['handler_id'] ?? null,
-                'remark' => $data['remark'] ?? null,
-                'status' => 0,
-            ]);
+        $fields = [
+            'receive_no'     => $this->generateNo(),
+            'receive_type'   => $data['receive_type'] ?? 1,
+            'customer_id'    => $data['customer_id'] ?? null,
+            'sales_order_id' => $data['sales_order_id'] ?? null,
+            'amount'         => $data['amount'],
+            'receive_date'   => $data['receive_date'] ?? now(),
+            'payment_method' => $data['payment_method'] ?? '现金',
+            'handler_id'     => $data['handler_id'] ?? null,
+            'status'         => 0,
+        ];
 
-            return $receive;
-        });
+        // remark：保留前端传入的备注，同时将核销明细序列化为文本附在备注后（兼容无列环境）
+        $remark = $data['remark'] ?? null;
+        $items  = $data['sales_order_items'] ?? [];
+        if (! empty($items) && empty($remark)) {
+            $orderNos = [];
+            foreach ($items as $it) {
+                $orderNos[] = sprintf('%s(收¥%s)', $it['order_id'] ?? '', $it['pay_amount'] ?? 0);
+            }
+            $remark = '[核销:' . implode(',', $orderNos) . ']';
+        }
+        $fields['remark'] = $remark;
+
+        if ($this->hasItemsColumn) {
+            $fields['sales_order_items'] = ! empty($items) ? json_encode($items, JSON_UNESCAPED_UNICODE) : null;
+        }
+
+        return Receive::create($fields);
     }
 
     public function find($id): ?Receive
@@ -38,17 +60,18 @@ class ReceiveService
         if ($receive->status == 1) {
             throw new \Exception('已审核单据不能修改');
         }
+        if ($receive->status == 2) {
+            throw new \Exception('已红冲单据不能修改');
+        }
 
-        return DB::transaction(function () use ($receive, $data) {
-            $receive->update([
-                'amount' => $data['amount'],
-                'receive_date' => $data['receive_date'] ?? $receive->receive_date,
-                'payment_method' => $data['payment_method'] ?? $receive->payment_method,
-                'remark' => $data['remark'] ?? $receive->remark,
-            ]);
+        $receive->update([
+            'amount'         => $data['amount'],
+            'receive_date'   => $data['receive_date'] ?? $receive->receive_date,
+            'payment_method' => $data['payment_method'] ?? $receive->payment_method,
+            'remark'         => $data['remark'] ?? $receive->remark,
+        ]);
 
-            return $receive;
-        });
+        return $receive;
     }
 
     public function approve(Receive $receive): Receive
@@ -56,19 +79,23 @@ class ReceiveService
         if ($receive->status == 1) {
             throw new \Exception('单据已审核');
         }
+        if ($receive->status == 2) {
+            throw new \Exception('已红冲单据不能审核');
+        }
 
-        return DB::transaction(function () use ($receive) {
-            $receive->status = 1;
-            $receive->save();
+        $receive->status = 1;
+        $receive->save();
 
-            return $receive;
-        });
+        return $receive;
     }
 
     public function destroy(Receive $receive): bool
     {
         if ($receive->status == 1) {
             throw new \Exception('已审核单据不能删除');
+        }
+        if ($receive->status == 2) {
+            throw new \Exception('已红冲单据不能删除');
         }
 
         return $receive->delete();
@@ -110,7 +137,7 @@ class ReceiveService
 
         return [
             'total_amount' => $query->sum('amount') ?? 0,
-            'count' => $query->count(),
+            'count'        => $query->count(),
         ];
     }
 

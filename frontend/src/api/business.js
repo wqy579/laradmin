@@ -195,6 +195,8 @@ const businessApi = {
 		update: { put: (id, params) => request.put(`business/receive/${id}`, params) },
 		approve: { post: (id) => request.post(`business/receive/${id}/approve`) },
 		delete: { delete: (id) => request.delete(`business/receive/${id}`) },
+		unpaidOrders: { get: (params) => request.get('business/receive/unpaid-orders', { params }) },
+		redFlush: { post: (id) => request.post(`business/receive/${id}/red-flush`, { reason: '' }) },
 		statistics: { get: (params) => request.get('business/receive/statistics', { params }) },
 		receivable: { get: (params) => request.get('business/receive/receivable', { params }) },
 	},

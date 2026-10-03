@@ -115,10 +115,12 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [ReceiveController::class, 'index']);
         Route::get('/statistics', [ReceiveController::class, 'statistics']);
         Route::get('/receivable', [ReceiveController::class, 'receivable']);
+        Route::get('/unpaid-orders', [ReceiveController::class, 'unpaidOrders']);
         Route::get('/{id}', [ReceiveController::class, 'show']);
         Route::post('/', [ReceiveController::class, 'store']);
         Route::put('/{id}', [ReceiveController::class, 'update']);
         Route::post('/{id}/approve', [ReceiveController::class, 'approve']);
+        Route::post('/{id}/red-flush', [ReceiveController::class, 'redFlush']);
         Route::delete('/{id}', [ReceiveController::class, 'destroy']);
     });
     // 付款管理
