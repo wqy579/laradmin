@@ -48,45 +48,76 @@ class ReceiveController extends Controller
             $receiveAmount = (float) $validated['amount'];
             $discount = (float) ($validated['discount'] ?? 0);
 
-            // 1. 核销勾选的订单应收：更新 paid_amount + 订单状态
+            // 1. 核销勾选的订单应收：按比例分配收款金额
             $orderIds = $validated['sales_order_ids'] ?? ($validated['sales_order_id'] ? [$validated['sales_order_id']] : []);
-            foreach ($orderIds as $oid) {
-                $order = SalesOrder::find($oid);
-                if ($order) {
-                    $order->paid_amount = (float) $order->paid_amount + $receiveAmount + $discount;
+            if ($orderIds) {
+                // 计算总待收金额，用于按比例分配
+                $totalReceivable = 0;
+                $ordersToAllocate = [];
+                foreach ($orderIds as $oid) {
+                    $order = SalesOrder::find($oid);
+                    if ($order) {
+                        $receivable = (float) $order->total_amount - (float) $order->paid_amount;
+                        if ($receivable > 0) {
+                            $ordersToAllocate[] = ['order' => $order, 'receivable' => $receivable];
+                            $totalReceivable += $receivable;
+                        }
+                    }
+                }
+
+                // 按比例分配收款金额
+                $remainingAmount = $receiveAmount + $discount;
+                foreach ($ordersToAllocate as $index => $item) {
+                    $order = $item['order'];
+                    $receivable = $item['receivable'];
+                    // 比例分配（最后一笔用剩余金额避免精度问题）
+                    if ($index === count($ordersToAllocate) - 1) {
+                        $allocateAmount = $remainingAmount;
+                    } else {
+                        $allocateAmount = $totalReceivable > 0 ? ($receivable / $totalReceivable) * $receiveAmount : 0;
+                        $remainingAmount -= $allocateAmount;
+                    }
+
+                    $order->paid_amount = (float) $order->paid_amount + $allocateAmount;
                     // 已收 >= 应收 → 标记已收款
-                    if ($order->paid_amount >= $order->total_amount) {
+                    if ($order->paid_amount >= $order->total_amount - 0.01) {
                         $order->status = '已收款';
+                        $order->payment_status = '已收款';
+                    } elseif ($order->paid_amount > 0) {
+                        $order->payment_status = '部分收款';
                     }
                     $order->save();
                 }
+
+                // 2. 更新应收款记录（receives 表中自动生成的待确认记录）
+                foreach ($orderIds as $oid) {
+                    $order = SalesOrder::find($oid);
+                    if ($order) {
+                        DB::table('receives')
+                            ->where('sales_order_id', $oid)
+                            ->where('status', 0)
+                            ->update([
+                                'status' => 1,
+                                'amount' => (float) $order->total_amount - (float) $order->paid_amount,
+                                'payment_method' => $validated['payment_method'] ?? '现金',
+                                'updated_at' => now(),
+                            ]);
+                    }
+                }
             }
 
-            // 2. 更新应收款记录（receives 表中自动生成的待确认记录）
-            if ($orderIds) {
-                DB::table('receives')
-                    ->where('sales_order_id', $orderIds[0])
-                    ->where('status', 0)
-                    ->update([
-                        'status' => 1,
-                        'amount' => $receiveAmount,
-                        'payment_method' => $validated['payment_method'] ?? '现金',
-                        'updated_at' => now(),
-                    ]);
-            }
-
-            // 3. 写现金流水（stocks_history 复用，change_type=receive）
+            // 3. 写经营历程（stocks_history 复用，change_type=receive）
             if ($validated['customer_id']) {
                 DB::table('stocks_history')->insert([
                     'product_id' => 0, // 非商品流水
                     'warehouse_id' => 0,
                     'change_type' => 'receive',
-                    'change_qty' => (int) round($receiveAmount),
+                    'change_qty' => round($receiveAmount, 2),
                     'before_qty' => 0,
-                    'after_qty' => (int) round($receiveAmount),
+                    'after_qty' => round($receiveAmount, 2),
                     'related_id' => $receive->id ?? 0,
                     'related_type' => 'Receive',
-                    'remark' => '收款：'.($validated['remark'] ?? ''),
+                    'remark' => '收款：'.($validated['remark'] ?? '').($orderIds ? ' [订单:'.implode(',', $orderIds).']' : ''),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

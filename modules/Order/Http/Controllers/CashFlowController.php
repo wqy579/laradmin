@@ -25,16 +25,16 @@ class CashFlowController extends Controller
             }
         };
 
-        // 收款
-        $receives = DB::table('receives')->select('receive_date as date', DB::raw("'收款' as type"), 'remark as description', 'amount')->where('status', 1);
+        // 收款（全部状态，草稿也计入经营历程）
+        $receives = DB::table('receives')->select('receive_date as date', DB::raw("'收款' as type"), 'remark as description', 'amount');
         $dateFn($receives);
 
-        // 付款（负）
-        $pays = DB::table('pays')->select('pay_date as date', DB::raw("'付款' as type"), 'remark as description', DB::raw('-amount as amount'))->where('status', 1);
+        // 付款（负，全部状态）
+        $pays = DB::table('pays')->select('pay_date as date', DB::raw("'付款' as type"), 'remark as description', DB::raw('-amount as amount'));
         $dateFn($pays);
 
-        // 费用（负）
-        $expenses = DB::table('expenses')->select('expense_date as date', DB::raw("'费用' as type"), 'remark as description', DB::raw('-amount as amount'))->where('status', 1);
+        // 费用（负，全部状态）
+        $expenses = DB::table('expenses')->select('expense_date as date', DB::raw("'费用' as type"), 'remark as description', DB::raw('-amount as amount'));
         $dateFn($expenses);
 
         $list = $receives->unionAll($pays)->unionAll($expenses)->orderByDesc('date')->get();
