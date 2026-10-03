@@ -8,7 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('cash_flows', function (Blueprint $table) {
+        if (! Schema::hasTable('cash_flows')) {
+            Schema::create('cash_flows', function (Blueprint $table) {
             $table->id();
             $table->string('flow_no', 50)->unique()->comment('流水编号');
             $table->string('flow_type', 20)->comment('类型: receive/pay/expense/red_flush');
