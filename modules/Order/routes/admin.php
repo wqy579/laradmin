@@ -128,6 +128,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/customer-statement')->group(function () {
         Route::get('/customers', [StatementController::class, 'customers']);
         Route::get('/', [StatementController::class, 'index']);
+        Route::get('/export', [StatementController::class, 'export']);
+        Route::get('/print', [StatementController::class, 'print']);
     });
     // 往来对账（旧接口，兼容前端）
     Route::get('business/statement', [ReceiveController::class, 'receivable']);
