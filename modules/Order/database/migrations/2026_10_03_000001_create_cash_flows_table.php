@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -21,7 +22,7 @@ return new class extends Migration
             $table->text('remark')->nullable()->comment('备注');
             $table->unsignedBigInteger('created_by')->nullable()->comment('创建人');
             $table->timestamps();
-            
+
             $table->index('flow_type');
             $table->index('customer_id');
             $table->index('flow_date');
