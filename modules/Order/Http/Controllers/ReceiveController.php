@@ -364,6 +364,15 @@ class ReceiveController extends Controller
             return $this->notFound();
         }
 
+        // 已审核无需重复操作
+        if ($receive->status == 1) {
+            return $this->success($receive, '已审核，无需重复操作');
+        }
+        // 已红冲不能审核
+        if ($receive->status == 2) {
+            return $this->error('已红冲单据不能审核', 422);
+        }
+
         $receive = $this->service->approve($receive);
 
         return $this->success($receive);
