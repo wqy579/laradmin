@@ -75,6 +75,18 @@ class ReceiveController extends Controller
             'discount' => 'nullable|numeric|min:0',
         ]);
 
+        // 兼容前端旧字段名：items + this_receive → sales_order_items + pay_amount
+        if (empty($validated['sales_order_items']) && is_array($request->input('items'))) {
+            $validated['sales_order_items'] = collect($request->input('items'))
+                ->map(fn ($item) => [
+                    'order_id' => $item['order_id'] ?? $item['id'] ?? null,
+                    'pay_amount' => $item['pay_amount'] ?? $item['this_receive'] ?? $item['amount'] ?? 0,
+                ])
+                ->filter(fn ($item) => $item['order_id'] !== null)
+                ->values()
+                ->toArray();
+        }
+
         $adminId = auth('admin')?->id();
 
         return DB::transaction(function () use ($validated, $adminId) {
