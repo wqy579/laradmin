@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Order\Models\SalesOrder;
 use Modules\Order\Services\ReceiveService;
 
@@ -185,7 +186,7 @@ class ReceiveController extends Controller
             }
 
             // 写经营历程
-            if ($validated['customer_id']) {
+            if (! empty($validated['customer_id'])) {
                 $flowNo = 'CF'.date('YmdHis').strtoupper(Str::random(4));
                 $orderSummary = '';
                 if (! empty($items)) {
