@@ -236,6 +236,12 @@ const systemRoutes = [
 				component: () => import('../views/business/general-expense/index.vue'),
 				meta: { title: 'generalExpense' },
 			},
+			{
+				path: '/business/statement',
+				name: 'Statement',
+				component: () => import('../views/business/statement/index.vue'),
+				meta: { title: 'statement' },
+			},
 			// 权限管理
 			{
 				path: '/auth/permission',
