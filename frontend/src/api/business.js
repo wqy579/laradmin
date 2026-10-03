@@ -200,6 +200,10 @@ const businessApi = {
 		statistics: { get: (params) => request.get('business/receive/statistics', { params }) },
 		receivable: { get: (params) => request.get('business/receive/receivable', { params }) },
 	},
+	customerStatement: {
+		get: (params) => request.get('business/customer-statement', { params }),
+		customers: { get: (params) => request.get('business/customer-statement/customers', { params }) },
+	},
 
 	// 付款管理
 	pay: {

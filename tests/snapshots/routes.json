@@ -669,6 +669,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/customer-statement",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\StatementController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/customer-statement/customers",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\StatementController@customers",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/customers",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\CustomerController@index",

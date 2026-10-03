@@ -10,6 +10,7 @@ use Modules\Order\Http\Controllers\ReceiveController;
 use Modules\Order\Http\Controllers\ReturnController;
 use Modules\Order\Http\Controllers\RouteController;
 use Modules\Order\Http\Controllers\SalesOrderController;
+use Modules\Order\Http\Controllers\StatementController;
 use Modules\Order\Http\Controllers\SupplierController;
 use Modules\Order\Http\Controllers\VisitLogController;
 
@@ -123,6 +124,13 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/red-flush', [ReceiveController::class, 'redFlush']);
         Route::delete('/{id}', [ReceiveController::class, 'destroy']);
     });
+    // 客户对账
+    Route::prefix('business/customer-statement')->group(function () {
+        Route::get('/customers', [StatementController::class, 'customers']);
+        Route::get('/', [StatementController::class, 'index']);
+    });
+    // 往来对账（旧接口，兼容前端）
+    Route::get('business/statement', [ReceiveController::class, 'receivable']);
     // 付款管理
     Route::prefix('business/pay')->group(function () {
         Route::get('/', [PayController::class, 'index']);
