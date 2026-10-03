@@ -1905,6 +1905,138 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/stocktaking",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stocktaking",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stocktaking/ledger",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@ledger",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stocktaking/warehouse-products",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@warehouseProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/stocktaking/{id}",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/stocktaking/{id}",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/stocktaking/{id}",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stocktaking/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stocktaking/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stocktaking/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/stocktaking/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/supplier",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@index",
