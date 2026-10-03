@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Order\Models\Customer;
-use Modules\Order\Models\ReceiveItem;
 use Modules\Order\Models\SalesOrder;
 use Modules\Order\Services\ReceiveService;
 
