@@ -790,6 +790,23 @@ class SalesOrderController extends Controller
                 // 原订单反向关联红字冲销单（撤单时 = 冲销单ID；改单时 = 新订单ID）
                 if ($validated['type'] === 'cancel') {
                     $order->update(['red_flush_order_id' => $flushOrder->id]);
+
+                    // 红冲财务联动：取消或标记应收款记录
+                    $receiveRecord = DB::table('receives')->where('sales_order_id', $orderId)->first();
+                    if ($receiveRecord) {
+                        if ($receiveRecord->status == 0) {
+                            // 待确认的应收款直接删除
+                            DB::table('receives')->where('id', $receiveRecord->id)->delete();
+                        } else {
+                            // 已确认的应收款标记为已红冲
+                            DB::table('receives')->where('id', $receiveRecord->id)->update([
+                                'status' => 2,
+                                'amount' => 0,
+                                'remark' => '订单红冲撤单，应收款已取消：' . $validated['reason'],
+                                'updated_at' => now(),
+                            ]);
+                        }
+                    }
                 }
 
                 $newOrderId = null;
@@ -813,6 +830,24 @@ class SalesOrderController extends Controller
                     }
                     $newOrderId = $newOrder->id;
                     $order->update(['red_flush_order_id' => $newOrderId]);
+
+                    // 红冲财务联动：改单时创建新的应收款记录给新订单
+                    $originalReceiveAmount = (float) $order->total_amount - (float) $order->paid_amount;
+                    if ($originalReceiveAmount > 0) {
+                        DB::table('receives')->insert([
+                            'receive_no' => 'AR'.date('YmdHis').strtoupper(Str::random(4)),
+                            'receive_type' => 1,
+                            'customer_id' => $order->customer_id,
+                            'sales_order_id' => $newOrderId,
+                            'amount' => $originalReceiveAmount,
+                            'receive_date' => now()->toDateString(),
+                            'payment_method' => '应收',
+                            'status' => 0,
+                            'remark' => '订单红冲改单新生成应收款：'.$newOrder->order_no,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
                 }
 
                 $results[] = ['id' => $orderId, 'success' => true, 'flush_order_id' => $flushOrder->id, 'new_order_id' => $newOrderId];

@@ -70,20 +70,9 @@ async function fetchData() {
 			stats.value = res.data?.stats || {}
 			const list = res.data?.list || []
 			profitList.value = list
-			// 资产 = 库存价值 + 应收款
-			const receiveTotal = Number(stats.value.total_income || 0)
-			const payTotal = Number(stats.value.total_expense || 0)
-			balanceAssets.value = [
-				{ name: '应收账款', amount: receiveTotal },
-				{ name: '库存商品', amount: 0 },
-				{ name: '现金', amount: receiveTotal - payTotal },
-				{ name: '资产总计', amount: receiveTotal + (receiveTotal - payTotal) },
-			]
-			balanceLiabilities.value = [
-				{ name: '应付账款', amount: 0 },
-				{ name: '所有者权益', amount: receiveTotal - payTotal },
-				{ name: '负债+权益总计', amount: receiveTotal - payTotal },
-			]
+			// 使用后端计算的真实资产负债表数据
+			balanceAssets.value = res.data?.balance_assets || []
+			balanceLiabilities.value = res.data?.balance_liabilities || []
 		}
 	} catch { ElMessage.error('加载失败') }
 }
