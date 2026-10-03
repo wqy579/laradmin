@@ -4,15 +4,15 @@ namespace Modules\Order\Services;
 
 use Illuminate\Support\Facades\DB;
 use Modules\Order\Models\Customer;
-use Modules\Order\Models\SalesOrder;
 use Modules\Order\Models\Receive;
+use Modules\Order\Models\SalesOrder;
 
 class StatementService
 {
     public function getStatement(int $customerId, string $startDate, string $endDate): array
     {
         $customer = Customer::find($customerId);
-        if (!$customer) {
+        if (! $customer) {
             return [
                 'customer_name' => '',
                 'start_date' => $startDate,
@@ -44,6 +44,7 @@ class StatementService
         $items = array_filter($items, function ($item) {
             $r = $item['receivable'] ?? 0;
             $rec = $item['received'] ?? 0;
+
             return abs($r) > 0.001 || abs($rec) > 0.001;
         });
         $items = array_values($items);
@@ -106,7 +107,7 @@ class StatementService
         // 批量获取创建人姓名
         $creatorIds = $orders->pluck('created_by')->filter()->unique()->toArray();
         $creators = [];
-        if (!empty($creatorIds)) {
+        if (! empty($creatorIds)) {
             $users = DB::table('auth_user')->whereIn('id', $creatorIds)
                 ->select('id', 'name', 'username')->get();
             foreach ($users as $u) {
@@ -132,13 +133,14 @@ class StatementService
     private function getOrderSummary($order): string
     {
         // 尝试从remark获取摘要，否则显示商品数量
-        if (!empty($order->remark)) {
+        if (! empty($order->remark)) {
             return $order->remark;
         }
         // 查询订单商品数量
         $itemCount = DB::table('sales_order_items')
             ->where('sales_order_id', $order->id)
             ->count();
+
         return $itemCount > 0 ? "商品销售({$itemCount}种)" : '商品销售';
     }
 
@@ -154,7 +156,7 @@ class StatementService
         // 批量获取经办人姓名
         $handlerIds = $receives->pluck('handler_id')->filter()->unique()->toArray();
         $handlers = [];
-        if (!empty($handlerIds)) {
+        if (! empty($handlerIds)) {
             $employees = DB::table('employees')->whereIn('id', $handlerIds)
                 ->select('id', 'name')->get();
             foreach ($employees as $e) {
@@ -165,7 +167,7 @@ class StatementService
         return $receives->map(function ($receive) use ($handlers) {
             $remark = $receive->remark ?? '';
             $summary = '';
-            if (!empty($remark)) {
+            if (! empty($remark)) {
                 // 提取客户名和订单号
                 if (preg_match('/^收款：(.+)$/', $remark, $m)) {
                     $summary = trim($m[1]);
@@ -200,7 +202,7 @@ class StatementService
         // 批量获取红冲人姓名
         $flushByIds = $orders->pluck('red_flush_by')->filter()->unique()->toArray();
         $flushers = [];
-        if (!empty($flushByIds)) {
+        if (! empty($flushByIds)) {
             $users = DB::table('auth_user')->whereIn('id', $flushByIds)
                 ->select('id', 'name', 'username')->get();
             foreach ($users as $u) {
@@ -230,8 +232,10 @@ class StatementService
             if ($a['date'] === $b['date']) {
                 return ($a['related_id'] ?? 0) <=> ($b['related_id'] ?? 0);
             }
+
             return $a['date'] <=> $b['date'];
         });
+
         return $items;
     }
 

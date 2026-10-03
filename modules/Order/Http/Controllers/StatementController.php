@@ -24,6 +24,7 @@ class StatementController extends Controller
     public function customers()
     {
         $customers = $this->service->getCustomers();
+
         return $this->success($customers);
     }
 
@@ -69,7 +70,7 @@ class StatementController extends Controller
         );
 
         // 构建CSV内容
-        $csv = "﻿"; // BOM for Excel UTF-8
+        $csv = '﻿'; // BOM for Excel UTF-8
         $csv .= "客户对账单\n";
         $csv .= "客户：{$statement['customer_name']}\n";
         $csv .= "对账期间：{$statement['start_date']} 至 {$statement['end_date']}\n\n";
