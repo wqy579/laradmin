@@ -280,21 +280,39 @@ class ReceiveController extends Controller
             ->select('flow_no', 'amount', 'payment_method', 'flow_date', 'remark', 'created_by', 'created_at')
             ->first();
 
-        // 格式化核销明细，附加订单号（paid_before 已在 store 时快照保存）
-        $orderItems = $receive->sales_order_items ?? [];
-        if (! empty($orderItems)) {
-            $orderIds = array_column($orderItems, 'order_id');
-            $orderList = SalesOrder::whereIn('id', $orderIds)
-                ->select('id', 'order_no', 'total_amount')
-                ->get()
-                ->keyBy('id');
-            foreach ($orderItems as &$item) {
-                $order = $orderList->get($item['order_id']);
-                $item['order_no'] = $order ? $order->order_no : '';
-                $item['total_amount'] = $order ? (float) $order->total_amount : 0;
-                // paid_before 是 store 时保存的快照，直接用；避免用当前 paid_amount 再算
-                if (! isset($item['paid_before']) && $order) {
-                    $item['paid_before'] = round((float) $order->paid_amount - (float) $item['pay_amount'], 2);
+        // 附核销明细：优先从 receive_items 表读取，回退到 sales_order_items JSON 字段
+        $orderItems = DB::table('receive_items')
+            ->where('receive_id', $id)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'order_id' => (int) $item->sales_order_id,
+                    'order_no' => $item->order_no,
+                    'pay_amount' => (float) $item->pay_amount,
+                    'paid_before' => (float) $item->paid_before,
+                    'receivable_before' => (float) $item->receivable_before,
+                ];
+            })
+            ->toArray();
+
+        // 回退：如果没有 receive_items 记录，从 sales_order_items JSON 字段读取
+        if (empty($orderItems)) {
+            $jsonItems = $receive->sales_order_items ?? [];
+            if (! empty($jsonItems)) {
+                $orderIds = array_column($jsonItems, 'order_id');
+                $orderList = SalesOrder::whereIn('id', $orderIds)
+                    ->select('id', 'order_no', 'total_amount')
+                    ->get()
+                    ->keyBy('id');
+                foreach ($jsonItems as $item) {
+                    $order = $orderList->get($item['order_id']);
+                    $orderItems[] = [
+                        'order_id' => (int) $item['order_id'],
+                        'order_no' => $order ? $order->order_no : '',
+                        'pay_amount' => (float) ($item['pay_amount'] ?? 0),
+                        'paid_before' => (float) ($item['paid_before'] ?? 0),
+                        'receivable_before' => $order ? round((float) $order->total_amount - (float) ($item['paid_before'] ?? 0), 2) : 0,
+                    ];
                 }
             }
         }

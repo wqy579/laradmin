@@ -436,15 +436,22 @@ const loadAllPending = async () => {
 }
 
 const onOrderChange = () => {
-  const checked = pendingOrders.value.filter(o => o._checked)
-  selectedOrders.value = checked
+  // vxe-table 的选中状态不会自动同步到 row._checked，需要从表格实例获取
+  const tableRef = orderTableRef.value
+  const checkedRows = tableRef ? tableRef.getCheckboxRecords() : []
+  // 标记选中状态，供 recalcTotal 使用
+  pendingOrders.value.forEach(o => {
+    o._checked = checkedRows.some(r => r.id === o.id)
+  })
+  selectedOrders.value = checkedRows
   recalcTotal()
 }
 
 const recalcTotal = () => {
-  const total = pendingOrders.value
-    .filter(o => o._checked)
-    .reduce((s, o) => s + (Number(o._pay_amount) || 0), 0)
+  // 优先从表格实例获取选中行，确保与 vxe-table 状态一致
+  const tableRef = orderTableRef.value
+  const checkedRows = tableRef ? tableRef.getCheckboxRecords() : selectedOrders.value
+  const total = checkedRows.reduce((s, o) => s + (Number(o._pay_amount) || 0), 0)
   form.amount = parseFloat(total.toFixed(2))
 }
 
@@ -575,6 +582,7 @@ const handleDelete = async (row) => {
 const orderSelectVisible = ref(false)
 const orderSearchKeyword = ref('')
 const orderSearchResults = ref([])
+const orderTableRef = ref(null)
 const orderSelectTableRef = ref(null)
 const selectedOrderIds = ref([])
 
@@ -610,8 +618,13 @@ const searchOrders = async () => {
 }
 
 const onOrderSelectChange = () => {
-  const checked = orderSearchResults.value.filter(o => o._checked)
-  selectedOrderIds.value = checked.map(o => o.id)
+  // vxe-table 的选中状态不会自动同步到 row._checked，需要从表格实例获取
+  const tableRef = orderSelectTableRef.value
+  const checkedRows = tableRef ? tableRef.getCheckboxRecords() : []
+  orderSearchResults.value.forEach(o => {
+    o._checked = checkedRows.some(r => r.id === o.id)
+  })
+  selectedOrderIds.value = checkedRows.map(o => o.id)
 }
 
 const confirmOrderSelect = () => {
