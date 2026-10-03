@@ -2,7 +2,7 @@
     {
         "method": "GET",
         "uri": "/",
-        "name": null,
+        "name": "generated::1Fi9uhZ6VSVHat5O",
         "action": "App\\Http\\Controllers\\HomeController@index",
         "middleware": [
             "web"
@@ -11,7 +11,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/change-password",
-        "name": "admin.",
+        "name": "admin.generated::GpA6Uz0nCU4K2073",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@changePassword",
         "middleware": [
             "api",
@@ -23,7 +23,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/departments",
-        "name": "admin.",
+        "name": "admin.generated::5ebix1m708PqFRRN",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@index",
         "middleware": [
             "api",
@@ -35,7 +35,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/departments",
-        "name": "admin.",
+        "name": "admin.generated::cMdR7mdX17HV7d0Z",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@store",
         "middleware": [
             "api",
@@ -47,7 +47,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/departments/all",
-        "name": "admin.",
+        "name": "admin.generated::SxuweBIuI6wKEkID",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@getAll",
         "middleware": [
             "api",
@@ -59,7 +59,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/departments/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::kHTUVK2TWVsUHZi0",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@batchDelete",
         "middleware": [
             "api",
@@ -71,7 +71,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/departments/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::z9nfHxycP6sxEcXc",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@batchUpdateStatus",
         "middleware": [
             "api",
@@ -83,7 +83,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/departments/tree",
-        "name": "admin.",
+        "name": "admin.generated::eqxzKav46MzQybU3",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@tree",
         "middleware": [
             "api",
@@ -95,7 +95,7 @@
     {
         "method": "DELETE",
         "uri": "admin/auth/departments/{id}",
-        "name": "admin.",
+        "name": "admin.generated::q6RFjaZvUm3lTOg8",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@destroy",
         "middleware": [
             "api",
@@ -107,7 +107,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/departments/{id}",
-        "name": "admin.",
+        "name": "admin.generated::BMa8G9PI5UeLJQbW",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@show",
         "middleware": [
             "api",
@@ -119,7 +119,7 @@
     {
         "method": "PUT",
         "uri": "admin/auth/departments/{id}",
-        "name": "admin.",
+        "name": "admin.generated::p7hGHsBpcYLeHypX",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Department@update",
         "middleware": [
             "api",
@@ -131,7 +131,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/login",
-        "name": "admin.",
+        "name": "admin.generated::Mu1gFJOxHHKPpwJj",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@login",
         "middleware": [
             "api",
@@ -142,7 +142,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/logout",
-        "name": "admin.",
+        "name": "admin.generated::8suxeaWP7GP3LJQ2",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@logout",
         "middleware": [
             "api",
@@ -154,7 +154,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/me",
-        "name": "admin.",
+        "name": "admin.generated::0hcWnE6HGHKDhqsj",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@me",
         "middleware": [
             "api",
@@ -166,7 +166,7 @@
     {
         "method": "PUT",
         "uri": "admin/auth/me",
-        "name": "admin.",
+        "name": "admin.generated::gp2dFRXpS9GqFg1h",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@updateMe",
         "middleware": [
             "api",
@@ -178,7 +178,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/permissions",
-        "name": "admin.",
+        "name": "admin.generated::GQQ3E3Q657uDe84f",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@index",
         "middleware": [
             "api",
@@ -190,7 +190,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/permissions",
-        "name": "admin.",
+        "name": "admin.generated::4eJiBEVCHfW2dYDp",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@store",
         "middleware": [
             "api",
@@ -202,7 +202,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/permissions/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::2iqgs95ME6SdZHnl",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@batchDelete",
         "middleware": [
             "api",
@@ -214,7 +214,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/permissions/menu",
-        "name": "admin.",
+        "name": "admin.generated::7AmrbGJa8HLFokCy",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@menu",
         "middleware": [
             "api",
@@ -226,7 +226,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/permissions/tree",
-        "name": "admin.",
+        "name": "admin.generated::PgAxI3a959XeXDhS",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@tree",
         "middleware": [
             "api",
@@ -238,7 +238,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/permissions/update-icons",
-        "name": "admin.",
+        "name": "admin.generated::txLGyCWfL1wZvvfs",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@updateIcons",
         "middleware": [
             "api",
@@ -250,7 +250,7 @@
     {
         "method": "DELETE",
         "uri": "admin/auth/permissions/{id}",
-        "name": "admin.",
+        "name": "admin.generated::rJXGE2FSrkiQOe7D",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@destroy",
         "middleware": [
             "api",
@@ -262,7 +262,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/permissions/{id}",
-        "name": "admin.",
+        "name": "admin.generated::6XHAQAJYwHm01fZ9",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@show",
         "middleware": [
             "api",
@@ -274,7 +274,7 @@
     {
         "method": "PUT",
         "uri": "admin/auth/permissions/{id}",
-        "name": "admin.",
+        "name": "admin.generated::vXWk2i64cv95DCkU",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Permission@update",
         "middleware": [
             "api",
@@ -286,7 +286,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/refresh",
-        "name": "admin.",
+        "name": "admin.generated::zxMBxSvQZv8UDgcp",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Auth@refresh",
         "middleware": [
             "api",
@@ -298,7 +298,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/roles",
-        "name": "admin.",
+        "name": "admin.generated::y6thagTB6DfPxf5x",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@index",
         "middleware": [
             "api",
@@ -310,7 +310,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/roles",
-        "name": "admin.",
+        "name": "admin.generated::TiaThqwZiyvypu8M",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@store",
         "middleware": [
             "api",
@@ -322,7 +322,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/roles/all",
-        "name": "admin.",
+        "name": "admin.generated::ZHhbgn7d0OxFOgHJ",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@getAll",
         "middleware": [
             "api",
@@ -334,7 +334,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/roles/assign-permissions",
-        "name": "admin.",
+        "name": "admin.generated::57ODf8aKcMXKCErG",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@assignPermissions",
         "middleware": [
             "api",
@@ -346,7 +346,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/roles/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::POoXoFs01xxfgbi4",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@batchDelete",
         "middleware": [
             "api",
@@ -358,7 +358,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/roles/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::D3P8boaYGb7LRzc3",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@batchUpdateStatus",
         "middleware": [
             "api",
@@ -370,7 +370,7 @@
     {
         "method": "DELETE",
         "uri": "admin/auth/roles/{id}",
-        "name": "admin.",
+        "name": "admin.generated::5NhvBMz47svHISCa",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@destroy",
         "middleware": [
             "api",
@@ -382,7 +382,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/roles/{id}",
-        "name": "admin.",
+        "name": "admin.generated::YFjB1QZTeS9WDn65",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@show",
         "middleware": [
             "api",
@@ -394,7 +394,7 @@
     {
         "method": "PUT",
         "uri": "admin/auth/roles/{id}",
-        "name": "admin.",
+        "name": "admin.generated::CszD5AQZgwLrwkcW",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\Role@update",
         "middleware": [
             "api",
@@ -406,7 +406,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/users",
-        "name": "admin.",
+        "name": "admin.generated::fT3jHAeGqgt6DNKY",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@index",
         "middleware": [
             "api",
@@ -418,7 +418,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/users",
-        "name": "admin.",
+        "name": "admin.generated::v78CnAvQZ1kFDZ9i",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@store",
         "middleware": [
             "api",
@@ -430,7 +430,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/users/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::H9GdeDmmqyyu9tYo",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@batchDelete",
         "middleware": [
             "api",
@@ -442,7 +442,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/users/batch-department",
-        "name": "admin.",
+        "name": "admin.generated::VSslIdu3fd2jcH2z",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@batchAssignDepartment",
         "middleware": [
             "api",
@@ -454,7 +454,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/users/batch-roles",
-        "name": "admin.",
+        "name": "admin.generated::8hiPeRDJjTnRrH50",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@batchAssignRoles",
         "middleware": [
             "api",
@@ -466,7 +466,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/users/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::Gz4d9KKYEs7IinKP",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@batchUpdateStatus",
         "middleware": [
             "api",
@@ -478,7 +478,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/users/export",
-        "name": "admin.",
+        "name": "admin.generated::233FAaxkRCZMh8mV",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@export",
         "middleware": [
             "api",
@@ -490,7 +490,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/users/import",
-        "name": "admin.",
+        "name": "admin.generated::yd8gR3zQOg7xO3Bh",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@import",
         "middleware": [
             "api",
@@ -502,7 +502,7 @@
     {
         "method": "DELETE",
         "uri": "admin/auth/users/{id}",
-        "name": "admin.",
+        "name": "admin.generated::Cv0eskfpXEhYBws5",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@destroy",
         "middleware": [
             "api",
@@ -514,7 +514,7 @@
     {
         "method": "GET",
         "uri": "admin/auth/users/{id}",
-        "name": "admin.",
+        "name": "admin.generated::YPK9fKboSRyBtiyL",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@show",
         "middleware": [
             "api",
@@ -526,7 +526,7 @@
     {
         "method": "PUT",
         "uri": "admin/auth/users/{id}",
-        "name": "admin.",
+        "name": "admin.generated::blYyvPQfK9ZOAvG0",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@update",
         "middleware": [
             "api",
@@ -538,7 +538,7 @@
     {
         "method": "POST",
         "uri": "admin/auth/users/{id}/reset-password",
-        "name": "admin.",
+        "name": "admin.generated::rGA07NHruQfFaxh9",
         "action": "Modules\\Auth\\Http\\Controllers\\Admin\\User@resetPassword",
         "middleware": [
             "api",
@@ -550,7 +550,7 @@
     {
         "method": "GET",
         "uri": "admin/business/attendance",
-        "name": "admin.",
+        "name": "admin.generated::FZF9itVcWbtCfmBV",
         "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@index",
         "middleware": [
             "api",
@@ -562,7 +562,7 @@
     {
         "method": "POST",
         "uri": "admin/business/attendance",
-        "name": "admin.",
+        "name": "admin.generated::op3mrbucJ3x3ftWh",
         "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@store",
         "middleware": [
             "api",
@@ -574,7 +574,7 @@
     {
         "method": "GET",
         "uri": "admin/business/attendance/statistics",
-        "name": "admin.",
+        "name": "admin.generated::XN7PVjX07D7TxHUO",
         "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@statistics",
         "middleware": [
             "api",
@@ -586,7 +586,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/attendance/{attendance}",
-        "name": "admin.",
+        "name": "admin.generated::rUg8Ap6MN2FQVP6Y",
         "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@destroy",
         "middleware": [
             "api",
@@ -598,7 +598,7 @@
     {
         "method": "GET",
         "uri": "admin/business/attendance/{attendance}",
-        "name": "admin.",
+        "name": "admin.generated::CXOPcqftreu9lVmI",
         "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@show",
         "middleware": [
             "api",
@@ -610,7 +610,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/attendance/{attendance}",
-        "name": "admin.",
+        "name": "admin.generated::Jzc4QBInBnWXBdYt",
         "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@update",
         "middleware": [
             "api",
@@ -622,7 +622,7 @@
     {
         "method": "GET",
         "uri": "admin/business/cash-flow",
-        "name": "admin.",
+        "name": "admin.generated::GmWNHR7ffCiQceK1",
         "action": "Modules\\Order\\Http\\Controllers\\CashFlowController@index",
         "middleware": [
             "api",
@@ -634,7 +634,7 @@
     {
         "method": "GET",
         "uri": "admin/business/cost-price",
-        "name": "admin.",
+        "name": "admin.generated::Za3BsTBsaZOXfBxI",
         "action": "Modules\\Stock\\Http\\Controllers\\CostPriceController@index",
         "middleware": [
             "api",
@@ -646,7 +646,7 @@
     {
         "method": "POST",
         "uri": "admin/business/cost-price/batch",
-        "name": "admin.",
+        "name": "admin.generated::FIeffstuT56LExFC",
         "action": "Modules\\Stock\\Http\\Controllers\\CostPriceController@batchUpdate",
         "middleware": [
             "api",
@@ -658,7 +658,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/cost-price/{product}",
-        "name": "admin.",
+        "name": "admin.generated::Ibh4iXoHXiixkAPY",
         "action": "Modules\\Stock\\Http\\Controllers\\CostPriceController@update",
         "middleware": [
             "api",
@@ -670,7 +670,7 @@
     {
         "method": "GET",
         "uri": "admin/business/customers",
-        "name": "admin.",
+        "name": "admin.generated::2TGZG7uIIAp876g5",
         "action": "Modules\\Order\\Http\\Controllers\\CustomerController@index",
         "middleware": [
             "api",
@@ -682,7 +682,7 @@
     {
         "method": "POST",
         "uri": "admin/business/customers",
-        "name": "admin.",
+        "name": "admin.generated::sT9aA7CnGE7whCkQ",
         "action": "Modules\\Order\\Http\\Controllers\\CustomerController@store",
         "middleware": [
             "api",
@@ -694,7 +694,7 @@
     {
         "method": "POST",
         "uri": "admin/business/customers/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::KDKNde6Zqwovloxj",
         "action": "Modules\\Order\\Http\\Controllers\\CustomerController@batchDelete",
         "middleware": [
             "api",
@@ -706,7 +706,7 @@
     {
         "method": "POST",
         "uri": "admin/business/customers/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::kY5sH8AP6g3wyS07",
         "action": "Modules\\Order\\Http\\Controllers\\CustomerController@batchUpdateStatus",
         "middleware": [
             "api",
@@ -718,7 +718,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/customers/{customer}",
-        "name": "admin.",
+        "name": "admin.generated::dKXuJLxxBUejDF4m",
         "action": "Modules\\Order\\Http\\Controllers\\CustomerController@destroy",
         "middleware": [
             "api",
@@ -730,7 +730,7 @@
     {
         "method": "GET",
         "uri": "admin/business/customers/{customer}",
-        "name": "admin.",
+        "name": "admin.generated::uJKuu2KDydGT35sE",
         "action": "Modules\\Order\\Http\\Controllers\\CustomerController@show",
         "middleware": [
             "api",
@@ -742,7 +742,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/customers/{customer}",
-        "name": "admin.",
+        "name": "admin.generated::9oe4MZXWPqrveeQC",
         "action": "Modules\\Order\\Http\\Controllers\\CustomerController@update",
         "middleware": [
             "api",
@@ -754,7 +754,7 @@
     {
         "method": "GET",
         "uri": "admin/business/delivery",
-        "name": "admin.",
+        "name": "admin.generated::CPDUn5yuFo80MdGA",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@index",
         "middleware": [
             "api",
@@ -766,7 +766,7 @@
     {
         "method": "POST",
         "uri": "admin/business/delivery",
-        "name": "admin.",
+        "name": "admin.generated::oszJqQaMqCXw95w3",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@store",
         "middleware": [
             "api",
@@ -778,7 +778,7 @@
     {
         "method": "GET",
         "uri": "admin/business/delivery/statistics",
-        "name": "admin.",
+        "name": "admin.generated::H2hXkWChHNMPKomR",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@statistics",
         "middleware": [
             "api",
@@ -790,7 +790,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/delivery/{delivery}",
-        "name": "admin.",
+        "name": "admin.generated::yaEVtZ24MC3p6aJw",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@destroy",
         "middleware": [
             "api",
@@ -802,7 +802,7 @@
     {
         "method": "GET",
         "uri": "admin/business/delivery/{delivery}",
-        "name": "admin.",
+        "name": "admin.generated::FDTcmmX0l4Jr86Me",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@show",
         "middleware": [
             "api",
@@ -814,7 +814,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/delivery/{delivery}",
-        "name": "admin.",
+        "name": "admin.generated::Lc8aZQq02vGrx04k",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@update",
         "middleware": [
             "api",
@@ -826,7 +826,7 @@
     {
         "method": "POST",
         "uri": "admin/business/delivery/{delivery}/complete",
-        "name": "admin.",
+        "name": "admin.generated::8bSAi58t4jtWZJOL",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@complete",
         "middleware": [
             "api",
@@ -838,7 +838,7 @@
     {
         "method": "POST",
         "uri": "admin/business/delivery/{delivery}/dispatch",
-        "name": "admin.",
+        "name": "admin.generated::sxjvwdSM07orODbx",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@dispatch",
         "middleware": [
             "api",
@@ -850,7 +850,7 @@
     {
         "method": "GET",
         "uri": "admin/business/employee",
-        "name": "admin.",
+        "name": "admin.generated::Jcl2wFoFVqrKevba",
         "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@index",
         "middleware": [
             "api",
@@ -862,7 +862,7 @@
     {
         "method": "POST",
         "uri": "admin/business/employee",
-        "name": "admin.",
+        "name": "admin.generated::3VEt3X8zsBhkh2ZE",
         "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@store",
         "middleware": [
             "api",
@@ -874,7 +874,7 @@
     {
         "method": "POST",
         "uri": "admin/business/employee/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::ObzxzdGoD3NREc74",
         "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@batchDelete",
         "middleware": [
             "api",
@@ -886,7 +886,7 @@
     {
         "method": "POST",
         "uri": "admin/business/employee/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::sRfuMRXBaJkulyEl",
         "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@batchUpdateStatus",
         "middleware": [
             "api",
@@ -898,7 +898,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/employee/{employee}",
-        "name": "admin.",
+        "name": "admin.generated::BAHPKXYFa6Nf9CPe",
         "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@destroy",
         "middleware": [
             "api",
@@ -910,7 +910,7 @@
     {
         "method": "GET",
         "uri": "admin/business/employee/{employee}",
-        "name": "admin.",
+        "name": "admin.generated::vblIyjLhnghXSIoT",
         "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@show",
         "middleware": [
             "api",
@@ -922,7 +922,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/employee/{employee}",
-        "name": "admin.",
+        "name": "admin.generated::Oj92zMpmx98NAAsL",
         "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@update",
         "middleware": [
             "api",
@@ -934,7 +934,7 @@
     {
         "method": "GET",
         "uri": "admin/business/expense",
-        "name": "admin.",
+        "name": "admin.generated::ibEdtbnPBSKwrGkb",
         "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@index",
         "middleware": [
             "api",
@@ -946,7 +946,7 @@
     {
         "method": "POST",
         "uri": "admin/business/expense",
-        "name": "admin.",
+        "name": "admin.generated::q9kUQXuNECpUeFQw",
         "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@store",
         "middleware": [
             "api",
@@ -958,7 +958,7 @@
     {
         "method": "GET",
         "uri": "admin/business/expense/statistics",
-        "name": "admin.",
+        "name": "admin.generated::rfcfikSuoCvtVAxZ",
         "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@statistics",
         "middleware": [
             "api",
@@ -970,7 +970,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/expense/{id}",
-        "name": "admin.",
+        "name": "admin.generated::hzxSwNeOd6TP9YVz",
         "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@destroy",
         "middleware": [
             "api",
@@ -982,7 +982,7 @@
     {
         "method": "GET",
         "uri": "admin/business/expense/{id}",
-        "name": "admin.",
+        "name": "admin.generated::0iVMyQRpbwNZPI2F",
         "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@show",
         "middleware": [
             "api",
@@ -994,7 +994,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/expense/{id}",
-        "name": "admin.",
+        "name": "admin.generated::ZjBUt1Di92BtlWCm",
         "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@update",
         "middleware": [
             "api",
@@ -1006,7 +1006,7 @@
     {
         "method": "POST",
         "uri": "admin/business/expense/{id}/approve",
-        "name": "admin.",
+        "name": "admin.generated::yT2Ik4wWYagnqmkY",
         "action": "Modules\\Business\\Http\\Controllers\\ExpenseController@approve",
         "middleware": [
             "api",
@@ -1018,7 +1018,7 @@
     {
         "method": "GET",
         "uri": "admin/business/pay",
-        "name": "admin.",
+        "name": "admin.generated::pAUtejeMgi8b7H8C",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@index",
         "middleware": [
             "api",
@@ -1030,7 +1030,7 @@
     {
         "method": "POST",
         "uri": "admin/business/pay",
-        "name": "admin.",
+        "name": "admin.generated::Ms3sPouKNCspH8dS",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@store",
         "middleware": [
             "api",
@@ -1042,7 +1042,7 @@
     {
         "method": "GET",
         "uri": "admin/business/pay/payable",
-        "name": "admin.",
+        "name": "admin.generated::2WdoipnQto8qAGDh",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@payable",
         "middleware": [
             "api",
@@ -1054,7 +1054,7 @@
     {
         "method": "GET",
         "uri": "admin/business/pay/statistics",
-        "name": "admin.",
+        "name": "admin.generated::wEKBVtYDrFsaH8UD",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@statistics",
         "middleware": [
             "api",
@@ -1066,7 +1066,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/pay/{id}",
-        "name": "admin.",
+        "name": "admin.generated::FxN64vf4UnKFL7Au",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@destroy",
         "middleware": [
             "api",
@@ -1078,7 +1078,7 @@
     {
         "method": "GET",
         "uri": "admin/business/pay/{id}",
-        "name": "admin.",
+        "name": "admin.generated::VpR4RsluHkHwQkSv",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@show",
         "middleware": [
             "api",
@@ -1090,7 +1090,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/pay/{id}",
-        "name": "admin.",
+        "name": "admin.generated::eC1ENny4CHcxnwUw",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@update",
         "middleware": [
             "api",
@@ -1102,7 +1102,7 @@
     {
         "method": "POST",
         "uri": "admin/business/pay/{id}/approve",
-        "name": "admin.",
+        "name": "admin.generated::dWt0IDsnvDP56ppZ",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@approve",
         "middleware": [
             "api",
@@ -1114,7 +1114,7 @@
     {
         "method": "GET",
         "uri": "admin/business/product",
-        "name": "admin.",
+        "name": "admin.generated::fFDhke4GRt11ayio",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@index",
         "middleware": [
             "api",
@@ -1126,7 +1126,7 @@
     {
         "method": "POST",
         "uri": "admin/business/product",
-        "name": "admin.",
+        "name": "admin.generated::B8qRl6OBqSbihC5f",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@store",
         "middleware": [
             "api",
@@ -1138,7 +1138,7 @@
     {
         "method": "POST",
         "uri": "admin/business/product/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::Rd0QueeA7LNtT4cN",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@batchDelete",
         "middleware": [
             "api",
@@ -1150,7 +1150,7 @@
     {
         "method": "POST",
         "uri": "admin/business/product/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::wla7X1CzeXh6rHNG",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@batchUpdateStatus",
         "middleware": [
             "api",
@@ -1162,7 +1162,7 @@
     {
         "method": "GET",
         "uri": "admin/business/product/categories",
-        "name": "admin.",
+        "name": "admin.generated::IdtdcaoyrZwNDxle",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@categories",
         "middleware": [
             "api",
@@ -1174,7 +1174,7 @@
     {
         "method": "POST",
         "uri": "admin/business/product/categories",
-        "name": "admin.",
+        "name": "admin.generated::YWlW9dNeo3L6J9ao",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@storeCategory",
         "middleware": [
             "api",
@@ -1186,7 +1186,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/product/categories/{category}",
-        "name": "admin.",
+        "name": "admin.generated::HhTkU2C7WGR0czJd",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@destroyCategory",
         "middleware": [
             "api",
@@ -1198,7 +1198,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/product/categories/{category}",
-        "name": "admin.",
+        "name": "admin.generated::gQO94JRcKZ8l8mNQ",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@updateCategory",
         "middleware": [
             "api",
@@ -1210,7 +1210,7 @@
     {
         "method": "GET",
         "uri": "admin/business/product/units",
-        "name": "admin.",
+        "name": "admin.generated::8eB7AnTiPBgYrSIc",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@units",
         "middleware": [
             "api",
@@ -1222,7 +1222,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/product/{product}",
-        "name": "admin.",
+        "name": "admin.generated::SRbJn6rbHTgOAD79",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@destroy",
         "middleware": [
             "api",
@@ -1234,7 +1234,7 @@
     {
         "method": "GET",
         "uri": "admin/business/product/{product}",
-        "name": "admin.",
+        "name": "admin.generated::NoFfn8kGhhMnbqdz",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@show",
         "middleware": [
             "api",
@@ -1246,7 +1246,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/product/{product}",
-        "name": "admin.",
+        "name": "admin.generated::da48PrD7ZHEaCd1F",
         "action": "Modules\\Stock\\Http\\Controllers\\ProductController@update",
         "middleware": [
             "api",
@@ -1258,7 +1258,7 @@
     {
         "method": "GET",
         "uri": "admin/business/profit",
-        "name": "admin.",
+        "name": "admin.generated::MhV4xDIx2Wu6tC7K",
         "action": "Modules\\Order\\Http\\Controllers\\ProfitController@index",
         "middleware": [
             "api",
@@ -1270,7 +1270,7 @@
     {
         "method": "GET",
         "uri": "admin/business/receive",
-        "name": "admin.",
+        "name": "admin.generated::aGEAgwoH45vHwnqd",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@index",
         "middleware": [
             "api",
@@ -1282,7 +1282,7 @@
     {
         "method": "POST",
         "uri": "admin/business/receive",
-        "name": "admin.",
+        "name": "admin.generated::dTtSaW2yUXqVitmO",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@store",
         "middleware": [
             "api",
@@ -1294,7 +1294,7 @@
     {
         "method": "GET",
         "uri": "admin/business/receive/receivable",
-        "name": "admin.",
+        "name": "admin.generated::d5S4H4ylzLdmQpPz",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@receivable",
         "middleware": [
             "api",
@@ -1306,7 +1306,7 @@
     {
         "method": "GET",
         "uri": "admin/business/receive/statistics",
-        "name": "admin.",
+        "name": "admin.generated::54Eh6yOqsf8jbloF",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@statistics",
         "middleware": [
             "api",
@@ -1318,7 +1318,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/receive/{id}",
-        "name": "admin.",
+        "name": "admin.generated::3oDscVS3BzOiItyA",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@destroy",
         "middleware": [
             "api",
@@ -1330,7 +1330,7 @@
     {
         "method": "GET",
         "uri": "admin/business/receive/{id}",
-        "name": "admin.",
+        "name": "admin.generated::9muYEhasJtshsDDr",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@show",
         "middleware": [
             "api",
@@ -1342,7 +1342,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/receive/{id}",
-        "name": "admin.",
+        "name": "admin.generated::4FsIe1wVGJOBnLSA",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@update",
         "middleware": [
             "api",
@@ -1354,7 +1354,7 @@
     {
         "method": "POST",
         "uri": "admin/business/receive/{id}/approve",
-        "name": "admin.",
+        "name": "admin.generated::bzJNTAWXvE4wavC4",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@approve",
         "middleware": [
             "api",
@@ -1366,7 +1366,7 @@
     {
         "method": "GET",
         "uri": "admin/business/return",
-        "name": "admin.",
+        "name": "admin.generated::g4xMyO5kviz88nYb",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@index",
         "middleware": [
             "api",
@@ -1378,7 +1378,7 @@
     {
         "method": "POST",
         "uri": "admin/business/return",
-        "name": "admin.",
+        "name": "admin.generated::1cD3Y5dk9luZqYQS",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@store",
         "middleware": [
             "api",
@@ -1390,7 +1390,7 @@
     {
         "method": "GET",
         "uri": "admin/business/return/statistics",
-        "name": "admin.",
+        "name": "admin.generated::xBTdMILMHd7cdsna",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@statistics",
         "middleware": [
             "api",
@@ -1402,7 +1402,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/return/{return}",
-        "name": "admin.",
+        "name": "admin.generated::KU5oN4sHrx4u2hSa",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@destroy",
         "middleware": [
             "api",
@@ -1414,7 +1414,7 @@
     {
         "method": "GET",
         "uri": "admin/business/return/{return}",
-        "name": "admin.",
+        "name": "admin.generated::haUiAFnnRaDNc919",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@show",
         "middleware": [
             "api",
@@ -1426,7 +1426,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/return/{return}",
-        "name": "admin.",
+        "name": "admin.generated::9wv7uijqxFczkZ7Q",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@update",
         "middleware": [
             "api",
@@ -1438,7 +1438,7 @@
     {
         "method": "POST",
         "uri": "admin/business/return/{return}/approve",
-        "name": "admin.",
+        "name": "admin.generated::CFVkrgS49szbfZe7",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@approve",
         "middleware": [
             "api",
@@ -1450,7 +1450,7 @@
     {
         "method": "POST",
         "uri": "admin/business/return/{return}/process",
-        "name": "admin.",
+        "name": "admin.generated::mIZiYC2DgwVZFz6d",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@process",
         "middleware": [
             "api",
@@ -1462,7 +1462,7 @@
     {
         "method": "GET",
         "uri": "admin/business/route",
-        "name": "admin.",
+        "name": "admin.generated::JsBxUgIaxmcPsb8I",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@index",
         "middleware": [
             "api",
@@ -1474,7 +1474,7 @@
     {
         "method": "POST",
         "uri": "admin/business/route",
-        "name": "admin.",
+        "name": "admin.generated::1ehqlo7L10imSadb",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@store",
         "middleware": [
             "api",
@@ -1486,7 +1486,7 @@
     {
         "method": "POST",
         "uri": "admin/business/route/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::ytL3CebtF501fScl",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@batchDelete",
         "middleware": [
             "api",
@@ -1498,7 +1498,7 @@
     {
         "method": "POST",
         "uri": "admin/business/route/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::48xB4dLHW7XDER9H",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@batchUpdateStatus",
         "middleware": [
             "api",
@@ -1510,7 +1510,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/route/{route}",
-        "name": "admin.",
+        "name": "admin.generated::1TPOjBIh497sc7ff",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@destroy",
         "middleware": [
             "api",
@@ -1522,7 +1522,7 @@
     {
         "method": "GET",
         "uri": "admin/business/route/{route}",
-        "name": "admin.",
+        "name": "admin.generated::w4VXBpUr2Yrqgx76",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@show",
         "middleware": [
             "api",
@@ -1534,7 +1534,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/route/{route}",
-        "name": "admin.",
+        "name": "admin.generated::O636xFbw4y3gDRjB",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@update",
         "middleware": [
             "api",
@@ -1546,7 +1546,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/route/{route}/customers",
-        "name": "admin.",
+        "name": "admin.generated::3ujvwCkmFIOs0IsA",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@removeCustomer",
         "middleware": [
             "api",
@@ -1558,7 +1558,7 @@
     {
         "method": "GET",
         "uri": "admin/business/route/{route}/customers",
-        "name": "admin.",
+        "name": "admin.generated::OuqlZzriRM3VzViV",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@customers",
         "middleware": [
             "api",
@@ -1570,7 +1570,7 @@
     {
         "method": "POST",
         "uri": "admin/business/route/{route}/customers",
-        "name": "admin.",
+        "name": "admin.generated::ukYvBK79UnP0VIq9",
         "action": "Modules\\Order\\Http\\Controllers\\RouteController@addCustomer",
         "middleware": [
             "api",
@@ -1582,7 +1582,7 @@
     {
         "method": "GET",
         "uri": "admin/business/sales-order",
-        "name": "admin.",
+        "name": "admin.generated::Iz8jaYQXgwOlJkXN",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@index",
         "middleware": [
             "api",
@@ -1594,7 +1594,7 @@
     {
         "method": "POST",
         "uri": "admin/business/sales-order",
-        "name": "admin.",
+        "name": "admin.generated::z9rlpyE4eUesozif",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@store",
         "middleware": [
             "api",
@@ -1606,7 +1606,7 @@
     {
         "method": "POST",
         "uri": "admin/business/sales-order/batch-red-flush",
-        "name": "admin.",
+        "name": "admin.generated::8jurFg8gfK0hUh7f",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@batchRedFlush",
         "middleware": [
             "api",
@@ -1618,7 +1618,7 @@
     {
         "method": "GET",
         "uri": "admin/business/sales-order/statistics",
-        "name": "admin.",
+        "name": "admin.generated::Tg6YFz2Le14nXXgJ",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@statistics",
         "middleware": [
             "api",
@@ -1630,7 +1630,7 @@
     {
         "method": "GET",
         "uri": "admin/business/sales-order/summary",
-        "name": "admin.",
+        "name": "admin.generated::RJpDe0UwDNi2xWzm",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@summary",
         "middleware": [
             "api",
@@ -1642,7 +1642,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/sales-order/{salesOrder}",
-        "name": "admin.",
+        "name": "admin.generated::Ud7f0VAnbfT1Wzv8",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@destroy",
         "middleware": [
             "api",
@@ -1654,7 +1654,7 @@
     {
         "method": "GET",
         "uri": "admin/business/sales-order/{salesOrder}",
-        "name": "admin.",
+        "name": "admin.generated::KFYVW4oPXBo5A1zq",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@show",
         "middleware": [
             "api",
@@ -1666,7 +1666,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/sales-order/{salesOrder}",
-        "name": "admin.",
+        "name": "admin.generated::u8MK5Jcfh3tmkApd",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@update",
         "middleware": [
             "api",
@@ -1678,7 +1678,7 @@
     {
         "method": "POST",
         "uri": "admin/business/sales-order/{salesOrder}/advance",
-        "name": "admin.",
+        "name": "admin.generated::hxpc7CEg6mUow8IZ",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@approve",
         "middleware": [
             "api",
@@ -1690,7 +1690,7 @@
     {
         "method": "POST",
         "uri": "admin/business/sales-order/{salesOrder}/approve",
-        "name": "admin.",
+        "name": "admin.generated::6JeJoIZNER4SpaQZ",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@approve",
         "middleware": [
             "api",
@@ -1702,7 +1702,7 @@
     {
         "method": "POST",
         "uri": "admin/business/sales-order/{salesOrder}/cancel",
-        "name": "admin.",
+        "name": "admin.generated::iHhXsmz2kG5CPt2D",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@cancel",
         "middleware": [
             "api",
@@ -1714,7 +1714,7 @@
     {
         "method": "POST",
         "uri": "admin/business/sales-order/{salesOrder}/print",
-        "name": "admin.",
+        "name": "admin.generated::a2SXz4O2v1wInt3w",
         "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@print",
         "middleware": [
             "api",
@@ -1726,7 +1726,7 @@
     {
         "method": "GET",
         "uri": "admin/business/stock",
-        "name": "admin.",
+        "name": "admin.generated::rPTxCxslnEZ8qQQA",
         "action": "Modules\\Stock\\Http\\Controllers\\StockController@index",
         "middleware": [
             "api",
@@ -1738,7 +1738,7 @@
     {
         "method": "GET",
         "uri": "admin/business/stock-check",
-        "name": "admin.",
+        "name": "admin.generated::GpeYYjGYdfQEgN12",
         "action": "Modules\\Stock\\Http\\Controllers\\StockCheckController@index",
         "middleware": [
             "api",
@@ -1750,7 +1750,7 @@
     {
         "method": "GET",
         "uri": "admin/business/stock-history",
-        "name": "admin.",
+        "name": "admin.generated::f9fpZhCr2NMV6q0I",
         "action": "Modules\\Stock\\Http\\Controllers\\StockHistoryController@index",
         "middleware": [
             "api",
@@ -1762,7 +1762,7 @@
     {
         "method": "GET",
         "uri": "admin/business/stock-in",
-        "name": "admin.",
+        "name": "admin.generated::kdjhwcVRi6gEaNeA",
         "action": "Modules\\Stock\\Http\\Controllers\\StockInController@index",
         "middleware": [
             "api",
@@ -1774,7 +1774,7 @@
     {
         "method": "POST",
         "uri": "admin/business/stock-in",
-        "name": "admin.",
+        "name": "admin.generated::HNdVjLp9tLp7syzg",
         "action": "Modules\\Stock\\Http\\Controllers\\StockInController@store",
         "middleware": [
             "api",
@@ -1786,7 +1786,7 @@
     {
         "method": "GET",
         "uri": "admin/business/stock-monitor",
-        "name": "admin.",
+        "name": "admin.generated::yuXUPPqSkFdZ06d6",
         "action": "Modules\\Stock\\Http\\Controllers\\StockCheckController@monitor",
         "middleware": [
             "api",
@@ -1798,7 +1798,7 @@
     {
         "method": "GET",
         "uri": "admin/business/stock-out",
-        "name": "admin.",
+        "name": "admin.generated::zJQEmcLdAy1yIEdZ",
         "action": "Modules\\Stock\\Http\\Controllers\\StockOutController@index",
         "middleware": [
             "api",
@@ -1810,7 +1810,7 @@
     {
         "method": "POST",
         "uri": "admin/business/stock-out",
-        "name": "admin.",
+        "name": "admin.generated::WWHXwOrhB1Z4WwAW",
         "action": "Modules\\Stock\\Http\\Controllers\\StockOutController@store",
         "middleware": [
             "api",
@@ -1822,7 +1822,7 @@
     {
         "method": "GET",
         "uri": "admin/business/stock/statistics",
-        "name": "admin.",
+        "name": "admin.generated::Wiaau0RSBMIhYtGj",
         "action": "Modules\\Stock\\Http\\Controllers\\StockController@statistics",
         "middleware": [
             "api",
@@ -1834,7 +1834,7 @@
     {
         "method": "GET",
         "uri": "admin/business/stock/{stock}",
-        "name": "admin.",
+        "name": "admin.generated::1RPX3oaTHwi1yPee",
         "action": "Modules\\Stock\\Http\\Controllers\\StockController@show",
         "middleware": [
             "api",
@@ -1846,7 +1846,7 @@
     {
         "method": "GET",
         "uri": "admin/business/supplier",
-        "name": "admin.",
+        "name": "admin.generated::rO0SAg5sMVeqEAIW",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@index",
         "middleware": [
             "api",
@@ -1858,7 +1858,7 @@
     {
         "method": "POST",
         "uri": "admin/business/supplier",
-        "name": "admin.",
+        "name": "admin.generated::RJYNNdJRh8Rwi5IS",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@store",
         "middleware": [
             "api",
@@ -1870,7 +1870,7 @@
     {
         "method": "POST",
         "uri": "admin/business/supplier/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::5T9zfPPNWaN9eVGl",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@batchDelete",
         "middleware": [
             "api",
@@ -1882,7 +1882,7 @@
     {
         "method": "POST",
         "uri": "admin/business/supplier/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::zLFAwOIKKe8LJwU2",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@batchUpdateStatus",
         "middleware": [
             "api",
@@ -1894,7 +1894,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/supplier/{supplier}",
-        "name": "admin.",
+        "name": "admin.generated::FbosRtMmpNGBvMNe",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@destroy",
         "middleware": [
             "api",
@@ -1906,7 +1906,7 @@
     {
         "method": "GET",
         "uri": "admin/business/supplier/{supplier}",
-        "name": "admin.",
+        "name": "admin.generated::x92QUGrfvr9xZe6n",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@show",
         "middleware": [
             "api",
@@ -1918,7 +1918,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/supplier/{supplier}",
-        "name": "admin.",
+        "name": "admin.generated::WbVxfTUWc6TikBCB",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@update",
         "middleware": [
             "api",
@@ -1930,7 +1930,7 @@
     {
         "method": "GET",
         "uri": "admin/business/transfer",
-        "name": "admin.",
+        "name": "admin.generated::bG6Pb9DRnCJAiZ2i",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@index",
         "middleware": [
             "api",
@@ -1942,7 +1942,7 @@
     {
         "method": "POST",
         "uri": "admin/business/transfer",
-        "name": "admin.",
+        "name": "admin.generated::xJThdcsLIEmmuWh2",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@store",
         "middleware": [
             "api",
@@ -1954,7 +1954,7 @@
     {
         "method": "GET",
         "uri": "admin/business/transfer/statistics",
-        "name": "admin.",
+        "name": "admin.generated::39BiXCE3RGaaZVib",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@statistics",
         "middleware": [
             "api",
@@ -1966,7 +1966,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/transfer/{transfer}",
-        "name": "admin.",
+        "name": "admin.generated::EWDikT8ZaxIwpuEd",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@destroy",
         "middleware": [
             "api",
@@ -1978,7 +1978,7 @@
     {
         "method": "GET",
         "uri": "admin/business/transfer/{transfer}",
-        "name": "admin.",
+        "name": "admin.generated::LV5uTAxEiGeM0zpB",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@show",
         "middleware": [
             "api",
@@ -1990,7 +1990,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/transfer/{transfer}",
-        "name": "admin.",
+        "name": "admin.generated::yV7c6ETUxQ0oHrO8",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@update",
         "middleware": [
             "api",
@@ -2002,7 +2002,7 @@
     {
         "method": "POST",
         "uri": "admin/business/transfer/{transfer}/approve",
-        "name": "admin.",
+        "name": "admin.generated::3RkTMxKww04BE5zM",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@approve",
         "middleware": [
             "api",
@@ -2014,7 +2014,7 @@
     {
         "method": "POST",
         "uri": "admin/business/transfer/{transfer}/execute",
-        "name": "admin.",
+        "name": "admin.generated::XHMXtIC9bQRSy2Zn",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@execute",
         "middleware": [
             "api",
@@ -2026,7 +2026,7 @@
     {
         "method": "GET",
         "uri": "admin/business/vehicle",
-        "name": "admin.",
+        "name": "admin.generated::qAkHrK4m3o2FTbg4",
         "action": "Modules\\Stock\\Http\\Controllers\\VehicleController@index",
         "middleware": [
             "api",
@@ -2038,7 +2038,7 @@
     {
         "method": "POST",
         "uri": "admin/business/vehicle",
-        "name": "admin.",
+        "name": "admin.generated::T0caaeD04qXsXs32",
         "action": "Modules\\Stock\\Http\\Controllers\\VehicleController@store",
         "middleware": [
             "api",
@@ -2050,7 +2050,7 @@
     {
         "method": "POST",
         "uri": "admin/business/vehicle/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::dUFDx896rCl9ymw3",
         "action": "Modules\\Stock\\Http\\Controllers\\VehicleController@batchDelete",
         "middleware": [
             "api",
@@ -2062,7 +2062,7 @@
     {
         "method": "POST",
         "uri": "admin/business/vehicle/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::s8rzS4sZObC3kcnO",
         "action": "Modules\\Stock\\Http\\Controllers\\VehicleController@batchUpdateStatus",
         "middleware": [
             "api",
@@ -2074,7 +2074,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/vehicle/{vehicle}",
-        "name": "admin.",
+        "name": "admin.generated::N97yoDAWa39ZuNwR",
         "action": "Modules\\Stock\\Http\\Controllers\\VehicleController@destroy",
         "middleware": [
             "api",
@@ -2086,7 +2086,7 @@
     {
         "method": "GET",
         "uri": "admin/business/vehicle/{vehicle}",
-        "name": "admin.",
+        "name": "admin.generated::swh2od29MLKEUlu9",
         "action": "Modules\\Stock\\Http\\Controllers\\VehicleController@show",
         "middleware": [
             "api",
@@ -2098,7 +2098,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/vehicle/{vehicle}",
-        "name": "admin.",
+        "name": "admin.generated::yx3SjzeqGS6HTcq7",
         "action": "Modules\\Stock\\Http\\Controllers\\VehicleController@update",
         "middleware": [
             "api",
@@ -2110,7 +2110,7 @@
     {
         "method": "GET",
         "uri": "admin/business/visit/achievement",
-        "name": "admin.",
+        "name": "admin.generated::1v6KY62hWma1t3Lo",
         "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@achievement",
         "middleware": [
             "api",
@@ -2122,7 +2122,7 @@
     {
         "method": "GET",
         "uri": "admin/business/visit/logs",
-        "name": "admin.",
+        "name": "admin.generated::WopPdcACMuP1Dcy3",
         "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@index",
         "middleware": [
             "api",
@@ -2134,7 +2134,7 @@
     {
         "method": "POST",
         "uri": "admin/business/visit/logs",
-        "name": "admin.",
+        "name": "admin.generated::btzfagDigUT5IMJL",
         "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@store",
         "middleware": [
             "api",
@@ -2146,7 +2146,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/visit/logs/{visitLog}",
-        "name": "admin.",
+        "name": "admin.generated::SvhuFqKze40FZ85Q",
         "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@destroy",
         "middleware": [
             "api",
@@ -2158,7 +2158,7 @@
     {
         "method": "GET",
         "uri": "admin/business/visit/logs/{visitLog}",
-        "name": "admin.",
+        "name": "admin.generated::FPyv8GUI6YmgiYcE",
         "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@show",
         "middleware": [
             "api",
@@ -2170,7 +2170,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/visit/logs/{visitLog}",
-        "name": "admin.",
+        "name": "admin.generated::kpLauBvcphwzUgL2",
         "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@update",
         "middleware": [
             "api",
@@ -2182,7 +2182,7 @@
     {
         "method": "GET",
         "uri": "admin/business/visit/schedule",
-        "name": "admin.",
+        "name": "admin.generated::WkWjy8xemSYmFwFE",
         "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@schedule",
         "middleware": [
             "api",
@@ -2194,7 +2194,7 @@
     {
         "method": "GET",
         "uri": "admin/business/warehouse",
-        "name": "admin.",
+        "name": "admin.generated::5nPN25oiHFkNrUOh",
         "action": "Modules\\Stock\\Http\\Controllers\\WarehouseController@index",
         "middleware": [
             "api",
@@ -2206,7 +2206,7 @@
     {
         "method": "POST",
         "uri": "admin/business/warehouse",
-        "name": "admin.",
+        "name": "admin.generated::7FtkWXc2kZuNKu0z",
         "action": "Modules\\Stock\\Http\\Controllers\\WarehouseController@store",
         "middleware": [
             "api",
@@ -2218,7 +2218,7 @@
     {
         "method": "DELETE",
         "uri": "admin/business/warehouse/{warehouse}",
-        "name": "admin.",
+        "name": "admin.generated::HYymxiruI9rvuP2e",
         "action": "Modules\\Stock\\Http\\Controllers\\WarehouseController@destroy",
         "middleware": [
             "api",
@@ -2230,7 +2230,7 @@
     {
         "method": "GET",
         "uri": "admin/business/warehouse/{warehouse}",
-        "name": "admin.",
+        "name": "admin.generated::pevejFfNwnVxhgwb",
         "action": "Modules\\Stock\\Http\\Controllers\\WarehouseController@show",
         "middleware": [
             "api",
@@ -2242,7 +2242,7 @@
     {
         "method": "PUT",
         "uri": "admin/business/warehouse/{warehouse}",
-        "name": "admin.",
+        "name": "admin.generated::BJtsP7keE2T0NOzs",
         "action": "Modules\\Stock\\Http\\Controllers\\WarehouseController@update",
         "middleware": [
             "api",
@@ -2266,7 +2266,7 @@
     {
         "method": "GET",
         "uri": "admin/system/attachment",
-        "name": "admin.",
+        "name": "admin.generated::ISgHEkcA1vAVYLX3",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@index",
         "middleware": [
             "api",
@@ -2278,7 +2278,7 @@
     {
         "method": "POST",
         "uri": "admin/system/attachment/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::kM4AkuLZwRGqqXgP",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@batchDelete",
         "middleware": [
             "api",
@@ -2290,7 +2290,7 @@
     {
         "method": "GET",
         "uri": "admin/system/attachment/directories",
-        "name": "admin.",
+        "name": "admin.generated::y4dVK6lTqSM8c9VK",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@directories",
         "middleware": [
             "api",
@@ -2302,7 +2302,7 @@
     {
         "method": "POST",
         "uri": "admin/system/attachment/get-by-ids",
-        "name": "admin.",
+        "name": "admin.generated::6oyz4XSwZKddkuCf",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@getByIds",
         "middleware": [
             "api",
@@ -2314,7 +2314,7 @@
     {
         "method": "GET",
         "uri": "admin/system/attachment/statistics",
-        "name": "admin.",
+        "name": "admin.generated::3bgQwB4bDCI2r5YO",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@statistics",
         "middleware": [
             "api",
@@ -2326,7 +2326,7 @@
     {
         "method": "GET",
         "uri": "admin/system/attachment/type-distribution",
-        "name": "admin.",
+        "name": "admin.generated::gHeGtF2x2qkAhhQN",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@typeDistribution",
         "middleware": [
             "api",
@@ -2338,7 +2338,7 @@
     {
         "method": "DELETE",
         "uri": "admin/system/attachment/{id}",
-        "name": "admin.",
+        "name": "admin.generated::mmuaWPht7Esmzyfd",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@destroy",
         "middleware": [
             "api",
@@ -2350,7 +2350,7 @@
     {
         "method": "GET",
         "uri": "admin/system/attachment/{id}",
-        "name": "admin.",
+        "name": "admin.generated::Jz2wz5pDhCX8KGQj",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@show",
         "middleware": [
             "api",
@@ -2362,7 +2362,7 @@
     {
         "method": "PUT",
         "uri": "admin/system/attachment/{id}",
-        "name": "admin.",
+        "name": "admin.generated::kwFA2pgHOAwENmXm",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Attachment@update",
         "middleware": [
             "api",
@@ -2374,7 +2374,7 @@
     {
         "method": "GET",
         "uri": "admin/system/dictionary",
-        "name": "admin.",
+        "name": "admin.generated::E9lyDtj9btGSRu3p",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@index",
         "middleware": [
             "api",
@@ -2386,7 +2386,7 @@
     {
         "method": "POST",
         "uri": "admin/system/dictionary",
-        "name": "admin.",
+        "name": "admin.generated::3zMHcm83YyEEfeRT",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@store",
         "middleware": [
             "api",
@@ -2398,7 +2398,7 @@
     {
         "method": "GET",
         "uri": "admin/system/dictionary-item",
-        "name": "admin.",
+        "name": "admin.generated::vr33b8uKyfwy1eVZ",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@getItemsList",
         "middleware": [
             "api",
@@ -2410,7 +2410,7 @@
     {
         "method": "POST",
         "uri": "admin/system/dictionary-item",
-        "name": "admin.",
+        "name": "admin.generated::AEYnBbYhs5huEVqe",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@storeItem",
         "middleware": [
             "api",
@@ -2422,7 +2422,7 @@
     {
         "method": "GET",
         "uri": "admin/system/dictionary-item/all",
-        "name": "admin.",
+        "name": "admin.generated::4cIRzzPPDNmPHGbG",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@getAllItems",
         "middleware": [
             "api",
@@ -2434,7 +2434,7 @@
     {
         "method": "POST",
         "uri": "admin/system/dictionary-item/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::KTSXYaE2hEKJblyg",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@batchDeleteItems",
         "middleware": [
             "api",
@@ -2446,7 +2446,7 @@
     {
         "method": "POST",
         "uri": "admin/system/dictionary-item/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::J2iXjSJ2w8w0lUSw",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@batchUpdateItemsStatus",
         "middleware": [
             "api",
@@ -2458,7 +2458,7 @@
     {
         "method": "DELETE",
         "uri": "admin/system/dictionary-item/{id}",
-        "name": "admin.",
+        "name": "admin.generated::MxHtA20jsNd6VzNW",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@destroyItem",
         "middleware": [
             "api",
@@ -2470,7 +2470,7 @@
     {
         "method": "GET",
         "uri": "admin/system/dictionary-item/{id}",
-        "name": "admin.",
+        "name": "admin.generated::TYu9uibxJzLcMGZB",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@showItem",
         "middleware": [
             "api",
@@ -2482,7 +2482,7 @@
     {
         "method": "PUT",
         "uri": "admin/system/dictionary-item/{id}",
-        "name": "admin.",
+        "name": "admin.generated::CKMqyArtmS1tFFtq",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@updateItem",
         "middleware": [
             "api",
@@ -2494,7 +2494,7 @@
     {
         "method": "GET",
         "uri": "admin/system/dictionary/all",
-        "name": "admin.",
+        "name": "admin.generated::4tHKBYpNhKleEY3p",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@all",
         "middleware": [
             "api",
@@ -2506,7 +2506,7 @@
     {
         "method": "POST",
         "uri": "admin/system/dictionary/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::6EBQoyQWR1DV6hu8",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@batchDelete",
         "middleware": [
             "api",
@@ -2518,7 +2518,7 @@
     {
         "method": "POST",
         "uri": "admin/system/dictionary/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::0jb19TULx4bFJygu",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@batchUpdateStatus",
         "middleware": [
             "api",
@@ -2530,7 +2530,7 @@
     {
         "method": "DELETE",
         "uri": "admin/system/dictionary/{id}",
-        "name": "admin.",
+        "name": "admin.generated::Azyr179zTAHepqbh",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@destroy",
         "middleware": [
             "api",
@@ -2542,7 +2542,7 @@
     {
         "method": "GET",
         "uri": "admin/system/dictionary/{id}",
-        "name": "admin.",
+        "name": "admin.generated::BBVMd3hhH3HX31jJ",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@show",
         "middleware": [
             "api",
@@ -2554,7 +2554,7 @@
     {
         "method": "PUT",
         "uri": "admin/system/dictionary/{id}",
-        "name": "admin.",
+        "name": "admin.generated::GDdrZw85PXV031El",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Dictionary@update",
         "middleware": [
             "api",
@@ -2566,7 +2566,7 @@
     {
         "method": "GET",
         "uri": "admin/system/log",
-        "name": "admin.",
+        "name": "admin.generated::BFsJrrhXLmH8lEny",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@index",
         "middleware": [
             "api",
@@ -2578,7 +2578,7 @@
     {
         "method": "POST",
         "uri": "admin/system/log/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::N3O7UZOMmv33h5oE",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@batchDelete",
         "middleware": [
             "api",
@@ -2590,7 +2590,7 @@
     {
         "method": "POST",
         "uri": "admin/system/log/clear",
-        "name": "admin.",
+        "name": "admin.generated::3Gw8CDnDxDxH6R8G",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@clearLogs",
         "middleware": [
             "api",
@@ -2602,7 +2602,7 @@
     {
         "method": "GET",
         "uri": "admin/system/log/statistics",
-        "name": "admin.",
+        "name": "admin.generated::JPB4FauSiFH2atX8",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@getStatistics",
         "middleware": [
             "api",
@@ -2614,7 +2614,7 @@
     {
         "method": "DELETE",
         "uri": "admin/system/log/{id}",
-        "name": "admin.",
+        "name": "admin.generated::YEor4mt92WfkoAQp",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@destroy",
         "middleware": [
             "api",
@@ -2626,7 +2626,7 @@
     {
         "method": "GET",
         "uri": "admin/system/log/{id}",
-        "name": "admin.",
+        "name": "admin.generated::tDpvhHwmZUKz8Ggt",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Log@show",
         "middleware": [
             "api",
@@ -2638,7 +2638,7 @@
     {
         "method": "GET",
         "uri": "admin/system/notification",
-        "name": "admin.",
+        "name": "admin.generated::bkfLXuRd26LYxSIh",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@index",
         "middleware": [
             "api",
@@ -2650,7 +2650,7 @@
     {
         "method": "POST",
         "uri": "admin/system/notification/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::9sHKXvMBpgJq3zS1",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@batchDelete",
         "middleware": [
             "api",
@@ -2662,7 +2662,7 @@
     {
         "method": "POST",
         "uri": "admin/system/notification/batch-read",
-        "name": "admin.",
+        "name": "admin.generated::uuO4BL59kaelmvHP",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@batchMarkAsRead",
         "middleware": [
             "api",
@@ -2674,7 +2674,7 @@
     {
         "method": "POST",
         "uri": "admin/system/notification/clear-read",
-        "name": "admin.",
+        "name": "admin.generated::4pmdXqWEt2c0IjER",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@clearRead",
         "middleware": [
             "api",
@@ -2686,7 +2686,7 @@
     {
         "method": "POST",
         "uri": "admin/system/notification/read-all",
-        "name": "admin.",
+        "name": "admin.generated::E3P9pE7OIyUoLdqY",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@markAllAsRead",
         "middleware": [
             "api",
@@ -2698,7 +2698,7 @@
     {
         "method": "GET",
         "uri": "admin/system/notification/statistics",
-        "name": "admin.",
+        "name": "admin.generated::BeQR9duht4jr7svj",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@statistics",
         "middleware": [
             "api",
@@ -2710,7 +2710,7 @@
     {
         "method": "GET",
         "uri": "admin/system/notification/unread",
-        "name": "admin.",
+        "name": "admin.generated::jtvSwjRwy5Xno9wy",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@unread",
         "middleware": [
             "api",
@@ -2722,7 +2722,7 @@
     {
         "method": "GET",
         "uri": "admin/system/notification/unread-count",
-        "name": "admin.",
+        "name": "admin.generated::pD7JAAvjymKnHlKX",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@unreadCount",
         "middleware": [
             "api",
@@ -2734,7 +2734,7 @@
     {
         "method": "DELETE",
         "uri": "admin/system/notification/{id}",
-        "name": "admin.",
+        "name": "admin.generated::cFGTmW8GbcRHPoEK",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@destroy",
         "middleware": [
             "api",
@@ -2746,7 +2746,7 @@
     {
         "method": "GET",
         "uri": "admin/system/notification/{id}",
-        "name": "admin.",
+        "name": "admin.generated::NUIbIPkuBlH7X4BO",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@show",
         "middleware": [
             "api",
@@ -2758,7 +2758,7 @@
     {
         "method": "POST",
         "uri": "admin/system/notification/{id}/read",
-        "name": "admin.",
+        "name": "admin.generated::rlrfmhmMdgqfMUDc",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Notification@markAsRead",
         "middleware": [
             "api",
@@ -2770,7 +2770,7 @@
     {
         "method": "GET",
         "uri": "admin/system/scheduled",
-        "name": "admin.",
+        "name": "admin.generated::D9SgRYgN5d109TXg",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@index",
         "middleware": [
             "api",
@@ -2782,7 +2782,7 @@
     {
         "method": "POST",
         "uri": "admin/system/scheduled",
-        "name": "admin.",
+        "name": "admin.generated::0oCOXWsBAIcuD4Lq",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@store",
         "middleware": [
             "api",
@@ -2794,7 +2794,7 @@
     {
         "method": "GET",
         "uri": "admin/system/scheduled/all",
-        "name": "admin.",
+        "name": "admin.generated::HBiKDwNUGA4Va1Ta",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@all",
         "middleware": [
             "api",
@@ -2806,7 +2806,7 @@
     {
         "method": "POST",
         "uri": "admin/system/scheduled/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::3OGXn9lDFaGnwiuY",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@batchDelete",
         "middleware": [
             "api",
@@ -2818,7 +2818,7 @@
     {
         "method": "GET",
         "uri": "admin/system/scheduled/statistics",
-        "name": "admin.",
+        "name": "admin.generated::G0HbJDKqDafU0aqC",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@statistics",
         "middleware": [
             "api",
@@ -2830,7 +2830,7 @@
     {
         "method": "DELETE",
         "uri": "admin/system/scheduled/{id}",
-        "name": "admin.",
+        "name": "admin.generated::agM6wVUWmHp95ies",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@destroy",
         "middleware": [
             "api",
@@ -2842,7 +2842,7 @@
     {
         "method": "GET",
         "uri": "admin/system/scheduled/{id}",
-        "name": "admin.",
+        "name": "admin.generated::uw4Yh83xxdslsbWJ",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@show",
         "middleware": [
             "api",
@@ -2854,7 +2854,7 @@
     {
         "method": "PUT",
         "uri": "admin/system/scheduled/{id}",
-        "name": "admin.",
+        "name": "admin.generated::TLalwdVxukRynncn",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@update",
         "middleware": [
             "api",
@@ -2866,7 +2866,7 @@
     {
         "method": "DELETE",
         "uri": "admin/system/scheduled/{id}/logs",
-        "name": "admin.",
+        "name": "admin.generated::ggAnaTWgOe6La8gR",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@clearLogs",
         "middleware": [
             "api",
@@ -2878,7 +2878,7 @@
     {
         "method": "GET",
         "uri": "admin/system/scheduled/{id}/logs",
-        "name": "admin.",
+        "name": "admin.generated::dKscKEmXDyvCg6cf",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@executionLogs",
         "middleware": [
             "api",
@@ -2890,7 +2890,7 @@
     {
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/pause",
-        "name": "admin.",
+        "name": "admin.generated::jakueyxGRjhI3Gdq",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@pause",
         "middleware": [
             "api",
@@ -2902,7 +2902,7 @@
     {
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/resume",
-        "name": "admin.",
+        "name": "admin.generated::q2OVRtQqaJoOgas2",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@resume",
         "middleware": [
             "api",
@@ -2914,7 +2914,7 @@
     {
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/run",
-        "name": "admin.",
+        "name": "admin.generated::yggdShM3cRrj4yjQ",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@runNow",
         "middleware": [
             "api",
@@ -2926,7 +2926,7 @@
     {
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/start",
-        "name": "admin.",
+        "name": "admin.generated::y8vpfVIrFjdkMkpm",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@start",
         "middleware": [
             "api",
@@ -2938,7 +2938,7 @@
     {
         "method": "POST",
         "uri": "admin/system/scheduled/{id}/stop",
-        "name": "admin.",
+        "name": "admin.generated::mvR4gIdvW8extZ6h",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\ScheduledController@stop",
         "middleware": [
             "api",
@@ -2950,7 +2950,7 @@
     {
         "method": "GET",
         "uri": "admin/system/setting",
-        "name": "admin.",
+        "name": "admin.generated::1hz4TLKIm9d3KKka",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@index",
         "middleware": [
             "api",
@@ -2962,7 +2962,7 @@
     {
         "method": "POST",
         "uri": "admin/system/setting",
-        "name": "admin.",
+        "name": "admin.generated::qByk7pVBYHCemfKx",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@store",
         "middleware": [
             "api",
@@ -2974,7 +2974,7 @@
     {
         "method": "GET",
         "uri": "admin/system/setting/all",
-        "name": "admin.",
+        "name": "admin.generated::3JslQcxvssLDz7Iu",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@all",
         "middleware": [
             "api",
@@ -2986,7 +2986,7 @@
     {
         "method": "POST",
         "uri": "admin/system/setting/batch-delete",
-        "name": "admin.",
+        "name": "admin.generated::Xaw6Cfp2ID3swHD1",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@batchDelete",
         "middleware": [
             "api",
@@ -2998,7 +2998,7 @@
     {
         "method": "POST",
         "uri": "admin/system/setting/batch-save",
-        "name": "admin.",
+        "name": "admin.generated::3L8Bs0JvXTlzFyUn",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@batchSave",
         "middleware": [
             "api",
@@ -3010,7 +3010,7 @@
     {
         "method": "POST",
         "uri": "admin/system/setting/batch-status",
-        "name": "admin.",
+        "name": "admin.generated::xrvU2qpBEoPVDBc9",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@batchUpdateStatus",
         "middleware": [
             "api",
@@ -3022,7 +3022,7 @@
     {
         "method": "GET",
         "uri": "admin/system/setting/groups",
-        "name": "admin.",
+        "name": "admin.generated::IifwzWsyEmaozYGT",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@groups",
         "middleware": [
             "api",
@@ -3034,7 +3034,7 @@
     {
         "method": "GET",
         "uri": "admin/system/setting/tree",
-        "name": "admin.",
+        "name": "admin.generated::G1FcJ41ixTy3KYyi",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@tree",
         "middleware": [
             "api",
@@ -3046,7 +3046,7 @@
     {
         "method": "DELETE",
         "uri": "admin/system/setting/{id}",
-        "name": "admin.",
+        "name": "admin.generated::urPDGZGwvNKbcf6n",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@destroy",
         "middleware": [
             "api",
@@ -3058,7 +3058,7 @@
     {
         "method": "GET",
         "uri": "admin/system/setting/{id}",
-        "name": "admin.",
+        "name": "admin.generated::sQ9F3bhQhs56ae4j",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@show",
         "middleware": [
             "api",
@@ -3070,7 +3070,7 @@
     {
         "method": "PUT",
         "uri": "admin/system/setting/{id}",
-        "name": "admin.",
+        "name": "admin.generated::Kz8LYQC9iEfA2vVj",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Config@update",
         "middleware": [
             "api",
@@ -3082,7 +3082,7 @@
     {
         "method": "POST",
         "uri": "admin/system/upload",
-        "name": "admin.",
+        "name": "admin.generated::PfuGn409kGRcdEyx",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@upload",
         "middleware": [
             "api",
@@ -3094,7 +3094,7 @@
     {
         "method": "POST",
         "uri": "admin/system/upload/base64",
-        "name": "admin.",
+        "name": "admin.generated::E1iknc3iM5CXIqUw",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@uploadBase64",
         "middleware": [
             "api",
@@ -3106,7 +3106,7 @@
     {
         "method": "POST",
         "uri": "admin/system/upload/chunk/cancel",
-        "name": "admin.",
+        "name": "admin.generated::bBnFAReToLrpQKzh",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@cancelChunk",
         "middleware": [
             "api",
@@ -3118,7 +3118,7 @@
     {
         "method": "POST",
         "uri": "admin/system/upload/chunk/init",
-        "name": "admin.",
+        "name": "admin.generated::ia6jHCVf2NLcuvZs",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@initChunk",
         "middleware": [
             "api",
@@ -3130,7 +3130,7 @@
     {
         "method": "POST",
         "uri": "admin/system/upload/chunk/merge",
-        "name": "admin.",
+        "name": "admin.generated::6MmLOIH5v48vCiVu",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@mergeChunks",
         "middleware": [
             "api",
@@ -3142,7 +3142,7 @@
     {
         "method": "POST",
         "uri": "admin/system/upload/chunk/upload",
-        "name": "admin.",
+        "name": "admin.generated::8Vy0y4Nkf6hRIXUI",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@uploadChunk",
         "middleware": [
             "api",
@@ -3154,7 +3154,7 @@
     {
         "method": "GET",
         "uri": "admin/system/upload/chunk/uploaded",
-        "name": "admin.",
+        "name": "admin.generated::RTaSujG7Vo13UCeo",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@getUploadedChunks",
         "middleware": [
             "api",
@@ -3166,7 +3166,7 @@
     {
         "method": "POST",
         "uri": "admin/system/upload/delete",
-        "name": "admin.",
+        "name": "admin.generated::4aUAP4CGNLBmYXuf",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@delete",
         "middleware": [
             "api",
@@ -3178,7 +3178,7 @@
     {
         "method": "POST",
         "uri": "admin/system/upload/multiple",
-        "name": "admin.",
+        "name": "admin.generated::pxVjmra7Gfz7PtGa",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@uploadMultiple",
         "middleware": [
             "api",
@@ -3190,7 +3190,7 @@
     {
         "method": "GET",
         "uri": "api/import/status",
-        "name": null,
+        "name": "generated::J6Wiz783KoQvfG1O",
         "action": "Modules\\System\\Http\\Controllers\\Api\\PingController@importStatus",
         "middleware": [
             "api"
@@ -3199,7 +3199,7 @@
     {
         "method": "POST",
         "uri": "api/system/upload",
-        "name": null,
+        "name": "generated::7sz8NTQ6YSpnGVtw",
         "action": "Modules\\System\\Http\\Controllers\\Api\\Upload@upload",
         "middleware": [
             "api",
@@ -3224,7 +3224,7 @@
     {
         "method": "GET",
         "uri": "up",
-        "name": null,
+        "name": "generated::nGBA99zSk0CXxXPr",
         "action": "Closure",
         "middleware": []
     }
