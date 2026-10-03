@@ -106,19 +106,20 @@ class ReceiveController extends Controller
                 }
             }
 
-            // 3. 写经营历程（stocks_history 复用，change_type=receive）
-            //    stocks_history 的 change_qty/before_qty/after_qty 是 integer 列，金额取整存储
+            // 3. 写经营历程（cash_flows 表，不再复用 stocks_history）
             if ($validated['customer_id']) {
-                DB::table('stocks_history')->insert([
-                    'product_id' => 0, // 非商品流水
-                    'warehouse_id' => 0,
-                    'change_type' => 'receive',
-                    'change_qty' => (int) round($receiveAmount),
-                    'before_qty' => 0,
-                    'after_qty' => (int) round($receiveAmount),
+                $flowNo = 'CF'.date('YmdHis').strtoupper(Str::random(4));
+                DB::table('cash_flows')->insert([
+                    'flow_no' => $flowNo,
+                    'flow_type' => 'receive',
+                    'customer_id' => $validated['customer_id'],
                     'related_id' => $receive->id ?? 0,
                     'related_type' => 'Receive',
+                    'flow_date' => $validated['receive_date'] ?? now()->toDateString(),
+                    'amount' => $receiveAmount,
+                    'payment_method' => $validated['payment_method'] ?? '现金',
                     'remark' => '收款：'.($validated['remark'] ?? '').($orderIds ? ' [订单:'.implode(',', $orderIds).']' : ''),
+                    'created_by' => auth('admin')?->id(),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

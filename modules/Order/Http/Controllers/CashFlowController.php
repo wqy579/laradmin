@@ -11,33 +11,46 @@ class CashFlowController extends Controller
 {
     use ResponseTrait;
 
-    /** 现金流水：收款(正) + 付款(负) + 费用(负) */
+    /** 现金流水：收款(正) + 付款(负) + 费用(负) + 红冲 */
     public function index(Request $request)
     {
         $quickDate = $request->input('quick_date');
         $dateFn = function ($q) use ($quickDate) {
             if ($quickDate === 'today') {
-                $q->whereDate('date', now()->toDateString());
+                $q->whereDate('flow_date', now()->toDateString());
             } elseif ($quickDate === 'week') {
-                $q->whereDate('date', '>=', now()->subDays(6)->toDateString());
+                $q->whereDate('flow_date', '>=', now()->subDays(6)->toDateString());
             } elseif ($quickDate === 'month') {
-                $q->whereMonth('date', now()->month)->whereYear('date', now()->year);
+                $q->whereMonth('flow_date', now()->month)->whereYear('flow_date', now()->year);
             }
         };
 
-        // 收款（全部状态，草稿也计入经营历程）
-        $receives = DB::table('receives')->select('receive_date as date', DB::raw("'收款' as type"), 'remark as description', 'amount');
+        // 收款（全部状态）
+        $receives = DB::table('cash_flows')
+            ->where('flow_type', 'receive')
+            ->select('flow_date as date', DB::raw("'收款' as type"), 'remark as description', 'amount');
         $dateFn($receives);
 
         // 付款（负，全部状态）
-        $pays = DB::table('pays')->select('pay_date as date', DB::raw("'付款' as type"), 'remark as description', DB::raw('-amount as amount'));
+        $pays = DB::table('cash_flows')
+            ->where('flow_type', 'pay')
+            ->select('flow_date as date', DB::raw("'付款' as type"), 'remark as description', DB::raw('-amount as amount'));
         $dateFn($pays);
 
         // 费用（负，全部状态）
-        $expenses = DB::table('expenses')->select('expense_date as date', DB::raw("'费用' as type"), 'remark as description', DB::raw('-amount as amount'));
+        $expenses = DB::table('cash_flows')
+            ->where('flow_type', 'expense')
+            ->select('flow_date as date', DB::raw("'费用' as type"), 'remark as description', DB::raw('-amount as amount'));
         $dateFn($expenses);
 
-        $list = $receives->unionAll($pays)->unionAll($expenses)->orderByDesc('date')->get();
+        // 红冲（负，全部状态）
+        $redFlushes = DB::table('cash_flows')
+            ->where('flow_type', 'red_flush')
+            ->select('flow_date as date', DB::raw("'红冲' as type"), 'remark as description', DB::raw('-amount as amount'));
+        $dateFn($redFlushes);
+
+        $list = $receives->unionAll($pays)->unionAll($expenses)->unionAll($redFlushes)
+            ->orderByDesc('date')->get();
 
         return $this->success(['list' => $list, 'total' => $list->count()]);
     }
