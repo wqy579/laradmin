@@ -143,6 +143,21 @@ const businessApi = {
 		list: { get: (params) => request.get('business/stock-check', { params }) },
 	},
 
+	// 库存盘点（盘点单全流程）
+	stocktaking: {
+		list: { get: (params) => request.get('business/stocktaking', { params }) },
+		detail: { get: (id) => request.get(`business/stocktaking/${id}`) },
+		create: { post: (params) => request.post('business/stocktaking', params) },
+		update: { put: (id, params) => request.put(`business/stocktaking/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/stocktaking/${id}`) },
+		submit: { post: (id) => request.post(`business/stocktaking/${id}/submit`) },
+		approve: { post: (id, params) => request.post(`business/stocktaking/${id}/approve`, params) },
+		reject: { post: (id, params) => request.post(`business/stocktaking/${id}/reject`, params) },
+		cancel: { post: (id) => request.post(`business/stocktaking/${id}/cancel`) },
+		warehouseProducts: { get: (params) => request.get('business/stocktaking/warehouse-products', { params }) },
+		ledger: { get: (params) => request.get('business/stocktaking/ledger', { params }) },
+	},
+
 	// 成本价格
 	costPrice: {
 		list: { get: (params) => request.get('business/cost-price', { params }) },

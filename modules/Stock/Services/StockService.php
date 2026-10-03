@@ -126,6 +126,58 @@ class StockService
         });
     }
 
+    /**
+     * 通用库存调整：盘点/报损等「以实盘为准」的增减。
+     *
+     * 与 stockIn/stockOut 的区别：
+     *   - 不校验库存是否充足（盘亏是把账面修正为实物，库存可能本就记错）；
+     *   - change_type 由调用方指定（check_in 盘盈 / check_out 盘亏），流水语义更清晰；
+     *   - delta 为负即减少、为正即增加；会按 实盘数量×成本 重算 total_amount。
+     *
+     * 仍走 lockForUpdate 行锁 + recordHistory + syncProductStockQty，与其它写操作一致。
+     */
+    public function adjust(int $productId, int $warehouseId, int $delta, float $costPrice, int $relatedId, string $changeType, string $remark): Stock
+    {
+        return DB::transaction(function () use ($productId, $warehouseId, $delta, $costPrice, $relatedId, $changeType, $remark) {
+            /** @var Stock|null $stock */
+            $stock = Stock::where('product_id', $productId)
+                ->where('warehouse_id', $warehouseId)
+                ->lockForUpdate()
+                ->first();
+
+            $before = $stock ? (int) $stock->quantity : 0;
+
+            if ($stock) {
+                $stock->quantity = (int) $stock->quantity + $delta;
+                if ($costPrice > 0) {
+                    $stock->cost_price = $costPrice;
+                }
+                $stock->total_amount = (int) $stock->quantity * (float) $stock->cost_price;
+                $stock->updated_at = now();
+                $stock->save();
+            } else {
+                $stock = Stock::create([
+                    'product_id' => $productId,
+                    'warehouse_id' => $warehouseId,
+                    'quantity' => $delta,
+                    'cost_price' => $costPrice,
+                    'total_amount' => $delta * $costPrice,
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $this->recordHistory(
+                $productId, $warehouseId, $changeType, $delta,
+                $before, (int) $stock->quantity,
+                $relatedId, 'Stocktaking', $remark
+            );
+
+            $this->syncProductStockQty($productId);
+
+            return $stock->fresh(['product', 'warehouse']);
+        });
+    }
+
     /** 库存概览统计 */
     public function statistics(): array
     {
