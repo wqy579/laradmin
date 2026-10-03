@@ -678,6 +678,24 @@ class SalesOrderController extends Controller
                 $updateData['vehicle_id'] = (int) $request->input('vehicle_id');
             }
             $salesOrder->update($updateData);
+
+            // 配送中→已收款/待收款：自动生成应收款记录（订单与财务联动）
+            if (in_array($target, ['已收款', '待收款'], true) && $current === '配送中') {
+                \DB::table('receives')->insert([
+                    'receive_no' => 'AR'.$date('YmdHis').strtoupper(\Str::random(4)),
+                    'receive_type' => 1,
+                    'customer_id' => $salesOrder->customer_id,
+                    'sales_order_id' => $salesOrder->id,
+                    'amount' => (float) $salesOrder->total_amount - (float) $salesOrder->paid_amount,
+                    'receive_date' => now()->toDateString(),
+                    'payment_method' => '应收',
+                    'status' => 0, // 待确认
+                    'remark' => '订单发货自动生成应收款：'.$salesOrder->order_no,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
             try {
                 $this->logOperation($salesOrder, '状态流转', $current.' → '.$target, $current, $target);
             } catch (\Throwable $e) {
