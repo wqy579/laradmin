@@ -4,6 +4,7 @@ namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Business\Models\Employee;
 
 class Receive extends Model
 {
