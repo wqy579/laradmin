@@ -221,4 +221,10 @@ class ReceiveController extends Controller
 
         return $this->success(['list' => $list, 'total' => $list->count()]);
     }
+
+    /** 往来对账：返回所有客户的应收/已收/待收余额 */
+    public function statement(Request $request)
+    {
+        return $this->receivable($request);
+    }
 }

@@ -136,4 +136,6 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::get('business/cash-flow', [CashFlowController::class, 'index']);
     // 月度利润
     Route::get('business/profit', [ProfitController::class, 'index']);
+    // 往来对账
+    Route::get('business/statement', [ReceiveController::class, 'statement']);
 });
