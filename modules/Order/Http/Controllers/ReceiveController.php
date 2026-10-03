@@ -474,7 +474,7 @@ class ReceiveController extends Controller
         return $this->success($stats);
     }
 
-    /** 应收账款：按客户汇总订单总额 - 已收款 */
+    /** 应收账款：按客户汇总订单总额 - 已收款（从订单 paid_amount 实时计算） */
     public function receivable(Request $request)
     {
         $query = DB::table('customers as c')
@@ -482,15 +482,11 @@ class ReceiveController extends Controller
                 $j->on('c.id', '=', 'so.customer_id')
                     ->whereNotIn('so.status', ['cancelled', '已红冲']);
             })
-            ->leftJoin('receives as r', function ($j) {
-                $j->on('c.id', '=', 'r.customer_id')
-                    ->where('r.status', 1);
-            })
             ->select(
                 'c.id as customer_id',
                 'c.name as customer_name',
-                DB::raw('COALESCE(SUM(DISTINCT so.total_amount), 0) as order_total'),
-                DB::raw('COALESCE(SUM(r.amount), 0) as received_total')
+                DB::raw('COALESCE(SUM(so.total_amount), 0) as order_total'),
+                DB::raw('COALESCE(SUM(so.paid_amount), 0) as received_total')
             )
             ->where('c.is_active', 1)
             ->groupBy('c.id', 'c.name');
