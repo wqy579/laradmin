@@ -109,9 +109,9 @@ class StatementService
         $creators = [];
         if (! empty($creatorIds)) {
             $users = DB::table('auth_user')->whereIn('id', $creatorIds)
-                ->select('id', 'name', 'username')->get();
+                ->select('id', 'real_name', 'username')->get();
             foreach ($users as $u) {
-                $creators[$u->id] = $u->name ?: $u->username;
+                $creators[$u->id] = $u->real_name ?: $u->username;
             }
         }
 
@@ -204,9 +204,9 @@ class StatementService
         $flushers = [];
         if (! empty($flushByIds)) {
             $users = DB::table('auth_user')->whereIn('id', $flushByIds)
-                ->select('id', 'name', 'username')->get();
+                ->select('id', 'real_name', 'username')->get();
             foreach ($users as $u) {
-                $flushers[$u->id] = $u->name ?: $u->username;
+                $flushers[$u->id] = $u->real_name ?: $u->username;
             }
         }
 
