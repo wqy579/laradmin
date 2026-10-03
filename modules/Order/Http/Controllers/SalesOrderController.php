@@ -802,7 +802,7 @@ class SalesOrderController extends Controller
                             DB::table('receives')->where('id', $receiveRecord->id)->update([
                                 'status' => 2,
                                 'amount' => 0,
-                                'remark' => '订单红冲撤单，应收款已取消：' . $validated['reason'],
+                                'remark' => '订单红冲撤单，应收款已取消：'.$validated['reason'],
                                 'updated_at' => now(),
                             ]);
                         }
