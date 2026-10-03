@@ -8,6 +8,7 @@ use Modules\Stock\Http\Controllers\StockController;
 use Modules\Stock\Http\Controllers\StockHistoryController;
 use Modules\Stock\Http\Controllers\StockInController;
 use Modules\Stock\Http\Controllers\StockOutController;
+use Modules\Stock\Http\Controllers\StocktakingController;
 use Modules\Stock\Http\Controllers\TransferController;
 use Modules\Stock\Http\Controllers\VehicleController;
 use Modules\Stock\Http\Controllers\WarehouseController;
@@ -97,5 +98,22 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/stock-out')->group(function () {
         Route::get('/', [StockOutController::class, 'index']);
         Route::post('/', [StockOutController::class, 'store']);
+    });
+
+    // 库存盘点（盘点单全流程：建单→录实盘→提交→审核调库存+财务凭证）
+    // 注意与上方只读「库存核对」business/stock-check 不是一回事。
+    // 静态路由必须声明在 {id} 之前，否则会被路由参数吞掉。
+    Route::get('business/stocktaking/warehouse-products', [StocktakingController::class, 'warehouseProducts']);
+    Route::get('business/stocktaking/ledger', [StocktakingController::class, 'ledger']);
+    Route::prefix('business/stocktaking')->group(function () {
+        Route::get('/', [StocktakingController::class, 'index']);
+        Route::post('/', [StocktakingController::class, 'store']);
+        Route::get('/{id}', [StocktakingController::class, 'show']);
+        Route::put('/{id}', [StocktakingController::class, 'update']);
+        Route::delete('/{id}', [StocktakingController::class, 'destroy']);
+        Route::post('/{id}/submit', [StocktakingController::class, 'submit']);
+        Route::post('/{id}/approve', [StocktakingController::class, 'approve']);
+        Route::post('/{id}/reject', [StocktakingController::class, 'reject']);
+        Route::post('/{id}/cancel', [StocktakingController::class, 'cancel']);
     });
 });
