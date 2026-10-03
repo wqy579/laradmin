@@ -7,6 +7,8 @@ use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Order\Models\Customer;
+use Modules\Order\Models\ReceiveItem;
 use Modules\Order\Models\SalesOrder;
 use Modules\Order\Services\ReceiveService;
 
@@ -185,9 +187,37 @@ class ReceiveController extends Controller
                 }
             }
 
+            // 保存核销明细到receive_items表
+            if (! empty($salesOrderItems)) {
+                $itemsToInsert = [];
+                foreach ($salesOrderItems as $item) {
+                    $order = $orderMap[(int) $item['order_id']] ?? null;
+                    $itemsToInsert[] = [
+                        'receive_id' => $receive->id,
+                        'sales_order_id' => $item['order_id'],
+                        'order_no' => $order ? $order->order_no : null,
+                        'pay_amount' => $item['pay_amount'],
+                        'paid_before' => $item['paid_before'],
+                        'receivable_before' => $order ? round((float) $order->total_amount - (float) $item['paid_before'], 2) : 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                DB::table('receive_items')->insert($itemsToInsert);
+            }
+
+            // 更新客户应收余额（减少欠款）
+            if (! empty($validated['customer_id'])) {
+                DB::table('customers')
+                    ->where('id', $validated['customer_id'])
+                    ->decrement('balance', $receiveAmount);
+            }
+
             // 写经营历程
             if (! empty($validated['customer_id'])) {
                 $flowNo = 'CF'.date('YmdHis').strtoupper(Str::random(4));
+                $customer = Customer::find($validated['customer_id']);
+                $customerName = $customer ? $customer->name : '';
                 $orderSummary = '';
                 if (! empty($items)) {
                     $orderNos = [];
@@ -206,7 +236,7 @@ class ReceiveController extends Controller
                     'flow_date' => $validated['receive_date'] ?? now()->toDateString(),
                     'amount' => $receiveAmount,
                     'payment_method' => $paymentMethod,
-                    'remark' => '收款：'.($validated['remark'] ?? '').' '.$orderSummary,
+                    'remark' => '收款：'.($customerName ? $customerName.' - ' : '').($validated['remark'] ?? '').' '.$orderSummary,
                     'created_by' => $adminId,
                     'created_at' => now(),
                     'updated_at' => now(),
