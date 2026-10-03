@@ -217,11 +217,13 @@ class ReceiveController extends Controller
                 DB::table('receive_items')->insert($itemsToInsert);
             }
 
-            // 更新客户应收余额（减少欠款）
+            // 更新客户应收余额（收款减少欠款，balance向0移动）
+            // customers.balance：正数=客户欠款，负数=预付款余额
+            // 收款后欠款减少，应向0移动（increment加正数）
             if (! empty($validated['customer_id'])) {
                 DB::table('customers')
                     ->where('id', $validated['customer_id'])
-                    ->decrement('balance', $receiveAmount);
+                    ->increment('balance', (float) $receiveAmount);
             }
 
             // 写经营历程
