@@ -42,22 +42,58 @@ class ReceiveController extends Controller
             'discount' => 'nullable|numeric|min:0',
         ]);
 
-        $receive = $this->service->create($validated);
-
-        // 核销勾选的订单应收：更新 paid_amount
-        $orderIds = $validated['sales_order_ids'] ?? ($validated['sales_order_id'] ? [$validated['sales_order_id']] : []);
-        if ($orderIds) {
+        // 事务内：创建收款单 + 核销订单 + 写现金流水 + 更新应收款状态
+        return DB::transaction(function () use ($validated) {
+            $receive = $this->service->create($validated);
             $receiveAmount = (float) $validated['amount'];
+            $discount = (float) ($validated['discount'] ?? 0);
+
+            // 1. 核销勾选的订单应收：更新 paid_amount + 订单状态
+            $orderIds = $validated['sales_order_ids'] ?? ($validated['sales_order_id'] ? [$validated['sales_order_id']] : []);
             foreach ($orderIds as $oid) {
                 $order = SalesOrder::find($oid);
                 if ($order) {
-                    $order->paid_amount = (float) $order->paid_amount + $receiveAmount;
+                    $order->paid_amount = (float) $order->paid_amount + $receiveAmount + $discount;
+                    // 已收 >= 应收 → 标记已收款
+                    if ($order->paid_amount >= $order->total_amount) {
+                        $order->status = '已收款';
+                    }
                     $order->save();
                 }
             }
-        }
 
-        return $this->created($receive);
+            // 2. 更新应收款记录（receives 表中自动生成的待确认记录）
+            if ($orderIds) {
+                DB::table('receives')
+                    ->where('sales_order_id', $orderIds[0])
+                    ->where('status', 0)
+                    ->update([
+                        'status' => 1,
+                        'amount' => $receiveAmount,
+                        'payment_method' => $validated['payment_method'] ?? '现金',
+                        'updated_at' => now(),
+                    ]);
+            }
+
+            // 3. 写现金流水（stocks_history 复用，change_type=receive）
+            if ($validated['customer_id']) {
+                DB::table('stocks_history')->insert([
+                    'product_id' => 0, // 非商品流水
+                    'warehouse_id' => 0,
+                    'change_type' => 'receive',
+                    'change_qty' => (int) round($receiveAmount),
+                    'before_qty' => 0,
+                    'after_qty' => (int) round($receiveAmount),
+                    'related_id' => $receive->id ?? 0,
+                    'related_type' => 'Receive',
+                    'remark' => '收款：'.($validated['remark'] ?? ''),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            return $this->created($receive);
+        });
     }
 
     public function show($id)
