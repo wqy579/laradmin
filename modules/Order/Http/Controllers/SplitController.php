@@ -18,16 +18,18 @@ class SplitController extends Controller
 
     public function index(Request $request)
     {
-        $query = Split::with(['warehouse', 'parentProduct', 'creator', 'approver']);
-        if ($request->filled('keyword')) {
-            $kw = $request->keyword;
-            $query->where(function ($q) use ($kw) {
-                $q->where('split_no', 'like', "%{$kw}%")
-                    ->orWhere('parent_product_name', 'like', "%{$kw}%");
-            });
+        $query = Split::with(['warehouse', 'parentProduct', 'creator', 'approver'])->withCount('items');
+        if ($request->filled('split_no')) {
+            $query->where('split_no', 'like', "%{$request->split_no}%");
+        }
+        if ($request->filled('parent_product_name')) {
+            $query->where('parent_product_name', 'like', "%{$request->parent_product_name}%");
         }
         if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', $request->warehouse_id);
+        }
+        if ($request->filled('created_by')) {
+            $query->where('created_by', $request->created_by);
         }
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -43,6 +45,44 @@ class SplitController extends Controller
         );
 
         return $this->paginated($list);
+    }
+
+    /** 批量审核：勾选多张待审核拆分单批量通过，全部在一个事务内执行库存联动 */
+    public function batchApprove(Request $request)
+    {
+        $request->validate(['ids' => 'required|array|min:1']);
+        $admin = auth('admin')->user();
+        $adminId = $admin?->id;
+        $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
+
+        try {
+            $result = DB::transaction(function () use ($request, $adminId, $adminName) {
+                $approved = 0;
+                $skipped = [];
+                foreach ($request->ids as $id) {
+                    $split = Split::with(['items.product'])->find($id);
+                    if (! $split) {
+                        continue;
+                    }
+                    if ($split->status === 'approved') {
+                        $skipped[] = ['id' => $id, 'reason' => '已审核'];
+                        continue;
+                    }
+                    if ($split->status !== 'pending') {
+                        $skipped[] = ['id' => $id, 'reason' => '非待审核'];
+                        continue;
+                    }
+                    $this->assemblyService->approveSplit($split, $adminId, $adminName, '批量审核通过');
+                    $approved++;
+                }
+
+                return ['approved' => $approved, 'skipped' => $skipped];
+            });
+        } catch (StockRuleException $e) {
+            return $this->error('批量审核失败：'.$e->getMessage().'，已全部回滚', 422);
+        }
+
+        return $this->success($result, "批量审核完成：成功 {$result['approved']} 张，跳过 ".count($result['skipped']).' 张');
     }
 
     public function show($id)

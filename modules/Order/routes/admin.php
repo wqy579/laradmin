@@ -145,6 +145,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [AssemblyController::class, 'index']);
         Route::get('/bom-by-product', [AssemblyController::class, 'bomByProduct']);
         Route::get('/export', [AssemblyController::class, 'export']);
+        Route::post('/batch-approve', [AssemblyController::class, 'batchApprove']);
         Route::get('/{id}', [AssemblyController::class, 'show']);
         Route::post('/', [AssemblyController::class, 'store']);
         Route::put('/{id}', [AssemblyController::class, 'update']);
@@ -159,6 +160,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [SplitController::class, 'index']);
         Route::get('/bom-by-product', [SplitController::class, 'bomByProduct']);
         Route::get('/export', [SplitController::class, 'export']);
+        Route::post('/batch-approve', [SplitController::class, 'batchApprove']);
         Route::get('/{id}', [SplitController::class, 'show']);
         Route::post('/', [SplitController::class, 'store']);
         Route::put('/{id}', [SplitController::class, 'update']);

@@ -572,6 +572,18 @@
     ]
   },
   {
+    "method": "POST",
+    "uri": "admin/business/assembly/batch-approve",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@batchApprove",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
     "method": "GET",
     "uri": "admin/business/assembly/bom-by-product",
     "name": "admin.",
@@ -1092,6 +1104,18 @@
     "uri": "admin/business/disassembly",
     "name": "admin.",
     "action": "Modules\\Order\\Http\\Controllers\\SplitController@store",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/disassembly/batch-approve",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@batchApprove",
     "middleware": [
       "api",
       "stock.snapshot",

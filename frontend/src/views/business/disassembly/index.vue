@@ -3,7 +3,11 @@
     <div class="filter-bar">
       <div class="filter-item">
         <label>拆分单号</label>
-        <el-input v-model="filters.keyword" placeholder="拆分单号/被拆商品" style="width:200px;height:34px" clearable />
+        <el-input v-model="filters.split_no" placeholder="输入拆分单号" style="width:180px;height:34px" clearable />
+      </div>
+      <div class="filter-item">
+        <label>被拆商品</label>
+        <el-input v-model="filters.parent_product_name" placeholder="输入被拆商品名称" style="width:180px;height:34px" clearable />
       </div>
       <div class="filter-item">
         <label>仓库</label>
@@ -21,6 +25,12 @@
         </el-select>
       </div>
       <div class="filter-item">
+        <label>制单人</label>
+        <el-select v-model="filters.created_by" placeholder="全部人员" clearable style="width:140px;height:34px">
+          <el-option v-for="u in users" :key="u.id" :label="u.name" :value="u.id" />
+        </el-select>
+      </div>
+      <div class="filter-item">
         <label>拆分日期</label>
         <el-date-picker v-model="filters.start_date" type="date" placeholder="开始" value-format="YYYY-MM-DD" style="width:140px;height:34px" />
         <span style="color:#999;margin:0 4px;line-height:34px">至</span>
@@ -32,23 +42,28 @@
       <el-button type="primary" style="width:120px;height:36px;background:#fa8c16;border-color:#fa8c16" @click="handleCreate">
         <el-icon><Plus /></el-icon>新增拆分单
       </el-button>
-      <el-button style="width:100px;height:36px;color:#fa8c16;border-color:#fa8c16" @click="handleExport">
+      <el-button style="width:100px;height:36px;background:#fa8c16;border-color:#fa8c16" :disabled="!selectedRows.length" @click="handleBatchApprove">
+        批量审核
+      </el-button>
+      <el-button style="width:80px;height:36px;color:#fa8c16;border-color:#fa8c16" @click="handleExport">
         <el-icon><Download /></el-icon>导出
       </el-button>
     </div>
 
-    <vxe-table ref="listTable" v-loading="loading" :data="tableData" :row-config="{ keyField: 'id', isHover: true }" border show-header-border class="return-table">
+    <vxe-table ref="listTable" v-loading="loading" :data="tableData" :row-config="{ keyField: 'id', isHover: true }" :stripe="true" border show-header-footer class="return-table" @checkbox-change="onCheckboxChange" @checkbox-all="onCheckboxChange">
+      <vxe-column type="checkbox" width="40" align="center" />
       <vxe-column title="拆分单号" field="split_no" width="180">
         <template #default="{ row }"><a style="color:#1890ff;cursor:pointer" @click="handleView(row)">{{ row.split_no }}</a></template>
       </vxe-column>
-      <vxe-column title="被拆商品" width="200"><template #default="{ row }">{{ row.parent_product_name || '-' }}</template></vxe-column>
-      <vxe-column title="拆分数量" field="quantity" width="90" align="center" />
-      <vxe-column title="子件种类" width="90" align="center"><template #default="{ row }">{{ row.items?.length || 0 }} 种</template></vxe-column>
+      <vxe-column title="被拆商品" width="240">
+        <template #default="{ row }"><span>{{ row.parent_product_name || '-' }}</span> <span style="color:#f5222d;font-size:12px;margin-left:6px">×{{ row.quantity }}</span></template>
+      </vxe-column>
+      <vxe-column title="子件种类" width="90" align="center"><template #default="{ row }">{{ row.items_count ?? row.items?.length ?? 0 }} 种</template></vxe-column>
       <vxe-column title="分摊总成本" field="total_cost" width="120" align="right">
         <template #default="{ row }"><span style="color:#f5222d;font-weight:bold">¥{{ Number(row.total_cost).toFixed(2) }}</span></template>
       </vxe-column>
       <vxe-column title="仓库" width="100" align="center"><template #default="{ row }">{{ row.warehouse?.name || '-' }}</template></vxe-column>
-      <vxe-column title="状态" field="status" width="100" align="center">
+      <vxe-column title="状态" field="status" width="90" align="center">
         <template #default="{ row }">
           <span v-if="row.status === 'pending'" style="background:#fffbe6;color:#faad14;padding:2px 10px;border-radius:4px;font-size:12px">待审核</span>
           <span v-else-if="row.status === 'approved'" style="background:#f6ffed;color:#52c41a;padding:2px 10px;border-radius:4px;font-size:12px">已审核</span>
@@ -56,7 +71,6 @@
           <span v-else style="background:#f5f5f5;color:#999;padding:2px 10px;border-radius:4px;font-size:12px">草稿</span>
         </template>
       </vxe-column>
-      <vxe-column title="制单人" width="100" align="center"><template #default="{ row }">{{ row.creator?.real_name || row.creator?.name || '-' }}</template></vxe-column>
       <vxe-column title="操作" width="180" align="center" fixed="right">
         <template #default="{ row }">
           <span v-if="row.status === 'draft'">
@@ -216,14 +230,18 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import sPageSplit from '@/components/sPageSplit/index.vue'
 import businessApi from '@/api/business'
+import authApi from '@/api/auth'
 
 const loading = ref(false)
 const tableData = ref([])
 const warehouses = ref([])
 const products = ref([])
+const users = ref([])
 const stockMap = ref({})
+const selectedRows = ref([])
+const listTable = ref(null)
 
-const filters = reactive({ keyword: '', warehouse_id: null, status: null, start_date: '', end_date: '' })
+const filters = reactive({ split_no: '', parent_product_name: '', warehouse_id: null, created_by: null, status: null, start_date: '', end_date: '' })
 const pagination = reactive({ page: 1, page_size: 20, total: 0 })
 
 const fetchData = async () => {
@@ -236,15 +254,17 @@ const fetchData = async () => {
 }
 const fetchWarehouses = async () => { try { const res = await businessApi.warehouse.list.get({ page_size: 100 }); warehouses.value = res.data?.list || res.data || [] } catch {} }
 const fetchProducts = async () => { try { const res = await businessApi.product.list.get({ page_size: 1000, is_active: 1 }); products.value = res.data?.list || res.data?.data || [] } catch {} }
+const fetchUsers = async () => { try { const res = await authApi.user.list.get({ page_size: 200 }); users.value = res.data?.list || res.data?.data || [] } catch {} }
 const fetchStockMap = async (wid) => {
   if (!wid) { stockMap.value = {}; return }
   try { const res = await businessApi.stock.list.get({ warehouse_id: wid, page_size: 1000 }); const list = res.data?.list || res.data?.data || []; stockMap.value = {}; list.forEach(s => { stockMap.value[s.product_id] = s.quantity }) } catch {}
 }
 
 const handleSearch = () => { pagination.page = 1; fetchData() }
-const handleReset = () => { Object.assign(filters, { keyword: '', warehouse_id: null, status: null, start_date: '', end_date: '' }); handleSearch() }
+const handleReset = () => { Object.assign(filters, { split_no: '', parent_product_name: '', warehouse_id: null, created_by: null, status: null, start_date: '', end_date: '' }); handleSearch() }
 const handlePageChange = (p) => { pagination.page = p; fetchData() }
 const handleSizeChange = (s) => { pagination.page_size = s; pagination.page = 1; fetchData() }
+const onCheckboxChange = () => { selectedRows.value = listTable.value?.getCheckboxRecords?.() || [] }
 
 const dialogVisible = ref(false)
 const dialogTitle = ref('')
@@ -316,6 +336,18 @@ const handleSubmitClick = async () => {
 }
 const handleSubmit = async (row) => { try { await ElMessageBox.confirm('确认提交审核？', '提示'); await businessApi.disassembly.submit.post(row.id); ElMessage.success('已提交'); fetchData() } catch (e) { if (e !== 'cancel') ElMessage.error('操作失败') } }
 const handleCancel = async (row) => { try { await ElMessageBox.confirm('确认取消该拆分单？', '提示'); await businessApi.disassembly.cancel.post(row.id); ElMessage.success('已取消'); fetchData() } catch (e) { if (e !== 'cancel') ElMessage.error('操作失败') } }
+const handleBatchApprove = async () => {
+  const ids = selectedRows.value.map(r => r.id)
+  if (!ids.length) { ElMessage.warning('请勾选待审核的拆分单'); return }
+  try {
+    await ElMessageBox.confirm(`批量审核 ${ids.length} 张拆分单？通过后将逐一执行父件出库、子件入库并分摊成本，任一单据库存不足将整体回滚`, '提示', { type: 'warning' })
+    const res = await businessApi.disassembly.batchApprove.post({ ids })
+    if (res.code === 200) {
+      ElMessage.success(`批量审核完成：成功 ${res.data.approved} 张，跳过 ${res.data.skipped.length} 张`)
+      onCheckboxChange(); fetchData()
+    }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '批量审核失败') }
+}
 
 const approveVisible = ref(false)
 const current = ref(null)
@@ -337,7 +369,7 @@ const handleExport = async () => {
 
 const statusLabel = (s) => ({ draft: '草稿', pending: '待审核', approved: '已审核', cancelled: '已取消' }[s] || s)
 
-onMounted(() => { fetchData(); fetchWarehouses(); fetchProducts() })
+onMounted(() => { fetchData(); fetchWarehouses(); fetchProducts(); fetchUsers() })
 </script>
 
 <style scoped>

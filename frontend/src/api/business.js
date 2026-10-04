@@ -241,6 +241,7 @@ const businessApi = {
 		reject: { post: (id, params) => request.post(`business/assembly/${id}/reject`, params) },
 		cancel: { post: (id) => request.post(`business/assembly/${id}/cancel`) },
 		bomByProduct: { get: (params) => request.get('business/assembly/bom-by-product', { params }) },
+		batchApprove: { post: (params) => request.post('business/assembly/batch-approve', params) },
 	},
 
 	// 商品拆分
@@ -255,6 +256,7 @@ const businessApi = {
 		reject: { post: (id, params) => request.post(`business/disassembly/${id}/reject`, params) },
 		cancel: { post: (id) => request.post(`business/disassembly/${id}/cancel`) },
 		bomByProduct: { get: (params) => request.get('business/disassembly/bom-by-product', { params }) },
+		batchApprove: { post: (params) => request.post('business/disassembly/batch-approve', params) },
 	},
 
 	// 入库
