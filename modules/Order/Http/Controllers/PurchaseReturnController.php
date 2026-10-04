@@ -113,19 +113,19 @@ class PurchaseReturnController extends Controller
         $adminId = auth('admin')?->id();
         $stockInNo = null;
         $supplierName = null;
-        if (! empty($validated['stock_in_id'])) {
+        if (!empty($validated['stock_in_id'])) {
             $stockIn = DB::table('stock_ins')->find($validated['stock_in_id']);
             $stockInNo = $stockIn?->order_no;
             $validated['supplier_id'] = $validated['supplier_id'] ?? $stockIn?->supplier_id;
         }
-        if (! empty($validated['supplier_id'])) {
+        if (!empty($validated['supplier_id'])) {
             $supplierName = DB::table('suppliers')->where('id', $validated['supplier_id'])->value('name');
         }
 
-        $returnedMap = ! empty($validated['stock_in_id'])
+        $returnedMap = !empty($validated['stock_in_id'])
             ? $this->getReturnedQtyByStockIn((int) $validated['stock_in_id'])
             : [];
-        $inItems = ! empty($validated['stock_in_id'])
+        $inItems = !empty($validated['stock_in_id'])
             ? DB::table('stock_in_items')->where('stock_in_id', $validated['stock_in_id'])->get()->keyBy('product_id')
             : collect();
 
@@ -133,7 +133,7 @@ class PurchaseReturnController extends Controller
         $totalQty = 0;
         $totalAmount = 0.0;
         foreach ($validated['items'] as $item) {
-            if (! empty($validated['stock_in_id'])) {
+            if (!empty($validated['stock_in_id'])) {
                 $orig = $inItems->get($item['product_id']);
                 if ($orig === null) {
                     return $this->error("商品{$item['product_id']}不在原入库单中", 422);
@@ -163,7 +163,7 @@ class PurchaseReturnController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $stockInNo, $supplierName, $items, $totalQty, $totalAmount, $adminId) {
-            $status = ! empty($validated['submit_for_approval']) ? 'pending' : 'draft';
+            $status = !empty($validated['submit_for_approval']) ? 'pending' : 'draft';
             $return = PurchaseReturn::create([
                 'return_no' => $this->generateNo(),
                 'stock_in_id' => $validated['stock_in_id'] ?? null,
