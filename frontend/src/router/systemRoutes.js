@@ -158,6 +158,12 @@ const systemRoutes = [
 				meta: { title: 'return' },
 			},
 			{
+				path: '/business/sales-return',
+				name: 'SalesReturn',
+				component: () => import('../views/business/sales-return/index.vue'),
+				meta: { title: 'salesReturn' },
+			},
+			{
 				path: '/business/transfer',
 				name: 'Transfer',
 				component: () => import('../views/business/transfer/index.vue'),

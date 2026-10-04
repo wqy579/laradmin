@@ -107,13 +107,29 @@ const businessApi = {
 		list: { get: (params) => request.get('business/profit', { params }) },
 	},
 
-	// 退货
+	// 退货（采购退货）
 	returnOrder: {
 		list: { get: (params) => request.get('business/return', { params }) },
 		detail: { get: (id) => request.get(`business/return/${id}`) },
 		add: { post: (params) => request.post('business/return', params) },
 		edit: { put: (id, params) => request.put(`business/return/${id}`, params) },
 		delete: { delete: (id) => request.delete(`business/return/${id}`) },
+		approve: { post: (id) => request.post(`business/return/${id}/approve`) },
+		process: { post: (id) => request.post(`business/return/${id}/process`) },
+	},
+
+	// 销售退货
+	salesReturn: {
+		list: { get: (params) => request.get('business/sales-return', { params }) },
+		detail: { get: (id) => request.get(`business/sales-return/${id}`) },
+		create: { post: (params) => request.post('business/sales-return', params) },
+		update: { put: (id, params) => request.put(`business/sales-return/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/sales-return/${id}`) },
+		submit: { post: (id) => request.post(`business/sales-return/${id}/submit`) },
+		approve: { post: (id, params) => request.post(`business/sales-return/${id}/approve`, params) },
+		reject: { post: (id, params) => request.post(`business/sales-return/${id}/reject`, params) },
+		cancel: { post: (id) => request.post(`business/sales-return/${id}/cancel`) },
+		orderProducts: { get: (params) => request.get('business/sales-return/order-products', { params }) },
 	},
 
 	// 配送

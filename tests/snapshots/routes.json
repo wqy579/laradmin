@@ -1929,6 +1929,138 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/sales-return",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/sales-return",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/sales-return/export",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/sales-return/order-products",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@orderProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/sales-return/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/sales-return/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/sales-return/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/sales-return/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/sales-return/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/sales-return/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/sales-return/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\SalesReturnController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/statement",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@statement",

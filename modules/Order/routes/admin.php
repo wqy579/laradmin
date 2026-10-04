@@ -11,6 +11,7 @@ use Modules\Order\Http\Controllers\ReceiveController;
 use Modules\Order\Http\Controllers\ReturnController;
 use Modules\Order\Http\Controllers\RouteController;
 use Modules\Order\Http\Controllers\SalesOrderController;
+use Modules\Order\Http\Controllers\SalesReturnController;
 use Modules\Order\Http\Controllers\StatementController;
 use Modules\Order\Http\Controllers\SupplierController;
 use Modules\Order\Http\Controllers\VisitLogController;
@@ -95,7 +96,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     });
     // 采购订单
     // 采购订单已移除（进货录单由入库单 stock-in 承担）
-    // 退货管理
+    // 退货管理（采购退货）
     Route::prefix('business/return')->group(function () {
         Route::get('/', [ReturnController::class, 'index']);
         Route::get('/statistics', [ReturnController::class, 'statistics']);
@@ -105,6 +106,20 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::delete('/{return}', [ReturnController::class, 'destroy']);
         Route::post('/{return}/approve', [ReturnController::class, 'approve']);
         Route::post('/{return}/process', [ReturnController::class, 'process']);
+    });
+    // 销售退货管理
+    Route::prefix('business/sales-return')->group(function () {
+        Route::get('/', [SalesReturnController::class, 'index']);
+        Route::get('/order-products', [SalesReturnController::class, 'orderProducts']);
+        Route::get('/export', [SalesReturnController::class, 'export']);
+        Route::get('/{id}', [SalesReturnController::class, 'show']);
+        Route::post('/', [SalesReturnController::class, 'store']);
+        Route::put('/{id}', [SalesReturnController::class, 'update']);
+        Route::delete('/{id}', [SalesReturnController::class, 'destroy']);
+        Route::post('/{id}/submit', [SalesReturnController::class, 'submit']);
+        Route::post('/{id}/approve', [SalesReturnController::class, 'approve']);
+        Route::post('/{id}/reject', [SalesReturnController::class, 'reject']);
+        Route::post('/{id}/cancel', [SalesReturnController::class, 'cancel']);
     });
     // 发货管理
     Route::prefix('business/delivery')->group(function () {
