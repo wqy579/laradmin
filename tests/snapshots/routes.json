@@ -1319,7 +1319,7 @@
         "method": "GET",
         "uri": "admin/business/promotion",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@index",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1331,7 +1331,7 @@
         "method": "POST",
         "uri": "admin/business/promotion",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@store",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1343,7 +1343,7 @@
         "method": "GET",
         "uri": "admin/business/promotion/active",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@active",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@active",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1355,7 +1355,7 @@
         "method": "POST",
         "uri": "admin/business/promotion/calculate",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@calculate",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@calculate",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1367,7 +1367,7 @@
         "method": "GET",
         "uri": "admin/business/promotion/products",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@products",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@products",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1379,7 +1379,7 @@
         "method": "GET",
         "uri": "admin/business/promotion/report",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@report",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@report",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1391,7 +1391,7 @@
         "method": "DELETE",
         "uri": "admin/business/promotion/{id}",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@destroy",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1403,7 +1403,7 @@
         "method": "GET",
         "uri": "admin/business/promotion/{id}",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@show",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1415,7 +1415,7 @@
         "method": "PUT",
         "uri": "admin/business/promotion/{id}",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@update",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1427,7 +1427,7 @@
         "method": "POST",
         "uri": "admin/business/promotion/{id}/disable",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@disable",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@disable",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -1439,7 +1439,7 @@
         "method": "POST",
         "uri": "admin/business/promotion/{id}/enable",
         "name": "admin.",
-        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@enable",
+        "action": "Modules\\Order\\Http\\Controllers\\PromotionController@enable",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2063,7 +2063,7 @@
         "method": "GET",
         "uri": "admin/business/stocktaking",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@index",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2075,7 +2075,7 @@
         "method": "POST",
         "uri": "admin/business/stocktaking",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@store",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@store",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2087,7 +2087,7 @@
         "method": "GET",
         "uri": "admin/business/stocktaking/ledger",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@ledger",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@ledger",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2099,7 +2099,7 @@
         "method": "GET",
         "uri": "admin/business/stocktaking/warehouse-products",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@warehouseProducts",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@warehouseProducts",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2111,7 +2111,7 @@
         "method": "DELETE",
         "uri": "admin/business/stocktaking/{id}",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@destroy",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@destroy",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2123,7 +2123,7 @@
         "method": "GET",
         "uri": "admin/business/stocktaking/{id}",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@show",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@show",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2135,7 +2135,7 @@
         "method": "PUT",
         "uri": "admin/business/stocktaking/{id}",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@update",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@update",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2147,7 +2147,7 @@
         "method": "POST",
         "uri": "admin/business/stocktaking/{id}/approve",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@approve",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2159,7 +2159,7 @@
         "method": "POST",
         "uri": "admin/business/stocktaking/{id}/cancel",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@cancel",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@cancel",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2171,7 +2171,7 @@
         "method": "POST",
         "uri": "admin/business/stocktaking/{id}/reject",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@reject",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@reject",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -2183,7 +2183,7 @@
         "method": "POST",
         "uri": "admin/business/stocktaking/{id}/submit",
         "name": "admin.",
-        "action": "Modules\\\\Stock\\\\Http\\\\Controllers\\\\StocktakingController@submit",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@submit",
         "middleware": [
             "api",
             "stock.snapshot",

@@ -663,7 +663,7 @@ class SalesOrderController extends Controller
                     + (float) $it->qty_medium * (float) $it->price_medium
                     + (float) $it->qty_small * $promoPrice, 2);
                 $label = $ov['label'] ?? '';
-                if ($label && ! str_contains((string) $it->remark, $label)) {
+                if ($label && !str_contains((string) $it->remark, $label)) {
                     $it->remark = trim(trim((string) $it->remark).' '.$label);
                 }
                 $it->price_source = '特殊';

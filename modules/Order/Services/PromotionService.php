@@ -2,6 +2,7 @@
 
 namespace Modules\Order\Services;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Order\Models\Promotion;
 
@@ -20,7 +21,7 @@ use Modules\Order\Models\Promotion;
 class PromotionService
 {
     /** 当前对某客户生效的促销（时间窗内 + 适用客户），按优先级 desc */
-    public function activePromotions(?int $customerId): \Illuminate\Support\Collection
+    public function activePromotions(?int $customerId): Collection
     {
         $now = now();
 
