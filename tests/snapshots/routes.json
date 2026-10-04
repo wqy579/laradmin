@@ -1317,6 +1317,138 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/promotion",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/promotion",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/promotion/active",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@active",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/promotion/calculate",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@calculate",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/promotion/products",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@products",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/promotion/report",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@report",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/promotion/{id}",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/promotion/{id}",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/promotion/{id}",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/promotion/{id}/disable",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@disable",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/promotion/{id}/enable",
+        "name": "admin.",
+        "action": "Modules\\\\Order\\\\Http\\\\Controllers\\\\PromotionController@enable",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/receive",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@index",

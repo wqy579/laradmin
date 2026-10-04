@@ -158,6 +158,21 @@ const businessApi = {
 		ledger: { get: (params) => request.get('business/stocktaking/ledger', { params }) },
 	},
 
+	// 促销管理
+	promotion: {
+		list: { get: (params) => request.get('business/promotion', { params }) },
+		detail: { get: (id) => request.get(`business/promotion/${id}`) },
+		create: { post: (params) => request.post('business/promotion', params) },
+		update: { put: (id, params) => request.put(`business/promotion/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/promotion/${id}`) },
+		enable: { post: (id) => request.post(`business/promotion/${id}/enable`) },
+		disable: { post: (id) => request.post(`business/promotion/${id}/disable`) },
+		active: { get: (params) => request.get('business/promotion/active', { params }) },
+		calculate: { post: (params) => request.post('business/promotion/calculate', params) },
+		products: { get: (params) => request.get('business/promotion/products', { params }) },
+		report: { get: (params) => request.get('business/promotion/report', { params }) },
+	},
+
 	// 成本价格
 	costPrice: {
 		list: { get: (params) => request.get('business/cost-price', { params }) },

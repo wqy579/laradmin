@@ -146,6 +146,12 @@ const systemRoutes = [
 				meta: { title: 'stocktaking' },
 			},
 			{
+				path: '/business/promotion',
+				name: 'Promotion',
+				component: () => import('../views/business/promotion/index.vue'),
+				meta: { title: 'promotion' },
+			},
+			{
 				path: '/business/return',
 				name: 'Return',
 				component: () => import('../views/business/return/index.vue'),
