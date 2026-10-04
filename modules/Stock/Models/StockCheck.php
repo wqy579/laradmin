@@ -15,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class StockCheck extends Model
 {
-
     protected $table = 'stock_checks';
 
     protected $fillable = [
@@ -31,8 +30,10 @@ class StockCheck extends Model
     ];
 
     const STATUS_DRAFT = 'draft';
+
     const STATUS_IN_PROGRESS = 'in_progress';
     const STATUS_PENDING = 'pending';
+
     const STATUS_APPROVED = 'approved';
     const STATUS_CANCELLED = 'cancelled';
 

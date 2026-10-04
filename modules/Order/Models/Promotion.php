@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Promotion extends Model
 {
-
     protected $table = 'promotions';
 
     protected $fillable = [
@@ -26,8 +25,10 @@ class Promotion extends Model
     ];
 
     const TYPE_DISCOUNT = 'discount';
+
     const TYPE_FULL_REDUCTION = 'full_reduction';
     const TYPE_BUY_GIFT = 'buy_gift';
+
     const TYPE_SPECIAL = 'special_price';
 
     public function items(): HasMany
