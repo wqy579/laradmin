@@ -125,7 +125,7 @@ class PromotionService
         }
         $productDiscount = round($productDiscount, 2);
 
-        // 2) 买赠
+        // 2) 买赠：赠品数量按满足次数倍数 = floor(购买量/门槛) × 每次赠送量
         foreach ($promotions as $p) {
             if ($p->type !== Promotion::TYPE_BUY_GIFT) {
                 continue;
@@ -135,10 +135,12 @@ class PromotionService
                 $need = (int) ($pi->buy_qty ?? 0);
                 $have = $qtyByProduct[$buyPid] ?? 0;
                 if ($need > 0 && $have >= $need) {
+                    $times = intdiv($have, $need); // 满足几次买赠
+                    $giftCount = $times * (int) ($pi->gift_qty ?? 1);
                     $giftPid = (int) ($pi->gift_product_id ?: $buyPid);
                     $giftLines[] = [
                         'product_id' => $giftPid,
-                        'qty' => (int) ($pi->gift_qty ?? 1),
+                        'qty' => $giftCount,
                         'promotion_id' => $p->id,
                         'promotion_name' => $p->name,
                     ];
@@ -147,15 +149,12 @@ class PromotionService
             }
         }
 
-        // 3) 满减：只有真产生了商品折扣且不允许叠加时才拦满减（避免"匹配到但没优惠"的促销误拦满减）
+        // 3) 满减：按订单原始总额匹配最高档位，独立于折扣计算（折扣与满减各自命中即生效）
         foreach ($promotions as $p) {
             if ($p->type !== Promotion::TYPE_FULL_REDUCTION) {
                 continue;
             }
-            if ($productDiscount > 0 && ! $p->allow_stack) {
-                continue; // 满减不与折扣叠加
-            }
-            $base = $productDiscount > 0 ? ($originalTotal - $productDiscount) : $originalTotal;
+            $base = $originalTotal;
             $best = null;
             foreach ($p->tiers->sortByDesc('threshold_amount') as $t) {
                 if ($base >= (float) $t->threshold_amount) {
