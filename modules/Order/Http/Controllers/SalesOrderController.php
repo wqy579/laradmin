@@ -9,11 +9,11 @@ use Illuminate\Support\Str;
 use Modules\Auth\Models\User as AdminUser;
 use Modules\Order\Models\Customer;
 use Modules\Order\Models\SalesOrder;
+use Modules\Order\Services\PromotionService;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Stock;
 use Modules\Stock\Models\Warehouse;
 use Modules\Stock\Services\StockService;
-use Modules\Order\Services\PromotionService;
 
 class SalesOrderController extends Controller
 {
@@ -141,7 +141,7 @@ class SalesOrderController extends Controller
 
         // customers/warehouses/salesmen 只首次加载（后续翻页不传，减少数据量）
         $extra = [];
-        if (!$request->has('page') || $request->integer('page', 1) === 1) {
+        if (! $request->has('page') || $request->integer('page', 1) === 1) {
             $extra['customers'] = Customer::where('is_active', true)->orderBy('name')->get(['id', 'name']);
             $extra['warehouses'] = Warehouse::where('is_active', true)->get(['id', 'name']);
             $extra['salesmen'] = \DB::table('employees')->orderBy('id')->get(['id', 'name']);
@@ -663,7 +663,7 @@ class SalesOrderController extends Controller
                     + (float) $it->qty_medium * (float) $it->price_medium
                     + (float) $it->qty_small * $promoPrice, 2);
                 $label = $ov['label'] ?? '';
-                if ($label && !str_contains((string) $it->remark, $label)) {
+                if ($label && ! str_contains((string) $it->remark, $label)) {
                     $it->remark = trim(trim((string) $it->remark).' '.$label);
                 }
                 $it->price_source = '特殊';
@@ -745,10 +745,10 @@ class SalesOrderController extends Controller
         $flow = ['pending' => '配货中', '配货中' => '待调度', '待调度' => '待配送', '待配送' => '配送中', '配送中' => '已收款'];
         $current = $salesOrder->status;
         $target = $request->input('target');
-        if (!$target) {
+        if (! $target) {
             $target = $flow[$current] ?? null;
         }
-        if (!$target || $target === $current) {
+        if (! $target || $target === $current) {
             return $this->error('当前状态无法流转（'.$current.'）', 422);
         }
         // 正向 + 逆向流转都允许（逆向：回退到上一状态）
@@ -761,7 +761,7 @@ class SalesOrderController extends Controller
             '待收款' => ['配送中', '已收款'],
             '已收款' => ['待收款'],
         ];
-        if (!in_array($target, $allowed[$current] ?? [], true)) {
+        if (! in_array($target, $allowed[$current] ?? [], true)) {
             return $this->error('不能从 '.$current.' 流转到 '.$target, 422);
         }
         try {
@@ -807,7 +807,7 @@ class SalesOrderController extends Controller
     public function cancel(SalesOrder $salesOrder)
     {
         // 待配货/配货中可作废（已配送的不行，库存已动）
-        if (!in_array($salesOrder->status, ['pending', '配货中'], true)) {
+        if (! in_array($salesOrder->status, ['pending', '配货中'], true)) {
             return $this->error('只有待配货/配货中状态的订单可以作废', 422);
         }
 
@@ -851,7 +851,7 @@ class SalesOrderController extends Controller
             foreach ($validated['ids'] as $orderId) {
                 $order = SalesOrder::find($orderId);
                 // 校验：只有已收款/待收款状态可红冲
-                if (!in_array($order->status, ['配送中', '已收款', '待收款'], true)) {
+                if (! in_array($order->status, ['配送中', '已收款', '待收款'], true)) {
                     $results[] = ['id' => $orderId, 'success' => false, 'message' => "状态{$order->status}不可红冲"];
 
                     continue;

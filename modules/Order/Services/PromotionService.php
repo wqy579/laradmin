@@ -42,7 +42,7 @@ class PromotionService
         if ($p->customer_scope === 'all') {
             return true;
         }
-        if (!$customerId) {
+        if (! $customerId) {
             return false;
         }
         if ($p->customer_scope === 'specified') {
@@ -50,6 +50,7 @@ class PromotionService
         }
         if ($p->customer_scope === 'level') {
             $level = (int) DB::table('customers')->where('id', $customerId)->value('level');
+
             return in_array($level, array_map('intval', (array) $p->customer_levels), false);
         }
 
@@ -84,12 +85,12 @@ class PromotionService
 
         // 1) 商品级促销：限时折扣 / 特价（按优先级，同商品高优先级覆盖）
         foreach ($promotions as $p) {
-            if (!in_array($p->type, [Promotion::TYPE_DISCOUNT, Promotion::TYPE_SPECIAL], true)) {
+            if (! in_array($p->type, [Promotion::TYPE_DISCOUNT, Promotion::TYPE_SPECIAL], true)) {
                 continue;
             }
             foreach ($p->items as $pi) {
                 $pid = (int) $pi->product_id;
-                if (!isset($qtyByProduct[$pid])) {
+                if (! isset($qtyByProduct[$pid])) {
                     continue;
                 }
                 // 已被更高优先级促销占了该商品（promotions 按 priority desc，先到者优先）
@@ -151,7 +152,7 @@ class PromotionService
             if ($p->type !== Promotion::TYPE_FULL_REDUCTION) {
                 continue;
             }
-            if ($productDiscount > 0 && !$p->allow_stack) {
+            if ($productDiscount > 0 && ! $p->allow_stack) {
                 continue; // 满减不与折扣叠加
             }
             $base = $productDiscount > 0 ? ($originalTotal - $productDiscount) : $originalTotal;

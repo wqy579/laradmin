@@ -122,10 +122,10 @@ class PromotionController extends Controller
     public function destroy($id)
     {
         $p = Promotion::find($id);
-        if (!$p) {
+        if (! $p) {
             return $this->notFound('促销单不存在');
         }
-        if (!in_array($p->derivedStatus(), ['draft', 'upcoming', 'ended', 'disabled'], true)) {
+        if (! in_array($p->derivedStatus(), ['draft', 'upcoming', 'ended', 'disabled'], true)) {
             return $this->error('进行中的促销不能删除，请先停用', 422);
         }
         $p->items()->delete();
