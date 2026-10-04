@@ -113,7 +113,7 @@ class PurchaseReturnController extends Controller
         $adminId = auth('admin')?->id();
         $stockInNo = null;
         $supplierName = null;
-        $hasStockIn = ! empty($validated['stock_in_id']);
+        $hasStockIn = (bool) ($validated['stock_in_id'] ?? false);
         if ($hasStockIn) {
             $stockIn = DB::table('stock_ins')->find($validated['stock_in_id']);
             $stockInNo = $stockIn?->order_no;
@@ -224,7 +224,8 @@ class PurchaseReturnController extends Controller
                 'product_name' => $p?->name ?? '',
                 'spec' => $p?->spec ?? '',
                 'unit' => $p?->price_unit_small ?? '',
-                'original_qty' => 0, 'returned_qty' => 0,
+                'original_qty' => 0,
+                'returned_qty' => 0,
                 'return_qty' => $item['return_qty'],
                 'return_price' => $item['return_price'],
                 'return_amount' => $amount,
@@ -390,8 +391,15 @@ class PurchaseReturnController extends Controller
     private function generateNo(): string
     {
         $prefix = 'PR'.date('Ymd');
-        $last = PurchaseReturn::where('return_no', 'like', $prefix.'%')->orderByDesc('return_no')->value('return_no');
-        $seq = $last ? intval(substr($last, -6)) + 1 : 1;
+        $last = PurchaseReturn::where('return_no', 'like', $prefix.'%')
+            ->orderByDesc('return_no')
+            ->value('return_no');
+
+        if ($last) {
+            $seq = intval(substr($last, -6)) + 1;
+        } else {
+            $seq = 1;
+        }
 
         return $prefix.str_pad($seq, 6, '0', STR_PAD_LEFT);
     }
