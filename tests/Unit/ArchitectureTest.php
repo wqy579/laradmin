@@ -42,6 +42,8 @@ class ArchitectureTest extends TestCase
         // 收益低于耦合成本，保留共享主数据引用
         'Order->Business',  // 拜访单登记拜访人，引用 Business 的员工表
         'Order->Auth',      // 订单审批/下单记录发起人，引用 Auth 的用户表
+        'Stock->Order',     // 价格体系 PriceService 复用 Order 的促销算价引擎，
+        // 促销价是取价第一优先级，同库同事务，抽契约收益低
     ];
 
     /**

@@ -5,6 +5,7 @@ namespace Modules\Stock\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Modules\Stock\Models\CustomerLevel;
 
 class CustomerLevelController extends Controller
