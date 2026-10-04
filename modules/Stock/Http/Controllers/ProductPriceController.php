@@ -31,7 +31,6 @@ class ProductPriceController extends Controller
         $pageSize = min(100, max(10, $request->integer('page_size', 20)));
         $products = $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
 
-        // 一次性取出所有等级价
         $pids = collect($products->items())->pluck('id')->all();
         $levelPrices = DB::table('product_level_prices')->whereIn('product_id', $pids)->get()
             ->groupBy('product_id');
@@ -70,15 +69,20 @@ class ProductPriceController extends Controller
             'levels' => 'nullable|array',
             'levels.*.level_id' => 'required|integer',
             'levels.*.price' => 'nullable|numeric|min:0',
+            // 兼容前端直接传 {level_id: price} 对象
+            'level_prices' => 'nullable|array',
+            'level_prices.*' => 'nullable|numeric|min:0',
         ]);
         $admin = auth('admin')->user();
         $opName = $admin?->name ?? ($admin?->username ?? '管理员');
 
         return DB::transaction(function () use ($productId, $data, $opName) {
             $product = DB::table('products')->where('id', $productId)->first();
+
             if (! $product) {
                 return $this->notFound('商品不存在');
             }
+
             // 标准售价
             if (isset($data['price_small'])) {
                 $old = (float) $product->price_small;
@@ -88,18 +92,29 @@ class ProductPriceController extends Controller
                     $this->logHistory($productId, 'standard', '标准售价', $old, $new, 'manual', null, $opName);
                 }
             }
-            // 各等级价
+
+            // 统一成 [{level_id, price}] 列表
+            $levelRows = [];
             foreach (($data['levels'] ?? []) as $lv) {
-                $lid = (int) $lv['level_id'];
-                $new = isset($lv['price']) && $lv['price'] !== null ? round((float) $lv['price'], 2) : null;
-                $row = ProductLevelPrice::where('product_id', $productId)->where('level_id', $lid)->first();
-                $old = $row ? (float) $row->price : null;
+                $levelRows[] = ['level_id' => (int) $lv['level_id'], 'price' => $lv['price'] ?? null];
+            }
+            foreach (($data['level_prices'] ?? []) as $lid => $price) {
+                $levelRows[] = ['level_id' => (int) $lid, 'price' => $price];
+            }
+
+            foreach ($levelRows as $row) {
+                $lid = $row['level_id'];
+                $new = $row['price'] !== null && $row['price'] !== '' ? round((float) $row['price'], 2) : null;
+                $exist = ProductLevelPrice::where('product_id', $productId)->where('level_id', $lid)->first();
+                $old = $exist ? (float) $exist->price : null;
+
                 if ($new === null) {
-                    continue; // 空值不写
+                    continue;
                 }
-                if ($row) {
+
+                if ($exist) {
                     if (abs($old - $new) > 0.001) {
-                        $row->update(['price' => $new]);
+                        $exist->update(['price' => $new]);
                         $this->logHistory($productId, "level_{$lid}", CustomerLevel::find($lid)?->name, $old, $new, 'manual', null, $opName);
                     }
                 } else {
@@ -118,35 +133,42 @@ class ProductPriceController extends Controller
         $data = $request->validate([
             'product_ids' => 'required|array|min:1',
             'product_ids.*' => 'integer',
-            'mode' => 'required|in:ratio,amount,set',
+            'mode' => 'required|string',
             'value' => 'required|numeric',
-            'scopes' => 'required|array|min:1', // ['standard', level_id, ...]
+            'scopes' => 'required|array|min:1',
         ]);
+        // 兼容 fixed_amount / fixed_price 命名
+        $mode = match ($data['mode']) {
+            'fixed_amount' => 'amount',
+            'fixed_price' => 'set',
+            default => $data['mode'],
+        };
+        if (! in_array($mode, ['ratio', 'amount', 'set'], true)) {
+            return $this->error('调价方式无效', 422);
+        }
         $admin = auth('admin')->user();
         $opName = $admin?->name ?? ($admin?->username ?? '管理员');
-        $rule = "{$data['mode']}:{$data['value']}";
+        $rule = "{$mode}:{$data['value']}";
 
-        return DB::transaction(function () use ($data, $rule, $opName) {
+        return DB::transaction(function () use ($data, $mode, $rule, $opName) {
             $products = DB::table('products')->whereIn('id', $data['product_ids'])->get();
             $changed = 0;
             foreach ($products as $p) {
-                // 标准售价
                 if (in_array('standard', $data['scopes'], true)) {
                     $old = (float) $p->price_small;
-                    $new = $this->applyRule($old, $data['mode'], (float) $data['value']);
+                    $new = $this->applyRule($old, $mode, (float) $data['value']);
                     if (abs($old - $new) > 0.001) {
                         DB::table('products')->where('id', $p->id)->update(['price_small' => $new]);
                         $this->logHistory($p->id, 'standard', '标准售价', $old, $new, 'batch', $rule, $opName);
                         $changed++;
                     }
                 }
-                // 等级价
                 $levelScopes = array_filter($data['scopes'], fn ($s) => $s !== 'standard');
                 if ($levelScopes) {
                     $rows = ProductLevelPrice::where('product_id', $p->id)->whereIn('level_id', $levelScopes)->get();
                     foreach ($rows as $row) {
                         $old = (float) $row->price;
-                        $new = $this->applyRule($old, $data['mode'], (float) $data['value']);
+                        $new = $this->applyRule($old, $mode, (float) $data['value']);
                         if (abs($old - $new) > 0.001) {
                             $row->update(['price' => $new]);
                             $this->logHistory($p->id, "level_{$row->level_id}", CustomerLevel::find($row->level_id)?->name, $old, $new, 'batch', $rule, $opName);
@@ -190,14 +212,21 @@ class ProductPriceController extends Controller
             'items.*.product_id' => 'required|integer',
             'items.*.price' => 'nullable|numeric|min:0',
         ]);
+
+        // 批量取商品标准售价，避免前端不传 price 时返回 0
+        $pids = collect($data['items'])->pluck('product_id')->map(fn ($v) => (int) $v)->unique()->all();
+        $stdPrices = DB::table('products')->whereIn('id', $pids)->pluck('price_small', 'id');
+
         $out = [];
         foreach ($data['items'] as $it) {
+            $pid = (int) $it['product_id'];
+            $std = isset($it['price']) && $it['price'] !== null ? (float) $it['price'] : (float) ($stdPrices[$pid] ?? 0);
             $res = $this->priceService->resolve(
                 isset($data['customer_id']) ? (int) $data['customer_id'] : null,
-                (int) $it['product_id'],
-                (float) ($it['price'] ?? 0)
+                $pid,
+                $std
             );
-            $out[] = ['product_id' => (int) $it['product_id'], 'price' => $res['price'], 'source' => $res['source']];
+            $out[] = ['product_id' => $pid, 'price' => $res['price'], 'source' => $res['source']];
         }
 
         return $this->success(['list' => $out]);

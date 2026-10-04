@@ -35,11 +35,11 @@ class PriceService
             }
         }
 
-        // 2) 客户等级
-        if ($customerId) {
-            $levelId = (int) DB::table('customers')->where('id', $customerId)->value('level_id');
-            if ($levelId) {
-                $level = CustomerLevel::find($levelId);
+        // 2) 客户等级：优先 level_id，为空则回退旧 level 列（值=customer_levels.id）
+        $levelId = $this->resolveLevelId($customerId);
+        if ($levelId) {
+            $level = CustomerLevel::find($levelId);
+            if ($level) {
                 // 2a) 商品单独等级价
                 $lp = DB::table('product_level_prices')
                     ->where('product_id', $productId)->where('level_id', $levelId)->value('price');
@@ -47,12 +47,33 @@ class PriceService
                     return ['price' => round((float) $lp, 2), 'source' => $level->name.'价'];
                 }
                 // 2b) 等级默认折扣
-                if ($level && (float) $level->default_discount > 0) {
+                if ((float) $level->default_discount > 0) {
                     return ['price' => round($standardPrice * (float) $level->default_discount / 10, 2), 'source' => $level->name.$level->default_discount.'折'];
                 }
             }
         }
 
         return ['price' => round($standardPrice, 2), 'source' => '标准售价'];
+    }
+
+    /** 解析客户等级 ID：优先 level_id 外键，回退旧 level 列 */
+    private function resolveLevelId(?int $customerId): ?int
+    {
+        if (! $customerId) {
+            return null;
+        }
+        $row = DB::table('customers')->where('id', $customerId)->first(['level_id', 'level']);
+        if (! $row) {
+            return null;
+        }
+        if ($row->level_id) {
+            return (int) $row->level_id;
+        }
+        // 旧数据用 level 列存等级 ID
+        if ($row->level) {
+            return (int) $row->level;
+        }
+
+        return null;
     }
 }

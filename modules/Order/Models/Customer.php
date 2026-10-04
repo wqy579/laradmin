@@ -12,7 +12,7 @@ class Customer extends Model
 
     protected $fillable = [
         'code', 'name', 'category', 'contact', 'phone',
-        'address', 'route', 'credit_limit', 'balance', 'level',
+        'address', 'route', 'credit_limit', 'balance', 'level', 'level_id',
         'is_active', 'image', 'latitude', 'longitude',
         'mall_status', 'is_located', 'route_id', 'remark',
     ];

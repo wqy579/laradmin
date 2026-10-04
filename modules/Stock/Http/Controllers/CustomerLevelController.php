@@ -44,9 +44,15 @@ class CustomerLevelController extends Controller
             return $this->notFound('等级不存在');
         }
 
-        $data = $this->validateData($request);
+        $data = $request->validate([
+            'name' => 'sometimes|required|string|max:50',
+            'code' => 'sometimes|required|string|max:20',
+            'default_discount' => 'sometimes|required|numeric|min:0.1|max:9.9',
+            'sort' => 'nullable|integer',
+            'status' => 'nullable|boolean',
+        ]);
 
-        if (CustomerLevel::where('code', $data['code'])->where('id', '!=', $id)->exists()) {
+        if (! empty($data['code']) && CustomerLevel::where('code', $data['code'])->where('id', '!=', $id)->exists()) {
             return $this->error('等级编码已存在', 422);
         }
 
