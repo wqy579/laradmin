@@ -28,7 +28,7 @@ class CustomerLevelController extends Controller
         if (CustomerLevel::where('code', $data['code'])->exists()) {
             return $this->error('等级编码已存在', 422);
         }
-        $l = CustomerLevel::create($data + ['is_system' => false]);
+        $l = CustomerLevel::create(array_merge($data, ['is_system' => false]));
 
         return $this->created($l, '已创建');
     }
@@ -36,7 +36,7 @@ class CustomerLevelController extends Controller
     public function update(Request $request, $id)
     {
         $l = CustomerLevel::find($id);
-        if (!$l) {
+        if (! $l) {
             return $this->notFound('等级不存在');
         }
         $data = $this->validateData($request);
@@ -51,7 +51,7 @@ class CustomerLevelController extends Controller
     public function destroy($id)
     {
         $l = CustomerLevel::find($id);
-        if (!$l) {
+        if (! $l) {
             return $this->notFound('等级不存在');
         }
         if ($l->is_system) {
