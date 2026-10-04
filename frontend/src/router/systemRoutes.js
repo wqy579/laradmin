@@ -152,6 +152,12 @@ const systemRoutes = [
 				meta: { title: 'promotion' },
 			},
 			{
+				path: '/business/purchase-return',
+				name: 'PurchaseReturn',
+				component: () => import('../views/business/purchase-return/index.vue'),
+				meta: { title: 'purchase-return' },
+			},
+			{
 				path: '/business/customer-level',
 				name: 'CustomerLevel',
 				component: () => import('../views/business/customer-level/index.vue'),

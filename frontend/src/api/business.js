@@ -209,6 +209,20 @@ const businessApi = {
 		batch: { post: (params) => request.post('business/cost-price/batch', params) },
 	},
 
+	// 采购退货
+	purchaseReturn: {
+		list: { get: (params) => request.get('business/purchase-return', { params }) },
+		detail: { get: (id) => request.get(`business/purchase-return/${id}`) },
+		create: { post: (params) => request.post('business/purchase-return', params) },
+		update: { put: (id, params) => request.put(`business/purchase-return/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/purchase-return/${id}`) },
+		submit: { post: (id) => request.post(`business/purchase-return/${id}/submit`) },
+		approve: { post: (id, params) => request.post(`business/purchase-return/${id}/approve`, params) },
+		reject: { post: (id, params) => request.post(`business/purchase-return/${id}/reject`, params) },
+		cancel: { post: (id) => request.post(`business/purchase-return/${id}/cancel`) },
+		stockInProducts: { get: (params) => request.get('business/purchase-return/stock-in-products', { params }) },
+	},
+
 	// 入库
 	// 只保留后端真实存在的两个接口（列表 / 新建入库）。此前这里还声明了 detail、
 	// edit、delete、approve 四个——后端 StockInController 只有 index + store，

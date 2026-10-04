@@ -1557,6 +1557,126 @@
   },
   {
     "method": "GET",
+    "uri": "admin/business/purchase-return",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@index",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-return",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@store",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/purchase-return/stock-in-products",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@stockInProducts",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "DELETE",
+    "uri": "admin/business/purchase-return/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@destroy",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/purchase-return/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@show",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "PUT",
+    "uri": "admin/business/purchase-return/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@update",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-return/{id}/approve",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@approve",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-return/{id}/cancel",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@cancel",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-return/{id}/reject",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@reject",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-return/{id}/submit",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@submit",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
     "uri": "admin/business/receive",
     "name": "admin.",
     "action": "Modules\\Order\\Http\\Controllers\\ReceiveController@index",

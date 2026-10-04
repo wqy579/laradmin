@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Order\Http\Controllers\CashFlowController;
 use Modules\Order\Http\Controllers\CustomerController;
+use Modules\Order\Http\Controllers\PurchaseReturnController;
 use Modules\Order\Http\Controllers\DeliveryController;
 use Modules\Order\Http\Controllers\PayController;
 use Modules\Order\Http\Controllers\ProfitController;
@@ -120,6 +121,19 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/approve', [SalesReturnController::class, 'approve']);
         Route::post('/{id}/reject', [SalesReturnController::class, 'reject']);
         Route::post('/{id}/cancel', [SalesReturnController::class, 'cancel']);
+    });
+    // 采购退货管理
+    Route::prefix('business/purchase-return')->group(function () {
+        Route::get('/', [PurchaseReturnController::class, 'index']);
+        Route::get('/stock-in-products', [PurchaseReturnController::class, 'stockInProducts']);
+        Route::get('/{id}', [PurchaseReturnController::class, 'show']);
+        Route::post('/', [PurchaseReturnController::class, 'store']);
+        Route::put('/{id}', [PurchaseReturnController::class, 'update']);
+        Route::delete('/{id}', [PurchaseReturnController::class, 'destroy']);
+        Route::post('/{id}/submit', [PurchaseReturnController::class, 'submit']);
+        Route::post('/{id}/approve', [PurchaseReturnController::class, 'approve']);
+        Route::post('/{id}/reject', [PurchaseReturnController::class, 'reject']);
+        Route::post('/{id}/cancel', [PurchaseReturnController::class, 'cancel']);
     });
     // 发货管理
     Route::prefix('business/delivery')->group(function () {
