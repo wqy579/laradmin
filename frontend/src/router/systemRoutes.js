@@ -188,6 +188,18 @@ const systemRoutes = [
 				meta: { title: 'salesReturn' },
 			},
 			{
+				path: '/business/assembly',
+				name: 'Assembly',
+				component: () => import('../views/business/assembly/index.vue'),
+				meta: { title: 'assembly' },
+			},
+			{
+				path: '/business/disassembly',
+				name: 'Disassembly',
+				component: () => import('../views/business/disassembly/index.vue'),
+				meta: { title: 'disassembly' },
+			},
+			{
 				path: '/business/transfer',
 				name: 'Transfer',
 				component: () => import('../views/business/transfer/index.vue'),

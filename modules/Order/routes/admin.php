@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Order\Http\Controllers\AssemblyController;
+use Modules\Order\Http\Controllers\ProductBomController;
+use Modules\Order\Http\Controllers\SplitController;
 use Modules\Order\Http\Controllers\CashFlowController;
 use Modules\Order\Http\Controllers\CustomerController;
 use Modules\Order\Http\Controllers\DeliveryController;
@@ -137,6 +140,37 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/reject', [PurchaseReturnController::class, 'reject']);
         Route::post('/{id}/cancel', [PurchaseReturnController::class, 'cancel']);
     });
+    // 商品组装管理
+    Route::prefix('business/assembly')->group(function () {
+        Route::get('/', [AssemblyController::class, 'index']);
+        Route::get('/bom-by-product', [AssemblyController::class, 'bomByProduct']);
+        Route::get('/export', [AssemblyController::class, 'export']);
+        Route::get('/{id}', [AssemblyController::class, 'show']);
+        Route::post('/', [AssemblyController::class, 'store']);
+        Route::put('/{id}', [AssemblyController::class, 'update']);
+        Route::delete('/{id}', [AssemblyController::class, 'destroy']);
+        Route::post('/{id}/submit', [AssemblyController::class, 'submit']);
+        Route::post('/{id}/approve', [AssemblyController::class, 'approve']);
+        Route::post('/{id}/reject', [AssemblyController::class, 'reject']);
+        Route::post('/{id}/cancel', [AssemblyController::class, 'cancel']);
+    });
+    // 商品拆分管理
+    Route::prefix('business/disassembly')->group(function () {
+        Route::get('/', [SplitController::class, 'index']);
+        Route::get('/bom-by-product', [SplitController::class, 'bomByProduct']);
+        Route::get('/export', [SplitController::class, 'export']);
+        Route::get('/{id}', [SplitController::class, 'show']);
+        Route::post('/', [SplitController::class, 'store']);
+        Route::put('/{id}', [SplitController::class, 'update']);
+        Route::delete('/{id}', [SplitController::class, 'destroy']);
+        Route::post('/{id}/submit', [SplitController::class, 'submit']);
+        Route::post('/{id}/approve', [SplitController::class, 'approve']);
+        Route::post('/{id}/reject', [SplitController::class, 'reject']);
+        Route::post('/{id}/cancel', [SplitController::class, 'cancel']);
+    });
+    // 商品 BOM 配置（商品档案编辑弹窗调用）
+    Route::get('business/product/{id}/bom', [ProductBomController::class, 'show']);
+    Route::put('business/product/{id}/bom', [ProductBomController::class, 'update']);
     // 发货管理
     Route::prefix('business/delivery')->group(function () {
         Route::get('/', [DeliveryController::class, 'index']);

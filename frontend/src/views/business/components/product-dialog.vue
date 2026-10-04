@@ -1,5 +1,5 @@
 <template>
-	<el-dialog v-model="visible" :title="record ? '编辑产品' : '新增产品'" width="560px" destroy-on-close @close="handleClose">
+	<el-dialog v-model="visible" :title="record ? '编辑产品' : '新增产品'" width="900px" destroy-on-close @close="handleClose">
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
 		<el-form-item label="产品名称" prop="name">
 			<el-input v-model="form.name" placeholder="请输入产品名称" maxlength="200" />
@@ -74,6 +74,48 @@
 				</el-radio-group>
 			</el-form-item>
 		</el-form>
+
+		<el-divider content-position="left">BOM 物料清单（组装/拆分模板）</el-divider>
+		<div style="padding:0 20px">
+			<div style="margin-bottom:8px;font-weight:bold;color:#52c41a">组装 BOM（组装一件本商品所需子件）</div>
+			<vxe-table :data="bomAssembly" border size="small" style="margin-bottom:8px">
+				<vxe-column title="子件商品" width="240">
+					<template #default="{ row }">
+						<el-select v-model="row.product_id" placeholder="选择子件" filterable size="small" style="width:220px">
+							<el-option v-for="p in bomProducts" :key="p.id" :label="`${p.name}${p.spec ? ' | '+p.spec : ''}`" :value="p.id" />
+						</el-select>
+					</template>
+				</vxe-column>
+				<vxe-column title="单位用量" width="120" align="center">
+					<template #default="{ row }"><el-input-number v-model="row.unit_usage" :min="0.001" :precision="3" :step="1" size="small" controls-position="right" style="width:100px" /></template>
+				</vxe-column>
+				<vxe-column title="预设成本" width="120" align="right">
+					<template #default="{ row }"><el-input-number v-model="row.unit_cost" :precision="2" :min="0" size="small" controls-position="right" style="width:100px" /></template>
+				</vxe-column>
+				<vxe-column title="操作" width="70" align="center"><template #default="{ $rowIndex }"><el-button link type="danger" size="small" @click="bomAssembly.splice($rowIndex, 1)">删除</el-button></template></vxe-column>
+			</vxe-table>
+			<el-button size="small" @click="bomAssembly.push({ product_id: null, unit_usage: 1, unit_cost: 0 })">+ 添加组装子件</el-button>
+
+			<div style="margin:16px 0 8px;font-weight:bold;color:#fa8c16">拆分 BOM（一件本商品拆出哪些子件）</div>
+			<vxe-table :data="bomSplit" border size="small" style="margin-bottom:8px">
+				<vxe-column title="子件商品" width="240">
+					<template #default="{ row }">
+						<el-select v-model="row.product_id" placeholder="选择子件" filterable size="small" style="width:220px">
+							<el-option v-for="p in bomProducts" :key="p.id" :label="`${p.name}${p.spec ? ' | '+p.spec : ''}`" :value="p.id" />
+						</el-select>
+					</template>
+				</vxe-column>
+				<vxe-column title="拆分数量" width="120" align="center">
+					<template #default="{ row }"><el-input-number v-model="row.unit_usage" :min="0.001" :precision="3" :step="1" size="small" controls-position="right" style="width:100px" /></template>
+				</vxe-column>
+				<vxe-column title="预设成本" width="120" align="right">
+					<template #default="{ row }"><el-input-number v-model="row.unit_cost" :precision="2" :min="0" size="small" controls-position="right" style="width:100px" /></template>
+				</vxe-column>
+				<vxe-column title="操作" width="70" align="center"><template #default="{ $rowIndex }"><el-button link type="danger" size="small" @click="bomSplit.splice($rowIndex, 1)">删除</el-button></template></vxe-column>
+			</vxe-table>
+			<el-button size="small" @click="bomSplit.push({ product_id: null, unit_usage: 1, unit_cost: 0 })">+ 添加拆分子件</el-button>
+		</div>
+
 		<template #footer>
 			<el-button @click="visible = false">取消</el-button>
 			<el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
@@ -100,6 +142,9 @@ const formRef = ref(null)
 const submitting = ref(false)
 const units = ref([])
 const calculating = ref(false)
+const bomAssembly = ref([])
+const bomSplit = ref([])
+const bomProducts = ref([])
 
 	const form = ref({
 	name: '', main_category_id: null, sub_category_id: null,
@@ -126,6 +171,17 @@ const visible = computed({
 const mainCats = computed(() => props.categories.filter(c => c.is_main))
 const subCats = computed(() => props.categories.filter(c => !c.is_main))
 
+const loadBom = async (id) => {
+	if (!id) { bomAssembly.value = []; bomSplit.value = []; return }
+	try {
+		const res = await businessApi.product.bom.get(id)
+		if (res.code === 200) {
+			bomAssembly.value = (res.data?.assembly?.items || []).map(i => ({ product_id: i.product_id, unit_usage: Number(i.unit_usage), unit_cost: Number(i.unit_cost) }))
+			bomSplit.value = (res.data?.split?.items || []).map(i => ({ product_id: i.product_id, unit_usage: Number(i.unit_usage), unit_cost: Number(i.unit_cost) }))
+		}
+	} catch {}
+}
+
 watch(() => props.record, (val) => {
 	if (val) {
 		form.value = {
@@ -145,6 +201,7 @@ watch(() => props.record, (val) => {
 			unit_conversion_medium: val.unit_conversion_medium ? parseFloat(val.unit_conversion_medium) : null,
 			image: val.image || '',
 		}
+		loadBom(val.id)
 	} else {
 		form.value = {
 			name: '', main_category_id: props.prefillMain,
@@ -155,6 +212,7 @@ watch(() => props.record, (val) => {
 			unit_conversion: null, unit_conversion_medium: null,
 			image: '',
 		}
+		bomAssembly.value = []; bomSplit.value = []
 	}
 }, { immediate: true })
 
@@ -162,7 +220,6 @@ const onMainChange = (val) => {
 	if (!val) form.value.sub_category_id = null
 }
 
-// 单位变化时，如果已有价格，重新计算
 const onUnitChange = () => {
 	if (calculating.value) return
 	recalculatePrices()
@@ -177,13 +234,11 @@ const onMediumUnitChange = (val) => {
 	recalculatePrices()
 }
 
-// 换算关系变化时，重新计算价格
 const onConversionChange = () => {
 	if (calculating.value) return
 	recalculatePrices()
 }
 
-// 价格变化时，计算其他价格
 const onPriceChange = (field) => {
 	calculating.value = true
 	const uc = form.value.unit_conversion
@@ -210,7 +265,6 @@ const onPriceChange = (field) => {
 	calculating.value = false
 }
 
-// 根据换算关系和任意价格，重新计算所有价格
 const recalculatePrices = () => {
 	if (calculating.value) return
 	const uc = form.value.unit_conversion
@@ -219,21 +273,18 @@ const recalculatePrices = () => {
 	const priceMedium = form.value.price_medium
 	const priceSmall = form.value.price_small
 
-	// 如果有大单位价格
 	if (priceLarge != null && uc > 0) {
 		form.value.price_small = parseFloat((priceLarge / uc).toFixed(2))
 		if (ucm > 0) {
 			form.value.price_medium = parseFloat((priceLarge / ucm).toFixed(2))
 		}
 	}
-	// 如果有小单位价格
 	else if (priceSmall != null && uc > 0) {
 		form.value.price_large = parseFloat((priceSmall * uc).toFixed(2))
 		if (ucm > 0) {
 			form.value.price_medium = parseFloat((priceSmall * uc / ucm).toFixed(2))
 		}
 	}
-	// 如果有中单位价格
 	else if (priceMedium != null && ucm > 0) {
 		form.value.price_large = parseFloat((priceMedium * ucm).toFixed(2))
 		if (uc > 0) {
@@ -255,8 +306,16 @@ const loadUnits = async () => {
 	} catch {}
 }
 
+const loadBomProducts = async () => {
+	try {
+		const res = await businessApi.product.list.get({ page_size: 1000, is_active: 1 })
+		bomProducts.value = res.data?.list || res.data?.data || []
+	} catch {}
+}
+
 onMounted(() => {
 	loadUnits()
+	loadBomProducts()
 })
 
 const handleSubmit = async () => {
@@ -267,6 +326,15 @@ const handleSubmit = async () => {
 			? await businessApi.product.edit.put(props.record.id, form.value)
 			: await businessApi.product.add.post(form.value)
 		if (res.code === 200) {
+			const productId = props.record ? props.record.id : res.data?.id
+			if (productId) {
+				try {
+					await businessApi.product.bom.save(productId, {
+						assembly: bomAssembly.value.filter(i => i.product_id),
+						split: bomSplit.value.filter(i => i.product_id),
+					})
+				} catch {}
+			}
 			ElMessage.success(res.message || '操作成功')
 			emit('success')
 			visible.value = false

@@ -1,0 +1,386 @@
+<?php
+
+namespace Modules\Order\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Traits\ResponseTrait;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Modules\Order\Models\Assembly;
+use Modules\Order\Services\AssemblyService;
+use Modules\Stock\Exceptions\StockRuleException;
+
+class AssemblyController extends Controller
+{
+    use ResponseTrait;
+
+    public function __construct(private AssemblyService $assemblyService) {}
+
+    public function index(Request $request)
+    {
+        $query = Assembly::with(['warehouse', 'parentProduct', 'creator', 'approver']);
+        if ($request->filled('keyword')) {
+            $kw = $request->keyword;
+            $query->where(function ($q) use ($kw) {
+                $q->where('assembly_no', 'like', "%{$kw}%")
+                    ->orWhere('parent_product_name', 'like', "%{$kw}%");
+            });
+        }
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('start_date')) {
+            $query->where('assembly_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->where('assembly_date', '<=', $request->end_date);
+        }
+        $list = $query->orderByDesc('id')->paginate(
+            $request->integer('page_size', 20), ['*'], 'page', $request->integer('page', 1)
+        );
+
+        return $this->paginated($list);
+    }
+
+    public function show($id)
+    {
+        $assembly = Assembly::with(['warehouse', 'parentProduct', 'creator', 'approver', 'items.product'])
+            ->find($id);
+        if ($assembly === null) {
+            return $this->notFound();
+        }
+
+        return $this->success($assembly);
+    }
+
+    /** 取父件的组装 BOM 模板，供新增组装单自动带出子件 */
+    public function bomByProduct(Request $request)
+    {
+        $request->validate(['product_id' => 'required|exists:products,id']);
+        $bom = DB::table('product_bom as b')
+            ->leftJoin('product_bom_items as bi', 'bi.bom_id', '=', 'b.id')
+            ->leftJoin('products as p', 'p.id', '=', 'bi.product_id')
+            ->where('b.product_id', $request->product_id)
+            ->where('b.type', 'assembly')
+            ->select(
+                'b.id as bom_id', 'b.name as bom_name',
+                'bi.id as item_id', 'bi.product_id', 'p.code as product_code',
+                'p.name as product_name', 'p.spec', 'p.price_unit_small as unit',
+                'bi.unit_usage', 'bi.unit_cost'
+            )
+            ->get();
+
+        if ($bom->isEmpty() || ! $bom->first()->item_id) {
+            return $this->success(['bom_id' => null, 'name' => null, 'items' => []]);
+        }
+
+        return $this->success([
+            'bom_id' => $bom->first()->bom_id,
+            'name' => $bom->first()->bom_name,
+            'items' => $bom->map(fn ($r) => [
+                'product_id' => $r->product_id,
+                'product_code' => $r->product_code ?? '',
+                'product_name' => $r->product_name ?? '',
+                'spec' => $r->spec ?? '',
+                'unit' => $r->unit ?? '',
+                'unit_usage' => (int) $r->unit_usage,
+                'unit_cost' => (float) $r->unit_cost,
+            ])->values(),
+        ]);
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'parent_product_id' => 'required|exists:products,id',
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'quantity' => 'required|integer|min:1',
+            'assembly_date' => 'required|date',
+            'salesman_id' => 'nullable|integer',
+            'remark' => 'nullable|string',
+            'submit_for_approval' => 'nullable|boolean',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.unit_usage' => 'required|integer|min:1',
+            'items.*.unit_cost' => 'required|numeric|min:0',
+        ]);
+
+        $adminId = auth('admin')?->id();
+        $parent = DB::table('products')->where('id', $validated['parent_product_id'])->first();
+        $quantity = (int) $validated['quantity'];
+
+        $items = [];
+        $totalCost = 0.0;
+        foreach ($validated['items'] as $item) {
+            if ($item['product_id'] == $validated['parent_product_id']) {
+                return $this->error('子件不能与父件相同', 422);
+            }
+            $p = DB::table('products')->where('id', $item['product_id'])->first();
+            $totalUsage = (int) $item['unit_usage'] * $quantity;
+            $lineCost = round($totalUsage * (float) $item['unit_cost'], 2);
+            $totalCost += $lineCost;
+            $items[] = [
+                'product_id' => $item['product_id'],
+                'product_code' => $p?->code ?? '',
+                'product_name' => $p?->name ?? '',
+                'spec' => $p?->spec ?? '',
+                'unit' => $p?->price_unit_small ?? '',
+                'unit_usage' => (int) $item['unit_usage'],
+                'total_usage' => $totalUsage,
+                'unit_cost' => (float) $item['unit_cost'],
+                'total_cost' => $lineCost,
+            ];
+        }
+
+        return DB::transaction(function () use ($validated, $parent, $quantity, $items, $totalCost, $adminId) {
+            $status = ! empty($validated['submit_for_approval']) ? 'pending' : 'draft';
+            $assembly = Assembly::create([
+                'assembly_no' => $this->generateNo(),
+                'parent_product_id' => $validated['parent_product_id'],
+                'parent_product_name' => $parent?->name ?? '',
+                'parent_product_code' => $parent?->code ?? '',
+                'warehouse_id' => $validated['warehouse_id'],
+                'quantity' => $quantity,
+                'total_cost' => round($totalCost, 2),
+                'unit_cost' => $quantity > 0 ? round($totalCost / $quantity, 2) : 0,
+                'status' => $status,
+                'salesman_id' => $validated['salesman_id'] ?? $adminId,
+                'assembly_date' => $validated['assembly_date'],
+                'remark' => $validated['remark'] ?? null,
+                'created_by' => $adminId,
+            ]);
+            foreach ($items as $item) {
+                $item['assembly_order_id'] = $assembly->id;
+                DB::table('assembly_order_items')->insert(array_merge($item, [
+                    'created_at' => now(), 'updated_at' => now(),
+                ]));
+            }
+
+            return $this->created($assembly->fresh(['items.product']), $status === 'pending' ? '已提交审核' : '已保存草稿');
+        });
+    }
+
+    public function update(Request $request, $id)
+    {
+        $assembly = Assembly::find($id);
+        if ($assembly === null) {
+            return $this->notFound();
+        }
+        if ($assembly->status !== 'draft') {
+            return $this->error('只有草稿状态可以编辑', 422);
+        }
+        $validated = $request->validate([
+            'warehouse_id' => 'required|exists:warehouses,id',
+            'quantity' => 'required|integer|min:1',
+            'assembly_date' => 'required|date',
+            'salesman_id' => 'nullable|integer',
+            'remark' => 'nullable|string',
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.unit_usage' => 'required|integer|min:1',
+            'items.*.unit_cost' => 'required|numeric|min:0',
+        ]);
+
+        $quantity = (int) $validated['quantity'];
+        $itemsData = [];
+        $totalCost = 0.0;
+        foreach ($validated['items'] as $item) {
+            $p = DB::table('products')->where('id', $item['product_id'])->first();
+            $totalUsage = (int) $item['unit_usage'] * $quantity;
+            $lineCost = round($totalUsage * (float) $item['unit_cost'], 2);
+            $totalCost += $lineCost;
+            $itemsData[] = [
+                'product_id' => $item['product_id'],
+                'product_code' => $p?->code ?? '',
+                'product_name' => $p?->name ?? '',
+                'spec' => $p?->spec ?? '',
+                'unit' => $p?->price_unit_small ?? '',
+                'unit_usage' => (int) $item['unit_usage'],
+                'total_usage' => $totalUsage,
+                'unit_cost' => (float) $item['unit_cost'],
+                'total_cost' => $lineCost,
+            ];
+        }
+
+        return DB::transaction(function () use ($assembly, $validated, $quantity, $itemsData, $totalCost) {
+            $assembly->update([
+                'warehouse_id' => $validated['warehouse_id'],
+                'quantity' => $quantity,
+                'assembly_date' => $validated['assembly_date'],
+                'salesman_id' => $validated['salesman_id'] ?? null,
+                'remark' => $validated['remark'] ?? null,
+                'total_cost' => round($totalCost, 2),
+                'unit_cost' => $quantity > 0 ? round($totalCost / $quantity, 2) : 0,
+            ]);
+            DB::table('assembly_order_items')->where('assembly_order_id', $assembly->id)->delete();
+            foreach ($itemsData as $item) {
+                $item['assembly_order_id'] = $assembly->id;
+                DB::table('assembly_order_items')->insert(array_merge($item, [
+                    'created_at' => now(), 'updated_at' => now(),
+                ]));
+            }
+
+            return $this->success($assembly->fresh(['items.product']), '更新成功');
+        });
+    }
+
+    public function submit($id)
+    {
+        $assembly = Assembly::find($id);
+        if ($assembly === null) {
+            return $this->notFound();
+        }
+        if ($assembly->status !== 'draft') {
+            return $this->error('只有草稿状态可以提交审核', 422);
+        }
+        $assembly->status = 'pending';
+        $assembly->save();
+
+        return $this->success($assembly, '已提交审核');
+    }
+
+    public function approve(Request $request, $id)
+    {
+        $assembly = Assembly::with(['items'])->find($id);
+        if ($assembly === null) {
+            return $this->notFound();
+        }
+        if ($assembly->status === 'approved') {
+            return $this->success($assembly, '已审核，无需重复操作');
+        }
+        if ($assembly->status !== 'pending') {
+            return $this->error('只有待审核状态可以审核', 422);
+        }
+        $validated = $request->validate(['approval_comment' => 'nullable|string|max:500']);
+        $admin = auth('admin')->user();
+        $adminId = $admin?->id;
+        $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
+
+        try {
+            $assembly = $this->assemblyService->approveAssembly(
+                $assembly, $adminId, $adminName, $validated['approval_comment'] ?? null
+            );
+        } catch (StockRuleException $e) {
+            return $this->error($e->getMessage(), 422);
+        }
+
+        return $this->success($assembly, '组装成功，已完成子件出库和父件入库，父件单位成本¥'.number_format((float) $assembly->unit_cost, 2));
+    }
+
+    public function reject(Request $request, $id)
+    {
+        $assembly = Assembly::find($id);
+        if ($assembly === null) {
+            return $this->notFound();
+        }
+        if ($assembly->status !== 'pending') {
+            return $this->error('只有待审核状态可以驳回', 422);
+        }
+        $validated = $request->validate(['approval_comment' => 'nullable|string|max:500']);
+        $assembly->status = 'draft';
+        $assembly->approval_comment = $validated['approval_comment'] ?? null;
+        $assembly->save();
+
+        return $this->success($assembly, '已驳回，可继续编辑');
+    }
+
+    public function cancel($id)
+    {
+        $assembly = Assembly::find($id);
+        if ($assembly === null) {
+            return $this->notFound();
+        }
+        if ($assembly->status === 'approved') {
+            return $this->error('已审核的组装单不能取消', 422);
+        }
+        $assembly->status = 'cancelled';
+        $assembly->save();
+
+        return $this->success($assembly, '已取消');
+    }
+
+    public function destroy($id)
+    {
+        $assembly = Assembly::find($id);
+        if ($assembly === null) {
+            return $this->notFound();
+        }
+        if ($assembly->status !== 'draft') {
+            return $this->error('只有草稿状态可以删除', 422);
+        }
+        DB::table('assembly_order_items')->where('assembly_order_id', $assembly->id)->delete();
+        $assembly->delete();
+
+        return $this->noContent();
+    }
+
+    public function export(Request $request)
+    {
+        $request->validate([
+            'warehouse_id' => 'nullable|exists:warehouses,id',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
+        ]);
+        $query = Assembly::with(['warehouse', 'creator', 'approver']);
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
+        if ($request->filled('start_date')) {
+            $query->where('assembly_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->where('assembly_date', '<=', $request->end_date);
+        }
+        $list = $query->orderByDesc('id')->get();
+
+        $csv = "\u{FEFF}";
+        $csv .= "商品组装单列表\n\n";
+        $csv .= "组装单号,父件商品,组装数量,子件种类,总成本,单位成本,仓库,组装日期,状态,制单人,审核人\n";
+        foreach ($list as $r) {
+            $csv .= sprintf(
+                "%s,%s,%d,%d,%s,%s,%s,%s,%s,%s,%s\n",
+                $r->assembly_no,
+                $r->parent_product_name ?? '',
+                $r->quantity,
+                $r->items?->count() ?? 0,
+                $r->total_cost,
+                $r->unit_cost,
+                $r->warehouse?->name ?? '',
+                $r->assembly_date?->format('Y-m-d') ?? '',
+                $this->statusLabel($r->status),
+                $r->creator?->real_name ?? $r->creator?->name ?? '-',
+                $r->approver?->real_name ?? $r->approver?->name ?? '-'
+            );
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="assembly_orders.csv"',
+        ]);
+    }
+
+    private function generateNo(): string
+    {
+        $prefix = 'ZC'.date('Ymd');
+        $last = Assembly::where('assembly_no', 'like', $prefix.'%')
+            ->orderByDesc('assembly_no')
+            ->value('assembly_no');
+        $seq = $last ? intval(substr($last, -6)) + 1 : 1;
+
+        return $prefix.str_pad($seq, 6, '0', STR_PAD_LEFT);
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'draft' => '草稿',
+            'pending' => '待审核',
+            'approved' => '已审核',
+            'cancelled' => '已取消',
+            default => $status,
+        };
+    }
+}

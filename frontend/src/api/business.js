@@ -20,6 +20,10 @@ const businessApi = {
 		categories: {
 			get: (params) => request.get('business/product/categories', { params }),
 		},
+		bom: {
+			get: (id) => request.get(`business/product/${id}/bom`),
+			save: { put: (id, params) => request.put(`business/product/${id}/bom`, params) },
+		},
 	},
 
 	// 客户
@@ -223,6 +227,34 @@ const businessApi = {
 		stockInProducts: { get: (params) => request.get('business/purchase-return/stock-in-products', { params }) },
 		batchApprove: { post: (params) => request.post('business/purchase-return/batch-approve', params) },
 		export: (params) => request.get('business/purchase-return/export', { params, responseType: 'blob' }),
+	},
+
+	// 商品组装
+	assembly: {
+		list: { get: (params) => request.get('business/assembly', { params }) },
+		detail: { get: (id) => request.get(`business/assembly/${id}`) },
+		create: { post: (params) => request.post('business/assembly', params) },
+		update: { put: (id, params) => request.put(`business/assembly/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/assembly/${id}`) },
+		submit: { post: (id) => request.post(`business/assembly/${id}/submit`) },
+		approve: { post: (id, params) => request.post(`business/assembly/${id}/approve`, params) },
+		reject: { post: (id, params) => request.post(`business/assembly/${id}/reject`, params) },
+		cancel: { post: (id) => request.post(`business/assembly/${id}/cancel`) },
+		bomByProduct: { get: (params) => request.get('business/assembly/bom-by-product', { params }) },
+	},
+
+	// 商品拆分
+	disassembly: {
+		list: { get: (params) => request.get('business/disassembly', { params }) },
+		detail: { get: (id) => request.get(`business/disassembly/${id}`) },
+		create: { post: (params) => request.post('business/disassembly', params) },
+		update: { put: (id, params) => request.put(`business/disassembly/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/disassembly/${id}`) },
+		submit: { post: (id) => request.post(`business/disassembly/${id}/submit`) },
+		approve: { post: (id, params) => request.post(`business/disassembly/${id}/approve`, params) },
+		reject: { post: (id, params) => request.post(`business/disassembly/${id}/reject`, params) },
+		cancel: { post: (id) => request.post(`business/disassembly/${id}/cancel`) },
+		bomByProduct: { get: (params) => request.get('business/disassembly/bom-by-product', { params }) },
 	},
 
 	// 入库

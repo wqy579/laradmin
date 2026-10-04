@@ -549,6 +549,138 @@
   },
   {
     "method": "GET",
+    "uri": "admin/business/assembly",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@index",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/assembly",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@store",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/assembly/bom-by-product",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@bomByProduct",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/assembly/export",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@export",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "DELETE",
+    "uri": "admin/business/assembly/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@destroy",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/assembly/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@show",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "PUT",
+    "uri": "admin/business/assembly/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@update",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/assembly/{id}/approve",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@approve",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/assembly/{id}/cancel",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@cancel",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/assembly/{id}/reject",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@reject",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/assembly/{id}/submit",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\AssemblyController@submit",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
     "uri": "admin/business/attendance",
     "name": "admin.",
     "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@index",
@@ -936,6 +1068,138 @@
     "uri": "admin/business/delivery/{delivery}/dispatch",
     "name": "admin.",
     "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@dispatch",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/disassembly",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@index",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/disassembly",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@store",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/disassembly/bom-by-product",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@bomByProduct",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/disassembly/export",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@export",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "DELETE",
+    "uri": "admin/business/disassembly/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@destroy",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/disassembly/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@show",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "PUT",
+    "uri": "admin/business/disassembly/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@update",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/disassembly/{id}/approve",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@approve",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/disassembly/{id}/cancel",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@cancel",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/disassembly/{id}/reject",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@reject",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/disassembly/{id}/submit",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SplitController@submit",
     "middleware": [
       "api",
       "stock.snapshot",
@@ -1368,6 +1632,30 @@
     "uri": "admin/business/product/units",
     "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\ProductController@units",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/product/{id}/bom",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\ProductBomController@show",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "PUT",
+    "uri": "admin/business/product/{id}/bom",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\ProductBomController@update",
     "middleware": [
       "api",
       "stock.snapshot",
