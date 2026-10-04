@@ -162,7 +162,7 @@ class PurchaseReturnController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $stockInNo, $supplierName, $items, $totalQty, $totalAmount, $adminId) {
-            $status = !empty($validated['submit_for_approval']) ? 'pending' : 'draft';
+            $status = ! empty($validated['submit_for_approval']) ? 'pending' : 'draft';
             $return = PurchaseReturn::create([
                 'return_no' => $this->generateNo(),
                 'stock_in_id' => $validated['stock_in_id'] ?? null,
