@@ -317,17 +317,19 @@ class SalesReturnController extends Controller
             'approval_comment' => 'nullable|string|max:500',
         ]);
 
-        $adminId = auth('admin')?->id();
+        $admin = auth('admin')->user();
+        $adminId = $admin?->id;
+        $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
         $totalAmount = (float) $return->total_amount;
 
-        return DB::transaction(function () use ($return, $validated, $adminId, $totalAmount) {
-            // 1. 退货入库：调用 StockService::stockIn()
+        return DB::transaction(function () use ($return, $validated, $adminId, $adminName, $totalAmount) {
+            // 1. 退货入库：调用 StockService::stockIn()，StockService 内部已写 stocks_history 流水
             foreach ($return->items as $item) {
                 if ($item->return_qty > 0) {
                     $this->stockService->stockIn(
-                        $item->product_id,
-                        $return->warehouse_id,
-                        $item->return_qty,
+                        (int) $item->product_id,
+                        (int) $return->warehouse_id,
+                        (int) $item->return_qty,
                         null,
                         $return->id,
                         'SalesReturn'
@@ -335,7 +337,7 @@ class SalesReturnController extends Controller
                 }
             }
 
-            // 2. 更新原订单 paid_amount（冲减已收）
+            // 2. 冲减原订单已收 paid_amount，拆分退款 / 应收冲减
             $order = SalesOrder::find($return->order_id);
             $refundAmount = 0;
             $receivableOffset = 0;
@@ -352,32 +354,42 @@ class SalesReturnController extends Controller
                     $receivableOffset = $totalAmount - $currentPaid;
                     $order->paid_amount = 0;
                 }
-                // 更新订单状态
-                if ($order->paid_amount <= 0.01 && $order->status !== '已红冲') {
+                // 同步订单收款状态
+                $paid = (float) $order->paid_amount;
+                $total = (float) $order->total_amount;
+                if ($paid >= $total - 0.01) {
+                    $order->payment_status = '已收款';
+                } elseif ($paid > 0.01) {
+                    $order->payment_status = '部分收款';
+                } else {
                     $order->payment_status = '未收款';
                 }
                 $order->save();
             }
 
-            // 3. 更新客户 balance（退货增加欠款或减少预付）
-            if ($return->customer_id) {
-                // 退货 → 客户欠款增加（balance正向移动）
+            // 3. 冲减客户应收 balance：退货相当于把货款退回，客户对企业的欠款减少
+            // customers.balance：正数=客户欠款，负数=预付款余额
+            // 退货冲减已收退款 → 已收减少，客户欠款回升（balance正向移动）
+            // 退货冲减应收 → 应收直接减少（balance向0移动）
+            $customer = $return->customer_id ? Customer::find($return->customer_id) : null;
+            if ($customer && $receivableOffset > 0) {
+                // 应收冲减：balance向0移动（减欠款）
                 DB::table('customers')
                     ->where('id', $return->customer_id)
-                    ->increment('balance', $totalAmount);
+                    ->decrement('balance', $receivableOffset);
             }
 
-            // 4. 写现金流水（如有退款）
+            // 4. 写现金流水（退款部分，如有退款才写）
+            $returnDate = $return->return_date?->toDateString() ?? now()->toDateString();
             if ($refundAmount > 0 && $return->customer_id) {
                 $flowNo = 'CF'.date('YmdHis').strtoupper(Str::random(4));
-                $customer = Customer::find($return->customer_id);
                 DB::table('cash_flows')->insert([
                     'flow_no' => $flowNo,
                     'flow_type' => 'pay',
                     'customer_id' => $return->customer_id,
                     'related_id' => $return->id,
                     'related_type' => 'SalesReturn',
-                    'flow_date' => $return->return_date?->toDateString() ?? now()->toDateString(),
+                    'flow_date' => $returnDate,
                     'amount' => -$refundAmount,
                     'payment_method' => '退货退款',
                     'remark' => '销售退货退款：'.($customer?->name ?? '').' '.$return->return_no,
@@ -396,7 +408,28 @@ class SalesReturnController extends Controller
             $return->receivable_offset = round($receivableOffset, 2);
             $return->save();
 
-            return $this->success($return->fresh(['items.product']), '审核通过，已退货入库');
+            // 6. 经营历程（order_operation_logs）
+            DB::table('order_operation_logs')->insert([
+                'order_id' => $return->id,
+                'order_no' => $return->return_no,
+                'order_type' => 'sales_return',
+                'user_id' => $adminId,
+                'user_name' => $adminName,
+                'operator_id' => $adminId,
+                'operator_name' => $adminName,
+                'action' => 'approve',
+                'action_label' => '退货审核通过',
+                'detail' => '销售退货审核通过，退货金额¥'.number_format($totalAmount, 2).
+                    '，退款¥'.number_format($refundAmount, 2).
+                    '，冲减应收¥'.number_format($receivableOffset, 2),
+                'remark' => $validated['approval_comment'] ?? null,
+                'from_status' => 'pending',
+                'to_status' => 'approved',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return $this->success($return->fresh(['items.product']), '审核通过，已退货入库并完成财务联动');
         });
     }
 
