@@ -32,9 +32,11 @@ class StockCheck extends Model
     const STATUS_DRAFT = 'draft';
 
     const STATUS_IN_PROGRESS = 'in_progress';
+
     const STATUS_PENDING = 'pending';
 
     const STATUS_APPROVED = 'approved';
+
     const STATUS_CANCELLED = 'cancelled';
 
     public function items(): HasMany
