@@ -520,7 +520,7 @@ class SalesReturnController extends Controller
     private function generateNo(): string
     {
         $date = date('Ymd');
-        $prefix = 'TH'.$date;
+        $prefix = 'RT'.$date;
         $last = SalesReturn::where('return_no', 'like', $prefix.'%')
             ->orderByDesc('return_no')
             ->value('return_no');
