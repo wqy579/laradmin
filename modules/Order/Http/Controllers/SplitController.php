@@ -347,6 +347,8 @@ class SplitController extends Controller
             );
         } catch (StockRuleException $e) {
             return $this->error($e->getMessage(), 422);
+        } catch (\RuntimeException $e) {
+            return $this->error($e->getMessage(), 422);
         }
 
         return $this->success($split, '拆分成功，已完成父件出库和子件入库，分摊总成本¥'.number_format((float) $split->total_cost, 2));

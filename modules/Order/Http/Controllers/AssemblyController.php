@@ -357,6 +357,8 @@ class AssemblyController extends Controller
             );
         } catch (StockRuleException $e) {
             return $this->error($e->getMessage(), 422);
+        } catch (\RuntimeException $e) {
+            return $this->error($e->getMessage(), 422);
         }
 
         return $this->success($assembly, '组装成功，已完成子件出库和父件入库，父件单位成本¥'.number_format((float) $assembly->unit_cost, 2));
