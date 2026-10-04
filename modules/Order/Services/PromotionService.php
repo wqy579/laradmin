@@ -146,15 +146,15 @@ class PromotionService
             }
         }
 
-        // 3) 满减：默认不叠加商品折扣，除非 allow_stack
+        // 3) 满减：只有真产生了商品折扣且不允许叠加时才拦满减（避免"匹配到但没优惠"的促销误拦满减）
         foreach ($promotions as $p) {
             if ($p->type !== Promotion::TYPE_FULL_REDUCTION) {
                 continue;
             }
-            if ($hadProductPromo && !$p->allow_stack) {
+            if ($productDiscount > 0 && !$p->allow_stack) {
                 continue; // 满减不与折扣叠加
             }
-            $base = $hadProductPromo ? ($originalTotal - $productDiscount) : $originalTotal;
+            $base = $productDiscount > 0 ? ($originalTotal - $productDiscount) : $originalTotal;
             $best = null;
             foreach ($p->tiers->sortByDesc('threshold_amount') as $t) {
                 if ($base >= (float) $t->threshold_amount) {

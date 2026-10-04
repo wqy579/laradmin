@@ -122,11 +122,11 @@ class PromotionController extends Controller
     public function destroy($id)
     {
         $p = Promotion::find($id);
-        if (! $p) {
+        if (!$p) {
             return $this->notFound('促销单不存在');
         }
-        if (! in_array($p->derivedStatus(), ['draft', 'upcoming', 'ended', 'disabled'], true)) {
-            return $this->error('当前状态不能删除', 422);
+        if (!in_array($p->derivedStatus(), ['draft', 'upcoming', 'ended', 'disabled'], true)) {
+            return $this->error('进行中的促销不能删除，请先停用', 422);
         }
         $p->items()->delete();
         $p->tiers()->delete();
@@ -193,12 +193,13 @@ class PromotionController extends Controller
     public function products(Request $request)
     {
         $keyword = trim((string) $request->input('keyword', ''));
-        $list = DB::table('products')->where('is_active', 1)
-            ->when($keyword, fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', "%{$keyword}%")->orWhere('code', 'like', "%{$keyword}%")))
-            ->orderBy('name')->limit(100)
+        $query = DB::table('products')->where('is_active', 1)
+            ->when($keyword, fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', "%{$keyword}%")->orWhere('code', 'like', "%{$keyword}%")));
+        $total = (clone $query)->count();
+        $list = $query->orderBy('name')->limit(200)
             ->get(['id', 'code', 'name', 'spec', 'price_unit_small as unit', 'price_small']);
 
-        return $this->success(['list' => $list]);
+        return $this->success(['list' => $list, 'total' => $total]);
     }
 
     /** 促销效果报表 */
@@ -263,16 +264,20 @@ class PromotionController extends Controller
     private function syncChildren(Promotion $p, array $data): void
     {
         foreach (($data['items'] ?? []) as $item) {
+            $productId = (int) $item['product_id'];
+            // 以后端商品表为准补全冗余字段（前端可能没传或传错），保证 original_price/discount_rate 计算有正确基准价
+            $product = DB::table('products')->where('id', $productId)->first(['id', 'code', 'name', 'spec', 'price_unit_small', 'price_small']);
+
             PromotionItem::create([
                 'promotion_id' => $p->id,
-                'product_id' => (int) $item['product_id'],
-                'product_code' => $item['product_code'] ?? null,
-                'product_name' => $item['product_name'] ?? '',
-                'spec' => $item['spec'] ?? null,
-                'unit' => $item['unit'] ?? null,
-                'original_price' => $item['original_price'] ?? 0,
-                'discount_rate' => $item['discount_rate'] ?? null,
-                'special_price' => $item['special_price'] ?? null,
+                'product_id' => $productId,
+                'product_code' => $product->code ?? ($item['product_code'] ?? null),
+                'product_name' => $product->name ?? ($item['product_name'] ?? ''),
+                'spec' => $product->spec ?? ($item['spec'] ?? null),
+                'unit' => $product->price_unit_small ?? ($item['unit'] ?? null),
+                'original_price' => (float) ($item['original_price'] ?? ($product->price_small ?? 0)),
+                'discount_rate' => isset($item['discount_rate']) && $item['discount_rate'] !== null ? (float) $item['discount_rate'] : null,
+                'special_price' => isset($item['special_price']) && $item['special_price'] !== null ? (float) $item['special_price'] : null,
                 'gift_product_id' => $item['gift_product_id'] ?? null,
                 'gift_qty' => $item['gift_qty'] ?? null,
                 'buy_qty' => $item['buy_qty'] ?? null,
