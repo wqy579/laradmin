@@ -6,6 +6,7 @@ use Modules\Order\Http\Controllers\CustomerController;
 use Modules\Order\Http\Controllers\DeliveryController;
 use Modules\Order\Http\Controllers\PayController;
 use Modules\Order\Http\Controllers\ProfitController;
+use Modules\Order\Http\Controllers\PromotionController;
 use Modules\Order\Http\Controllers\ReceiveController;
 use Modules\Order\Http\Controllers\ReturnController;
 use Modules\Order\Http\Controllers\RouteController;
@@ -76,6 +77,21 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{salesOrder}/cancel', [SalesOrderController::class, 'cancel']);
         Route::post('/{salesOrder}/print', [SalesOrderController::class, 'print']);
         Route::post('/{salesOrder}/advance', [SalesOrderController::class, 'approve']);
+    });
+
+    // 促销管理（静态路由必须在 {id} 之前，避免被路由参数吞掉）
+    Route::get('business/promotion/active', [PromotionController::class, 'active']);
+    Route::post('business/promotion/calculate', [PromotionController::class, 'calculate']);
+    Route::get('business/promotion/products', [PromotionController::class, 'products']);
+    Route::get('business/promotion/report', [PromotionController::class, 'report']);
+    Route::prefix('business/promotion')->group(function () {
+        Route::get('/', [PromotionController::class, 'index']);
+        Route::post('/', [PromotionController::class, 'store']);
+        Route::get('/{id}', [PromotionController::class, 'show']);
+        Route::put('/{id}', [PromotionController::class, 'update']);
+        Route::delete('/{id}', [PromotionController::class, 'destroy']);
+        Route::post('/{id}/enable', [PromotionController::class, 'enable']);
+        Route::post('/{id}/disable', [PromotionController::class, 'disable']);
     });
     // 采购订单
     // 采购订单已移除（进货录单由入库单 stock-in 承担）
