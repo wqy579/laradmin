@@ -113,13 +113,13 @@ class PurchaseReturnController extends Controller
         $adminId = auth('admin')?->id();
         $stockInNo = null;
         $supplierName = null;
-        $hasStockIn = !empty($validated['stock_in_id']);
+        $hasStockIn = ! empty($validated['stock_in_id']);
         if ($hasStockIn) {
             $stockIn = DB::table('stock_ins')->find($validated['stock_in_id']);
             $stockInNo = $stockIn?->order_no;
             $validated['supplier_id'] = $validated['supplier_id'] ?? $stockIn?->supplier_id;
         }
-        if (!empty($validated['supplier_id'])) {
+        if (! empty($validated['supplier_id'])) {
             $supplierName = DB::table('suppliers')->where('id', $validated['supplier_id'])->value('name');
         }
 
