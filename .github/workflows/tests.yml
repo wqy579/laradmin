@@ -219,7 +219,7 @@ jobs:
       # 代码风格：全仓库已按 Pint 默认 preset（PSR-12/Laravel）全量格式化，
       # pint --test 全绿，现为硬门禁——风格回归直接阻断合码。
       - name: Check code style (Pint)
-        run: vendor/bin/pint --test --parallel
+        run: vendor/bin/pint --test
 
       # 依赖漏洞：composer.json 里 policy.advisories.block 是 false（解析时不阻断，
       # 保证 composer install 永不因漏洞退出），所以门禁得单独挂这条命令。
