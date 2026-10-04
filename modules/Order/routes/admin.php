@@ -3,11 +3,11 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Order\Http\Controllers\CashFlowController;
 use Modules\Order\Http\Controllers\CustomerController;
-use Modules\Order\Http\Controllers\PurchaseReturnController;
 use Modules\Order\Http\Controllers\DeliveryController;
 use Modules\Order\Http\Controllers\PayController;
 use Modules\Order\Http\Controllers\ProfitController;
 use Modules\Order\Http\Controllers\PromotionController;
+use Modules\Order\Http\Controllers\PurchaseReturnController;
 use Modules\Order\Http\Controllers\ReceiveController;
 use Modules\Order\Http\Controllers\ReturnController;
 use Modules\Order\Http\Controllers\RouteController;

@@ -51,7 +51,7 @@ class PurchaseReturnController extends Controller
     public function show($id)
     {
         $return = PurchaseReturn::with(['warehouse', 'creator', 'approver', 'items.product'])->find($id);
-        if (! $return) {
+        if ($return === null) {
             return $this->notFound();
         }
 
@@ -63,7 +63,7 @@ class PurchaseReturnController extends Controller
     {
         $request->validate(['stock_in_id' => 'required|exists:stock_ins,id']);
         $stockIn = DB::table('stock_ins')->find($request->stock_in_id);
-        if (! $stockIn) {
+        if ($stockIn === null) {
             return $this->notFound();
         }
         $items = DB::table('stock_in_items')->where('stock_in_id', $request->stock_in_id)->get();
@@ -135,7 +135,7 @@ class PurchaseReturnController extends Controller
         foreach ($validated['items'] as $item) {
             if (! empty($validated['stock_in_id'])) {
                 $orig = $inItems->get($item['product_id']);
-                if (! $orig) {
+                if ($orig === null) {
                     return $this->error("商品{$item['product_id']}不在原入库单中", 422);
                 }
                 $returned = $returnedMap[$item['product_id']] ?? 0;
@@ -193,7 +193,7 @@ class PurchaseReturnController extends Controller
     public function update(Request $request, $id)
     {
         $return = PurchaseReturn::find($id);
-        if (! $return) {
+        if ($return === null) {
             return $this->notFound();
         }
         if ($return->status !== 'draft') {
@@ -256,7 +256,7 @@ class PurchaseReturnController extends Controller
     public function submit($id)
     {
         $return = PurchaseReturn::find($id);
-        if (! $return) {
+        if ($return === null) {
             return $this->notFound();
         }
         if ($return->status !== 'draft') {
@@ -271,7 +271,7 @@ class PurchaseReturnController extends Controller
     public function approve(Request $request, $id)
     {
         $return = PurchaseReturn::with(['items'])->find($id);
-        if (! $return) {
+        if ($return === null) {
             return $this->notFound();
         }
         if ($return->status === 'approved') {
@@ -329,7 +329,7 @@ class PurchaseReturnController extends Controller
     public function reject(Request $request, $id)
     {
         $return = PurchaseReturn::find($id);
-        if (! $return) {
+        if ($return === null) {
             return $this->notFound();
         }
         if ($return->status !== 'pending') {
@@ -346,7 +346,7 @@ class PurchaseReturnController extends Controller
     public function cancel($id)
     {
         $return = PurchaseReturn::find($id);
-        if (! $return) {
+        if ($return === null) {
             return $this->notFound();
         }
         if ($return->status === 'approved') {
@@ -361,7 +361,7 @@ class PurchaseReturnController extends Controller
     public function destroy($id)
     {
         $return = PurchaseReturn::find($id);
-        if (! $return) {
+        if ($return === null) {
             return $this->notFound();
         }
         if ($return->status !== 'draft') {
