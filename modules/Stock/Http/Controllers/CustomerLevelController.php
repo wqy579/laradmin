@@ -36,7 +36,7 @@ class CustomerLevelController extends Controller
     public function update(Request $request, $id)
     {
         $l = CustomerLevel::find($id);
-        if (! $l) {
+        if (!$l) {
             return $this->notFound('等级不存在');
         }
         $data = $this->validateData($request);
@@ -51,7 +51,7 @@ class CustomerLevelController extends Controller
     public function destroy($id)
     {
         $l = CustomerLevel::find($id);
-        if (! $l) {
+        if (!$l) {
             return $this->notFound('等级不存在');
         }
         if ($l->is_system) {
