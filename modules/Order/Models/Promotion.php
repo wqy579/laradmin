@@ -7,9 +7,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Promotion extends Model
 {
+
     protected $table = 'promotions';
 
-    protected $fillable = [        'promotion_no', 'name', 'type', 'start_time', 'end_time',
+    protected $fillable = [
+        'promotion_no', 'name', 'type', 'start_time', 'end_time',
         'customer_scope', 'customer_levels', 'customer_ids',
         'priority', 'allow_stack', 'status', 'remark',
         'created_by', 'creator_name',

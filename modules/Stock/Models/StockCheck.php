@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class StockCheck extends Model
 {
+
     protected $table = 'stock_checks';
 
     protected $fillable = [
