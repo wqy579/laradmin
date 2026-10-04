@@ -13,9 +13,7 @@ class PurchaseReturnController extends Controller
 {
     use ResponseTrait;
 
-    public function __construct(private StockService $stockService)
-    {
-    }
+    public function __construct(private StockService $stockService) {}
 
     public function index(Request $request)
     {
