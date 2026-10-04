@@ -55,8 +55,8 @@ class MigrationSmokeTest extends TestCase
             'vehicles', 'routes', 'route_customers', 'employees', 'attendances', 'visit_logs',
             // 库存
             'stocks', 'stocks_history', 'stock_snapshots',
-            // 交易单据
-            'sales_orders', 'sales_order_items', 'purchase_orders', 'purchase_order_items',
+            // 交易单据（purchase_orders/purchase_order_items 已由迁移移除）
+            'sales_orders', 'sales_order_items',
             'stock_ins', 'stock_in_items', 'stock_outs', 'stock_out_items',
             'transfers', 'transfer_items', 'returns', 'return_items', 'deliveries', 'delivery_items',
             'receives', 'pays', 'expenses',
