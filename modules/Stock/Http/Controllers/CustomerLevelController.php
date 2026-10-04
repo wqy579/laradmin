@@ -16,6 +16,7 @@ class CustomerLevelController extends Controller
     {
         $list = CustomerLevel::orderBy('sort')->get()->map(function (CustomerLevel $l) {
             $l['customer_count'] = DB::table('customers')->where('level_id', $l->id)->count();
+
             return $l;
         });
 
@@ -25,9 +26,11 @@ class CustomerLevelController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateData($request);
+
         if (CustomerLevel::where('code', $data['code'])->exists()) {
             return $this->error('等级编码已存在', 422);
         }
+
         $l = CustomerLevel::create(array_merge($data, ['is_system' => false]));
 
         return $this->created($l, '已创建');
@@ -36,13 +39,17 @@ class CustomerLevelController extends Controller
     public function update(Request $request, $id)
     {
         $l = CustomerLevel::find($id);
+
         if ($l === null) {
             return $this->notFound('等级不存在');
         }
+
         $data = $this->validateData($request);
+
         if (CustomerLevel::where('code', $data['code'])->where('id', '!=', $id)->exists()) {
             return $this->error('等级编码已存在', 422);
         }
+
         $l->update($data);
 
         return $this->success($l, '已更新');
@@ -51,15 +58,19 @@ class CustomerLevelController extends Controller
     public function destroy($id)
     {
         $l = CustomerLevel::find($id);
+
         if ($l === null) {
             return $this->notFound('等级不存在');
         }
+
         if ($l->is_system) {
             return $this->error('系统默认等级不可删除', 422);
         }
+
         if (DB::table('customers')->where('level_id', $id)->exists()) {
-            return $this->error('该等级下有客户，不能删除', 422);
+            return $this->error('该等级下有客户，不能删除');
         }
+
         $l->delete();
 
         return $this->success(null, '已删除');
