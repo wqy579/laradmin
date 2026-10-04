@@ -495,6 +495,7 @@ class PurchaseReturnController extends Controller
                     $status, $creator, $r->created_at?->format('Y-m-d H:i') ?? '',
                     $approver, $approveAt, $r->remark ?? ''
                 );
+
                 continue;
             }
 
