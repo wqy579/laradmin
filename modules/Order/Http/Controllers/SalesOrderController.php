@@ -13,11 +13,12 @@ use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Stock;
 use Modules\Stock\Models\Warehouse;
 use Modules\Stock\Services\StockService;
+use Modules\Order\Services\PromotionService;
 
 class SalesOrderController extends Controller
 {
-    /** 订单冻结/解冻统一走 StockService，保持 stocks 表写入收敛 */
-    public function __construct(private StockService $stocks) {}
+    /** 订单冻结/解冻统一走 StockService，保持 stocks 表写入收敛；PromotionService 自动匹配促销 */
+    public function __construct(private StockService $stocks, private PromotionService $promotions) {}
 
     /**
      * 明细行金额：大单位 + 中单位 + 小单位三段相加。
@@ -324,6 +325,9 @@ class SalesOrderController extends Controller
             $totals = $this->storeItems($order, $validated['items']);
             $order->update($totals);
 
+            // 自动匹配促销（价改/满减/买赠赠品），必须在冻结库存前，赠品行才会一并冻结
+            $this->applyPromotion($order, (int) $validated['customer_id']);
+
             // 下单即冻结库存（对齐旧系统：quantity 扣减 + frozen_qty 累加 + 写 stocks_history）
             $this->freezeItems($order);
 
@@ -500,8 +504,12 @@ class SalesOrderController extends Controller
             // 先释放旧冻结（用旧仓库），再删旧明细
             $this->unfreezeItems($salesOrder, $oldWarehouseId);
             $salesOrder->items()->delete();
+            DB::table('promotion_orders')->where('order_id', $salesOrder->id)->delete();
             $totals = $this->storeItems($salesOrder, $validated['items']);
             $salesOrder->update($totals);
+
+            // 重算促销（价改/满减/买赠赠品），在重新冻结前
+            $this->applyPromotion($salesOrder, (int) $validated['customer_id']);
 
             // 按新仓库重新冻结
             $this->freezeItems($salesOrder);
@@ -615,6 +623,94 @@ class SalesOrderController extends Controller
         }
 
         return ['total_amount' => round($totalAmount, 2), 'total_qty' => $totalQty];
+    }
+
+    /**
+     * 下单后自动匹配促销（在 storeItems 之后、freezeItems 之前调用）：
+     *  - 商品级折扣/特价：覆盖明细小单位单价，重算明细金额，备注加促销标签；
+     *  - 满减：按档位减免，记入订单 discount_amount；
+     *  - 买赠：追加零价赠品明细行（sale_mode=赠品），会一并被冻结库存；
+     *  - 命中的促销写入 promotion_orders，供效果报表。
+     *
+     * 注意：商品折扣已体现在明细金额里，这里只额外减满减金额，避免重复扣减。
+     */
+    private function applyPromotion(SalesOrder $order, int $customerId): void
+    {
+        $origTotal = round((float) $order->total_amount, 2);
+
+        $rows = $order->items()->get()->map(fn ($i) => [
+            'product_id' => (int) $i->product_id,
+            'qty' => (int) $i->quantity,
+            'price' => (float) $i->price_small,
+        ])->all();
+
+        $result = $this->promotions->calculate($customerId, $rows);
+        if (empty($result['applied'])) {
+            return;
+        }
+
+        // 1) 商品级价改：覆盖小单位单价（price=price_small），重算金额
+        $overrideMap = collect($result['item_overrides'])->keyBy('product_id');
+        $newTotal = 0.0;
+        foreach ($order->items()->get() as $it) {
+            $ov = $overrideMap->get((int) $it->product_id);
+            if ($ov) {
+                $promoPrice = round((float) $ov['promo_price'], 2);
+                $it->price_small = $promoPrice;
+                $it->price = $promoPrice;
+                $it->amount = round(
+                    (float) $it->qty_large * (float) $it->price_large
+                    + (float) $it->qty_medium * (float) $it->price_medium
+                    + (float) $it->qty_small * $promoPrice, 2);
+                $label = $ov['label'] ?? '';
+                if ($label && ! str_contains((string) $it->remark, $label)) {
+                    $it->remark = trim(trim((string) $it->remark).' '.$label);
+                }
+                $it->price_source = '特殊';
+                $it->save();
+            }
+            $newTotal += (float) $it->amount;
+        }
+
+        // 2) 赠品行
+        foreach ($result['gift_lines'] as $g) {
+            $order->items()->create([
+                'product_id' => (int) $g['product_id'],
+                'quantity' => (int) $g['qty'],
+                'qty_small' => (int) $g['qty'],
+                'price' => 0, 'price_small' => 0, 'price_large' => 0, 'price_medium' => 0,
+                'amount' => 0,
+                'sale_mode' => '赠品',
+                'price_source' => '特殊',
+                'remark' => '赠品',
+            ]);
+        }
+
+        // 3) 满减金额（商品折扣已在 newTotal 里扣过，这里只补满减）
+        $reductionDiscount = 0.0;
+        foreach ($result['applied'] as $ap) {
+            if (($ap['type'] ?? '') === 'full_reduction') {
+                $reductionDiscount += (float) $ap['amount'];
+            }
+        }
+        $reductionDiscount = round($reductionDiscount, 2);
+
+        // 4) 写促销使用记录
+        foreach ($result['applied'] as $ap) {
+            DB::table('promotion_orders')->insert([
+                'promotion_id' => $ap['promotion_id'],
+                'order_id' => $order->id,
+                'order_no' => $order->order_no,
+                'customer_id' => $customerId,
+                'discount_amount' => round((float) ($ap['amount'] ?? 0), 2),
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        $productDiscount = round(max(0, $origTotal - $newTotal), 2);
+        $order->discount_amount = round($productDiscount + $reductionDiscount, 2);
+        $order->total_amount = round(max(0, $newTotal - $reductionDiscount), 2);
+        $order->save();
     }
 
     public function destroy(SalesOrder $salesOrder)
