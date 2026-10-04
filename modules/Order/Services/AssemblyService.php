@@ -27,25 +27,26 @@ class AssemblyService
     /**
      * 组装审核联动：子件出库 + 父件加权入库 + 成本结转 + 经营历程
      */
-    public function approveAssembly(Assembly $a, int $adminId, string $adminName, ?string $comment): Assembly
+    public function approveAssembly(Assembly $a, int $adminId, string $adminName, ?string $comment): array
     {
         return DB::transaction(function () use ($a, $adminId, $adminName, $comment) {
             $wid = (int) $a->warehouse_id;
             $newQty = (int) $a->quantity;
 
-            // 1. 子件出库，累加总成本（取子件在该仓库的实时成本价，fallback 明细 unit_cost）
+            // 1. 子件出库，累加总成本
             $totalCost = 0.0;
             foreach ($a->items as $item) {
                 $usage = (int) $item->total_usage;
                 if ($usage <= 0) {
                     continue;
                 }
+
+                // 校验可用库存（quantity - frozen_qty）
                 $childStock = DB::table('stocks')
                     ->where('product_id', $item->product_id)
                     ->where('warehouse_id', $wid)
                     ->lockForUpdate()
                     ->first();
-                // 校验可用库存（quantity - frozen_qty），防止冻结量导致扣成负数
                 $available = ($childStock ? (int) $childStock->quantity : 0) -
                              ($childStock ? (int) $childStock->frozen_qty : 0);
                 if ($available < $usage) {
@@ -57,6 +58,7 @@ class AssemblyService
                         )
                     );
                 }
+
                 $unitCost = $this->resolveUnitCost($item, $childStock);
 
                 $this->stockService->stockOut(
@@ -81,12 +83,12 @@ class AssemblyService
                 ? round(($oldQty * $oldCost + $newQty * $newCost) / ($oldQty + $newQty), 2)
                 : round($newCost, 2);
 
-            // 3. 父件入库（stockIn 用 weightedCost 覆盖 cost_price、写 stocks_history、syncProductStockQty）
+            // 3. 父件入库
             $this->stockService->stockIn(
                 (int) $a->parent_product_id, $wid, $newQty, $weightedCost, $a->id, 'Assembly'
             );
 
-            // 4. 同步 products.cost_price（stockIn 只更 stock_qty 不更 products.cost_price）
+            // 4. 同步 products.cost_price
             DB::table('products')->where('id', $a->parent_product_id)->update([
                 'cost_price' => $weightedCost, 'updated_at' => now(),
             ]);
@@ -116,15 +118,26 @@ class AssemblyService
             ]);
 
             // 7. 更新组装单
-            $a->status = 'approved';
-            $a->approved_by = $adminId;
-            $a->approved_at = now();
-            $a->approval_comment = $comment;
-            $a->total_cost = round($totalCost, 2);
-            $a->unit_cost = $weightedCost;
-            $a->save();
+            $a->update([
+                'status' => 'approved',
+                'approved_by' => $adminId,
+                'approved_at' => now(),
+                'approval_comment' => $comment,
+                'total_cost' => round($totalCost, 2),
+                'unit_cost' => $weightedCost,
+            ]);
 
-            return $a->fresh(['items.product']);
+            // 返回组装单数据（直接查询，避免 fresh 问题）
+            $result = DB::table('assembly_orders')
+                ->where('id', $a->id)
+                ->first();
+
+            return [
+                'assembly' => $result,
+                'items' => DB::table('assembly_order_items')
+                    ->where('assembly_order_id', $a->id)
+                    ->get(),
+            ];
         });
     }
 

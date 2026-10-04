@@ -352,9 +352,13 @@ class AssemblyController extends Controller
         $adminName = $admin?->real_name ?? $admin?->username ?? ($admin?->name ?? '管理员');
 
         try {
-            $assembly = $this->assemblyService->approveAssembly(
+            $result = $this->assemblyService->approveAssembly(
                 $assembly, $adminId, $adminName, $validated['approval_comment'] ?? null
             );
+            // Service 返回数组 [assembly, items]，手动拼接响应
+            $assembly = (object) array_merge((array) $result['assembly'], [
+                'items' => $result['items'],
+            ]);
         } catch (StockRuleException $e) {
             return $this->error($e->getMessage(), 422);
         } catch (\RuntimeException $e) {
