@@ -45,15 +45,27 @@ class AssemblyService
                     ->where('warehouse_id', $wid)
                     ->lockForUpdate()
                     ->first();
-                $childCost = $this->resolveCost($childStock, (float) $item->unit_cost, (int) $item->product_id);
+                // 校验可用库存（quantity - frozen_qty），防止冻结量导致扣成负数
+                $available = ($childStock ? (int) $childStock->quantity : 0) -
+                             ($childStock ? (int) $childStock->frozen_qty : 0);
+                if ($available < $usage) {
+                    throw new \RuntimeException(
+                        sprintf('子件 "%s" 可用库存不足：可用 %d，需要 %d',
+                            $item->product_name ?? "商品 #{$item->product_id}",
+                            $available,
+                            $usage
+                        )
+                    );
+                }
+                $unitCost = $this->resolveUnitCost($item, $childStock);
 
                 $this->stockService->stockOut(
                     (int) $item->product_id, $wid, $usage, $a->id, 'Assembly'
                 );
 
-                $lineCost = round($usage * $childCost, 2);
+                $lineCost = round($usage * $unitCost, 2);
                 $totalCost += $lineCost;
-                $item->update(['unit_cost' => $childCost, 'total_cost' => $lineCost]);
+                $item->update(['unit_cost' => $unitCost, 'total_cost' => $lineCost]);
             }
 
             // 2. 父件加权平均成本
@@ -218,18 +230,26 @@ class AssemblyService
     }
 
     /**
-     * 取子件成本价：stocks.cost_price > 0 用之，否则 products.cost_price，否则明细 unit_cost。
+     * 取子件单位成本：用户传入 unit_cost>0 时优先使用（保留用户意图），
+     * 仅当 unit_cost=0 时从 stocks.cost_price → products.cost_price 兜底。
      */
-    private function resolveCost(?object $stock, float $fallback, int $productId): float
+    private function resolveUnitCost(AssemblyItem $item, ?object $stock): float
     {
+        $provided = (float) $item->unit_cost;
+        if ($provided > 0) {
+            return $provided;
+        }
         if ($stock && (float) $stock->cost_price > 0) {
             return (float) $stock->cost_price;
         }
-        $productCost = (float) DB::table('products')->where('id', $productId)->value('cost_price');
+        $productCost = (float) DB::table('products')->where('id', $item->product_id)->value('cost_price');
         if ($productCost > 0) {
             return $productCost;
         }
 
-        return $fallback;
+        throw new \RuntimeException(
+            sprintf('子件 "%s" 成本未设置（unit_cost=0 且无历史成本），请编辑明细后重新提交',
+                $item->product_name ?? "商品 #{$item->product_id}")
+        );
     }
 }

@@ -44,7 +44,31 @@ class AssemblyController extends Controller
             $request->integer('page_size', 20), ['*'], 'page', $request->integer('page', 1)
         );
 
-        return $this->paginated($list);
+        // 统一字段命名：对前端暴露 split_qty 与 assembly 对称
+        $items = $list->map(function ($item) {
+            return [
+                ...$item->toArray(),
+                'items' => $item->items->map(function ($i) {
+                    return [
+                        'product_id' => $i->product_id,
+                        'product_name' => $i->product_name,
+                        'unit_usage' => (int) $i->unit_usage,
+                        'total_usage' => (int) $i->total_usage,
+                        'split_qty' => (int) $i->unit_usage,
+                        'split_total' => (int) $i->total_usage,
+                        'unit_cost' => (float) $i->unit_cost,
+                        'total_cost' => (float) $i->total_cost,
+                    ];
+                })->values(),
+            ];
+        });
+
+        return $this->paginated([
+            'data' => $items,
+            'total' => $list->total(),
+            'page' => $list->currentPage(),
+            'page_size' => $list->perPage(),
+        ]);
     }
 
     /** 批量审核：勾选多张待审核单批量通过，全部在一个事务内执行库存联动 */
@@ -53,7 +77,7 @@ class AssemblyController extends Controller
         $request->validate(['ids' => 'required|array|min:1']);
         $admin = auth('admin')->user();
         $adminId = $admin?->id;
-        $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
+        $adminName = $admin?->real_name ?? $admin?->username ?? ($admin?->name ?? '管理员');
 
         try {
             $result = DB::transaction(function () use ($request, $adminId, $adminName) {
@@ -93,7 +117,35 @@ class AssemblyController extends Controller
             return $this->notFound();
         }
 
-        return $this->success($assembly);
+        // 统一字段命名：对前端暴露 split_qty 与 assembly 对称
+        $items = $assembly->items->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'product_code' => $item->product_code,
+                'product_name' => $item->product_name,
+                'spec' => $item->spec,
+                'unit' => $item->unit,
+                'unit_usage' => (int) $item->unit_usage,
+                'total_usage' => (int) $item->total_usage,
+                'split_qty' => (int) $item->unit_usage,  // 兼容字段
+                'split_total' => (int) $item->total_usage, // 兼容字段
+                'unit_cost' => (float) $item->unit_cost,
+                'total_cost' => (float) $item->total_cost,
+                'product' => $item->product ? [
+                    'id' => $item->product->id,
+                    'name' => $item->product->name,
+                    'code' => $item->product->code,
+                    'spec' => $item->product->spec,
+                    'price_unit_small' => $item->product->price_unit_small,
+                ] : null,
+            ];
+        });
+
+        return $this->success([
+            ...$assembly->toArray(),
+            'items' => $items,
+        ]);
     }
 
     /** 取父件的组装 BOM 模板，供新增组装单自动带出子件 */
@@ -297,7 +349,7 @@ class AssemblyController extends Controller
         $validated = $request->validate(['approval_comment' => 'nullable|string|max:500']);
         $admin = auth('admin')->user();
         $adminId = $admin?->id;
-        $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
+        $adminName = $admin?->real_name ?? $admin?->username ?? ($admin?->name ?? '管理员');
 
         try {
             $assembly = $this->assemblyService->approveAssembly(
@@ -354,7 +406,7 @@ class AssemblyController extends Controller
         DB::table('assembly_order_items')->where('assembly_order_id', $assembly->id)->delete();
         $assembly->delete();
 
-        return $this->noContent();
+        return $this->success(null, '删除成功');
     }
 
     public function export(Request $request)

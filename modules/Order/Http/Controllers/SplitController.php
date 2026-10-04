@@ -44,7 +44,31 @@ class SplitController extends Controller
             $request->integer('page_size', 20), ['*'], 'page', $request->integer('page', 1)
         );
 
-        return $this->paginated($list);
+        // 统一字段命名：对前端暴露 unit_usage 与 assembly 对称
+        $items = $list->map(function ($item) {
+            return [
+                ...$item->toArray(),
+                'items' => $item->items->map(function ($i) {
+                    return [
+                        'product_id' => $i->product_id,
+                        'product_name' => $i->product_name,
+                        'split_qty' => (int) $i->split_qty,
+                        'split_total' => (int) $i->split_total,
+                        'unit_usage' => (int) $i->split_qty,
+                        'total_usage' => (int) $i->split_total,
+                        'unit_cost' => (float) $i->unit_cost,
+                        'total_cost' => (float) $i->total_cost,
+                    ];
+                })->values(),
+            ];
+        });
+
+        return $this->paginated([
+            'data' => $items,
+            'total' => $list->total(),
+            'page' => $list->currentPage(),
+            'page_size' => $list->perPage(),
+        ]);
     }
 
     /** 批量审核：勾选多张待审核拆分单批量通过，全部在一个事务内执行库存联动 */
@@ -53,7 +77,7 @@ class SplitController extends Controller
         $request->validate(['ids' => 'required|array|min:1']);
         $admin = auth('admin')->user();
         $adminId = $admin?->id;
-        $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
+        $adminName = $admin?->real_name ?? $admin?->username ?? ($admin?->name ?? '管理员');
 
         try {
             $result = DB::transaction(function () use ($request, $adminId, $adminName) {
@@ -93,7 +117,35 @@ class SplitController extends Controller
             return $this->notFound();
         }
 
-        return $this->success($split);
+        // 统一字段命名：对前端暴露 unit_usage 与 assembly 对称
+        $items = $split->items->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'product_code' => $item->product_code,
+                'product_name' => $item->product_name,
+                'spec' => $item->spec,
+                'unit' => $item->unit,
+                'split_qty' => (int) $item->split_qty,
+                'split_total' => (int) $item->split_total,
+                'unit_usage' => (int) $item->split_qty,  // 兼容字段
+                'total_usage' => (int) $item->split_total, // 兼容字段
+                'unit_cost' => (float) $item->unit_cost,
+                'total_cost' => (float) $item->total_cost,
+                'product' => $item->product ? [
+                    'id' => $item->product->id,
+                    'name' => $item->product->name,
+                    'code' => $item->product->code,
+                    'spec' => $item->product->spec,
+                    'price_unit_small' => $item->product->price_unit_small,
+                ] : null,
+            ];
+        });
+
+        return $this->success([
+            ...$split->toArray(),
+            'items' => $items,
+        ]);
     }
 
     /** 取父件的拆分 BOM 模板 */
@@ -287,7 +339,7 @@ class SplitController extends Controller
         $validated = $request->validate(['approval_comment' => 'nullable|string|max:500']);
         $admin = auth('admin')->user();
         $adminId = $admin?->id;
-        $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
+        $adminName = $admin?->real_name ?? $admin?->username ?? ($admin?->name ?? '管理员');
 
         try {
             $split = $this->assemblyService->approveSplit(
@@ -344,7 +396,7 @@ class SplitController extends Controller
         DB::table('split_order_items')->where('split_order_id', $split->id)->delete();
         $split->delete();
 
-        return $this->noContent();
+        return $this->success(null, '删除成功');
     }
 
     public function export(Request $request)
