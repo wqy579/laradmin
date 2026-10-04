@@ -189,6 +189,19 @@ const businessApi = {
 		report: { get: (params) => request.get('business/promotion/report', { params }) },
 	},
 
+	// 价格体系（客户等级 + 商品等级价 + 批量调价）
+	priceSystem: {
+		levelList: { get: () => request.get('business/customer-level') },
+		levelCreate: { post: (params) => request.post('business/customer-level', params) },
+		levelUpdate: { put: (id, params) => request.put(`business/customer-level/${id}`, params) },
+		levelDelete: { delete: (id) => request.delete(`business/customer-level/${id}`) },
+		productList: { get: (params) => request.get('business/product-price', { params }) },
+		productSave: { put: (id, params) => request.put(`business/product-price/${id}`, params) },
+		batch: { post: (params) => request.post('business/product-price/batch', params) },
+		history: { get: (params) => request.get('business/product-price/history', { params }) },
+		calculate: { post: (params) => request.post('business/product-price/calculate', params) },
+	},
+
 	// 成本价格
 	costPrice: {
 		list: { get: (params) => request.get('business/cost-price', { params }) },

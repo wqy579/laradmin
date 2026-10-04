@@ -152,6 +152,24 @@ const systemRoutes = [
 				meta: { title: 'promotion' },
 			},
 			{
+				path: '/business/customer-level',
+				name: 'CustomerLevel',
+				component: () => import('../views/business/customer-level/index.vue'),
+				meta: { title: 'customer-level' },
+			},
+			{
+				path: '/business/product-price',
+				name: 'ProductPrice',
+				component: () => import('../views/business/product-price/index.vue'),
+				meta: { title: 'product-price' },
+			},
+			{
+				path: '/business/price-batch',
+				name: 'PriceBatch',
+				component: () => import('../views/business/price-batch/index.vue'),
+				meta: { title: 'price-batch' },
+			},
+			{
 				path: '/business/return',
 				name: 'Return',
 				component: () => import('../views/business/return/index.vue'),

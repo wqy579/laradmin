@@ -2,7 +2,9 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Stock\Http\Controllers\CostPriceController;
+use Modules\Stock\Http\Controllers\CustomerLevelController;
 use Modules\Stock\Http\Controllers\ProductController;
+use Modules\Stock\Http\Controllers\ProductPriceController;
 use Modules\Stock\Http\Controllers\StockCheckController;
 use Modules\Stock\Http\Controllers\StockController;
 use Modules\Stock\Http\Controllers\StockHistoryController;
@@ -78,6 +80,23 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [CostPriceController::class, 'index']);
         Route::post('/batch', [CostPriceController::class, 'batchUpdate']);
         Route::put('/{product}', [CostPriceController::class, 'update']);
+    });
+
+    // 客户等级
+    Route::prefix('business/customer-level')->group(function () {
+        Route::get('/', [CustomerLevelController::class, 'index']);
+        Route::post('/', [CustomerLevelController::class, 'store']);
+        Route::put('/{id}', [CustomerLevelController::class, 'update']);
+        Route::delete('/{id}', [CustomerLevelController::class, 'destroy']);
+    });
+
+    // 商品价格（静态路由先于 {productId}）
+    Route::get('business/product-price/history', [ProductPriceController::class, 'history']);
+    Route::post('business/product-price/calculate', [ProductPriceController::class, 'calculate']);
+    Route::post('business/product-price/batch', [ProductPriceController::class, 'batch']);
+    Route::prefix('business/product-price')->group(function () {
+        Route::get('/', [ProductPriceController::class, 'index']);
+        Route::put('/{productId}', [ProductPriceController::class, 'save']);
     });
     // 库存核对与监控
     Route::get('business/stock-monitor', [StockCheckController::class, 'monitor']);
