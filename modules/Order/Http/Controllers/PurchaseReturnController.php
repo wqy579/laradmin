@@ -119,7 +119,7 @@ class PurchaseReturnController extends Controller
             $stockInNo = $stockIn?->order_no;
             $validated['supplier_id'] = $validated['supplier_id'] ?? $stockIn?->supplier_id;
         }
-        if (!empty($validated['supplier_id'])) {
+        if (! empty($validated['supplier_id'])) {
             $supplierName = DB::table('suppliers')->where('id', $validated['supplier_id'])->value('name');
         }
 
@@ -162,7 +162,7 @@ class PurchaseReturnController extends Controller
         }
 
         return DB::transaction(function () use ($validated, $stockInNo, $supplierName, $items, $totalQty, $totalAmount, $adminId) {
-            $status = !empty($validated['submit_for_approval']) ? 'pending' : 'draft';
+            $status = ! empty($validated['submit_for_approval']) ? 'pending' : 'draft';
             $return = PurchaseReturn::create([
                 'return_no' => $this->generateNo(),
                 'stock_in_id' => $validated['stock_in_id'] ?? null,
