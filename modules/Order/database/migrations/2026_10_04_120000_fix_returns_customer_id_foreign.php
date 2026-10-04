@@ -1,54 +1,50 @@
 <?php
 
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        // 检查并修复 returns 表的 customer_id 外键
-        // 确保 customer_id 引用 customers 表而非 suppliers 表
-        
-        if (Schema::hasTable('returns') && Schema::hasColumn('returns', 'customer_id')) {
-            // 获取当前外键信息
-            $foreignKeys = DB::select("SHOW CREATE TABLE returns");
-            
-            if (!empty($foreignKeys)) {
-                $createStatement = $foreignKeys[0]->{'Create Table'};
-                
-                // 如果外键指向 suppliers 表，则删除并重新创建指向 customers 的外键
-                if (strpos($createStatement, 'REFERENCES `suppliers`') !== false) {
-                    // 删除现有的 customer_id 外键
-                    try {
-                        DB::statement("ALTER TABLE `returns` DROP FOREIGN KEY `returns_ibfk_1`");
-                    } catch (\Exception $e) {
-                        // 尝试其他可能的外键名
-                        try {
-                            DB::statement("ALTER TABLE `returns` DROP FOREIGN KEY `returns_customer_id_foreign`");
-                        } catch (\Exception $e2) {
-                            // 忽略错误
-                        }
-                    }
-                    
-                    // 添加正确的外键
-                    DB::statement("ALTER TABLE `returns` ADD CONSTRAINT `returns_customer_id_foreign` 
-                        FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE");
-                }
-            }
+        if (! Schema::hasTable('returns') || ! Schema::hasColumn('returns', 'customer_id')) {
+            return;
+        }
+
+        // 先尝试删除可能存在的错误外键（无论外键名是什么）
+        try {
+            DB::statement('ALTER TABLE `returns` DROP FOREIGN KEY `returns_ibfk_1`');
+        } catch (Throwable $e) {
+            // 忽略，外键可能不存在或名字不同
+        }
+        try {
+            DB::statement('ALTER TABLE `returns` DROP FOREIGN KEY `returns_customer_id_foreign`');
+        } catch (Throwable $e) {
+            // 忽略
+        }
+
+        // 添加正确的外键约束（引用 customers 表）
+        try {
+            DB::statement(
+                'ALTER TABLE `returns` ADD CONSTRAINT `returns_customer_id_foreign` '.
+                'FOREIGN KEY (`customer_id`) REFERENCES `customers` (`id`) ON DELETE CASCADE'
+            );
+        } catch (Throwable $e) {
+            // 外键可能已存在，忽略
         }
     }
 
     public function down(): void
     {
-        // 回滚操作
+        if (! Schema::hasTable('returns')) {
+            return;
+        }
+
         try {
-            DB::statement("ALTER TABLE `returns` DROP FOREIGN KEY `returns_customer_id_foreign`");
-            DB::statement("ALTER TABLE `returns` ADD CONSTRAINT `returns_ibfk_1` 
-                FOREIGN KEY (`customer_id`) REFERENCES `suppliers` (`id`) ON DELETE CASCADE");
-        } catch (\Exception $e) {
-            // 忽略错误
+            DB::statement('ALTER TABLE `returns` DROP FOREIGN KEY `returns_customer_id_foreign`');
+        } catch (Throwable $e) {
+            // 忽略
         }
     }
 };
