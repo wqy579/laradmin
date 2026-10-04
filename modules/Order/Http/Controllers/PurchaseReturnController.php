@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Modules\Order\Models\PurchaseReturn;
 use Modules\Order\Models\PurchaseReturnItem;
 use Modules\Stock\Services\StockService;
@@ -15,7 +14,9 @@ class PurchaseReturnController extends Controller
 {
     use ResponseTrait;
 
-    public function __construct(private StockService $stockService) {}
+    public function __construct(private StockService $stockService)
+    {
+    }
 
     public function index(Request $request)
     {
