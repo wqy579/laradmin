@@ -7,7 +7,6 @@ use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Order\Models\PurchaseReturn;
-use Modules\Order\Models\PurchaseReturnItem;
 use Modules\Stock\Services\StockService;
 
 class PurchaseReturnController extends Controller
