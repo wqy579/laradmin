@@ -24,6 +24,9 @@ class PurchaseReturnController extends Controller
                     ->orWhere('stock_in_no', 'like', "%{$request->keyword}%");
             });
         }
+        if ($request->filled('return_no')) {
+            $query->where('return_no', 'like', '%'.$request->return_no.'%');
+        }
         if ($request->filled('supplier_id')) {
             $query->where('supplier_id', $request->supplier_id);
         }
@@ -293,7 +296,8 @@ class PurchaseReturnController extends Controller
                         (int) $return->warehouse_id,
                         (int) $item->return_qty,
                         $return->id,
-                        'PurchaseReturn'
+                        'PurchaseReturn',
+                        '采购退货出库'
                     );
                 }
             }
@@ -369,6 +373,148 @@ class PurchaseReturnController extends Controller
         $return->delete();
 
         return $this->noContent();
+    }
+
+    public function batchApprove(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'remark' => 'nullable|string|max:500',
+        ]);
+
+        $admin = auth('admin')->user();
+        $adminId = $admin?->id;
+        $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
+        $ids = $validated['ids'];
+
+        $returns = PurchaseReturn::with(['items'])->whereIn('id', $ids)->get();
+        if ($returns->count() !== count($ids)) {
+            return $this->error('部分退货单不存在', 422);
+        }
+
+        foreach ($returns as $r) {
+            if ($r->status !== 'pending') {
+                return $this->error("退货单 {$r->return_no} 状态不是待审核，无法批量审核", 422);
+            }
+        }
+
+        $count = 0;
+        foreach ($returns as $r) {
+            $totalAmount = (float) $r->total_amount;
+            DB::transaction(function () use ($r, $validated, $adminId, $adminName, $totalAmount) {
+                foreach ($r->items as $item) {
+                    if ($item->return_qty > 0) {
+                        $this->stockService->stockOut(
+                            (int) $item->product_id,
+                            (int) $r->warehouse_id,
+                            (int) $item->return_qty,
+                            $r->id,
+                            'PurchaseReturn',
+                            '采购退货出库'
+                        );
+                    }
+                }
+                if ($r->supplier_id) {
+                    DB::table('suppliers')->where('id', $r->supplier_id)->decrement('balance', $totalAmount);
+                }
+                $r->status = 'approved';
+                $r->approved_by = $adminId;
+                $r->approved_at = now();
+                $r->approval_comment = $validated['remark'] ?? null;
+                $r->payable_offset = $totalAmount;
+                $r->save();
+                DB::table('order_operation_logs')->insert([
+                    'order_id' => $r->id, 'order_no' => $r->return_no,
+                    'order_type' => 'purchase_return', 'user_id' => $adminId, 'user_name' => $adminName,
+                    'operator_id' => $adminId, 'operator_name' => $adminName,
+                    'action' => 'approve', 'action_label' => '采购退货审核通过',
+                    'detail' => '采购退货审核通过，退货金额¥'.number_format($totalAmount, 2),
+                    'remark' => $validated['remark'] ?? null,
+                    'from_status' => 'pending', 'to_status' => 'approved',
+                    'created_at' => now(), 'updated_at' => now(),
+                ]);
+            });
+            $count++;
+        }
+
+        return $this->success(null, "成功审核 {$count} 张采购退货单");
+    }
+
+    public function export(Request $request)
+    {
+        $query = PurchaseReturn::with(['warehouse', 'creator', 'approver', 'items']);
+        if ($request->filled('keyword')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('return_no', 'like', "%{$request->keyword}%")
+                    ->orWhere('stock_in_no', 'like', "%{$request->keyword}%");
+            });
+        }
+        if ($request->filled('return_no')) {
+            $query->where('return_no', 'like', '%'.$request->return_no.'%');
+        }
+        if ($request->filled('supplier_id')) {
+            $query->where('supplier_id', $request->supplier_id);
+        }
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('start_date')) {
+            $query->where('return_date', '>=', $request->start_date);
+        }
+        if ($request->filled('end_date')) {
+            $query->where('return_date', '<=', $request->end_date);
+        }
+        $list = $query->orderByDesc('id')->get();
+
+        if ($list->isEmpty()) {
+            return $this->error('没有可导出的数据', 422);
+        }
+
+        $statusMap = ['draft' => '草稿', 'pending' => '待审核', 'approved' => '已审核', 'cancelled' => '已取消'];
+        $csv = "\u{FEFF}";
+        $csv .= "采购退货单导出\n\n";
+        $csv .= "退货单号,供应商,仓库,退货日期,商品编码,商品名称,规格,单位,退货数量,退货单价,退货金额,状态,制单人,制单时间,审核人,审核时间,备注\n";
+
+        foreach ($list as $r) {
+            $status = $statusMap[$r->status] ?? $r->status;
+            $creator = $r->creator?->real_name ?? '-';
+            $approver = $r->approver?->real_name ?? '-';
+            $approveAt = $r->approved_at?->format('Y-m-d H:i') ?? '-';
+            $warehouse = $r->warehouse?->name ?? '-';
+
+            if ($r->items->isEmpty()) {
+                $csv .= sprintf(
+                    "%s,%s,%s,%s,,,,,%d,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                    $r->return_no, $r->supplier_name ?? '', $warehouse,
+                    $r->return_date?->format('Y-m-d') ?? '',
+                    $r->total_qty, $r->total_amount, $r->total_amount,
+                    $status, $creator, $r->created_at?->format('Y-m-d H:i') ?? '',
+                    $approver, $approveAt, $r->remark ?? ''
+                );
+                continue;
+            }
+
+            foreach ($r->items as $item) {
+                $csv .= sprintf(
+                    "%s,%s,%s,%s,%s,%s,%s,%s,%d,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                    $r->return_no, $r->supplier_name ?? '', $warehouse,
+                    $r->return_date?->format('Y-m-d') ?? '',
+                    $item->product_code ?? '', $item->product_name ?? '', $item->spec ?? '', $item->unit ?? '',
+                    $item->return_qty, $item->return_price, $item->return_amount,
+                    $status, $creator, $r->created_at?->format('Y-m-d H:i') ?? '',
+                    $approver, $approveAt, $r->remark ?? ''
+                );
+            }
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="purchase_returns_'.date('Ymd_His').'.csv"',
+        ]);
     }
 
     private function getReturnedQtyByStockIn(int $stockInId): array

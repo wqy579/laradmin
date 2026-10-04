@@ -126,6 +126,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/purchase-return')->group(function () {
         Route::get('/', [PurchaseReturnController::class, 'index']);
         Route::get('/stock-in-products', [PurchaseReturnController::class, 'stockInProducts']);
+        Route::get('/export', [PurchaseReturnController::class, 'export']);
+        Route::post('/batch-approve', [PurchaseReturnController::class, 'batchApprove']);
         Route::get('/{id}', [PurchaseReturnController::class, 'show']);
         Route::post('/', [PurchaseReturnController::class, 'store']);
         Route::put('/{id}', [PurchaseReturnController::class, 'update']);

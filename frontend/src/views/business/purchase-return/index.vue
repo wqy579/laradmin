@@ -16,7 +16,12 @@
 				<el-button type="primary" @click="load">查询</el-button>
 				<el-button @click="reset">重置</el-button>
 			</div>
-			<el-table :data="list" border stripe v-loading="loading">
+			<div class="toolbar">
+				<el-button type="success" :disabled="selectedPending.length === 0" @click="openBatchAudit">批量审核（{{ selectedPending.length }}）</el-button>
+				<el-button :loading="exporting" @click="onExport">导出</el-button>
+			</div>
+			<el-table :data="list" border stripe v-loading="loading" @selection-change="onSelectionChange">
+				<el-table-column type="selection" width="40" :selectable="(row) => row.status === 'pending'" />
 				<el-table-column prop="return_no" label="退货单号" width="170">
 					<template #default="{ row }"><a @click="openDetail(row)">{{ row.return_no }}</a></template>
 				</el-table-column>
@@ -133,6 +138,16 @@
 			</template>
 		</el-dialog>
 
+		<!-- 批量审核 -->
+		<el-dialog v-model="batchAuditVisible" title="批量审核确认" width="450px">
+			<p style="line-height:1.6;color:#666;font-size:14px">您已选择 {{ selectedPending.length }} 张待审核采购退货单，确认批量审核通过？审核后将自动执行退货出库并冲减应付，操作不可撤销。</p>
+			<el-input v-model="batchRemark" type="textarea" :rows="3" placeholder="输入审核意见（可选）" style="margin-top:12px" />
+			<template #footer>
+				<el-button @click="batchAuditVisible = false">取消</el-button>
+				<el-button type="success" :loading="batchLoading" @click="onBatchAudit">确认审核</el-button>
+			</template>
+		</el-dialog>
+
 		<!-- 详情 -->
 		<el-dialog v-model="detailVisible" title="采购退货单详情" width="900px">
 			<el-descriptions :column="3" border size="small">
@@ -171,6 +186,49 @@ const auditPass = ref(true);
 const auditRemark = ref('');
 const detailVisible = ref(false);
 const detail = ref({ items: [] });
+
+const selectedRows = ref([]);
+const selectedPending = ref([]);
+const batchAuditVisible = ref(false);
+const batchRemark = ref('');
+const batchLoading = ref(false);
+const exporting = ref(false);
+
+const onSelectionChange = (rows) => {
+	selectedRows.value = rows;
+	selectedPending.value = rows.filter((r) => r.status === 'pending');
+};
+
+const openBatchAudit = () => {
+	if (selectedPending.value.length === 0) return ElMessage.warning('请选择待审核状态的单据');
+	batchRemark.value = '';
+	batchAuditVisible.value = true;
+};
+
+const onBatchAudit = async () => {
+	batchLoading.value = true;
+	try {
+		const ids = selectedPending.value.map((r) => r.id);
+		await api.purchaseReturn.batchApprove.post({ ids, remark: batchRemark.value });
+		ElMessage.success(`成功审核 ${ids.length} 张采购退货单`);
+		batchAuditVisible.value = false;
+		load();
+	} finally { batchLoading.value = false; }
+};
+
+const onExport = async () => {
+	exporting.value = true;
+	try {
+		const res = await api.purchaseReturn.export(query);
+		const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8' });
+		const url = window.URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `purchase_returns_${new Date().toISOString().slice(0, 10)}.csv`;
+		a.click();
+		window.URL.revokeObjectURL(url);
+	} finally { exporting.value = false; }
+};
 
 const load = async () => {
 	loading.value = true;
@@ -262,6 +320,7 @@ onMounted(load);
 .title { font-size: 18px; font-weight: 700; color: #333; }
 .card { margin: 16px 24px; border-radius: 4px; }
 .filter { margin-bottom: 16px; display: flex; gap: 12px; }
+.toolbar { margin-bottom: 12px; display: flex; gap: 12px; }
 .amt { color: #f5222d; font-weight: 700; }
 .pager { margin-top: 16px; justify-content: flex-end; }
 </style>

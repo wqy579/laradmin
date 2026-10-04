@@ -1592,6 +1592,30 @@
     ]
   },
   {
+    "method": "GET",
+    "uri": "admin/business/purchase-return/export",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@export",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-return/batch-approve",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@batchApprove",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
     "method": "DELETE",
     "uri": "admin/business/purchase-return/{id}",
     "name": "admin.",

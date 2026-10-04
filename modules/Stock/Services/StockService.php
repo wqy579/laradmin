@@ -97,9 +97,9 @@ class StockService
     }
 
     /** 出库：库存不足时抛 StockRuleException（控制器映射为 422） */
-    public function stockOut(int $productId, int $warehouseId, int $quantity, ?int $relatedId = null, ?string $relatedType = null): Stock
+    public function stockOut(int $productId, int $warehouseId, int $quantity, ?int $relatedId = null, ?string $relatedType = null, string $remark = '出库'): Stock
     {
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $relatedId, $relatedType) {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $relatedId, $relatedType, $remark) {
             /** @var Stock|null $stock */
             $stock = Stock::where('product_id', $productId)
                 ->where('warehouse_id', $warehouseId)
@@ -117,7 +117,7 @@ class StockService
             $this->recordHistory(
                 $productId, $warehouseId, 'stock_out', -$quantity,
                 $before, (int) $stock->quantity,
-                $relatedId ?? 0, $relatedType ?? 'StockOut', '出库'
+                $relatedId ?? 0, $relatedType ?? 'StockOut', $remark
             );
 
             $this->syncProductStockQty($productId);

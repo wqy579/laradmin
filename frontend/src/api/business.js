@@ -221,6 +221,8 @@ const businessApi = {
 		reject: { post: (id, params) => request.post(`business/purchase-return/${id}/reject`, params) },
 		cancel: { post: (id) => request.post(`business/purchase-return/${id}/cancel`) },
 		stockInProducts: { get: (params) => request.get('business/purchase-return/stock-in-products', { params }) },
+		batchApprove: { post: (params) => request.post('business/purchase-return/batch-approve', params) },
+		export: (params) => request.get('business/purchase-return/export', { params, responseType: 'blob' }),
 	},
 
 	// 入库
