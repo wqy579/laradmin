@@ -113,7 +113,8 @@ class PurchaseReturnController extends Controller
         $adminId = auth('admin')?->id();
         $stockInNo = null;
         $supplierName = null;
-        if (! empty($validated['stock_in_id'])) {
+        $hasStockIn = ! empty($validated['stock_in_id']);
+        if ($hasStockIn) {
             $stockIn = DB::table('stock_ins')->find($validated['stock_in_id']);
             $stockInNo = $stockIn?->order_no;
             $validated['supplier_id'] = $validated['supplier_id'] ?? $stockIn?->supplier_id;
@@ -122,10 +123,8 @@ class PurchaseReturnController extends Controller
             $supplierName = DB::table('suppliers')->where('id', $validated['supplier_id'])->value('name');
         }
 
-        $returnedMap = ! empty($validated['stock_in_id'])
-            ? $this->getReturnedQtyByStockIn((int) $validated['stock_in_id'])
-            : [];
-        $inItems = ! empty($validated['stock_in_id'])
+        $returnedMap = $hasStockIn ? $this->getReturnedQtyByStockIn((int) $validated['stock_in_id']) : [];
+        $inItems = $hasStockIn
             ? DB::table('stock_in_items')->where('stock_in_id', $validated['stock_in_id'])->get()->keyBy('product_id')
             : collect();
 
