@@ -1580,10 +1580,10 @@
     ]
   },
   {
-    "method": "GET",
-    "uri": "admin/business/purchase-return/stock-in-products",
+    "method": "POST",
+    "uri": "admin/business/purchase-return/batch-approve",
     "name": "admin.",
-    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@stockInProducts",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@batchApprove",
     "middleware": [
       "api",
       "stock.snapshot",
@@ -1604,10 +1604,10 @@
     ]
   },
   {
-    "method": "POST",
-    "uri": "admin/business/purchase-return/batch-approve",
+    "method": "GET",
+    "uri": "admin/business/purchase-return/stock-in-products",
     "name": "admin.",
-    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@batchApprove",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@stockInProducts",
     "middleware": [
       "api",
       "stock.snapshot",
