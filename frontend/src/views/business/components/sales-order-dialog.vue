@@ -206,6 +206,10 @@
 				<b>合计：</b>
 				大单位 <span>{{ totalLg }}</span> ｜ 中单位 <span>{{ totalMd }}</span> ｜ 小单位 <span>{{ totalSm }}</span>
 				<span class="grand">总金额 <span>{{ totalAmount }}</span> 元</span>
+				<span v-if="promo.discount_total > 0" class="promo-line">促销优惠 -{{ promo.discount_total.toFixed(2) }} 元（应付 {{ promo.final_total.toFixed(2) }}）</span>
+				<div v-if="promo.applied && promo.applied.length" class="promo-tags">
+					<el-tag v-for="a in promo.applied" :key="a.promotion_id" size="small" type="success" effect="plain" style="margin-right:4px">{{ a.name }}</el-tag>
+				</div>
 			</div>
 			<el-button type="primary" :loading="submitting" @click="handleSubmit">
 				{{ submitting ? '提交中...' : '提交' }}
@@ -783,6 +787,25 @@ const totalMd = computed(() => form.items.reduce((s, i) => s + (Number(i.qty_med
 const totalSm = computed(() => form.items.reduce((s, i) => s + (Number(i.qty_small) || 0), 0))
 const totalAmount = computed(() => form.items.reduce((s, i) => s + (Number(i.amount) || 0), 0).toFixed(2))
 
+// ===== 促销自动匹配（实时预览；最终价以后端保存时为准）=====
+const promo = ref({ discount_total: 0, final_total: 0, applied: [] })
+let promoTimer = null
+async function refreshPromo() {
+	if (!form.customer_id) { promo.value = { discount_total: 0, final_total: 0, applied: [] }; return }
+	const lines = form.items
+		.filter(i => i.product_id && (Number(i.qty_small) || 0) > 0)
+		.map(i => ({ product_id: i.product_id, qty: Number(i.qty_small) || 0, price: Number(i.price_small) || 0 }))
+	if (!lines.length) { promo.value = { discount_total: 0, final_total: 0, applied: [] }; return }
+	try {
+		const res = await businessApi.promotion.calculate.post({ customer_id: form.customer_id, items: lines })
+		if (res.code === 200 && res.data) promo.value = res.data
+	} catch { /* 促销预览失败不阻断下单 */ }
+}
+watch(() => [form.customer_id, form.items.map(i => i.qty_small).join(',')], () => {
+	clearTimeout(promoTimer)
+	promoTimer = setTimeout(refreshPromo, 400)
+})
+
 // ---------------------------------------------------------------- 提交
 
 const buildPayload = () => {
@@ -1117,6 +1140,8 @@ const onDialogKeydown = (e) => {
 .text-danger { color: var(--el-color-danger); }
 .summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color); border-radius: 4px; }
 .summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 16px; }
+.summary .promo-line { margin-left: 14px; color: var(--el-color-success); font-weight: 600; font-size: 13px; }
+.summary .promo-tags { margin-top: 4px; }
 
 /* 三栏：主分类 / 子分类 / 商品表格
    高度限定为「输入框 20 行」(20 行 * 31px ≈ 620 + 表头 34 + 内边距 ≈ 680px)：
