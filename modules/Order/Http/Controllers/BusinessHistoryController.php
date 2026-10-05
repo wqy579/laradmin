@@ -236,6 +236,9 @@ class BusinessHistoryController extends Controller
                 LEFT JOIN warehouses w ON w.id = pr.warehouse_id
                 LEFT JOIN auth_user u ON u.id = pr.created_by
                 WHERE pr.status = 'approved'
+                {$dateCond('return_date')}"
+                . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
+                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '');
         }
 
         // 5. 销售退货（收入）
