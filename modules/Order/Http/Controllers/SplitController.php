@@ -369,13 +369,13 @@ class SplitController extends Controller
         if ($split->status !== 'pending') {
             return $this->error('只有待审核状态可以驳回', 422);
         }
-        $validated = $request->validate(['approval_comment' => 'nullable|string|max:500']);
-        // 使用 DB 查询更新，避免 Eloquent 问题
+        // 兼容前端传 comment 或 approval_comment 两种参数名
+        $comment = $request->input('comment', $request->input('approval_comment'));
         DB::table('split_orders')
             ->where('id', $id)
             ->update([
                 'status' => 'draft',
-                'approval_comment' => $validated['approval_comment'] ?? null,
+                'approval_comment' => $comment,
                 'updated_at' => now(),
             ]);
         // 返回最新数据
