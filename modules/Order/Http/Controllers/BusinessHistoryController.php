@@ -158,7 +158,7 @@ class BusinessHistoryController extends Controller
                        COALESCE(total_amount - discount_amount, 0) as income,
                        0 as expense,
                        COALESCE(so.remark, '') as remark,
-                       id
+                       so.id
                 FROM sales_orders so
                 LEFT JOIN customers c ON c.id = so.customer_id
                 LEFT JOIN warehouses w ON w.id = so.warehouse_id
@@ -207,7 +207,7 @@ class BusinessHistoryController extends Controller
                        0 as income,
                        COALESCE(total_amount, 0) as expense,
                        COALESCE(si.remark, '') as remark,
-                       id
+                       si.id
                 FROM stock_ins si
                 LEFT JOIN suppliers s ON s.id = si.supplier_id
                 LEFT JOIN warehouses w ON w.id = si.warehouse_id
@@ -231,7 +231,7 @@ class BusinessHistoryController extends Controller
                        COALESCE(total_amount, 0) as income,
                        0 as expense,
                        COALESCE(pr.remark, '') as remark,
-                       id
+                       pr.id
                 FROM purchase_returns pr
                 LEFT JOIN warehouses w ON w.id = pr.warehouse_id
                 LEFT JOIN auth_user u ON u.id = pr.created_by
@@ -254,7 +254,7 @@ class BusinessHistoryController extends Controller
                        COALESCE(total_amount, 0) as income,
                        0 as expense,
                        COALESCE(sr.remark, '') as remark,
-                       id
+                       sr.id
                 FROM sales_returns sr
                 LEFT JOIN warehouses w ON w.id = sr.warehouse_id
                 LEFT JOIN auth_user u ON u.id = sr.created_by
@@ -277,7 +277,7 @@ class BusinessHistoryController extends Controller
                        COALESCE(amount, 0) as income,
                        0 as expense,
                        COALESCE(rc.remark, '') as remark,
-                       id
+                       rc.id
                 FROM receives rc
                 LEFT JOIN customers c ON c.id = rc.customer_id
                 LEFT JOIN auth_user u ON u.id = rc.handler_id
@@ -300,7 +300,7 @@ class BusinessHistoryController extends Controller
                        0 as income,
                        COALESCE(amount, 0) as expense,
                        COALESCE(py.remark, '') as remark,
-                       id
+                       py.id
                 FROM pays py
                 LEFT JOIN suppliers s ON s.id = py.supplier_id
                 LEFT JOIN auth_user u ON u.id = py.handler_id
@@ -344,7 +344,7 @@ class BusinessHistoryController extends Controller
                        CASE WHEN profit_amount > 0 THEN profit_amount ELSE 0 END as income,
                        CASE WHEN loss_amount > 0 THEN loss_amount ELSE 0 END as expense,
                        CONCAT('盘点：', check_type) as remark,
-                       id
+                       sc.id
                 FROM stock_checks sc
                 LEFT JOIN warehouses w ON w.id = sc.warehouse_id
                 LEFT JOIN auth_user u ON u.id = sc.created_by
@@ -367,7 +367,7 @@ class BusinessHistoryController extends Controller
                        0 as income,
                        COALESCE(total_cost, 0) as expense,
                        COALESCE(ac.remark, '') as remark,
-                       id
+                       ac.id
                 FROM assembly_orders ac
                 LEFT JOIN warehouses w ON w.id = ac.warehouse_id
                 LEFT JOIN auth_user u ON u.id = ac.salesman_id
@@ -390,7 +390,7 @@ class BusinessHistoryController extends Controller
                        COALESCE(total_cost, 0) as income,
                        0 as expense,
                        COALESCE(sp.remark, '') as remark,
-                       id
+                       sp.id
                 FROM split_orders sp
                 LEFT JOIN warehouses w ON w.id = sp.warehouse_id
                 LEFT JOIN auth_user u ON u.id = sp.salesman_id
