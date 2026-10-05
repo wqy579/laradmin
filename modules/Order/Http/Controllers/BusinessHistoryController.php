@@ -323,7 +323,7 @@ class BusinessHistoryController extends Controller
                        0 as income,
                        COALESCE(amount, 0) as expense,
                        CONCAT(COALESCE(expense_type, ''), '：', COALESCE(ex.remark, '')) as remark,
-                       id
+                       ex.id
                 FROM expenses ex
                 LEFT JOIN auth_user u ON u.id = ex.handler_id
                 WHERE ex.status = 1
