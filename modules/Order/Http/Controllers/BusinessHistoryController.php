@@ -155,7 +155,7 @@ class BusinessHistoryController extends Controller
                        COALESCE(c.name, '') as partner_name,
                        COALESCE(w.name, '') as warehouse_name,
                        COALESCE(u.real_name, u.username, '') as salesman_name,
-                       COALESCE(total_amount, 0) as income,
+                       COALESCE(total_amount - discount_amount, 0) as income,
                        0 as expense,
                        COALESCE(remark, '') as remark,
                        id
