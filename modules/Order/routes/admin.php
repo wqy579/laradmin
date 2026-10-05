@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Order\Http\Controllers\AssemblyController;
+use Modules\Order\Http\Controllers\BusinessHistoryController;
 use Modules\Order\Http\Controllers\ProductBomController;
 use Modules\Order\Http\Controllers\SplitController;
 use Modules\Order\Http\Controllers\CashFlowController;
@@ -229,6 +230,10 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     });
     // 现金流水
     Route::get('business/cash-flow', [CashFlowController::class, 'index']);
+    // 经营历程（UNION ALL 各业务表）
+    Route::get('business/history', [BusinessHistoryController::class, 'index']);
+    Route::get('business/history/summary', [BusinessHistoryController::class, 'summary']);
+    Route::get('business/history/export', [BusinessHistoryController::class, 'export']);
     // 月度利润
     Route::get('business/profit', [ProfitController::class, 'index']);
     // 往来对账

@@ -106,6 +106,12 @@ const businessApi = {
 		list: { get: (params) => request.get('business/cash-flow', { params }) },
 	},
 
+	// 经营历程
+	businessHistory: {
+		list: { get: (params) => request.get('business/history', { params }) },
+		summary: { get: (params) => request.get('business/history/summary', { params }) },
+	},
+
 	// 月度利润
 	profit: {
 		list: { get: (params) => request.get('business/profit', { params }) },
