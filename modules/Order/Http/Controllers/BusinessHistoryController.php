@@ -157,12 +157,12 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        COALESCE(total_amount - discount_amount, 0) as income,
                        0 as expense,
-                       COALESCE(remark, '') as remark,
+                       COALESCE(so.remark, '') as remark,
                        id
-                FROM sales_orders
-                LEFT JOIN customers c ON c.id = sales_orders.customer_id
-                LEFT JOIN warehouses w ON w.id = sales_orders.warehouse_id
-                LEFT JOIN auth_user u ON u.id = sales_orders.salesman_id
+                FROM sales_orders so
+                LEFT JOIN customers c ON c.id = so.customer_id
+                LEFT JOIN warehouses w ON w.id = so.warehouse_id
+                LEFT JOIN auth_user u ON u.id = so.salesman_id
                 WHERE status IN ('approved', 'completed')
                 {$dateCond('order_date')}"
                 . ($v['salesman_id'] ?? null ? " AND salesman_id = {$v['salesman_id']}" : '')
@@ -206,12 +206,12 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        0 as income,
                        COALESCE(total_amount, 0) as expense,
-                       COALESCE(remark, '') as remark,
+                       COALESCE(si.remark, '') as remark,
                        id
-                FROM stock_ins
-                LEFT JOIN suppliers s ON s.id = stock_ins.supplier_id
-                LEFT JOIN warehouses w ON w.id = stock_ins.warehouse_id
-                LEFT JOIN auth_user u ON u.id = stock_ins.created_by
+                FROM stock_ins si
+                LEFT JOIN suppliers s ON s.id = si.supplier_id
+                LEFT JOIN warehouses w ON w.id = si.warehouse_id
+                LEFT JOIN auth_user u ON u.id = si.created_by
                 WHERE 1=1
                 {$dateCond('stock_date')}"
                 . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
@@ -230,11 +230,11 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        COALESCE(total_amount, 0) as income,
                        0 as expense,
-                       COALESCE(remark, '') as remark,
+                       COALESCE(pr.remark, '') as remark,
                        id
-                FROM purchase_returns
-                LEFT JOIN warehouses w ON w.id = purchase_returns.warehouse_id
-                LEFT JOIN auth_user u ON u.id = purchase_returns.created_by
+                FROM purchase_returns pr
+                LEFT JOIN warehouses w ON w.id = pr.warehouse_id
+                LEFT JOIN auth_user u ON u.id = pr.created_by
                 WHERE status = 'approved'
                 {$dateCond('return_date')}"
                 . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
@@ -253,11 +253,11 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        COALESCE(total_amount, 0) as income,
                        0 as expense,
-                       COALESCE(remark, '') as remark,
+                       COALESCE(sr.remark, '') as remark,
                        id
-                FROM sales_returns
-                LEFT JOIN warehouses w ON w.id = sales_returns.warehouse_id
-                LEFT JOIN auth_user u ON u.id = sales_returns.created_by
+                FROM sales_returns sr
+                LEFT JOIN warehouses w ON w.id = sr.warehouse_id
+                LEFT JOIN auth_user u ON u.id = sr.created_by
                 WHERE status = 'approved'
                 {$dateCond('return_date')}"
                 . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
@@ -276,11 +276,11 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        COALESCE(amount, 0) as income,
                        0 as expense,
-                       COALESCE(remark, '') as remark,
+                       COALESCE(rc.remark, '') as remark,
                        id
-                FROM receives
-                LEFT JOIN customers c ON c.id = receives.customer_id
-                LEFT JOIN auth_user u ON u.id = receives.handler_id
+                FROM receives rc
+                LEFT JOIN customers c ON c.id = rc.customer_id
+                LEFT JOIN auth_user u ON u.id = rc.handler_id
                 WHERE status = 1
                 {$dateCond('receive_date')}"
                 . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
@@ -299,11 +299,11 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        0 as income,
                        COALESCE(amount, 0) as expense,
-                       COALESCE(remark, '') as remark,
+                       COALESCE(py.remark, '') as remark,
                        id
-                FROM pays
-                LEFT JOIN suppliers s ON s.id = pays.supplier_id
-                LEFT JOIN auth_user u ON u.id = pays.handler_id
+                FROM pays py
+                LEFT JOIN suppliers s ON s.id = py.supplier_id
+                LEFT JOIN auth_user u ON u.id = py.handler_id
                 WHERE status = 1
                 {$dateCond('pay_date')}"
                 . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
@@ -322,10 +322,10 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        0 as income,
                        COALESCE(amount, 0) as expense,
-                       CONCAT(COALESCE(expense_type, ''), '：', COALESCE(remark, '')) as remark,
+                       CONCAT(COALESCE(expense_type, ''), '：', COALESCE(ex.remark, '')) as remark,
                        id
-                FROM expenses
-                LEFT JOIN auth_user u ON u.id = expenses.handler_id
+                FROM expenses ex
+                LEFT JOIN auth_user u ON u.id = ex.handler_id
                 WHERE status = 1
                 {$dateCond('expense_date')}"
                 . ($v['salesman_id'] ?? null ? " AND handler_id = {$v['salesman_id']}" : '');
@@ -366,11 +366,11 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        0 as income,
                        COALESCE(total_cost, 0) as expense,
-                       COALESCE(remark, '') as remark,
+                       COALESCE(ac.remark, '') as remark,
                        id
-                FROM assembly_orders
-                LEFT JOIN warehouses w ON w.id = assembly_orders.warehouse_id
-                LEFT JOIN auth_user u ON u.id = assembly_orders.salesman_id
+                FROM assembly_orders ac
+                LEFT JOIN warehouses w ON w.id = ac.warehouse_id
+                LEFT JOIN auth_user u ON u.id = ac.salesman_id
                 WHERE status = 'approved'
                 {$dateCond('assembly_date')}"
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
@@ -389,11 +389,11 @@ class BusinessHistoryController extends Controller
                        COALESCE(u.real_name, u.username, '') as salesman_name,
                        COALESCE(total_cost, 0) as income,
                        0 as expense,
-                       COALESCE(remark, '') as remark,
+                       COALESCE(sp.remark, '') as remark,
                        id
-                FROM split_orders
-                LEFT JOIN warehouses w ON w.id = split_orders.warehouse_id
-                LEFT JOIN auth_user u ON u.id = split_orders.salesman_id
+                FROM split_orders sp
+                LEFT JOIN warehouses w ON w.id = sp.warehouse_id
+                LEFT JOIN auth_user u ON u.id = sp.salesman_id
                 WHERE status = 'approved'
                 {$dateCond('split_date')}"
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
