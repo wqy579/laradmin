@@ -161,8 +161,12 @@ class AssemblyService
 
     /**
      * 拆分审核联动：父件出库 + 子件按售价比例分摊入库 + 成本结转 + 经营历程
+     *
+     * 返回 array 而非 Split 模型，避免序列化问题（与 approveAssembly 对齐）。
+     * 明细行 unit_cost 记录"本次分摊单位成本"（父件成本÷子件数量），
+     * total_cost 记录"本次分摊总成本"。stocks.cost_price 记录加权平均成本。
      */
-    public function approveSplit(Split $s, int $adminId, string $adminName, ?string $comment): Split
+    public function approveSplit(Split $s, int $adminId, string $adminName, ?string $comment): array
     {
         return DB::transaction(function () use ($s, $adminId, $adminName, $comment) {
             $wid = (int) $s->warehouse_id;
@@ -196,15 +200,17 @@ class AssemblyService
                 $splitTotal = (int)$item->split_total;
                 if ($splitTotal <= 0) continue;
 
-                // 计算分摊成本
+                // 本次分摊成本：父件总成本 × (子件售价占比 或 数量占比)
                 if ($priceSum > 0) {
                     $share = $parentTotalCost * ($priceMap[$item->id] / $priceSum);
                 } else {
                     $share = $qtySum > 0 ? $parentTotalCost * ($splitTotal / $qtySum) : 0;
                 }
-                $newCost = $splitTotal > 0 ? $share / $splitTotal : 0;
+                // 本次分摊的单位成本 = 分摊总额 ÷ 子件数量
+                $allocatedUnitCost = $splitTotal > 0 ? round($share / $splitTotal, 2) : 0;
+                $allocatedTotalCost = round($share, 2);
 
-                // 加权平均
+                // 加权平均（用于 stocks.cost_price）
                 $childStock = DB::table('stocks')
                     ->where('product_id', $item->product_id)
                     ->where('warehouse_id', $wid)
@@ -213,15 +219,15 @@ class AssemblyService
                 $oldQty = $childStock ? (int)$childStock->quantity : 0;
                 $oldCost = $childStock ? (float)$childStock->cost_price : 0;
                 $weightedCost = ($oldQty + $splitTotal) > 0
-                    ? round(($oldQty * $oldCost + $splitTotal * $newCost) / ($oldQty + $splitTotal), 2)
-                    : round($newCost, 2);
+                    ? round(($oldQty * $oldCost + $splitTotal * $allocatedUnitCost) / ($oldQty + $splitTotal), 2)
+                    : $allocatedUnitCost;
 
-                // 子件入库
+                // 子件入库（用加权成本）
                 $this->stockService->stockIn(
                     (int)$item->product_id, $wid, $splitTotal, $weightedCost, $s->id, 'Disassembly'
                 );
 
-                // 更新 products.cost_price
+                // 更新 products.cost_price（加权平均）
                 DB::table('products')
                     ->where('id', $item->product_id)
                     ->update([
@@ -247,12 +253,12 @@ class AssemblyService
                     'updated_at' => now(),
                 ]);
 
-                // 更新明细行
+                // 更新明细行：unit_cost 记录本次分摊单位成本（非加权成本）
                 DB::table('split_order_items')
                     ->where('id', $item->id)
                     ->update([
-                        'unit_cost' => $weightedCost,
-                        'total_cost' => round($splitTotal * $weightedCost, 2),
+                        'unit_cost' => $allocatedUnitCost,
+                        'total_cost' => $allocatedTotalCost,
                         'updated_at' => now(),
                     ]);
             }
@@ -289,29 +295,18 @@ class AssemblyService
                     'updated_at' => now(),
                 ]);
 
-            // 返回拆分单数据
+            // 返回数组（与 approveAssembly 对齐）
             $result = DB::table('split_orders')
                 ->where('id', $s->id)
                 ->first();
 
-            $items = DB::table('split_order_items')
+            $itemsResult = DB::table('split_order_items')
                 ->where('split_order_id', $s->id)
                 ->get();
 
-            return (object)[
-                'id' => $result->id,
-                'split_no' => $result->split_no,
-                'parent_product_id' => $result->parent_product_id,
-                'parent_product_name' => $result->parent_product_name,
-                'warehouse_id' => $result->warehouse_id,
-                'quantity' => $result->quantity,
-                'total_cost' => $result->total_cost,
-                'status' => $result->status,
-                'approved_by' => $result->approved_by,
-                'approved_at' => $result->approved_at,
-                'approval_comment' => $result->approval_comment,
-                'created_by' => $result->created_by,
-                'items' => $items,
+            return [
+                'split' => $result,
+                'items' => $itemsResult,
             ];
         });
     }

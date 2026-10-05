@@ -342,13 +342,19 @@ class SplitController extends Controller
         $adminName = $admin?->real_name ?? $admin?->username ?? ($admin?->name ?? '管理员');
 
         try {
-            $split = $this->assemblyService->approveSplit(
+            $result = $this->assemblyService->approveSplit(
                 $split, $adminId, $adminName, $validated['approval_comment'] ?? null
             );
+            // Service 返回数组 [split, items]，手动拼接响应
+            $split = (object) array_merge((array) $result['split'], [
+                'items' => $result['items'],
+            ]);
         } catch (StockRuleException $e) {
             return $this->error($e->getMessage(), 422);
         } catch (\RuntimeException $e) {
             return $this->error($e->getMessage(), 422);
+        } catch (\Exception $e) {
+            return $this->error('审核失败：'.$e->getMessage(), 422);
         }
 
         return $this->success($split, '拆分成功，已完成父件出库和子件入库，分摊总成本¥'.number_format((float) $split->total_cost, 2));
@@ -364,9 +370,16 @@ class SplitController extends Controller
             return $this->error('只有待审核状态可以驳回', 422);
         }
         $validated = $request->validate(['approval_comment' => 'nullable|string|max:500']);
-        $split->status = 'draft';
-        $split->approval_comment = $validated['approval_comment'] ?? null;
-        $split->save();
+        // 使用 DB 查询更新，避免 Eloquent 问题
+        DB::table('split_orders')
+            ->where('id', $id)
+            ->update([
+                'status' => 'draft',
+                'approval_comment' => $validated['approval_comment'] ?? null,
+                'updated_at' => now(),
+            ]);
+        // 返回最新数据
+        $split = DB::table('split_orders')->where('id', $id)->first();
 
         return $this->success($split, '已驳回，可继续编辑');
     }

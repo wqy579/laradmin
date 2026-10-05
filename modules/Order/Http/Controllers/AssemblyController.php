@@ -380,9 +380,16 @@ class AssemblyController extends Controller
             return $this->error('只有待审核状态可以驳回', 422);
         }
         $validated = $request->validate(['approval_comment' => 'nullable|string|max:500']);
-        $assembly->status = 'draft';
-        $assembly->approval_comment = $validated['approval_comment'] ?? null;
-        $assembly->save();
+        // 使用 DB 查询更新，避免 Eloquent 问题
+        DB::table('assembly_orders')
+            ->where('id', $id)
+            ->update([
+                'status' => 'draft',
+                'approval_comment' => $validated['approval_comment'] ?? null,
+                'updated_at' => now(),
+            ]);
+        // 返回最新数据
+        $assembly = DB::table('assembly_orders')->where('id', $id)->first();
 
         return $this->success($assembly, '已驳回，可继续编辑');
     }
