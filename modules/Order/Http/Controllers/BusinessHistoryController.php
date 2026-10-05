@@ -163,7 +163,7 @@ class BusinessHistoryController extends Controller
                 LEFT JOIN customers c ON c.id = so.customer_id
                 LEFT JOIN warehouses w ON w.id = so.warehouse_id
                 LEFT JOIN auth_user u ON u.id = so.salesman_id
-                WHERE status IN ('approved', 'completed')
+                WHERE so.status IN ('approved', 'completed')
                 {$dateCond('order_date')}"
                 . ($v['salesman_id'] ?? null ? " AND salesman_id = {$v['salesman_id']}" : '')
                 . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
@@ -235,10 +235,7 @@ class BusinessHistoryController extends Controller
                 FROM purchase_returns pr
                 LEFT JOIN warehouses w ON w.id = pr.warehouse_id
                 LEFT JOIN auth_user u ON u.id = pr.created_by
-                WHERE status = 'approved'
-                {$dateCond('return_date')}"
-                . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
-                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '');
+                WHERE pr.status = 'approved'
         }
 
         // 5. 销售退货（收入）
@@ -258,7 +255,7 @@ class BusinessHistoryController extends Controller
                 FROM sales_returns sr
                 LEFT JOIN warehouses w ON w.id = sr.warehouse_id
                 LEFT JOIN auth_user u ON u.id = sr.created_by
-                WHERE status = 'approved'
+                WHERE sr.status = 'approved'
                 {$dateCond('return_date')}"
                 . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '');
@@ -281,7 +278,7 @@ class BusinessHistoryController extends Controller
                 FROM receives rc
                 LEFT JOIN customers c ON c.id = rc.customer_id
                 LEFT JOIN auth_user u ON u.id = rc.handler_id
-                WHERE status = 1
+                WHERE rc.status = 1
                 {$dateCond('receive_date')}"
                 . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
                 . ($v['salesman_id'] ?? null ? " AND handler_id = {$v['salesman_id']}" : '');
@@ -304,7 +301,7 @@ class BusinessHistoryController extends Controller
                 FROM pays py
                 LEFT JOIN suppliers s ON s.id = py.supplier_id
                 LEFT JOIN auth_user u ON u.id = py.handler_id
-                WHERE status = 1
+                WHERE py.status = 1
                 {$dateCond('pay_date')}"
                 . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
                 . ($v['salesman_id'] ?? null ? " AND handler_id = {$v['salesman_id']}" : '');
@@ -326,7 +323,7 @@ class BusinessHistoryController extends Controller
                        id
                 FROM expenses ex
                 LEFT JOIN auth_user u ON u.id = ex.handler_id
-                WHERE status = 1
+                WHERE ex.status = 1
                 {$dateCond('expense_date')}"
                 . ($v['salesman_id'] ?? null ? " AND handler_id = {$v['salesman_id']}" : '');
         }
@@ -345,10 +342,10 @@ class BusinessHistoryController extends Controller
                        CASE WHEN loss_amount > 0 THEN loss_amount ELSE 0 END as expense,
                        CONCAT('盘点：', check_type) as remark,
                        id
-                FROM stock_checks
-                LEFT JOIN warehouses w ON w.id = stock_checks.warehouse_id
-                LEFT JOIN auth_user u ON u.id = stock_checks.created_by
-                WHERE status = 'approved'
+                FROM stock_checks sc
+                LEFT JOIN warehouses w ON w.id = sc.warehouse_id
+                LEFT JOIN auth_user u ON u.id = sc.created_by
+                WHERE sc.status = 'approved'
                 {$dateCond('check_date')}"
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
                 . ($v['salesman_id'] ?? null ? " AND created_by = {$v['salesman_id']}" : '');
@@ -371,7 +368,7 @@ class BusinessHistoryController extends Controller
                 FROM assembly_orders ac
                 LEFT JOIN warehouses w ON w.id = ac.warehouse_id
                 LEFT JOIN auth_user u ON u.id = ac.salesman_id
-                WHERE status = 'approved'
+                WHERE ac.status = 'approved'
                 {$dateCond('assembly_date')}"
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
                 . ($v['salesman_id'] ?? null ? " AND salesman_id = {$v['salesman_id']}" : '');
@@ -394,7 +391,7 @@ class BusinessHistoryController extends Controller
                 FROM split_orders sp
                 LEFT JOIN warehouses w ON w.id = sp.warehouse_id
                 LEFT JOIN auth_user u ON u.id = sp.salesman_id
-                WHERE status = 'approved'
+                WHERE sp.status = 'approved'
                 {$dateCond('split_date')}"
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
                 . ($v['salesman_id'] ?? null ? " AND salesman_id = {$v['salesman_id']}" : '');
