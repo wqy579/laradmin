@@ -175,6 +175,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'report.stock', 'title' => '库存报表', 'parent' => 'report', 'path' => '/business/report/stock', 'sort' => 2],
             ['name' => 'report.salesman', 'title' => '业务员报表', 'parent' => 'report', 'path' => '/business/report/salesman', 'sort' => 3],
             ['name' => 'report.combined', 'title' => '综合报表', 'parent' => 'report', 'path' => '/business/report/combined', 'sort' => 4],
+            ['name' => 'report.history', 'title' => '经营历程', 'parent' => 'report', 'path' => '/business/history', 'component' => 'business/history/index', 'sort' => 5],
         ];
 
         foreach ($reportMenus as $menu) {

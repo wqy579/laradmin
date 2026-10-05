@@ -155,14 +155,14 @@ class BusinessHistoryController extends Controller
                        COALESCE(c.name, '') as partner_name,
                        COALESCE(w.name, '') as warehouse_name,
                        COALESCE(u.real_name, u.username, '') as salesman_name,
-                       COALESCE(total_amount - discount_amount, 0) as income,
+                       COALESCE(total_amount, 0) as income,
                        0 as expense,
                        COALESCE(remark, '') as remark,
                        id
                 FROM sales_orders
                 LEFT JOIN customers c ON c.id = sales_orders.customer_id
                 LEFT JOIN warehouses w ON w.id = sales_orders.warehouse_id
-                LEFT JOIN auth_user u ON u.id = sales_orders.salesman_id AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = sales_orders.salesman_id
                 WHERE status IN ('approved', 'completed')
                 {$dateCond('order_date')}"
                 . ($v['salesman_id'] ?? null ? " AND salesman_id = {$v['salesman_id']}" : '')
@@ -211,7 +211,7 @@ class BusinessHistoryController extends Controller
                 FROM stock_ins
                 LEFT JOIN suppliers s ON s.id = stock_ins.supplier_id
                 LEFT JOIN warehouses w ON w.id = stock_ins.warehouse_id
-                LEFT JOIN auth_user u ON u.id = stock_ins.created_by AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = stock_ins.created_by
                 WHERE 1=1
                 {$dateCond('stock_date')}"
                 . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
@@ -234,7 +234,7 @@ class BusinessHistoryController extends Controller
                        id
                 FROM purchase_returns
                 LEFT JOIN warehouses w ON w.id = purchase_returns.warehouse_id
-                LEFT JOIN auth_user u ON u.id = purchase_returns.created_by AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = purchase_returns.created_by
                 WHERE status = 'approved'
                 {$dateCond('return_date')}"
                 . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
@@ -257,7 +257,7 @@ class BusinessHistoryController extends Controller
                        id
                 FROM sales_returns
                 LEFT JOIN warehouses w ON w.id = sales_returns.warehouse_id
-                LEFT JOIN auth_user u ON u.id = sales_returns.created_by AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = sales_returns.created_by
                 WHERE status = 'approved'
                 {$dateCond('return_date')}"
                 . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
@@ -280,7 +280,7 @@ class BusinessHistoryController extends Controller
                        id
                 FROM receives
                 LEFT JOIN customers c ON c.id = receives.customer_id
-                LEFT JOIN auth_user u ON u.id = receives.handler_id AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = receives.handler_id
                 WHERE status = 1
                 {$dateCond('receive_date')}"
                 . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
@@ -303,7 +303,7 @@ class BusinessHistoryController extends Controller
                        id
                 FROM pays
                 LEFT JOIN suppliers s ON s.id = pays.supplier_id
-                LEFT JOIN auth_user u ON u.id = pays.handler_id AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = pays.handler_id
                 WHERE status = 1
                 {$dateCond('pay_date')}"
                 . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
@@ -325,7 +325,7 @@ class BusinessHistoryController extends Controller
                        CONCAT(COALESCE(expense_type, ''), '：', COALESCE(remark, '')) as remark,
                        id
                 FROM expenses
-                LEFT JOIN auth_user u ON u.id = expenses.handler_id AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = expenses.handler_id
                 WHERE status = 1
                 {$dateCond('expense_date')}"
                 . ($v['salesman_id'] ?? null ? " AND handler_id = {$v['salesman_id']}" : '');
@@ -347,7 +347,7 @@ class BusinessHistoryController extends Controller
                        id
                 FROM stock_checks
                 LEFT JOIN warehouses w ON w.id = stock_checks.warehouse_id
-                LEFT JOIN auth_user u ON u.id = stock_checks.created_by AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = stock_checks.created_by
                 WHERE status = 'approved'
                 {$dateCond('check_date')}"
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
@@ -370,7 +370,7 @@ class BusinessHistoryController extends Controller
                        id
                 FROM assembly_orders
                 LEFT JOIN warehouses w ON w.id = assembly_orders.warehouse_id
-                LEFT JOIN auth_user u ON u.id = assembly_orders.salesman_id AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = assembly_orders.salesman_id
                 WHERE status = 'approved'
                 {$dateCond('assembly_date')}"
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
@@ -393,7 +393,7 @@ class BusinessHistoryController extends Controller
                        id
                 FROM split_orders
                 LEFT JOIN warehouses w ON w.id = split_orders.warehouse_id
-                LEFT JOIN auth_user u ON u.id = split_orders.salesman_id AND u.deleted_at IS NULL
+                LEFT JOIN auth_user u ON u.id = split_orders.salesman_id
                 WHERE status = 'approved'
                 {$dateCond('split_date')}"
                 . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
