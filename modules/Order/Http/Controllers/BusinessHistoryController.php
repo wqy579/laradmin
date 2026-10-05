@@ -150,7 +150,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('sales_order', $types)) {
             $parts[] = "
                 SELECT 'sales_order' as type_key, '销售订单' as type_label, 'primary' as type_color,
-                       order_date as date, order_no, customer_id, NULL as supplier_id,
+                       order_date as `date`, order_no, customer_id, NULL as supplier_id,
                        warehouse_id, salesman_id,
                        COALESCE(c.name, '') as partner_name,
                        COALESCE(w.name, '') as warehouse_name,
@@ -174,7 +174,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('delivery', $types)) {
             $parts[] = "
                 SELECT 'delivery' as type_key, '销售出库' as type_label, 'success' as type_color,
-                       d.delivery_date as date, d.delivery_no as order_no,
+                       d.delivery_date as `date`, d.delivery_no as order_no,
                        d.customer_id, NULL as supplier_id,
                        d.warehouse_id, NULL as salesman_id,
                        COALESCE(c.name, '') as partner_name,
@@ -198,7 +198,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('stock_in', $types)) {
             $parts[] = "
                 SELECT 'stock_in' as type_key, '采购入库' as type_label, 'success' as type_color,
-                       stock_date as date, order_no,
+                       stock_date as `date`, order_no,
                        NULL as customer_id, supplier_id,
                        warehouse_id, NULL as salesman_id,
                        COALESCE(s.name, '') as partner_name,
@@ -222,7 +222,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('purchase_return', $types)) {
             $parts[] = "
                 SELECT 'purchase_return' as type_key, '采购退货' as type_label, 'warning' as type_color,
-                       return_date as date, return_no,
+                       return_date as `date`, return_no,
                        NULL as customer_id, supplier_id,
                        warehouse_id, NULL as salesman_id,
                        COALESCE(supplier_name, '') as partner_name,
@@ -245,7 +245,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('sales_return', $types)) {
             $parts[] = "
                 SELECT 'sales_return' as type_key, '销售退货' as type_label, 'warning' as type_color,
-                       return_date as date, return_no,
+                       return_date as `date`, return_no,
                        customer_id, NULL as supplier_id,
                        warehouse_id, NULL as salesman_id,
                        COALESCE(customer_name, '') as partner_name,
@@ -268,7 +268,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('receive', $types)) {
             $parts[] = "
                 SELECT 'receive' as type_key, '收款单' as type_label, 'danger' as type_color,
-                       receive_date as date, receive_no as order_no,
+                       receive_date as `date`, receive_no as order_no,
                        customer_id, NULL as supplier_id,
                        NULL as warehouse_id, handler_id as salesman_id,
                        COALESCE(c.name, '') as partner_name,
@@ -291,7 +291,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('pay', $types)) {
             $parts[] = "
                 SELECT 'pay' as type_key, '付款单' as type_label, 'warning' as type_color,
-                       pay_date as date, pay_no as order_no,
+                       pay_date as `date`, pay_no as order_no,
                        NULL as customer_id, supplier_id,
                        NULL as warehouse_id, handler_id as salesman_id,
                        COALESCE(s.name, '') as partner_name,
@@ -314,7 +314,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('expense', $types)) {
             $parts[] = "
                 SELECT 'expense' as type_key, '现金费用' as type_label, 'info' as type_color,
-                       expense_date as date, expense_no as order_no,
+                       expense_date as `date`, expense_no as order_no,
                        NULL as customer_id, NULL as supplier_id,
                        NULL as warehouse_id, handler_id as salesman_id,
                        '' as partner_name,
@@ -335,7 +335,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('stock_check', $types)) {
             $parts[] = "
                 SELECT 'stock_check' as type_key, '库存盘点' as type_label, 'danger' as type_color,
-                       check_date as date, check_no as order_no,
+                       check_date as `date`, check_no as order_no,
                        NULL as customer_id, NULL as supplier_id,
                        warehouse_id, created_by as salesman_id,
                        '' as partner_name,
@@ -358,7 +358,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('assembly', $types)) {
             $parts[] = "
                 SELECT 'assembly' as type_key, '商品组装' as type_label, 'info' as type_color,
-                       assembly_date as date, assembly_no as order_no,
+                       assembly_date as `date`, assembly_no as order_no,
                        NULL as customer_id, NULL as supplier_id,
                        warehouse_id, salesman_id,
                        '' as partner_name,
@@ -381,7 +381,7 @@ class BusinessHistoryController extends Controller
         if ($allTypes || in_array('split', $types)) {
             $parts[] = "
                 SELECT 'split' as type_key, '商品拆分' as type_label, 'success' as type_color,
-                       split_date as date, split_no as order_no,
+                       split_date as `date`, split_no as order_no,
                        NULL as customer_id, NULL as supplier_id,
                        warehouse_id, salesman_id,
                        '' as partner_name,
@@ -401,7 +401,7 @@ class BusinessHistoryController extends Controller
         }
 
         if (empty($parts)) {
-            return "SELECT NULL as type_key, NULL as type_label, NULL as type_color, NULL as date, NULL as order_no, NULL as customer_id, NULL as supplier_id, NULL as warehouse_id, NULL as salesman_id, NULL as partner_name, NULL as warehouse_name, NULL as salesman_name, 0 as income, 0 as expense, NULL as remark, 0 as id WHERE 1=0";
+            return "SELECT NULL as type_key, NULL as type_label, NULL as type_color, NULL as `date`, NULL as order_no, NULL as customer_id, NULL as supplier_id, NULL as warehouse_id, NULL as salesman_id, NULL as partner_name, NULL as warehouse_name, NULL as salesman_name, 0 as income, 0 as expense, NULL as remark, 0 as id WHERE 1=0";
         }
 
         $sql = implode(' UNION ALL ', $parts);
