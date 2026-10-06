@@ -45,6 +45,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          timeout: 120s
           script: rm -rf /tmp/laradmin-deploy && mkdir -p /tmp/laradmin-deploy
 
       # ========== 上传到服务器 ==========
@@ -54,6 +55,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          timeout: 120s
           source: "deploy_pkg/*"
           target: /tmp/laradmin-deploy
           strip_components: 1
@@ -65,6 +67,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          timeout: 120s
           # 默认 command_timeout=10m 偏紧：composer install（内层 timeout 180）+
           # dump-autoload（120）+ migrate + rsync + worker 重启，遇 packagist 慢
           # 时会撞穿 10m 被强杀（2026-09-22 21862e6 的 Deploy on server 即如此）。
