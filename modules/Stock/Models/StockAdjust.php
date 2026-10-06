@@ -5,6 +5,7 @@ namespace Modules\Stock\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Auth\Models\User as AdminUser;
 
 /**
  * 库存调整单主表
@@ -57,11 +58,11 @@ class StockAdjust extends Model
 
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(auth()->guard('admin')->model(), 'created_by', 'id');
+        return $this->belongsTo(AdminUser::class, 'created_by');
     }
 
     public function approver(): BelongsTo
     {
-        return $this->belongsTo(auth()->guard('admin')->model(), 'approved_by', 'id');
+        return $this->belongsTo(AdminUser::class, 'approved_by');
     }
 }
