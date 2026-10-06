@@ -40,15 +40,15 @@ class BusinessHistoryController extends Controller
     {
         $validated = $request->validate([
             'start_date' => 'nullable|date',
-            'end_date'   => 'nullable|date',
-            'types'      => 'nullable|array',
+            'end_date' => 'nullable|date',
+            'types' => 'nullable|array',
             'salesman_id' => 'nullable|integer',
             'customer_id' => 'nullable|integer',
             'supplier_id' => 'nullable|integer',
             'warehouse_id' => 'nullable|integer',
-            'order_no'   => 'nullable|string|max:50',
-            'page'       => 'nullable|integer|min:1',
-            'page_size'  => 'nullable|integer|min:1|max:200',
+            'order_no' => 'nullable|string|max:50',
+            'page' => 'nullable|integer|min:1',
+            'page_size' => 'nullable|integer|min:1|max:200',
         ]);
 
         $pageSize = (int) ($validated['page_size'] ?? 20);
@@ -80,8 +80,8 @@ class BusinessHistoryController extends Controller
     {
         $validated = $request->validate([
             'start_date' => 'nullable|date',
-            'end_date'   => 'nullable|date',
-            'types'      => 'nullable|array',
+            'end_date' => 'nullable|date',
+            'types' => 'nullable|array',
             'salesman_id' => 'nullable|integer',
             'customer_id' => 'nullable|integer',
             'supplier_id' => 'nullable|integer',
@@ -110,13 +110,13 @@ class BusinessHistoryController extends Controller
     {
         $validated = $request->validate([
             'start_date' => 'nullable|date',
-            'end_date'   => 'nullable|date',
-            'types'      => 'nullable|array',
+            'end_date' => 'nullable|date',
+            'types' => 'nullable|array',
             'salesman_id' => 'nullable|integer',
             'customer_id' => 'nullable|integer',
             'supplier_id' => 'nullable|integer',
             'warehouse_id' => 'nullable|integer',
-            'order_no'   => 'nullable|string|max:50',
+            'order_no' => 'nullable|string|max:50',
         ]);
 
         $sql = $this->buildUnionSQL($validated);
@@ -142,7 +142,7 @@ class BusinessHistoryController extends Controller
 
         return response($csv, 200, [
             'Content-Type' => 'text/csv; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="经营历程_' . date('Ymd') . '.csv"',
+            'Content-Disposition' => 'attachment; filename="经营历程_'.date('Ymd').'.csv"',
         ]);
     }
 
@@ -344,10 +344,10 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('so', 'sales_orders', 'remark')} as remark,
                        so.id
                 FROM sales_orders so
-                ".$this->join('LEFT JOIN customers c ON c.id = so.customer_id', 'sales_orders', 'customer_id')."
-                ".$this->join('LEFT JOIN warehouses w ON w.id = so.warehouse_id', 'sales_orders', 'warehouse_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = so.salesman_id', 'sales_orders', 'salesman_id')."
-                WHERE ".($this->hasColumn('sales_orders', 'status')
+                ".$this->join('LEFT JOIN customers c ON c.id = so.customer_id', 'sales_orders', 'customer_id').'
+                '.$this->join('LEFT JOIN warehouses w ON w.id = so.warehouse_id', 'sales_orders', 'warehouse_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = so.salesman_id', 'sales_orders', 'salesman_id').'
+                WHERE '.($this->hasColumn('sales_orders', 'status')
                     ? "so.status IN ('approved', 'completed')"
                     : '1=1')."
                 {$this->dateCond($v, 'so', 'sales_orders', 'order_date')}"
@@ -374,10 +374,10 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('d', 'deliveries', 'remark')} as remark,
                        d.id
                 FROM deliveries d
-                ".$this->join('LEFT JOIN customers c ON c.id = d.customer_id', 'deliveries', 'customer_id')."
-                ".$this->join('LEFT JOIN warehouses w ON w.id = d.warehouse_id', 'deliveries', 'warehouse_id')."
-                ".($this->hasTable('sales_orders') ? $this->join('LEFT JOIN sales_orders so ON so.id = d.order_id', 'deliveries', 'order_id') : '')."
-                WHERE ".($this->hasColumn('deliveries', 'status') ? 'd.status >= 1' : '1=1')."
+                ".$this->join('LEFT JOIN customers c ON c.id = d.customer_id', 'deliveries', 'customer_id').'
+                '.$this->join('LEFT JOIN warehouses w ON w.id = d.warehouse_id', 'deliveries', 'warehouse_id').'
+                '.($this->hasTable('sales_orders') ? $this->join('LEFT JOIN sales_orders so ON so.id = d.order_id', 'deliveries', 'order_id') : '').'
+                WHERE '.($this->hasColumn('deliveries', 'status') ? 'd.status >= 1' : '1=1')."
                 {$this->dateCond($v, 'd', 'deliveries', 'delivery_date')}"
                 .$this->filter($v['customer_id'] ?? null, 'd', 'deliveries', 'customer_id')
                 .$this->filter($v['warehouse_id'] ?? null, 'd', 'deliveries', 'warehouse_id');
@@ -401,9 +401,9 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('si', 'stock_ins', 'remark')} as remark,
                        si.id
                 FROM stock_ins si
-                ".$this->join('LEFT JOIN suppliers s ON s.id = si.supplier_id', 'stock_ins', 'supplier_id')."
-                ".$this->join('LEFT JOIN warehouses w ON w.id = si.warehouse_id', 'stock_ins', 'warehouse_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = si.created_by', 'stock_ins', 'created_by')."
+                ".$this->join('LEFT JOIN suppliers s ON s.id = si.supplier_id', 'stock_ins', 'supplier_id').'
+                '.$this->join('LEFT JOIN warehouses w ON w.id = si.warehouse_id', 'stock_ins', 'warehouse_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = si.created_by', 'stock_ins', 'created_by')."
                 WHERE 1=1
                 {$this->dateCond($v, 'si', 'stock_ins', 'stock_date')}"
                 .$this->filter($v['supplier_id'] ?? null, 'si', 'stock_ins', 'supplier_id')
@@ -428,9 +428,9 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('pr', 'purchase_returns', 'remark')} as remark,
                        pr.id
                 FROM purchase_returns pr
-                ".$this->join('LEFT JOIN warehouses w ON w.id = pr.warehouse_id', 'purchase_returns', 'warehouse_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = pr.created_by', 'purchase_returns', 'created_by')."
-                WHERE ".($this->hasColumn('purchase_returns', 'status') ? "pr.status = 'approved'" : '1=1')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = pr.warehouse_id', 'purchase_returns', 'warehouse_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = pr.created_by', 'purchase_returns', 'created_by').'
+                WHERE '.($this->hasColumn('purchase_returns', 'status') ? "pr.status = 'approved'" : '1=1')."
                 {$this->dateCond($v, 'pr', 'purchase_returns', 'return_date')}"
                 .$this->filter($v['supplier_id'] ?? null, 'pr', 'purchase_returns', 'supplier_id')
                 .$this->filter($v['warehouse_id'] ?? null, 'pr', 'purchase_returns', 'warehouse_id');
@@ -454,9 +454,9 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('sr', 'sales_returns', 'remark')} as remark,
                        sr.id
                 FROM sales_returns sr
-                ".$this->join('LEFT JOIN warehouses w ON w.id = sr.warehouse_id', 'sales_returns', 'warehouse_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = sr.created_by', 'sales_returns', 'created_by')."
-                WHERE ".($this->hasColumn('sales_returns', 'status') ? "sr.status = 'approved'" : '1=1')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = sr.warehouse_id', 'sales_returns', 'warehouse_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = sr.created_by', 'sales_returns', 'created_by').'
+                WHERE '.($this->hasColumn('sales_returns', 'status') ? "sr.status = 'approved'" : '1=1')."
                 {$this->dateCond($v, 'sr', 'sales_returns', 'return_date')}"
                 .$this->filter($v['customer_id'] ?? null, 'sr', 'sales_returns', 'customer_id')
                 .$this->filter($v['warehouse_id'] ?? null, 'sr', 'sales_returns', 'warehouse_id');
@@ -480,9 +480,9 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('rc', 'receives', 'remark')} as remark,
                        rc.id
                 FROM receives rc
-                ".$this->join('LEFT JOIN customers c ON c.id = rc.customer_id', 'receives', 'customer_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = rc.handler_id', 'receives', 'handler_id')."
-                WHERE ".($this->hasColumn('receives', 'status') ? 'rc.status = 1' : '1=1')."
+                ".$this->join('LEFT JOIN customers c ON c.id = rc.customer_id', 'receives', 'customer_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = rc.handler_id', 'receives', 'handler_id').'
+                WHERE '.($this->hasColumn('receives', 'status') ? 'rc.status = 1' : '1=1')."
                 {$this->dateCond($v, 'rc', 'receives', 'receive_date')}"
                 .$this->filter($v['customer_id'] ?? null, 'rc', 'receives', 'customer_id')
                 .$this->filter($v['salesman_id'] ?? null, 'rc', 'receives', 'handler_id');
@@ -506,9 +506,9 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('py', 'pays', 'remark')} as remark,
                        py.id
                 FROM pays py
-                ".$this->join('LEFT JOIN suppliers s ON s.id = py.supplier_id', 'pays', 'supplier_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = py.handler_id', 'pays', 'handler_id')."
-                WHERE ".($this->hasColumn('pays', 'status') ? 'py.status = 1' : '1=1')."
+                ".$this->join('LEFT JOIN suppliers s ON s.id = py.supplier_id', 'pays', 'supplier_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = py.handler_id', 'pays', 'handler_id').'
+                WHERE '.($this->hasColumn('pays', 'status') ? 'py.status = 1' : '1=1')."
                 {$this->dateCond($v, 'py', 'pays', 'pay_date')}"
                 .$this->filter($v['supplier_id'] ?? null, 'py', 'pays', 'supplier_id')
                 .$this->filter($v['salesman_id'] ?? null, 'py', 'pays', 'handler_id');
@@ -534,8 +534,8 @@ class BusinessHistoryController extends Controller
                        {$remark} as remark,
                        ex.id
                 FROM expenses ex
-                ".$this->join('LEFT JOIN auth_user u ON u.id = ex.handler_id', 'expenses', 'handler_id')."
-                WHERE ".($this->hasColumn('expenses', 'status') ? 'ex.status = 1' : '1=1')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = ex.handler_id', 'expenses', 'handler_id').'
+                WHERE '.($this->hasColumn('expenses', 'status') ? 'ex.status = 1' : '1=1')."
                 {$this->dateCond($v, 'ex', 'expenses', 'expense_date')}"
                 .$this->filter($v['salesman_id'] ?? null, 'ex', 'expenses', 'handler_id');
         }
@@ -561,9 +561,9 @@ class BusinessHistoryController extends Controller
                        {$remark} as remark,
                        sc.id
                 FROM stock_checks sc
-                ".$this->join('LEFT JOIN warehouses w ON w.id = sc.warehouse_id', 'stock_checks', 'warehouse_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = sc.created_by', 'stock_checks', 'created_by')."
-                WHERE ".($this->hasColumn('stock_checks', 'status') ? "sc.status = 'approved'" : '1=1')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = sc.warehouse_id', 'stock_checks', 'warehouse_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = sc.created_by', 'stock_checks', 'created_by').'
+                WHERE '.($this->hasColumn('stock_checks', 'status') ? "sc.status = 'approved'" : '1=1')."
                 {$this->dateCond($v, 'sc', 'stock_checks', 'check_date')}"
                 .$this->filter($v['warehouse_id'] ?? null, 'sc', 'stock_checks', 'warehouse_id')
                 .$this->filter($v['salesman_id'] ?? null, 'sc', 'stock_checks', 'created_by');
@@ -586,9 +586,9 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('ac', 'assembly_orders', 'remark')} as remark,
                        ac.id
                 FROM assembly_orders ac
-                ".$this->join('LEFT JOIN warehouses w ON w.id = ac.warehouse_id', 'assembly_orders', 'warehouse_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = ac.salesman_id', 'assembly_orders', 'salesman_id')."
-                WHERE ".($this->hasColumn('assembly_orders', 'status') ? "ac.status = 'approved'" : '1=1')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = ac.warehouse_id', 'assembly_orders', 'warehouse_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = ac.salesman_id', 'assembly_orders', 'salesman_id').'
+                WHERE '.($this->hasColumn('assembly_orders', 'status') ? "ac.status = 'approved'" : '1=1')."
                 {$this->dateCond($v, 'ac', 'assembly_orders', 'assembly_date')}"
                 .$this->filter($v['warehouse_id'] ?? null, 'ac', 'assembly_orders', 'warehouse_id')
                 .$this->filter($v['salesman_id'] ?? null, 'ac', 'assembly_orders', 'salesman_id');
@@ -611,9 +611,9 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('sp', 'split_orders', 'remark')} as remark,
                        sp.id
                 FROM split_orders sp
-                ".$this->join('LEFT JOIN warehouses w ON w.id = sp.warehouse_id', 'split_orders', 'warehouse_id')."
-                ".$this->join('LEFT JOIN auth_user u ON u.id = sp.salesman_id', 'split_orders', 'salesman_id')."
-                WHERE ".($this->hasColumn('split_orders', 'status') ? "sp.status = 'approved'" : '1=1')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = sp.warehouse_id', 'split_orders', 'warehouse_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = sp.salesman_id', 'split_orders', 'salesman_id').'
+                WHERE '.($this->hasColumn('split_orders', 'status') ? "sp.status = 'approved'" : '1=1')."
                 {$this->dateCond($v, 'sp', 'split_orders', 'split_date')}"
                 .$this->filter($v['warehouse_id'] ?? null, 'sp', 'split_orders', 'warehouse_id')
                 .$this->filter($v['salesman_id'] ?? null, 'sp', 'split_orders', 'salesman_id');
@@ -636,20 +636,20 @@ class BusinessHistoryController extends Controller
                        {$this->strExpr('sa', 'stock_adjusts', 'reason')} as remark,
                        sa.id
                 FROM stock_adjusts sa
-                ".$this->join('LEFT JOIN warehouses w ON w.id = sa.warehouse_id', 'stock_adjusts', 'warehouse_id')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = sa.warehouse_id', 'stock_adjusts', 'warehouse_id').'
                 LEFT JOIN auth_user u ON u.id = sa.created_by
-                WHERE ".($this->hasColumn('stock_adjusts', 'status') ? "sa.status = 'approved'" : '1=1')."
+                WHERE '.($this->hasColumn('stock_adjusts', 'status') ? "sa.status = 'approved'" : '1=1')."
                 {$this->dateCond($v, 'sa', 'stock_adjusts', 'adjust_date')}"
                 .$this->filter($v['warehouse_id'] ?? null, 'sa', 'stock_adjusts', 'warehouse_id')
                 .$this->filter($v['salesman_id'] ?? null, 'sa', 'stock_adjusts', 'created_by');
         }
 
         if (empty($parts)) {
-            return "SELECT NULL as type_key, NULL as type_label, NULL as type_color, NULL as `date`,
+            return 'SELECT NULL as type_key, NULL as type_label, NULL as type_color, NULL as `date`,
                     NULL as order_no, NULL as customer_id, NULL as supplier_id, NULL as warehouse_id,
                     NULL as salesman_id, NULL as partner_name, NULL as warehouse_name,
                     NULL as salesman_name, 0 as income, 0 as expense, NULL as remark, 0 as id
-                    WHERE 1=0";
+                    WHERE 1=0';
         }
 
         $sql = implode(' UNION ALL ', $parts);

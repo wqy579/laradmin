@@ -27,7 +27,9 @@ class AssemblyService
             // 1. 子件出库，累加总成本
             foreach ($a->items as $item) {
                 $usage = (int) $item->total_usage;
-                if ($usage <= 0) continue;
+                if ($usage <= 0) {
+                    continue;
+                }
 
                 // 校验可用库存
                 $childStock = DB::table('stocks')
@@ -35,8 +37,8 @@ class AssemblyService
                     ->where('warehouse_id', $wid)
                     ->lockForUpdate()
                     ->first();
-                $available = ($childStock ? (int)$childStock->quantity : 0) -
-                             ($childStock ? (int)$childStock->frozen_qty : 0);
+                $available = ($childStock ? (int) $childStock->quantity : 0) -
+                             ($childStock ? (int) $childStock->frozen_qty : 0);
                 if ($available < $usage) {
                     throw new \RuntimeException(sprintf(
                         '子件 "%s" 可用库存不足：可用 %d，需要 %d',
@@ -52,7 +54,7 @@ class AssemblyService
 
                 // 使用 stockService 出库
                 $this->stockService->stockOut(
-                    (int)$item->product_id, $wid, $usage, $a->id, 'Assembly'
+                    (int) $item->product_id, $wid, $usage, $a->id, 'Assembly'
                 );
 
                 // 更新明细行成本
@@ -71,8 +73,8 @@ class AssemblyService
                 ->where('warehouse_id', $wid)
                 ->lockForUpdate()
                 ->first();
-            $oldQty = $parentStock ? (int)$parentStock->quantity : 0;
-            $oldCost = $parentStock ? (float)$parentStock->cost_price : 0;
+            $oldQty = $parentStock ? (int) $parentStock->quantity : 0;
+            $oldCost = $parentStock ? (float) $parentStock->cost_price : 0;
             $newCost = $newQty > 0 ? $totalCost / $newQty : 0;
             $weightedCost = ($oldQty + $newQty) > 0
                 ? round(($oldQty * $oldCost + $newQty * $newCost) / ($oldQty + $newQty), 2)
@@ -80,7 +82,7 @@ class AssemblyService
 
             // 3. 父件入库
             $this->stockService->stockIn(
-                (int)$a->parent_product_id, $wid, $newQty, $weightedCost, $a->id, 'Assembly'
+                (int) $a->parent_product_id, $wid, $newQty, $weightedCost, $a->id, 'Assembly'
             );
 
             // 4. 同步 products.cost_price
@@ -104,7 +106,7 @@ class AssemblyService
                 'related_type' => 'Assembly',
                 'operator_id' => $adminId,
                 'operator_name' => $adminName,
-                'remark' => '组装入库结转：' . $a->assembly_no,
+                'remark' => '组装入库结转：'.$a->assembly_no,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -120,9 +122,9 @@ class AssemblyService
                 'operator_name' => $adminName,
                 'action' => 'approve',
                 'action_label' => '组装审核通过',
-                'detail' => '商品组装审核通过：' . $a->parent_product_name . '×' . $newQty .
-                    '，子件' . $a->items->count() . '种，总成本¥' . number_format($totalCost, 2) .
-                    '，父件单位成本¥' . number_format($weightedCost, 2),
+                'detail' => '商品组装审核通过：'.$a->parent_product_name.'×'.$newQty.
+                    '，子件'.$a->items->count().'种，总成本¥'.number_format($totalCost, 2).
+                    '，父件单位成本¥'.number_format($weightedCost, 2),
                 'remark' => $comment,
                 'from_status' => 'pending',
                 'to_status' => 'approved',
@@ -178,9 +180,9 @@ class AssemblyService
                 ->where('warehouse_id', $wid)
                 ->lockForUpdate()
                 ->first();
-            $parentCost = $parentStock ? (float)$parentStock->cost_price : 0;
+            $parentCost = $parentStock ? (float) $parentStock->cost_price : 0;
             $this->stockService->stockOut(
-                (int)$s->parent_product_id, $wid, $splitQty, $s->id, 'Disassembly'
+                (int) $s->parent_product_id, $wid, $splitQty, $s->id, 'Disassembly'
             );
             $parentTotalCost = round($parentCost * $splitQty, 2);
 
@@ -190,15 +192,17 @@ class AssemblyService
             $priceSum = 0.0;
             $qtySum = 0;
             foreach ($items as $item) {
-                $price = (float)($item->product?->price_small ?? 0);
+                $price = (float) ($item->product?->price_small ?? 0);
                 $priceMap[$item->id] = $price;
                 $priceSum += $price;
-                $qtySum += (int)$item->split_total;
+                $qtySum += (int) $item->split_total;
             }
 
             foreach ($items as $item) {
-                $splitTotal = (int)$item->split_total;
-                if ($splitTotal <= 0) continue;
+                $splitTotal = (int) $item->split_total;
+                if ($splitTotal <= 0) {
+                    continue;
+                }
 
                 // 本次分摊成本：父件总成本 × (子件售价占比 或 数量占比)
                 if ($priceSum > 0) {
@@ -216,15 +220,15 @@ class AssemblyService
                     ->where('warehouse_id', $wid)
                     ->lockForUpdate()
                     ->first();
-                $oldQty = $childStock ? (int)$childStock->quantity : 0;
-                $oldCost = $childStock ? (float)$childStock->cost_price : 0;
+                $oldQty = $childStock ? (int) $childStock->quantity : 0;
+                $oldCost = $childStock ? (float) $childStock->cost_price : 0;
                 $weightedCost = ($oldQty + $splitTotal) > 0
                     ? round(($oldQty * $oldCost + $splitTotal * $allocatedUnitCost) / ($oldQty + $splitTotal), 2)
                     : $allocatedUnitCost;
 
                 // 子件入库（用加权成本）
                 $this->stockService->stockIn(
-                    (int)$item->product_id, $wid, $splitTotal, $weightedCost, $s->id, 'Disassembly'
+                    (int) $item->product_id, $wid, $splitTotal, $weightedCost, $s->id, 'Disassembly'
                 );
 
                 // 更新 products.cost_price（加权平均）
@@ -248,7 +252,7 @@ class AssemblyService
                     'related_type' => 'Disassembly',
                     'operator_id' => $adminId,
                     'operator_name' => $adminName,
-                    'remark' => '拆分入库结转：' . $s->split_no,
+                    'remark' => '拆分入库结转：'.$s->split_no,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -274,8 +278,8 @@ class AssemblyService
                 'operator_name' => $adminName,
                 'action' => 'approve',
                 'action_label' => '拆分审核通过',
-                'detail' => '商品拆分审核通过：' . $s->parent_product_name . '×' . $splitQty .
-                    '，拆出子件' . $items->count() . '种，分摊总成本¥' . number_format($parentTotalCost, 2),
+                'detail' => '商品拆分审核通过：'.$s->parent_product_name.'×'.$splitQty.
+                    '，拆出子件'.$items->count().'种，分摊总成本¥'.number_format($parentTotalCost, 2),
                 'remark' => $comment,
                 'from_status' => 'pending',
                 'to_status' => 'approved',
@@ -317,14 +321,14 @@ class AssemblyService
      */
     private function resolveUnitCost($item, ?object $stock): float
     {
-        $provided = (float)$item->unit_cost;
+        $provided = (float) $item->unit_cost;
         if ($provided > 0) {
             return $provided;
         }
-        if ($stock && (float)$stock->cost_price > 0) {
-            return (float)$stock->cost_price;
+        if ($stock && (float) $stock->cost_price > 0) {
+            return (float) $stock->cost_price;
         }
-        $productCost = (float)DB::table('products')
+        $productCost = (float) DB::table('products')
             ->where('id', $item->product_id)
             ->value('cost_price');
         if ($productCost > 0) {

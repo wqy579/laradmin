@@ -90,10 +90,12 @@ class SplitController extends Controller
                     }
                     if ($split->status === 'approved') {
                         $skipped[] = ['id' => $id, 'reason' => '已审核'];
+
                         continue;
                     }
                     if ($split->status !== 'pending') {
                         $skipped[] = ['id' => $id, 'reason' => '非待审核'];
+
                         continue;
                     }
                     $this->assemblyService->approveSplit($split, $adminId, $adminName, '批量审核通过');

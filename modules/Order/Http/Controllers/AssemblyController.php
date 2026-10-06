@@ -90,10 +90,12 @@ class AssemblyController extends Controller
                     }
                     if ($assembly->status === 'approved') {
                         $skipped[] = ['id' => $id, 'reason' => '已审核'];
+
                         continue;
                     }
                     if ($assembly->status !== 'pending') {
                         $skipped[] = ['id' => $id, 'reason' => '非待审核'];
+
                         continue;
                     }
                     $this->assemblyService->approveAssembly($assembly, $adminId, $adminName, '批量审核通过');
