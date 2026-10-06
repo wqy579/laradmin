@@ -196,7 +196,6 @@ const businessApi = {
 		reject: { post: (id, params) => request.post(`business/stock-adjust/${id}/reject`, params) },
 		cancel: { post: (id) => request.post(`business/stock-adjust/${id}/cancel`) },
 		warehouseProducts: { get: (params) => request.get('business/stock-adjust/warehouse-products', { params }) },
-		warehouseProducts: { get: (params) => request.get('business/stock-adjust/warehouse-products', { params }) },
 	},
 
 	// 促销管理
