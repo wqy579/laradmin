@@ -25,7 +25,9 @@ class StockAdjustController extends Controller
 {
     use ResponseTrait;
 
-    public function __construct(private StockService $stockService) {}
+    public function __construct(private StockService $stockService)
+    {
+    }
 
     /**
      * 指定仓库的全部商品账面库存（新增调整单时加载明细用）。
@@ -63,7 +65,7 @@ class StockAdjustController extends Controller
     /** 列表（分页 + 仓库/状态/日期/单号筛选） */
     public function index(Request $request)
     {
-        $query = StockAdjust::with(['warehouse', 'creator' => fn ($q) => $q->select('id','username','real_name'), 'approver' => fn ($q) => $q->select('id','username','real_name')]);
+        $query = StockAdjust::with(['warehouse', 'creator' => fn ($q) => $q->select('id', 'username', 'real_name'), 'approver' => fn ($q) => $q->select('id', 'username', 'real_name')]);
 
         if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', (int) $request->input('warehouse_id'));
