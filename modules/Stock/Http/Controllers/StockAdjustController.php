@@ -25,9 +25,7 @@ class StockAdjustController extends Controller
 {
     use ResponseTrait;
 
-    public function __construct(private StockService $stockService)
-    {
-    }
+    public function __construct(private StockService $stockService) {}
 
     /**
      * 指定仓库的全部商品账面库存（新增调整单时加载明细用）。
