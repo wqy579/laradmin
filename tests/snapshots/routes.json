@@ -2926,7 +2926,7 @@
   {
     "method": "GET",
     "uri": "admin/business/stock-adjust/warehouse-products",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@warehouseProducts",
     "middleware": [
       "api",
@@ -2938,7 +2938,7 @@
   {
     "method": "GET",
     "uri": "admin/business/stock-adjust",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@index",
     "middleware": [
       "api",
@@ -2950,7 +2950,7 @@
   {
     "method": "POST",
     "uri": "admin/business/stock-adjust",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@store",
     "middleware": [
       "api",
@@ -2962,7 +2962,7 @@
   {
     "method": "GET",
     "uri": "admin/business/stock-adjust/{id}",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@show",
     "middleware": [
       "api",
@@ -2974,7 +2974,7 @@
   {
     "method": "PUT",
     "uri": "admin/business/stock-adjust/{id}",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@update",
     "middleware": [
       "api",
@@ -2986,7 +2986,7 @@
   {
     "method": "DELETE",
     "uri": "admin/business/stock-adjust/{id}",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@destroy",
     "middleware": [
       "api",
@@ -2998,7 +2998,7 @@
   {
     "method": "POST",
     "uri": "admin/business/stock-adjust/{id}/submit",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@submit",
     "middleware": [
       "api",
@@ -3010,7 +3010,7 @@
   {
     "method": "POST",
     "uri": "admin/business/stock-adjust/{id}/approve",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@approve",
     "middleware": [
       "api",
@@ -3022,7 +3022,7 @@
   {
     "method": "POST",
     "uri": "admin/business/stock-adjust/{id}/reject",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@reject",
     "middleware": [
       "api",
@@ -3034,7 +3034,7 @@
   {
     "method": "POST",
     "uri": "admin/business/stock-adjust/{id}/cancel",
-    "name": null,
+    "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@cancel",
     "middleware": [
       "api",

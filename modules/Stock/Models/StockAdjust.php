@@ -32,12 +32,17 @@ class StockAdjust extends Model
     ];
 
     const STATUS_DRAFT = 'draft';
+
     const STATUS_PENDING = 'pending';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_CANCELLED = 'cancelled';
 
     const TYPE_STOCK_LOSS = 'stock_loss';
+
     const TYPE_STOCK_GAIN = 'stock_gain';
+
     const TYPE_OTHER = 'other';
 
     public function items(): HasMany

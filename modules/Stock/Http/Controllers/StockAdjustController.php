@@ -53,6 +53,7 @@ class StockAdjustController extends Controller
             ->map(function ($r) {
                 $r->stock_qty = (int) $r->stock_qty;
                 $r->cost_price = (float) $r->cost_price;
+
                 return $r;
             });
 
