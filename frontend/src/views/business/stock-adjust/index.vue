@@ -83,6 +83,7 @@
 					<el-button v-if="row.status === 'draft'" link type="danger" @click="remove(row)">删除</el-button>
 					<el-button v-if="row.status === 'draft'" link type="success" @click="submit(row)">提交</el-button>
 					<el-button v-if="row.status === 'pending'" link type="success" @click="openAudit(row)">审核</el-button>
+					<el-button v-if="['draft','pending'].includes(row.status)" link type="warning" @click="docancel(row)">取消</el-button>
 					<el-button v-if="['pending','approved','cancelled'].includes(row.status)" link type="primary" @click="openDetail(row)">查看</el-button>
 				</template>
 			</sTable>
@@ -259,6 +260,17 @@ async function remove(row) {
 		fetchData()
 	} catch (e) {
 		if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '删除失败')
+	}
+}
+
+async function docancel(row) {
+	try {
+		await ElMessageBox.confirm(`确认取消调整单 ${row.adjust_no}？`, '提示', { type: 'warning' })
+		await businessApi.stockAdjust.cancel.post(row.id)
+		ElMessage.success('已取消')
+		fetchData()
+	} catch (e) {
+		if (e !== 'cancel') ElMessage.error(e?.response?.data?.message || '取消失败')
 	}
 }
 

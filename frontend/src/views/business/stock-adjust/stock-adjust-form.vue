@@ -1,6 +1,7 @@
 <template>
 	<el-dialog
-		v-model="visible"
+		:model-value="visible"
+		@update:model-value="$emit('update:visible', $event)"
 		:title="editRow ? '编辑库存调整单' : '新增库存调整单'"
 		width="1200px"
 		top="5vh"

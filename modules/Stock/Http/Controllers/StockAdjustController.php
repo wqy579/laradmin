@@ -27,6 +27,38 @@ class StockAdjustController extends Controller
 
     public function __construct(private StockService $stockService) {}
 
+    /**
+     * 指定仓库的全部商品账面库存（新增调整单时加载明细用）。
+     * 取该仓 stocks 行（含 0 库存商品），附成本价。
+     */
+    public function warehouseProducts(Request $request)
+    {
+        $request->validate(['warehouse_id' => 'required|exists:warehouses,id']);
+        $warehouseId = (int) $request->input('warehouse_id');
+
+        $products = DB::table('stocks as s')
+            ->join('products as p', 's.product_id', '=', 'p.id')
+            ->where('s.warehouse_id', $warehouseId)
+            ->where('p.is_active', 1)
+            ->orderBy('p.name')
+            ->get([
+                's.product_id',
+                'p.code as product_code',
+                'p.name as product_name',
+                'p.spec',
+                'p.price_unit_small as unit',
+                's.quantity as stock_qty',
+                's.cost_price',
+            ])
+            ->map(function ($r) {
+                $r->stock_qty = (int) $r->stock_qty;
+                $r->cost_price = (float) $r->cost_price;
+                return $r;
+            });
+
+        return $this->success(['list' => $products, 'total' => $products->count()]);
+    }
+
     /** 列表（分页 + 仓库/状态/日期/单号筛选） */
     public function index(Request $request)
     {

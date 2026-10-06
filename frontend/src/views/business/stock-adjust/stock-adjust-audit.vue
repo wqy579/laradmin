@@ -1,9 +1,10 @@
 <template>
 	<el-dialog
-		v-model="visible"
+		:model-value="visible"
 		title="审核库存调整单"
 		width="500px"
 		top="15vh"
+		@update:model-value="$emit('update:visible', $event)"
 		@close="$emit('close')"
 		destroy-on-close
 	>
