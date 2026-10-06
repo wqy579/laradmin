@@ -6,14 +6,35 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * 经营历程：UNION ALL 各业务表，统一展示资金流水。
  * 用原生 SQL 避免 Laravel unionAll + fromSub 嵌套子查询的性能问题。
+ *
+ * ⚠️ 为什么这里到处在探测列是否存在，而不是直接写死列名：
+ *
+ * 生产库是历史遗留库，schema 与 modules/*\/database/migrations 下的定义**并不一致**。
+ * 典型例子：2026_08_31_000002_create_transaction_tables 里的 stock_ins 建表语句后来
+ * 被就地补上了 `remark` 列，但那条迁移在线上早就执行过，`php artisan migrate` 不会
+ * 重跑它，于是新列永远补不到老库。查询一旦写死 `si.remark`，线上就是
+ * "Unknown column 'si.remark' in 'field list'" 的 500。
+ *
+ * 这类漂移不是个例：多张业务表都可能缺列、缺表。所以本控制器在**运行时**读取
+ * information_schema（Laravel 的 Schema::hasColumn/hasTable，带请求内静态缓存，
+ * 每张表每列只查一次），缺列就退化为常量、缺表就整段跳过，保证任何库结构下都能出结果。
+ *
+ * 代价是 SQL 拼装略啰嗦，收益是「生产库缺列」这一类问题不会再打 500。
  */
 class BusinessHistoryController extends Controller
 {
     use ResponseTrait;
+
+    /** @var array<string,bool> 列是否存在，键为 "table.column" */
+    private static array $columnCache = [];
+
+    /** @var array<string,bool> 表是否存在，键为 table */
+    private static array $tableCache = [];
 
     public function index(Request $request)
     {
@@ -33,15 +54,14 @@ class BusinessHistoryController extends Controller
         $pageSize = (int) ($validated['page_size'] ?? 20);
         $page = (int) ($validated['page'] ?? 1);
 
-        // 构建原生 SQL UNION ALL
         $sql = $this->buildUnionSQL($validated);
-        $countSql = "SELECT COUNT(*) as cnt FROM ({$sql}) AS unified";
 
-        $total = (int) DB::selectOne($countSql)->cnt ?? 0;
+        $total = (int) (DB::selectOne("SELECT COUNT(*) as cnt FROM ({$sql}) AS unified")->cnt ?? 0);
 
         $offset = ($page - 1) * $pageSize;
-        $listSql = "SELECT * FROM ({$sql}) AS unified ORDER BY date DESC, id DESC LIMIT {$pageSize} OFFSET {$offset}";
-        $list = DB::select($listSql);
+        $list = DB::select(
+            "SELECT * FROM ({$sql}) AS unified ORDER BY `date` DESC, id DESC LIMIT {$pageSize} OFFSET {$offset}"
+        );
 
         return response()->json([
             'code' => 200,
@@ -100,7 +120,7 @@ class BusinessHistoryController extends Controller
         ]);
 
         $sql = $this->buildUnionSQL($validated);
-        $list = DB::select("SELECT * FROM ({$sql}) AS unified ORDER BY date DESC");
+        $list = DB::select("SELECT * FROM ({$sql}) AS unified ORDER BY `date` DESC");
 
         $csv = "\u{FEFF}";
         $csv .= "经营历程\n\n";
@@ -126,289 +146,464 @@ class BusinessHistoryController extends Controller
         ]);
     }
 
+    // ---------------------------------------------------------------------
+    // schema 探测辅助
+    // ---------------------------------------------------------------------
+
+    private function hasTable(string $table): bool
+    {
+        if (! array_key_exists($table, self::$tableCache)) {
+            self::$tableCache[$table] = Schema::hasTable($table);
+        }
+
+        return self::$tableCache[$table];
+    }
+
+    private function hasColumn(string $table, string $column): bool
+    {
+        $key = $table.'.'.$column;
+        if (! array_key_exists($key, self::$columnCache)) {
+            self::$columnCache[$key] = $this->hasTable($table) && Schema::hasColumn($table, $column);
+        }
+
+        return self::$columnCache[$key];
+    }
+
+    /** 可空外键列：存在则取别名.列，否则常量 NULL */
+    private function idExpr(string $alias, string $table, string $column): string
+    {
+        return $this->hasColumn($table, $column) ? "{$alias}.{$column}" : 'NULL';
+    }
+
+    /**
+     * 关联表名称列：仅当本表的关联列存在（即该 JOIN 会真的拼上）时才引用别名，
+     * 否则退化为空串。漏掉这层判断就会在 JOIN 被跳过时留下悬空的表别名，
+     * 变成 "Unknown column 'u.real_name'"。
+     */
+    private function refNameExpr(string $table, string $joinColumn, string $nameAlias, string $nameColumn = 'name'): string
+    {
+        return $this->hasColumn($table, $joinColumn) ? "COALESCE({$nameAlias}.{$nameColumn}, '')" : "''";
+    }
+
+    /** 业务员姓名：u 别名固定，取 real_name 回落 username */
+    private function userNameExpr(string $table, string $joinColumn): string
+    {
+        return $this->hasColumn($table, $joinColumn) ? "COALESCE(u.real_name, u.username, '')" : "''";
+    }
+
+    /**
+     * 销售出库的业务员：姓名快照在关联的销售订单上，需 so JOIN 真的拼上才能引用。
+     * 两个前提缺一不可——deliveries.order_id 存在（JOIN 才会加）、
+     * sales_orders.salesman_name 存在（列才可用）。
+     */
+    private function deliverySalesmanExpr(): string
+    {
+        if ($this->hasColumn('deliveries', 'order_id')
+            && $this->hasTable('sales_orders')
+            && $this->hasColumn('sales_orders', 'salesman_name')) {
+            return "COALESCE(so.salesman_name, '')";
+        }
+
+        return "''";
+    }
+
+    /** 金额列：存在则 COALESCE(别名.列, 0)，否则常量 0 */
+    private function numExpr(string $alias, string $table, string $column): string
+    {
+        return $this->hasColumn($table, $column) ? "COALESCE({$alias}.{$column}, 0)" : '0';
+    }
+
+    /** 文本列：存在则别名.列，否则空串 */
+    private function strExpr(string $alias, string $table, string $column): string
+    {
+        return $this->hasColumn($table, $column) ? "{$alias}.{$column}" : "''";
+    }
+
+    /** 日期列：优先指定列，其次 created_at，都没有则 NULL */
+    private function dateExpr(string $alias, string $table, string $column): string
+    {
+        if ($this->hasColumn($table, $column)) {
+            return "{$alias}.{$column}";
+        }
+
+        return $this->hasColumn($table, 'created_at') ? "DATE({$alias}.created_at)" : 'NULL';
+    }
+
+    /** 业务员列：优先 salesman_id，其次 created_by / handler_id，都没有则 NULL */
+    private function salesmanExpr(string $alias, string $table, array $candidates): string
+    {
+        foreach ($candidates as $column) {
+            if ($this->hasColumn($table, $column)) {
+                return "{$alias}.{$column}";
+            }
+        }
+
+        return 'NULL';
+    }
+
+    /** 可选等值过滤：列不存在或值为空时返回空串（该条件不参与过滤） */
+    private function filter(?int $value, string $alias, string $table, string $column): string
+    {
+        if (empty($value) || ! $this->hasColumn($table, $column)) {
+            return '';
+        }
+
+        return " AND {$alias}.{$column} = ".(int) $value;
+    }
+
+    /** 可选 LEFT JOIN：关联列不存在时返回空串，避免 Unknown column */
+    private function join(string $sql, string $table, string $column): string
+    {
+        return $this->hasColumn($table, $column) ? $sql : '';
+    }
+
+    /** 日期范围条件（子查询内用） */
+    private function dateCond(array $v, string $alias, string $table, string $column): string
+    {
+        $expr = $this->dateExpr($alias, $table, $column);
+        if ($expr === 'NULL') {
+            return '';
+        }
+
+        $cond = '';
+        if (! empty($v['start_date'])) {
+            $cond .= " AND {$expr} >= '{$v['start_date']}'";
+        }
+        if (! empty($v['end_date'])) {
+            $cond .= " AND {$expr} <= '{$v['end_date']}'";
+        }
+
+        return $cond;
+    }
+
+    // ---------------------------------------------------------------------
+    // UNION ALL 主体
+    // ---------------------------------------------------------------------
+
     /**
      * 构建原生 SQL UNION ALL 查询。
-     * 各子查询独立加 WHERE 条件，减少扫描量。
+     * 每个子查询 16 列，顺序固定：type_key, type_label, type_color, `date`,
+     * order_no, customer_id, supplier_id, warehouse_id, salesman_id,
+     * partner_name, warehouse_name, salesman_name, income, expense, remark, id
      */
     private function buildUnionSQL(array $v): string
     {
         $types = $v['types'] ?? [];
         $allTypes = empty($types);
+        $want = fn (string $key): bool => $allTypes || in_array($key, $types, true);
 
         $parts = [];
-        $bindings = [];
-
-        // 辅助：构建公共 WHERE 子句
-        $dateCond = function (string $dateField) use ($v): string {
-            $cond = '';
-            if (! empty($v['start_date'])) $cond .= " AND {$dateField} >= '{$v['start_date']}'";
-            if (! empty($v['end_date'])) $cond .= " AND {$dateField} <= '{$v['end_date']}'";
-            return $cond;
-        };
 
         // 1. 销售订单（收入）
-        if ($allTypes || in_array('sales_order', $types)) {
+        if ($want('sales_order') && $this->hasTable('sales_orders')) {
+            $income = $this->hasColumn('sales_orders', 'discount_amount')
+                ? 'COALESCE(so.total_amount - so.discount_amount, 0)'
+                : $this->numExpr('so', 'sales_orders', 'total_amount');
+
             $parts[] = "
                 SELECT 'sales_order' as type_key, '销售订单' as type_label, 'primary' as type_color,
-                       order_date as `date`, order_no, customer_id, NULL as supplier_id,
-                       warehouse_id, salesman_id,
-                       COALESCE(c.name, '') as partner_name,
-                       COALESCE(w.name, '') as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
-                       COALESCE(total_amount - discount_amount, 0) as income,
+                       {$this->dateExpr('so', 'sales_orders', 'order_date')} as `date`,
+                       {$this->strExpr('so', 'sales_orders', 'order_no')} as order_no,
+                       {$this->idExpr('so', 'sales_orders', 'customer_id')} as customer_id,
+                       NULL as supplier_id,
+                       {$this->idExpr('so', 'sales_orders', 'warehouse_id')} as warehouse_id,
+                       {$this->idExpr('so', 'sales_orders', 'salesman_id')} as salesman_id,
+                       {$this->refNameExpr('sales_orders', 'customer_id', 'c')} as partner_name,
+                       {$this->refNameExpr('sales_orders', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('sales_orders', 'salesman_id')} as salesman_name,
+                       {$income} as income,
                        0 as expense,
-                       COALESCE(so.remark, '') as remark,
+                       {$this->strExpr('so', 'sales_orders', 'remark')} as remark,
                        so.id
                 FROM sales_orders so
-                LEFT JOIN customers c ON c.id = so.customer_id
-                LEFT JOIN warehouses w ON w.id = so.warehouse_id
-                LEFT JOIN auth_user u ON u.id = so.salesman_id
-                WHERE so.status IN ('approved', 'completed')
-                {$dateCond('order_date')}"
-                . ($v['salesman_id'] ?? null ? " AND salesman_id = {$v['salesman_id']}" : '')
-                . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
-                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '');
+                ".$this->join('LEFT JOIN customers c ON c.id = so.customer_id', 'sales_orders', 'customer_id')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = so.warehouse_id', 'sales_orders', 'warehouse_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = so.salesman_id', 'sales_orders', 'salesman_id')."
+                WHERE ".($this->hasColumn('sales_orders', 'status')
+                    ? "so.status IN ('approved', 'completed')"
+                    : '1=1')."
+                {$this->dateCond($v, 'so', 'sales_orders', 'order_date')}"
+                .$this->filter($v['salesman_id'] ?? null, 'so', 'sales_orders', 'salesman_id')
+                .$this->filter($v['customer_id'] ?? null, 'so', 'sales_orders', 'customer_id')
+                .$this->filter($v['warehouse_id'] ?? null, 'so', 'sales_orders', 'warehouse_id');
         }
 
         // 2. 销售出库（收入，取 paid_amount）
-        if ($allTypes || in_array('delivery', $types)) {
+        if ($want('delivery') && $this->hasTable('deliveries')) {
             $parts[] = "
                 SELECT 'delivery' as type_key, '销售出库' as type_label, 'success' as type_color,
-                       d.delivery_date as `date`, d.delivery_no as order_no,
-                       d.customer_id, NULL as supplier_id,
-                       d.warehouse_id, NULL as salesman_id,
-                       COALESCE(c.name, '') as partner_name,
-                       COALESCE(w.name, '') as warehouse_name,
-                       COALESCE(so.salesman_name, '') as salesman_name,
-                       COALESCE(d.paid_amount, 0) as income,
+                       {$this->dateExpr('d', 'deliveries', 'delivery_date')} as `date`,
+                       {$this->strExpr('d', 'deliveries', 'delivery_no')} as order_no,
+                       {$this->idExpr('d', 'deliveries', 'customer_id')} as customer_id,
+                       NULL as supplier_id,
+                       {$this->idExpr('d', 'deliveries', 'warehouse_id')} as warehouse_id,
+                       NULL as salesman_id,
+                       {$this->refNameExpr('deliveries', 'customer_id', 'c')} as partner_name,
+                       {$this->refNameExpr('deliveries', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->deliverySalesmanExpr()} as salesman_name,
+                       {$this->numExpr('d', 'deliveries', 'paid_amount')} as income,
                        0 as expense,
-                       COALESCE(d.remark, '') as remark,
+                       {$this->strExpr('d', 'deliveries', 'remark')} as remark,
                        d.id
                 FROM deliveries d
-                LEFT JOIN customers c ON c.id = d.customer_id
-                LEFT JOIN warehouses w ON w.id = d.warehouse_id
-                LEFT JOIN sales_orders so ON so.id = d.order_id
-                WHERE d.status >= 1
-                {$dateCond('delivery_date')}"
-                . ($v['customer_id'] ?? null ? " AND d.customer_id = {$v['customer_id']}" : '')
-                . ($v['warehouse_id'] ?? null ? " AND d.warehouse_id = {$v['warehouse_id']}" : '');
+                ".$this->join('LEFT JOIN customers c ON c.id = d.customer_id', 'deliveries', 'customer_id')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = d.warehouse_id', 'deliveries', 'warehouse_id')."
+                ".($this->hasTable('sales_orders') ? $this->join('LEFT JOIN sales_orders so ON so.id = d.order_id', 'deliveries', 'order_id') : '')."
+                WHERE ".($this->hasColumn('deliveries', 'status') ? 'd.status >= 1' : '1=1')."
+                {$this->dateCond($v, 'd', 'deliveries', 'delivery_date')}"
+                .$this->filter($v['customer_id'] ?? null, 'd', 'deliveries', 'customer_id')
+                .$this->filter($v['warehouse_id'] ?? null, 'd', 'deliveries', 'warehouse_id');
         }
 
         // 3. 采购入库（支出）
-        if ($allTypes || in_array('stock_in', $types)) {
+        if ($want('stock_in') && $this->hasTable('stock_ins')) {
             $parts[] = "
                 SELECT 'stock_in' as type_key, '采购入库' as type_label, 'success' as type_color,
-                       stock_date as `date`, order_no,
-                       NULL as customer_id, supplier_id,
-                       warehouse_id, NULL as salesman_id,
-                       COALESCE(s.name, '') as partner_name,
-                       COALESCE(w.name, '') as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
+                       {$this->dateExpr('si', 'stock_ins', 'stock_date')} as `date`,
+                       {$this->strExpr('si', 'stock_ins', 'order_no')} as order_no,
+                       NULL as customer_id,
+                       {$this->idExpr('si', 'stock_ins', 'supplier_id')} as supplier_id,
+                       {$this->idExpr('si', 'stock_ins', 'warehouse_id')} as warehouse_id,
+                       NULL as salesman_id,
+                       {$this->refNameExpr('stock_ins', 'supplier_id', 's')} as partner_name,
+                       {$this->refNameExpr('stock_ins', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('stock_ins', 'created_by')} as salesman_name,
                        0 as income,
-                       COALESCE(total_amount, 0) as expense,
-                       COALESCE(si.remark, '') as remark,
+                       {$this->numExpr('si', 'stock_ins', 'total_amount')} as expense,
+                       {$this->strExpr('si', 'stock_ins', 'remark')} as remark,
                        si.id
                 FROM stock_ins si
-                LEFT JOIN suppliers s ON s.id = si.supplier_id
-                LEFT JOIN warehouses w ON w.id = si.warehouse_id
-                LEFT JOIN auth_user u ON u.id = si.created_by
+                ".$this->join('LEFT JOIN suppliers s ON s.id = si.supplier_id', 'stock_ins', 'supplier_id')."
+                ".$this->join('LEFT JOIN warehouses w ON w.id = si.warehouse_id', 'stock_ins', 'warehouse_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = si.created_by', 'stock_ins', 'created_by')."
                 WHERE 1=1
-                {$dateCond('stock_date')}"
-                . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
-                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '');
+                {$this->dateCond($v, 'si', 'stock_ins', 'stock_date')}"
+                .$this->filter($v['supplier_id'] ?? null, 'si', 'stock_ins', 'supplier_id')
+                .$this->filter($v['warehouse_id'] ?? null, 'si', 'stock_ins', 'warehouse_id');
         }
 
         // 4. 采购退货（收入）
-        if ($allTypes || in_array('purchase_return', $types)) {
+        if ($want('purchase_return') && $this->hasTable('purchase_returns')) {
             $parts[] = "
                 SELECT 'purchase_return' as type_key, '采购退货' as type_label, 'warning' as type_color,
-                       return_date as `date`, return_no,
-                       NULL as customer_id, supplier_id,
-                       warehouse_id, NULL as salesman_id,
-                       COALESCE(supplier_name, '') as partner_name,
-                       COALESCE(w.name, '') as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
-                       COALESCE(total_amount, 0) as income,
+                       {$this->dateExpr('pr', 'purchase_returns', 'return_date')} as `date`,
+                       {$this->strExpr('pr', 'purchase_returns', 'return_no')} as order_no,
+                       NULL as customer_id,
+                       {$this->idExpr('pr', 'purchase_returns', 'supplier_id')} as supplier_id,
+                       {$this->idExpr('pr', 'purchase_returns', 'warehouse_id')} as warehouse_id,
+                       NULL as salesman_id,
+                       {$this->strExpr('pr', 'purchase_returns', 'supplier_name')} as partner_name,
+                       {$this->refNameExpr('purchase_returns', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('purchase_returns', 'created_by')} as salesman_name,
+                       {$this->numExpr('pr', 'purchase_returns', 'total_amount')} as income,
                        0 as expense,
-                       COALESCE(pr.remark, '') as remark,
+                       {$this->strExpr('pr', 'purchase_returns', 'remark')} as remark,
                        pr.id
                 FROM purchase_returns pr
-                LEFT JOIN warehouses w ON w.id = pr.warehouse_id
-                LEFT JOIN auth_user u ON u.id = pr.created_by
-                WHERE pr.status = 'approved'
-                {$dateCond('return_date')}"
-                . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
-                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '');
+                ".$this->join('LEFT JOIN warehouses w ON w.id = pr.warehouse_id', 'purchase_returns', 'warehouse_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = pr.created_by', 'purchase_returns', 'created_by')."
+                WHERE ".($this->hasColumn('purchase_returns', 'status') ? "pr.status = 'approved'" : '1=1')."
+                {$this->dateCond($v, 'pr', 'purchase_returns', 'return_date')}"
+                .$this->filter($v['supplier_id'] ?? null, 'pr', 'purchase_returns', 'supplier_id')
+                .$this->filter($v['warehouse_id'] ?? null, 'pr', 'purchase_returns', 'warehouse_id');
         }
 
         // 5. 销售退货（收入）
-        if ($allTypes || in_array('sales_return', $types)) {
+        if ($want('sales_return') && $this->hasTable('sales_returns')) {
             $parts[] = "
                 SELECT 'sales_return' as type_key, '销售退货' as type_label, 'warning' as type_color,
-                       return_date as `date`, return_no,
-                       customer_id, NULL as supplier_id,
-                       warehouse_id, NULL as salesman_id,
-                       COALESCE(customer_name, '') as partner_name,
-                       COALESCE(w.name, '') as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
-                       COALESCE(total_amount, 0) as income,
+                       {$this->dateExpr('sr', 'sales_returns', 'return_date')} as `date`,
+                       {$this->strExpr('sr', 'sales_returns', 'return_no')} as order_no,
+                       {$this->idExpr('sr', 'sales_returns', 'customer_id')} as customer_id,
+                       NULL as supplier_id,
+                       {$this->idExpr('sr', 'sales_returns', 'warehouse_id')} as warehouse_id,
+                       NULL as salesman_id,
+                       {$this->strExpr('sr', 'sales_returns', 'customer_name')} as partner_name,
+                       {$this->refNameExpr('sales_returns', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('sales_returns', 'created_by')} as salesman_name,
+                       {$this->numExpr('sr', 'sales_returns', 'total_amount')} as income,
                        0 as expense,
-                       COALESCE(sr.remark, '') as remark,
+                       {$this->strExpr('sr', 'sales_returns', 'remark')} as remark,
                        sr.id
                 FROM sales_returns sr
-                LEFT JOIN warehouses w ON w.id = sr.warehouse_id
-                LEFT JOIN auth_user u ON u.id = sr.created_by
-                WHERE sr.status = 'approved'
-                {$dateCond('return_date')}"
-                . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
-                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '');
+                ".$this->join('LEFT JOIN warehouses w ON w.id = sr.warehouse_id', 'sales_returns', 'warehouse_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = sr.created_by', 'sales_returns', 'created_by')."
+                WHERE ".($this->hasColumn('sales_returns', 'status') ? "sr.status = 'approved'" : '1=1')."
+                {$this->dateCond($v, 'sr', 'sales_returns', 'return_date')}"
+                .$this->filter($v['customer_id'] ?? null, 'sr', 'sales_returns', 'customer_id')
+                .$this->filter($v['warehouse_id'] ?? null, 'sr', 'sales_returns', 'warehouse_id');
         }
 
         // 6. 收款单（收入）
-        if ($allTypes || in_array('receive', $types)) {
+        if ($want('receive') && $this->hasTable('receives')) {
             $parts[] = "
                 SELECT 'receive' as type_key, '收款单' as type_label, 'danger' as type_color,
-                       receive_date as `date`, receive_no as order_no,
-                       customer_id, NULL as supplier_id,
-                       NULL as warehouse_id, handler_id as salesman_id,
-                       COALESCE(c.name, '') as partner_name,
+                       {$this->dateExpr('rc', 'receives', 'receive_date')} as `date`,
+                       {$this->strExpr('rc', 'receives', 'receive_no')} as order_no,
+                       {$this->idExpr('rc', 'receives', 'customer_id')} as customer_id,
+                       NULL as supplier_id,
+                       NULL as warehouse_id,
+                       {$this->idExpr('rc', 'receives', 'handler_id')} as salesman_id,
+                       {$this->refNameExpr('receives', 'customer_id', 'c')} as partner_name,
                        '' as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
-                       COALESCE(amount, 0) as income,
+                       {$this->userNameExpr('receives', 'handler_id')} as salesman_name,
+                       {$this->numExpr('rc', 'receives', 'amount')} as income,
                        0 as expense,
-                       COALESCE(rc.remark, '') as remark,
+                       {$this->strExpr('rc', 'receives', 'remark')} as remark,
                        rc.id
                 FROM receives rc
-                LEFT JOIN customers c ON c.id = rc.customer_id
-                LEFT JOIN auth_user u ON u.id = rc.handler_id
-                WHERE rc.status = 1
-                {$dateCond('receive_date')}"
-                . ($v['customer_id'] ?? null ? " AND customer_id = {$v['customer_id']}" : '')
-                . ($v['salesman_id'] ?? null ? " AND handler_id = {$v['salesman_id']}" : '');
+                ".$this->join('LEFT JOIN customers c ON c.id = rc.customer_id', 'receives', 'customer_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = rc.handler_id', 'receives', 'handler_id')."
+                WHERE ".($this->hasColumn('receives', 'status') ? 'rc.status = 1' : '1=1')."
+                {$this->dateCond($v, 'rc', 'receives', 'receive_date')}"
+                .$this->filter($v['customer_id'] ?? null, 'rc', 'receives', 'customer_id')
+                .$this->filter($v['salesman_id'] ?? null, 'rc', 'receives', 'handler_id');
         }
 
         // 7. 付款单（支出）
-        if ($allTypes || in_array('pay', $types)) {
+        if ($want('pay') && $this->hasTable('pays')) {
             $parts[] = "
                 SELECT 'pay' as type_key, '付款单' as type_label, 'warning' as type_color,
-                       pay_date as `date`, pay_no as order_no,
-                       NULL as customer_id, supplier_id,
-                       NULL as warehouse_id, handler_id as salesman_id,
-                       COALESCE(s.name, '') as partner_name,
+                       {$this->dateExpr('py', 'pays', 'pay_date')} as `date`,
+                       {$this->strExpr('py', 'pays', 'pay_no')} as order_no,
+                       NULL as customer_id,
+                       {$this->idExpr('py', 'pays', 'supplier_id')} as supplier_id,
+                       NULL as warehouse_id,
+                       {$this->idExpr('py', 'pays', 'handler_id')} as salesman_id,
+                       {$this->refNameExpr('pays', 'supplier_id', 's')} as partner_name,
                        '' as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
+                       {$this->userNameExpr('pays', 'handler_id')} as salesman_name,
                        0 as income,
-                       COALESCE(amount, 0) as expense,
-                       COALESCE(py.remark, '') as remark,
+                       {$this->numExpr('py', 'pays', 'amount')} as expense,
+                       {$this->strExpr('py', 'pays', 'remark')} as remark,
                        py.id
                 FROM pays py
-                LEFT JOIN suppliers s ON s.id = py.supplier_id
-                LEFT JOIN auth_user u ON u.id = py.handler_id
-                WHERE py.status = 1
-                {$dateCond('pay_date')}"
-                . ($v['supplier_id'] ?? null ? " AND supplier_id = {$v['supplier_id']}" : '')
-                . ($v['salesman_id'] ?? null ? " AND handler_id = {$v['salesman_id']}" : '');
+                ".$this->join('LEFT JOIN suppliers s ON s.id = py.supplier_id', 'pays', 'supplier_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = py.handler_id', 'pays', 'handler_id')."
+                WHERE ".($this->hasColumn('pays', 'status') ? 'py.status = 1' : '1=1')."
+                {$this->dateCond($v, 'py', 'pays', 'pay_date')}"
+                .$this->filter($v['supplier_id'] ?? null, 'py', 'pays', 'supplier_id')
+                .$this->filter($v['salesman_id'] ?? null, 'py', 'pays', 'handler_id');
         }
 
         // 8. 费用单（支出）
-        if ($allTypes || in_array('expense', $types)) {
+        if ($want('expense') && $this->hasTable('expenses')) {
+            $remark = $this->hasColumn('expenses', 'expense_type')
+                ? "CONCAT(COALESCE(ex.expense_type, ''), '：', COALESCE(ex.remark, ''))"
+                : $this->strExpr('ex', 'expenses', 'remark');
+
             $parts[] = "
                 SELECT 'expense' as type_key, '现金费用' as type_label, 'info' as type_color,
-                       expense_date as `date`, expense_no as order_no,
-                       NULL as customer_id, NULL as supplier_id,
-                       NULL as warehouse_id, handler_id as salesman_id,
+                       {$this->dateExpr('ex', 'expenses', 'expense_date')} as `date`,
+                       {$this->strExpr('ex', 'expenses', 'expense_no')} as order_no,
+                       NULL as customer_id, NULL as supplier_id, NULL as warehouse_id,
+                       {$this->idExpr('ex', 'expenses', 'handler_id')} as salesman_id,
                        '' as partner_name,
                        '' as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
+                       {$this->userNameExpr('expenses', 'handler_id')} as salesman_name,
                        0 as income,
-                       COALESCE(amount, 0) as expense,
-                       CONCAT(COALESCE(expense_type, ''), '：', COALESCE(ex.remark, '')) as remark,
+                       {$this->numExpr('ex', 'expenses', 'amount')} as expense,
+                       {$remark} as remark,
                        ex.id
                 FROM expenses ex
-                LEFT JOIN auth_user u ON u.id = ex.handler_id
-                WHERE ex.status = 1
-                {$dateCond('expense_date')}"
-                . ($v['salesman_id'] ?? null ? " AND handler_id = {$v['salesman_id']}" : '');
+                ".$this->join('LEFT JOIN auth_user u ON u.id = ex.handler_id', 'expenses', 'handler_id')."
+                WHERE ".($this->hasColumn('expenses', 'status') ? 'ex.status = 1' : '1=1')."
+                {$this->dateCond($v, 'ex', 'expenses', 'expense_date')}"
+                .$this->filter($v['salesman_id'] ?? null, 'ex', 'expenses', 'handler_id');
         }
 
         // 9. 库存盘点（盘盈=收入，盘亏=支出）
-        if ($allTypes || in_array('stock_check', $types)) {
+        if ($want('stock_check') && $this->hasTable('stock_checks')) {
+            $remark = $this->hasColumn('stock_checks', 'check_type')
+                ? "CONCAT('盘点：', COALESCE(sc.check_type, ''))"
+                : "''";
+
             $parts[] = "
                 SELECT 'stock_check' as type_key, '库存盘点' as type_label, 'danger' as type_color,
-                       check_date as `date`, check_no as order_no,
+                       {$this->dateExpr('sc', 'stock_checks', 'check_date')} as `date`,
+                       {$this->strExpr('sc', 'stock_checks', 'check_no')} as order_no,
                        NULL as customer_id, NULL as supplier_id,
-                       warehouse_id, created_by as salesman_id,
+                       {$this->idExpr('sc', 'stock_checks', 'warehouse_id')} as warehouse_id,
+                       {$this->idExpr('sc', 'stock_checks', 'created_by')} as salesman_id,
                        '' as partner_name,
-                       COALESCE(w.name, '') as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
-                       CASE WHEN profit_amount > 0 THEN profit_amount ELSE 0 END as income,
-                       CASE WHEN loss_amount > 0 THEN loss_amount ELSE 0 END as expense,
-                       CONCAT('盘点：', check_type) as remark,
+                       {$this->refNameExpr('stock_checks', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('stock_checks', 'created_by')} as salesman_name,
+                       {$this->numExpr('sc', 'stock_checks', 'profit_amount')} as income,
+                       {$this->numExpr('sc', 'stock_checks', 'loss_amount')} as expense,
+                       {$remark} as remark,
                        sc.id
                 FROM stock_checks sc
-                LEFT JOIN warehouses w ON w.id = sc.warehouse_id
-                LEFT JOIN auth_user u ON u.id = sc.created_by
-                WHERE sc.status = 'approved'
-                {$dateCond('check_date')}"
-                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
-                . ($v['salesman_id'] ?? null ? " AND created_by = {$v['salesman_id']}" : '');
+                ".$this->join('LEFT JOIN warehouses w ON w.id = sc.warehouse_id', 'stock_checks', 'warehouse_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = sc.created_by', 'stock_checks', 'created_by')."
+                WHERE ".($this->hasColumn('stock_checks', 'status') ? "sc.status = 'approved'" : '1=1')."
+                {$this->dateCond($v, 'sc', 'stock_checks', 'check_date')}"
+                .$this->filter($v['warehouse_id'] ?? null, 'sc', 'stock_checks', 'warehouse_id')
+                .$this->filter($v['salesman_id'] ?? null, 'sc', 'stock_checks', 'created_by');
         }
 
         // 10. 组装单（支出）
-        if ($allTypes || in_array('assembly', $types)) {
+        if ($want('assembly') && $this->hasTable('assembly_orders')) {
             $parts[] = "
                 SELECT 'assembly' as type_key, '商品组装' as type_label, 'info' as type_color,
-                       assembly_date as `date`, assembly_no as order_no,
+                       {$this->dateExpr('ac', 'assembly_orders', 'assembly_date')} as `date`,
+                       {$this->strExpr('ac', 'assembly_orders', 'assembly_no')} as order_no,
                        NULL as customer_id, NULL as supplier_id,
-                       warehouse_id, salesman_id,
+                       {$this->idExpr('ac', 'assembly_orders', 'warehouse_id')} as warehouse_id,
+                       {$this->idExpr('ac', 'assembly_orders', 'salesman_id')} as salesman_id,
                        '' as partner_name,
-                       COALESCE(w.name, '') as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
+                       {$this->refNameExpr('assembly_orders', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('assembly_orders', 'salesman_id')} as salesman_name,
                        0 as income,
-                       COALESCE(total_cost, 0) as expense,
-                       COALESCE(ac.remark, '') as remark,
+                       {$this->numExpr('ac', 'assembly_orders', 'total_cost')} as expense,
+                       {$this->strExpr('ac', 'assembly_orders', 'remark')} as remark,
                        ac.id
                 FROM assembly_orders ac
-                LEFT JOIN warehouses w ON w.id = ac.warehouse_id
-                LEFT JOIN auth_user u ON u.id = ac.salesman_id
-                WHERE ac.status = 'approved'
-                {$dateCond('assembly_date')}"
-                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
-                . ($v['salesman_id'] ?? null ? " AND salesman_id = {$v['salesman_id']}" : '');
+                ".$this->join('LEFT JOIN warehouses w ON w.id = ac.warehouse_id', 'assembly_orders', 'warehouse_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = ac.salesman_id', 'assembly_orders', 'salesman_id')."
+                WHERE ".($this->hasColumn('assembly_orders', 'status') ? "ac.status = 'approved'" : '1=1')."
+                {$this->dateCond($v, 'ac', 'assembly_orders', 'assembly_date')}"
+                .$this->filter($v['warehouse_id'] ?? null, 'ac', 'assembly_orders', 'warehouse_id')
+                .$this->filter($v['salesman_id'] ?? null, 'ac', 'assembly_orders', 'salesman_id');
         }
 
         // 11. 拆分单（收入）
-        if ($allTypes || in_array('split', $types)) {
+        if ($want('split') && $this->hasTable('split_orders')) {
             $parts[] = "
                 SELECT 'split' as type_key, '商品拆分' as type_label, 'success' as type_color,
-                       split_date as `date`, split_no as order_no,
+                       {$this->dateExpr('sp', 'split_orders', 'split_date')} as `date`,
+                       {$this->strExpr('sp', 'split_orders', 'split_no')} as order_no,
                        NULL as customer_id, NULL as supplier_id,
-                       warehouse_id, salesman_id,
+                       {$this->idExpr('sp', 'split_orders', 'warehouse_id')} as warehouse_id,
+                       {$this->idExpr('sp', 'split_orders', 'salesman_id')} as salesman_id,
                        '' as partner_name,
-                       COALESCE(w.name, '') as warehouse_name,
-                       COALESCE(u.real_name, u.username, '') as salesman_name,
-                       COALESCE(total_cost, 0) as income,
+                       {$this->refNameExpr('split_orders', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('split_orders', 'salesman_id')} as salesman_name,
+                       {$this->numExpr('sp', 'split_orders', 'total_cost')} as income,
                        0 as expense,
-                       COALESCE(sp.remark, '') as remark,
+                       {$this->strExpr('sp', 'split_orders', 'remark')} as remark,
                        sp.id
                 FROM split_orders sp
-                LEFT JOIN warehouses w ON w.id = sp.warehouse_id
-                LEFT JOIN auth_user u ON u.id = sp.salesman_id
-                WHERE sp.status = 'approved'
-                {$dateCond('split_date')}"
-                . ($v['warehouse_id'] ?? null ? " AND warehouse_id = {$v['warehouse_id']}" : '')
-                . ($v['salesman_id'] ?? null ? " AND salesman_id = {$v['salesman_id']}" : '');
+                ".$this->join('LEFT JOIN warehouses w ON w.id = sp.warehouse_id', 'split_orders', 'warehouse_id')."
+                ".$this->join('LEFT JOIN auth_user u ON u.id = sp.salesman_id', 'split_orders', 'salesman_id')."
+                WHERE ".($this->hasColumn('split_orders', 'status') ? "sp.status = 'approved'" : '1=1')."
+                {$this->dateCond($v, 'sp', 'split_orders', 'split_date')}"
+                .$this->filter($v['warehouse_id'] ?? null, 'sp', 'split_orders', 'warehouse_id')
+                .$this->filter($v['salesman_id'] ?? null, 'sp', 'split_orders', 'salesman_id');
         }
 
         if (empty($parts)) {
-            return "SELECT NULL as type_key, NULL as type_label, NULL as type_color, NULL as `date`, NULL as order_no, NULL as customer_id, NULL as supplier_id, NULL as warehouse_id, NULL as salesman_id, NULL as partner_name, NULL as warehouse_name, NULL as salesman_name, 0 as income, 0 as expense, NULL as remark, 0 as id WHERE 1=0";
+            return "SELECT NULL as type_key, NULL as type_label, NULL as type_color, NULL as `date`,
+                    NULL as order_no, NULL as customer_id, NULL as supplier_id, NULL as warehouse_id,
+                    NULL as salesman_id, NULL as partner_name, NULL as warehouse_name,
+                    NULL as salesman_name, 0 as income, 0 as expense, NULL as remark, 0 as id
+                    WHERE 1=0";
         }
 
         $sql = implode(' UNION ALL ', $parts);
 
         // order_no 筛选（在外层 WHERE 应用）
         if (! empty($v['order_no'])) {
-            $sql = "SELECT * FROM ({$sql}) AS sub WHERE order_no LIKE '%" . addslashes($v['order_no']) . "%'";
+            $sql = "SELECT * FROM ({$sql}) AS sub WHERE order_no LIKE '%".addslashes($v['order_no'])."%'";
         }
 
         return $sql;
