@@ -169,6 +169,30 @@ class BusinessHistoryController extends Controller
         return self::$columnCache[$key];
     }
 
+    /**
+     * 把所有字符串表达式统一成 utf8mb4，供 UNION ALL 使用。
+     *
+     * 为什么必须做：生产库是历史库，各表的字符集/排序规则不统一（早期 utf8mb3、
+     * 后来 utf8mb4，且默认 collation 在不同 MySQL 版本下是 utf8mb4_general_ci 或
+     * utf8mb4_0900_ai_ci）。UNION ALL 要求同一列在所有分支上 collation 一致，
+     * 否则 MySQL 直接抛 "1271 Illegal mix of collations for operation 'UNION'"。
+     * 子查询里还有大量字符串字面量（'销售订单'、''）——它们的 collation 来自连接
+     * 默认值，又和列自带的可能不同，同样会触发。
+     *
+     * CONVERT(x USING utf8mb4) 把每个分支的字符串列都落到同一字符集，UNION 即可合并。
+     * 数值/日期列不受影响，不需要包。
+     */
+    private function u8(string $expr): string
+    {
+        return "CONVERT({$expr} USING utf8mb4)";
+    }
+
+    /** 字符串字面量：显式转 utf8mb4，避免与列 collation 冲突 */
+    private function lit(string $value): string
+    {
+        return $this->u8("'".str_replace("'", "''", $value)."'");
+    }
+
     /** 可空外键列：存在则取别名.列，否则常量 NULL */
     private function idExpr(string $alias, string $table, string $column): string
     {
@@ -182,13 +206,17 @@ class BusinessHistoryController extends Controller
      */
     private function refNameExpr(string $table, string $joinColumn, string $nameAlias, string $nameColumn = 'name'): string
     {
-        return $this->hasColumn($table, $joinColumn) ? "COALESCE({$nameAlias}.{$nameColumn}, '')" : "''";
+        return $this->u8(
+            $this->hasColumn($table, $joinColumn) ? "COALESCE({$nameAlias}.{$nameColumn}, '')" : "''"
+        );
     }
 
     /** 业务员姓名：u 别名固定，取 real_name 回落 username */
     private function userNameExpr(string $table, string $joinColumn): string
     {
-        return $this->hasColumn($table, $joinColumn) ? "COALESCE(u.real_name, u.username, '')" : "''";
+        return $this->u8(
+            $this->hasColumn($table, $joinColumn) ? "COALESCE(u.real_name, u.username, '')" : "''"
+        );
     }
 
     /**
@@ -201,10 +229,10 @@ class BusinessHistoryController extends Controller
         if ($this->hasColumn('deliveries', 'order_id')
             && $this->hasTable('sales_orders')
             && $this->hasColumn('sales_orders', 'salesman_name')) {
-            return "COALESCE(so.salesman_name, '')";
+            return $this->u8("COALESCE(so.salesman_name, '')");
         }
 
-        return "''";
+        return $this->u8("''");
     }
 
     /** 金额列：存在则 COALESCE(别名.列, 0)，否则常量 0 */
@@ -213,10 +241,10 @@ class BusinessHistoryController extends Controller
         return $this->hasColumn($table, $column) ? "COALESCE({$alias}.{$column}, 0)" : '0';
     }
 
-    /** 文本列：存在则别名.列，否则空串 */
+    /** 文本列：存在则别名.列，否则空串（统一 utf8mb4） */
     private function strExpr(string $alias, string $table, string $column): string
     {
-        return $this->hasColumn($table, $column) ? "{$alias}.{$column}" : "''";
+        return $this->u8($this->hasColumn($table, $column) ? "{$alias}.{$column}" : "''");
     }
 
     /** 日期列：优先指定列，其次 created_at，都没有则 NULL */
@@ -301,7 +329,7 @@ class BusinessHistoryController extends Controller
                 : $this->numExpr('so', 'sales_orders', 'total_amount');
 
             $parts[] = "
-                SELECT 'sales_order' as type_key, '销售订单' as type_label, 'primary' as type_color,
+                SELECT CONVERT('sales_order' USING utf8mb4) as type_key, CONVERT('销售订单' USING utf8mb4) as type_label, CONVERT('primary' USING utf8mb4) as type_color,
                        {$this->dateExpr('so', 'sales_orders', 'order_date')} as `date`,
                        {$this->strExpr('so', 'sales_orders', 'order_no')} as order_no,
                        {$this->idExpr('so', 'sales_orders', 'customer_id')} as customer_id,
@@ -331,7 +359,7 @@ class BusinessHistoryController extends Controller
         // 2. 销售出库（收入，取 paid_amount）
         if ($want('delivery') && $this->hasTable('deliveries')) {
             $parts[] = "
-                SELECT 'delivery' as type_key, '销售出库' as type_label, 'success' as type_color,
+                SELECT CONVERT('delivery' USING utf8mb4) as type_key, CONVERT('销售出库' USING utf8mb4) as type_label, CONVERT('success' USING utf8mb4) as type_color,
                        {$this->dateExpr('d', 'deliveries', 'delivery_date')} as `date`,
                        {$this->strExpr('d', 'deliveries', 'delivery_no')} as order_no,
                        {$this->idExpr('d', 'deliveries', 'customer_id')} as customer_id,
@@ -358,7 +386,7 @@ class BusinessHistoryController extends Controller
         // 3. 采购入库（支出）
         if ($want('stock_in') && $this->hasTable('stock_ins')) {
             $parts[] = "
-                SELECT 'stock_in' as type_key, '采购入库' as type_label, 'success' as type_color,
+                SELECT CONVERT('stock_in' USING utf8mb4) as type_key, CONVERT('采购入库' USING utf8mb4) as type_label, CONVERT('success' USING utf8mb4) as type_color,
                        {$this->dateExpr('si', 'stock_ins', 'stock_date')} as `date`,
                        {$this->strExpr('si', 'stock_ins', 'order_no')} as order_no,
                        NULL as customer_id,
@@ -385,7 +413,7 @@ class BusinessHistoryController extends Controller
         // 4. 采购退货（收入）
         if ($want('purchase_return') && $this->hasTable('purchase_returns')) {
             $parts[] = "
-                SELECT 'purchase_return' as type_key, '采购退货' as type_label, 'warning' as type_color,
+                SELECT CONVERT('purchase_return' USING utf8mb4) as type_key, CONVERT('采购退货' USING utf8mb4) as type_label, CONVERT('warning' USING utf8mb4) as type_color,
                        {$this->dateExpr('pr', 'purchase_returns', 'return_date')} as `date`,
                        {$this->strExpr('pr', 'purchase_returns', 'return_no')} as order_no,
                        NULL as customer_id,
@@ -411,7 +439,7 @@ class BusinessHistoryController extends Controller
         // 5. 销售退货（收入）
         if ($want('sales_return') && $this->hasTable('sales_returns')) {
             $parts[] = "
-                SELECT 'sales_return' as type_key, '销售退货' as type_label, 'warning' as type_color,
+                SELECT CONVERT('sales_return' USING utf8mb4) as type_key, CONVERT('销售退货' USING utf8mb4) as type_label, CONVERT('warning' USING utf8mb4) as type_color,
                        {$this->dateExpr('sr', 'sales_returns', 'return_date')} as `date`,
                        {$this->strExpr('sr', 'sales_returns', 'return_no')} as order_no,
                        {$this->idExpr('sr', 'sales_returns', 'customer_id')} as customer_id,
@@ -437,7 +465,7 @@ class BusinessHistoryController extends Controller
         // 6. 收款单（收入）
         if ($want('receive') && $this->hasTable('receives')) {
             $parts[] = "
-                SELECT 'receive' as type_key, '收款单' as type_label, 'danger' as type_color,
+                SELECT CONVERT('receive' USING utf8mb4) as type_key, CONVERT('收款单' USING utf8mb4) as type_label, CONVERT('danger' USING utf8mb4) as type_color,
                        {$this->dateExpr('rc', 'receives', 'receive_date')} as `date`,
                        {$this->strExpr('rc', 'receives', 'receive_no')} as order_no,
                        {$this->idExpr('rc', 'receives', 'customer_id')} as customer_id,
@@ -445,7 +473,7 @@ class BusinessHistoryController extends Controller
                        NULL as warehouse_id,
                        {$this->idExpr('rc', 'receives', 'handler_id')} as salesman_id,
                        {$this->refNameExpr('receives', 'customer_id', 'c')} as partner_name,
-                       '' as warehouse_name,
+                       CONVERT('' USING utf8mb4) as warehouse_name,
                        {$this->userNameExpr('receives', 'handler_id')} as salesman_name,
                        {$this->numExpr('rc', 'receives', 'amount')} as income,
                        0 as expense,
@@ -463,7 +491,7 @@ class BusinessHistoryController extends Controller
         // 7. 付款单（支出）
         if ($want('pay') && $this->hasTable('pays')) {
             $parts[] = "
-                SELECT 'pay' as type_key, '付款单' as type_label, 'warning' as type_color,
+                SELECT CONVERT('pay' USING utf8mb4) as type_key, CONVERT('付款单' USING utf8mb4) as type_label, CONVERT('warning' USING utf8mb4) as type_color,
                        {$this->dateExpr('py', 'pays', 'pay_date')} as `date`,
                        {$this->strExpr('py', 'pays', 'pay_no')} as order_no,
                        NULL as customer_id,
@@ -471,7 +499,7 @@ class BusinessHistoryController extends Controller
                        NULL as warehouse_id,
                        {$this->idExpr('py', 'pays', 'handler_id')} as salesman_id,
                        {$this->refNameExpr('pays', 'supplier_id', 's')} as partner_name,
-                       '' as warehouse_name,
+                       CONVERT('' USING utf8mb4) as warehouse_name,
                        {$this->userNameExpr('pays', 'handler_id')} as salesman_name,
                        0 as income,
                        {$this->numExpr('py', 'pays', 'amount')} as expense,
@@ -489,17 +517,17 @@ class BusinessHistoryController extends Controller
         // 8. 费用单（支出）
         if ($want('expense') && $this->hasTable('expenses')) {
             $remark = $this->hasColumn('expenses', 'expense_type')
-                ? "CONCAT(COALESCE(ex.expense_type, ''), '：', COALESCE(ex.remark, ''))"
+                ? $this->u8("CONCAT(COALESCE(ex.expense_type, ''), '：', COALESCE(ex.remark, ''))")
                 : $this->strExpr('ex', 'expenses', 'remark');
 
             $parts[] = "
-                SELECT 'expense' as type_key, '现金费用' as type_label, 'info' as type_color,
+                SELECT CONVERT('expense' USING utf8mb4) as type_key, CONVERT('现金费用' USING utf8mb4) as type_label, CONVERT('info' USING utf8mb4) as type_color,
                        {$this->dateExpr('ex', 'expenses', 'expense_date')} as `date`,
                        {$this->strExpr('ex', 'expenses', 'expense_no')} as order_no,
                        NULL as customer_id, NULL as supplier_id, NULL as warehouse_id,
                        {$this->idExpr('ex', 'expenses', 'handler_id')} as salesman_id,
-                       '' as partner_name,
-                       '' as warehouse_name,
+                       CONVERT('' USING utf8mb4) as partner_name,
+                       CONVERT('' USING utf8mb4) as warehouse_name,
                        {$this->userNameExpr('expenses', 'handler_id')} as salesman_name,
                        0 as income,
                        {$this->numExpr('ex', 'expenses', 'amount')} as expense,
@@ -515,17 +543,17 @@ class BusinessHistoryController extends Controller
         // 9. 库存盘点（盘盈=收入，盘亏=支出）
         if ($want('stock_check') && $this->hasTable('stock_checks')) {
             $remark = $this->hasColumn('stock_checks', 'check_type')
-                ? "CONCAT('盘点：', COALESCE(sc.check_type, ''))"
-                : "''";
+                ? $this->u8("CONCAT('盘点：', COALESCE(sc.check_type, ''))")
+                : $this->u8("''");
 
             $parts[] = "
-                SELECT 'stock_check' as type_key, '库存盘点' as type_label, 'danger' as type_color,
+                SELECT CONVERT('stock_check' USING utf8mb4) as type_key, CONVERT('库存盘点' USING utf8mb4) as type_label, CONVERT('danger' USING utf8mb4) as type_color,
                        {$this->dateExpr('sc', 'stock_checks', 'check_date')} as `date`,
                        {$this->strExpr('sc', 'stock_checks', 'check_no')} as order_no,
                        NULL as customer_id, NULL as supplier_id,
                        {$this->idExpr('sc', 'stock_checks', 'warehouse_id')} as warehouse_id,
                        {$this->idExpr('sc', 'stock_checks', 'created_by')} as salesman_id,
-                       '' as partner_name,
+                       CONVERT('' USING utf8mb4) as partner_name,
                        {$this->refNameExpr('stock_checks', 'warehouse_id', 'w')} as warehouse_name,
                        {$this->userNameExpr('stock_checks', 'created_by')} as salesman_name,
                        {$this->numExpr('sc', 'stock_checks', 'profit_amount')} as income,
@@ -544,13 +572,13 @@ class BusinessHistoryController extends Controller
         // 10. 组装单（支出）
         if ($want('assembly') && $this->hasTable('assembly_orders')) {
             $parts[] = "
-                SELECT 'assembly' as type_key, '商品组装' as type_label, 'info' as type_color,
+                SELECT CONVERT('assembly' USING utf8mb4) as type_key, CONVERT('商品组装' USING utf8mb4) as type_label, CONVERT('info' USING utf8mb4) as type_color,
                        {$this->dateExpr('ac', 'assembly_orders', 'assembly_date')} as `date`,
                        {$this->strExpr('ac', 'assembly_orders', 'assembly_no')} as order_no,
                        NULL as customer_id, NULL as supplier_id,
                        {$this->idExpr('ac', 'assembly_orders', 'warehouse_id')} as warehouse_id,
                        {$this->idExpr('ac', 'assembly_orders', 'salesman_id')} as salesman_id,
-                       '' as partner_name,
+                       CONVERT('' USING utf8mb4) as partner_name,
                        {$this->refNameExpr('assembly_orders', 'warehouse_id', 'w')} as warehouse_name,
                        {$this->userNameExpr('assembly_orders', 'salesman_id')} as salesman_name,
                        0 as income,
@@ -569,13 +597,13 @@ class BusinessHistoryController extends Controller
         // 11. 拆分单（收入）
         if ($want('split') && $this->hasTable('split_orders')) {
             $parts[] = "
-                SELECT 'split' as type_key, '商品拆分' as type_label, 'success' as type_color,
+                SELECT CONVERT('split' USING utf8mb4) as type_key, CONVERT('商品拆分' USING utf8mb4) as type_label, CONVERT('success' USING utf8mb4) as type_color,
                        {$this->dateExpr('sp', 'split_orders', 'split_date')} as `date`,
                        {$this->strExpr('sp', 'split_orders', 'split_no')} as order_no,
                        NULL as customer_id, NULL as supplier_id,
                        {$this->idExpr('sp', 'split_orders', 'warehouse_id')} as warehouse_id,
                        {$this->idExpr('sp', 'split_orders', 'salesman_id')} as salesman_id,
-                       '' as partner_name,
+                       CONVERT('' USING utf8mb4) as partner_name,
                        {$this->refNameExpr('split_orders', 'warehouse_id', 'w')} as warehouse_name,
                        {$this->userNameExpr('split_orders', 'salesman_id')} as salesman_name,
                        {$this->numExpr('sp', 'split_orders', 'total_cost')} as income,
