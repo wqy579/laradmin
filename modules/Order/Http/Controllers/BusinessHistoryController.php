@@ -619,6 +619,31 @@ class BusinessHistoryController extends Controller
                 .$this->filter($v['salesman_id'] ?? null, 'sp', 'split_orders', 'salesman_id');
         }
 
+        // 12. 库存调整（调整数量正=收入，负=支出）
+        if ($want('stock_adjust') && $this->hasTable('stock_adjusts')) {
+            $parts[] = "
+                SELECT CONVERT('stock_adjust' USING utf8mb4) as type_key, CONVERT('库存调整' USING utf8mb4) as type_label, CONVERT('info' USING utf8mb4) as type_color,
+                       {$this->dateExpr('sa', 'stock_adjusts', 'adjust_date')} as `date`,
+                       {$this->strExpr('sa', 'stock_adjusts', 'adjust_no')} as order_no,
+                       NULL as customer_id, NULL as supplier_id,
+                       {$this->idExpr('sa', 'stock_adjusts', 'warehouse_id')} as warehouse_id,
+                       {$this->idExpr('sa', 'stock_adjusts', 'created_by')} as salesman_id,
+                       CONVERT('' USING utf8mb4) as partner_name,
+                       {$this->refNameExpr('stock_adjusts', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('stock_adjusts', 'created_by')} as salesman_name,
+                       CASE WHEN sa.total_qty > 0 THEN sa.total_amount ELSE 0 END as income,
+                       CASE WHEN sa.total_qty < 0 THEN sa.total_amount ELSE 0 END as expense,
+                       {$this->strExpr('sa', 'stock_adjusts', 'reason')} as remark,
+                       sa.id
+                FROM stock_adjusts sa
+                ".$this->join('LEFT JOIN warehouses w ON w.id = sa.warehouse_id', 'stock_adjusts', 'warehouse_id')."
+                LEFT JOIN auth_user u ON u.id = sa.created_by
+                WHERE ".($this->hasColumn('stock_adjusts', 'status') ? "sa.status = 'approved'" : '1=1')."
+                {$this->dateCond($v, 'sa', 'stock_adjusts', 'adjust_date')}"
+                .$this->filter($v['warehouse_id'] ?? null, 'sa', 'stock_adjusts', 'warehouse_id')
+                .$this->filter($v['salesman_id'] ?? null, 'sa', 'stock_adjusts', 'created_by');
+        }
+
         if (empty($parts)) {
             return "SELECT NULL as type_key, NULL as type_label, NULL as type_color, NULL as `date`,
                     NULL as order_no, NULL as customer_id, NULL as supplier_id, NULL as warehouse_id,

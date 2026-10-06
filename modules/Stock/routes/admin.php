@@ -10,6 +10,7 @@ use Modules\Stock\Http\Controllers\StockController;
 use Modules\Stock\Http\Controllers\StockHistoryController;
 use Modules\Stock\Http\Controllers\StockInController;
 use Modules\Stock\Http\Controllers\StockOutController;
+use Modules\Stock\Http\Controllers\StockAdjustController;
 use Modules\Stock\Http\Controllers\StocktakingController;
 use Modules\Stock\Http\Controllers\TransferController;
 use Modules\Stock\Http\Controllers\VehicleController;
@@ -117,6 +118,21 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/stock-out')->group(function () {
         Route::get('/', [StockOutController::class, 'index']);
         Route::post('/', [StockOutController::class, 'store']);
+    });
+
+    // 库存调整单（库存调整单全流程：建单→提交→审核调库存+财务凭证）
+    // 与库存盘点（stocktaking）的区别：调整单直接录入调整数量和原因，流程更轻量
+    Route::get('business/stock-adjust/warehouse-products', [StockAdjustController::class, 'warehouseProducts']);
+    Route::prefix('business/stock-adjust')->group(function () {
+        Route::get('/', [StockAdjustController::class, 'index']);
+        Route::post('/', [StockAdjustController::class, 'store']);
+        Route::get('/{id}', [StockAdjustController::class, 'show']);
+        Route::put('/{id}', [StockAdjustController::class, 'update']);
+        Route::delete('/{id}', [StockAdjustController::class, 'destroy']);
+        Route::post('/{id}/submit', [StockAdjustController::class, 'submit']);
+        Route::post('/{id}/approve', [StockAdjustController::class, 'approve']);
+        Route::post('/{id}/reject', [StockAdjustController::class, 'reject']);
+        Route::post('/{id}/cancel', [StockAdjustController::class, 'cancel']);
     });
 
     // 库存盘点（盘点单全流程：建单→录实盘→提交→审核调库存+财务凭证）

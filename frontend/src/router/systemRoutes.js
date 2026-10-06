@@ -146,6 +146,12 @@ const systemRoutes = [
 				meta: { title: 'stocktaking' },
 			},
 			{
+				path: '/business/stock-adjust',
+				name: 'StockAdjust',
+				component: () => import('../views/business/stock-adjust/index.vue'),
+				meta: { title: 'stockAdjust' },
+			},
+			{
 				path: '/business/promotion',
 				name: 'Promotion',
 				component: () => import('../views/business/promotion/index.vue'),
