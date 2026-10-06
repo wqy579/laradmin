@@ -2925,6 +2925,126 @@
   },
   {
     "method": "GET",
+    "uri": "admin/business/stock-adjust/warehouse-products",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@warehouseProducts",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/stock-adjust",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@index",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/stock-adjust",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@store",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/stock-adjust/{id}",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@show",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "PUT",
+    "uri": "admin/business/stock-adjust/{id}",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@update",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "DELETE",
+    "uri": "admin/business/stock-adjust/{id}",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@destroy",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/stock-adjust/{id}/submit",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@submit",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/stock-adjust/{id}/approve",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@approve",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/stock-adjust/{id}/reject",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@reject",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/stock-adjust/{id}/cancel",
+    "name": null,
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@cancel",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
     "uri": "admin/business/supplier",
     "name": "admin.",
     "action": "Modules\\Order\\Http\\Controllers\\SupplierController@index",
