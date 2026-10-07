@@ -63,7 +63,7 @@ class StockAdjustController extends Controller
     /** 列表（分页 + 仓库/状态/日期/单号筛选） */
     public function index(Request $request)
     {
-        $query = StockAdjust::with(['warehouse', 'creator' => fn ($q) => $q->select('id', 'username', 'real_name'), 'approver' => fn ($q) => $q->select('id', 'username', 'real_name')]);
+        $query = StockAdjust::with('warehouse');
 
         if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', (int) $request->input('warehouse_id'));
@@ -89,21 +89,13 @@ class StockAdjustController extends Controller
 
         $paginator = $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
 
-        // 补充关联名快照（模型里存的是 ID，列表展示用 name）
-        $list = $paginator->through(function ($item) {
-            $item->creator_name = $item->creator?->real_name ?? $item->creator?->username ?? $item->creator_name ?? '';
-            $item->approver_name = $item->approver?->real_name ?? $item->approver?->username ?? $item->approver_name ?? '';
-
-            return $item;
-        });
-
-        return $this->paginated($list);
+        return $this->paginated($paginator);
     }
 
     /** 详情（含明细） */
     public function show($id)
     {
-        $adjust = StockAdjust::with(['warehouse', 'items.product', 'creator', 'approver'])->find($id);
+        $adjust = StockAdjust::with(['warehouse', 'items.product'])->find($id);
         if (! $adjust) {
             return $this->notFound('调整单不存在');
         }
