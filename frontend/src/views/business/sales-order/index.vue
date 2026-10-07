@@ -87,7 +87,7 @@
 
 			<!-- ④ 订单类型标签 -->
 			<div class="type-tabs">
-				<div v-for="t in typeTabs" :key="t.value" :class="['type-tab', { active: searchForm.order_type === t.value }]" @click="searchForm.order_type = t.value; doSearch()">
+				<div v-for="t in typeTabs" :key="t.value" :class="['type-tab', { active: searchForm.order_type === t.value }]" @click="handleTypeTab(t)">
 					{{ t.label }}<span v-if="t.count > 0">({{ t.count }})</span>
 				</div>
 				<span class="type-hint">订单列表支持键盘（↑↓）键查看明细</span>
@@ -309,8 +309,11 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, ArrowDown } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
 import businessApi from '@/api/business'
 import SalesOrderDialog from '../components/sales-order-dialog.vue'
+
+const router = useRouter()
 
 // ===== 状态标签 =====
 const statusTabs = ref([
@@ -338,8 +341,11 @@ const typeLabelMap = {
 const typeTabs = ref([
 	{ value: 'all', label: '全部订单', count: 0 },
 	{ value: 'normal', label: '普通订单', count: 0 },
-	{ value: 'return', label: '退货订单', count: 0 },
+	{ value: 'sales_return', label: '退货订单', count: 0, navigate: true },
 ])
+// 退货订单计数：退货单在独立的 sales_returns 表（不进 sales_orders），
+// 走退货模块自己的列表接口取 total，避免显示永远为 0 的假数字。
+const returnCount = ref(0)
 
 // ===== 快捷筛选 =====
 const quickFilters = ref([
@@ -416,11 +422,16 @@ const fetchData = async () => {
 			statusTabs.value[2].count = c['待配送'] || 0
 			statusTabs.value[3].count = (c['已收款'] || 0) + (c['待收款'] || 0)
 			statusTabs.value[4].count = c.all || 0
-			// 订单类型 tab：后端按 order_type 列实际取值分组返回，前端用字典转中文标签
+			// 订单类型 tab：后端按 order_type 列实际取值分组返回，前端用字典转中文标签。
+			// 退货订单是独立模块（sales_returns 表，不进 sales_orders），后端 type_counts
+			// 永远不会有 sales_return——退货 tab 由 onMounted 单独取数，这里只保留在单内的类型。
 			const rawTypeCounts = d.type_counts?.raw || {}
 			typeTabs.value = [
 				{ value: 'all', label: '全部订单', count: d.type_counts?.all || 0 },
-				...Object.entries(rawTypeCounts).map(([k, v]) => ({ value: k, label: typeLabelMap[k] || `${k}订单`, count: v })),
+				...Object.entries(rawTypeCounts)
+					.filter(([k]) => k !== 'sales_return')
+					.map(([k, v]) => ({ value: k, label: typeLabelMap[k] || `${k}订单`, count: v })),
+				{ value: 'sales_return', label: '退货订单', count: returnCount.value, navigate: true },
 			]
 			// 快捷筛选计数
 			if (d.quick_counts) {
@@ -451,6 +462,18 @@ const doSearch = async () => {
 }
 const doRefresh = async () => {
 	await Promise.all([fetchData(), loadSummary()])
+}
+// 订单类型 tab 点击：普通类型改筛选重新查询；退货单在独立模块（sales_returns 表），
+// 不混进 sales_orders 列表，故跳转退货页而不是把列表切空。
+const handleTypeTab = (t) => {
+	if (t.navigate) {
+		router.push('/business/sales-return')
+		return
+	}
+	searchForm.order_type = t.value
+	selectedRows.value = []
+	tableRef.value?.clearCheckboxRow?.()
+	doSearch()
 }
 
 const onQuickDate = (v) => {
@@ -890,6 +913,8 @@ onMounted(async () => {
 			businessApi.customer.list.get({ page_size: 9999 }).then((r) => (r.code === 200 && (customers.value = r.data?.list || []))),
 			businessApi.supplier.list.get({ page_size: 9999 }).then((r) => (r.code === 200 && (suppliers.value = r.data?.list || []))),
 			businessApi.warehouse.list.get({ page_size: 9999 }).then((r) => (r.code === 200 && (warehouses.value = r.data?.list || []))),
+			// 退货订单计数（独立模块，只取 total，page_size=1）
+			businessApi.salesReturn.list.get({ page_size: 1 }).then((r) => (r.code === 200 && (returnCount.value = r.data?.total || 0))),
 		])
 	} catch {}
 	await doSearch()
