@@ -115,7 +115,8 @@ class SalesOrderController extends Controller
             $o->customer_name = $o->customer?->name;
             $o->operator_name = $adminNames[$o->created_by] ?? null;
             $o->warehouse_name = $o->warehouse?->name;
-            $o->is_return = false;
+            // 红冲单在 order_type 上继承原单（见 batchRedFlush），只能靠 original_order_id 识别
+            $o->is_flush = !empty($o->original_order_id);
             $flags = $giftFlags->get($o->id);
             $o->has_gift = (bool) ($flags?->has_gift);
             $o->has_special = (bool) ($flags?->has_special);
@@ -139,6 +140,34 @@ class SalesOrderController extends Controller
             'all' => $allCount,
         ];
 
+        // type_counts：订单类型分布。按列的实际取值分组原样返回，前端自己映射——
+        // 不在此硬编码取值（store() 靠迁移默认值、红冲单继承原单类型，
+        // 一旦新增类型或回填历史数据，写死的分支就会漏）。
+        // 剔除 order_type 后重新统计，否则切到某个 tab 后其他 tab 计数会被清 0。
+        $typeBaseQuery = SalesOrder::query();
+        $this->applyOrderFiltersWithout($typeBaseQuery, $request, ['order_type']);
+        $typeCountRaw = $typeBaseQuery->select('order_type', \DB::raw('count(*) as cnt'))->groupBy('order_type')->pluck('cnt', 'order_type');
+        $typeCounts = [
+            'all' => $typeCountRaw->sum(),
+            'raw' => $typeCountRaw->toArray(),
+        ];
+
+        // quick_counts：快捷筛选分布（剔除 quick_filter 后统计）
+        $quickBaseQuery = SalesOrder::query();
+        $this->applyOrderFiltersWithout($quickBaseQuery, $request, ['quick_filter']);
+        $quickAll = (clone $quickBaseQuery)->count();
+        $quickUnprinted = (clone $quickBaseQuery)->where('print_count', 0)->count();
+        $quickSpecial = (clone $quickBaseQuery)->whereHas('items', fn ($q) => $q->where('price_source', '特殊')->whereNotIn('sale_mode', ['赠品', '陈列费']))->count();
+        $quickGift = (clone $quickBaseQuery)->whereHas('items', fn ($q) => $q->whereIn('sale_mode', ['赠品', '陈列费']))->count();
+        $quickRemark = (clone $quickBaseQuery)->whereNotNull('remark')->where('remark', '!=', '')->count();
+        $quickCounts = [
+            'all' => $quickAll,
+            'unprinted' => $quickUnprinted,
+            'special' => $quickSpecial,
+            'gift' => $quickGift,
+            'remark' => $quickRemark,
+        ];
+
         // customers/warehouses/salesmen 只首次加载（后续翻页不传，减少数据量）
         $extra = [];
         if (! $request->has('page') || $request->integer('page', 1) === 1) {
@@ -154,12 +183,93 @@ class SalesOrderController extends Controller
             'page_size' => $orders->perPage(),
             'last_page' => $orders->lastPage(),
             'status_counts' => $counts,
+            'type_counts' => $typeCounts,
+            'quick_counts' => $quickCounts,
         ], $extra));
+    }
+
+    /**
+     * 与 applyOrderFilters 等价，但跳过指定字段（用于聚合统计时「不带自身维度」）。
+     * 例如统计类型分布时剔除 order_type，统计快捷筛选分布时剔除 quick_filter。
+     *
+     * @param  array  $skip 要跳过的字段名
+     */
+    private function applyOrderFiltersWithout($query, Request $request, array $skip): void
+    {
+        $skip = array_flip($skip);
+
+        if (!isset($skip['keyword']) && $request->filled('keyword')) {
+            $query->where('order_no', 'like', '%'.$request->keyword.'%');
+        }
+        if (!isset($skip['status']) && $request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if (!isset($skip['customer_id']) && $request->filled('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
+        }
+        if (!isset($skip['salesman_id']) && $request->filled('salesman_id')) {
+            $query->where('salesman_id', $request->salesman_id);
+        }
+        if (!isset($skip['vehicle_id']) && $request->filled('vehicle_id')) {
+            $query->where('vehicle_id', $request->vehicle_id);
+        }
+        if (!isset($skip['route_id']) && $request->filled('route_id')) {
+            $query->whereHas('customer', fn ($q) => $q->where('route_id', $request->route_id));
+        }
+        if (!isset($skip['order_type'])) {
+            $orderType = $request->input('order_type', 'all');
+            if ($orderType !== 'all') {
+                $query->where('order_type', $orderType);
+            }
+        }
+        if (!isset($skip['status_tab'])) {
+            $statusTab = $request->input('status_tab');
+            $tabStatusMap = ['1' => 'pending', '2' => '配货中', '6' => '待调度', '3' => '待配送', '7' => '配送中'];
+            if (isset($tabStatusMap[$statusTab])) {
+                $query->where('status', $tabStatusMap[$statusTab]);
+            } elseif ($statusTab === '4') {
+                $query->whereIn('status', ['已收款', '待收款']);
+            }
+        }
+        if (!isset($skip['quick_filter'])) {
+            $quickFilter = (int) $request->input('quick_filter', -1);
+            if ($quickFilter === 0) {
+                $query->where('print_count', 0);
+            } elseif ($quickFilter === 1) {
+                $query->whereHas('items', fn ($q) => $q->where('price_source', '特殊')->whereNotIn('sale_mode', ['赠品', '陈列费']));
+            } elseif ($quickFilter === 2) {
+                $query->whereHas('items', fn ($q) => $q->whereIn('sale_mode', ['赠品', '陈列费']));
+            } elseif ($quickFilter === 3) {
+                $query->whereNotNull('remark')->where('remark', '!=', '');
+            }
+        }
+        if (!isset($skip['quick_date'])) {
+            $quickDate = $request->input('quick_date');
+            if ($quickDate === 'today') {
+                $query->whereDate('order_date', now()->toDateString());
+            } elseif ($quickDate === 'yesterday') {
+                $query->whereDate('order_date', now()->subDay()->toDateString());
+            } elseif ($quickDate === 'week') {
+                $query->whereDate('order_date', '>=', now()->subDays(6)->toDateString());
+            } elseif ($quickDate === 'month') {
+                $query->whereMonth('order_date', now()->month)->whereYear('order_date', now()->year);
+            } elseif ($quickDate === 'last_month') {
+                $lastMonth = now()->subMonth();
+                $query->whereMonth('order_date', $lastMonth->month)->whereYear('order_date', $lastMonth->year);
+            }
+        }
+        if (!isset($skip['start_date']) && $request->filled('start_date')) {
+            $query->whereDate('order_date', '>=', $request->start_date);
+        }
+        if (!isset($skip['end_date']) && $request->filled('end_date')) {
+            $query->whereDate('order_date', '<=', $request->end_date);
+        }
     }
 
     /**
      * 订单列表/汇总共用的搜索条件：keyword(订单号) / status / customer_id
      * + 左侧汇总联动筛选 salesman_id / vehicle_id / route_id(按客户线路)
+     * + 订单类型筛选（order_type）与快捷筛选计数共用此方法做聚合
      */
     private function applyOrderFilters($query, Request $request): void
     {
@@ -181,6 +291,11 @@ class SalesOrderController extends Controller
         if ($request->filled('route_id')) {
             $query->whereHas('customer', fn ($q) => $q->where('route_id', $request->route_id));
         }
+        // 订单类型：all / normal / return / ...；前端按 order_type 字段区分
+        $orderType = $request->input('order_type', 'all');
+        if ($orderType !== 'all') {
+            $query->where('order_type', $orderType);
+        }
         // 顶部状态 tab：1待配货 2配货中 6待调度 3待配送 7配送中 4已发货收款 5全部
         $statusTab = $request->input('status_tab');
         $tabStatusMap = ['1' => 'pending', '2' => '配货中', '6' => '待调度', '3' => '待配送', '7' => '配送中'];
@@ -188,6 +303,8 @@ class SalesOrderController extends Controller
             $query->where('status', $tabStatusMap[$statusTab]);
         } elseif ($statusTab === '4') {
             $query->whereIn('status', ['已收款', '待收款']);
+        } elseif ($statusTab === '5') {
+            // 全部单据：不追加过滤
         }
         // 快捷筛选：-1全部 0未打印 1变价 2含赠品 3含备注
         $quickFilter = (int) $request->input('quick_filter', -1);
@@ -200,7 +317,7 @@ class SalesOrderController extends Controller
         } elseif ($quickFilter === 3) {
             $query->whereNotNull('remark')->where('remark', '!=', '');
         }
-        // 日期筛选：quick_date（today/yesterday/week）或 start_date/end_date
+        // 日期筛选：quick_date（today/yesterday/week/month/last_month/custom）或 start_date/end_date
         $quickDate = $request->input('quick_date');
         if ($quickDate === 'today') {
             $query->whereDate('order_date', now()->toDateString());
@@ -208,6 +325,11 @@ class SalesOrderController extends Controller
             $query->whereDate('order_date', now()->subDay()->toDateString());
         } elseif ($quickDate === 'week') {
             $query->whereDate('order_date', '>=', now()->subDays(6)->toDateString());
+        } elseif ($quickDate === 'month') {
+            $query->whereMonth('order_date', now()->month)->whereYear('order_date', now()->year);
+        } elseif ($quickDate === 'last_month') {
+            $lastMonth = now()->subMonth();
+            $query->whereMonth('order_date', $lastMonth->month)->whereYear('order_date', $lastMonth->year);
         }
         if ($request->filled('start_date')) {
             $query->whereDate('order_date', '>=', $request->start_date);
@@ -225,7 +347,15 @@ class SalesOrderController extends Controller
     {
         $totals = $this->baseSummaryQuery($request)
             ->leftJoin('sales_order_items as soi', 'sales_orders.id', '=', 'soi.sales_order_id')
+            ->leftJoin('products as p', 'soi.product_id', '=', 'p.id')
             ->selectRaw('count(distinct sales_orders.id) as order_count, sum(sales_orders.total_amount) as total_amount, sum(soi.qty_large) as qty_large, sum(soi.qty_medium) as qty_medium, sum(soi.qty_small) as qty_small')
+            ->first();
+
+        // 重量/体积：明细数量 × 商品单件规格。商品未维护规格时按 0 计，不阻塞汇总
+        $weightVolume = $this->baseSummaryQuery($request)
+            ->leftJoin('sales_order_items as soi', 'sales_orders.id', '=', 'soi.sales_order_id')
+            ->leftJoin('products as p', 'soi.product_id', '=', 'p.id')
+            ->selectRaw('sum(soi.quantity * coalesce(p.weight, 0)) as total_weight, sum(soi.quantity * coalesce(p.volume, 0)) as total_volume')
             ->first();
 
         // 业务员：用订单冗余的 salesman_name，join items 汇总大中小数量
@@ -256,7 +386,10 @@ class SalesOrderController extends Controller
             ->get();
 
         return $this->success([
-            'totals' => $totals,
+            'totals' => array_merge((array) $totals->toArray(), [
+                'total_weight' => (float) ($weightVolume->total_weight ?? 0),
+                'total_volume' => (float) ($weightVolume->total_volume ?? 0),
+            ]),
             'bySalesman' => $bySalesman,
             'byVehicle' => $byVehicle,
             'byRoute' => $byRoute,
@@ -737,6 +870,34 @@ class SalesOrderController extends Controller
     }
 
     /**
+     * 批量轻量更新：只改备注/对账日期等表头字段，不动明细与库存冻结。
+     * 与 update()（全量编辑，重算明细+重冻结）区分开——批量备注走这里，
+     * 避免 N 单全量更新触发明细重算和库存反复冻解。
+     */
+    public function batchUpdate(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'remark' => 'nullable|string|max:500',
+            'reconcile_date' => 'nullable|date',
+        ]);
+
+        $update = array_filter([
+            'remark' => $validated['remark'] ?? null,
+            'reconcile_date' => $validated['reconcile_date'] ?? null,
+        ], fn ($v) => $v !== null);
+
+        if (empty($update)) {
+            return $this->error('没有可更新的字段', 422);
+        }
+
+        $count = SalesOrder::whereIn('id', $validated['ids'])->update($update + ['updated_at' => now()]);
+
+        return $this->success(['updated' => $count], "已更新 {$count} 条订单");
+    }
+
+    /**
      * 推进订单状态流转：待配货→配货中→待配送→配送中→已收款/待收款。
      * target 指定目标状态，不传则按顺序推进一档。
      */
@@ -772,6 +933,18 @@ class SalesOrderController extends Controller
             }
             if ($target === '待配送' && $request->filled('vehicle_id')) {
                 $updateData['vehicle_id'] = (int) $request->input('vehicle_id');
+            }
+            // 待配货→配货中：记录备货人（谁点的配货），列表「备货人」列取此值
+            if ($target === '配货中' && $current === 'pending') {
+                $admin = auth('admin')->user();
+                if ($admin) {
+                    $updateData['stocker_id'] = $admin->id;
+                    $updateData['stocker_name'] = $admin->real_name ?? $admin->username ?? null;
+                }
+            }
+            // 对账日期可由前端在任意流转时带入
+            if ($request->filled('reconcile_date')) {
+                $updateData['reconcile_date'] = $request->input('reconcile_date');
             }
             $salesOrder->update($updateData);
 

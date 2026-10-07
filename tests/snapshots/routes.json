@@ -2420,6 +2420,18 @@
     ]
   },
   {
+    "method": "POST",
+    "uri": "admin/business/sales-order/batch-update",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@batchUpdate",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
     "method": "GET",
     "uri": "admin/business/sales-order/statistics",
     "name": "admin.",

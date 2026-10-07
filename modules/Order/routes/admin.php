@@ -75,6 +75,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/statistics', [SalesOrderController::class, 'statistics']);
         Route::get('/summary', [SalesOrderController::class, 'summary']);
         Route::post('/batch-red-flush', [SalesOrderController::class, 'batchRedFlush']);
+        Route::post('/batch-update', [SalesOrderController::class, 'batchUpdate']);
         Route::get('/{salesOrder}', [SalesOrderController::class, 'show']);
         Route::post('/', [SalesOrderController::class, 'store']);
         Route::put('/{salesOrder}', [SalesOrderController::class, 'update']);

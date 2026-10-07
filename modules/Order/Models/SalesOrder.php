@@ -19,7 +19,7 @@ class SalesOrder extends Model
         'status', 'transferred_to', 'salesman_id', 'vehicle_id',
         'delivery_person_id', 'salesman_name', 'created_by',
         'approved_by', 'dispatched_by', 'approved_at', 'dispatched_at',
-        'remark', 'print_count',
+        'remark', 'print_count', 'stocker_id', 'stocker_name', 'reconcile_date',
         'red_flush_reason', 'red_flush_by', 'red_flush_at', 'red_flush_order_id', 'original_order_id', 'payment_status',
     ];
 
@@ -27,6 +27,7 @@ class SalesOrder extends Model
         'order_date' => 'date',
         'approved_at' => 'datetime',
         'dispatched_at' => 'datetime',
+        'reconcile_date' => 'date',
     ];
 
     public function customer(): BelongsTo
