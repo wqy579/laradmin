@@ -130,14 +130,21 @@ class StockService
      * 通用库存调整：盘点/报损等「以实盘为准」的增减。
      *
      * 与 stockIn/stockOut 的区别：
-     *   - 不校验库存是否充足（盘亏是把账面修正为实物，库存可能本就记错）；
      *   - change_type 由调用方指定（check_in 盘盈 / check_out 盘亏 / adjust_in 调整增加 / adjust_out 调整减少）；
      *   - delta 为负即减少、为正即增加；会按 实盘数量×成本 重算 total_amount。
+     *
+     * 库存充足校验（按 change_type 决定，与 stockIn/stockOut 的语义对齐）：
+     *   - adjust_out / check_out：账面减后不能为负——否则会把库存打成负数，
+     *     绕过 stockOut 已经在守的边界（调整单审核、盘点盘亏审核都能穿透它）。
+     *   - adjust_in / check_in：增加方向无限制。
+     *   - 存量 0 且要减（$stock 为空）也视为不足，同样抛异常，避免创建负库存行。
      *
      * $relatedType 由调用方指定归属单据（Stocktaking 盘点 / StockAdjust 库存调整），
      * 台账与流水按它区分来源；不传时兜底为 Stocktaking（历史行为）。
      *
      * 仍走 lockForUpdate 行锁 + recordHistory + syncProductStockQty，与其它写操作一致。
+     *
+     * @throws StockRuleException 当 reduce 方向的调整后库存为负
      */
     public function adjust(int $productId, int $warehouseId, int $delta, float $costPrice, int $relatedId, string $changeType, string $remark, ?string $relatedType = null): Stock
     {
@@ -149,9 +156,16 @@ class StockService
                 ->first();
 
             $before = $stock ? (int) $stock->quantity : 0;
+            $after = $before + $delta;
+
+            // 减少方向（盘亏 / 调整减少）不能把库存打穿到负数；这与 stockOut 的边界一致，
+            // 避免审核通道绕过出库单已经在守的规则。存量本身为 0 且要减也是不足。
+            if ($delta < 0 && $after < 0) {
+                throw new StockRuleException('库存不足，当前库存 '.$before.'，减少数量 '.abs($delta).' 后为负数');
+            }
 
             if ($stock) {
-                $stock->quantity = (int) $stock->quantity + $delta;
+                $stock->quantity = $after;
                 if ($costPrice > 0) {
                     $stock->cost_price = $costPrice;
                 }
@@ -159,12 +173,13 @@ class StockService
                 $stock->updated_at = now();
                 $stock->save();
             } else {
+                // 到不了这里做负数分支：上方校验已经拦截 $after < 0
                 $stock = Stock::create([
                     'product_id' => $productId,
                     'warehouse_id' => $warehouseId,
-                    'quantity' => $delta,
+                    'quantity' => $after,
                     'cost_price' => $costPrice,
-                    'total_amount' => $delta * $costPrice,
+                    'total_amount' => $after * $costPrice,
                     'updated_at' => now(),
                 ]);
             }

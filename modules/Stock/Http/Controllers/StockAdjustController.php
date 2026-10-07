@@ -416,7 +416,13 @@ class StockAdjustController extends Controller
 
         [$adminId, $adminName] = $this->currentAdmin();
 
-        DB::transaction(fn () => $this->applyApproval($adjust, $adminId, $adminName, $validated['approval_comment'] ?? null));
+        try {
+            DB::transaction(fn () => $this->applyApproval($adjust, $adminId, $adminName, $validated['approval_comment'] ?? null));
+        } catch (StockRuleException $e) {
+            // 库存不足等业务规则拒绝：事务已回滚，状态仍为 pending。与批量审核的语义一致，
+            // 显式映射为 422——不 catch 会被全局 Handler 落进 500 分支。
+            return $this->error('审核失败：'.$e->getMessage().'，请调整调整数量后重试', 422);
+        }
 
         return $this->success($adjust->load('items', 'warehouse'), '审核通过，库存与财务凭证已生成');
     }

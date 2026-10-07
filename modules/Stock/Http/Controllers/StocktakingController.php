@@ -7,6 +7,7 @@ use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Stock\Exceptions\StockRuleException;
 use Modules\Stock\Models\StockCheck;
 use Modules\Stock\Models\StockCheckItem;
 use Modules\Stock\Services\StockService;
@@ -357,96 +358,111 @@ class StocktakingController extends Controller
         $adminId = $admin?->id;
         $adminName = $admin?->name ?? ($admin?->nickname ?? '管理员');
 
-        return DB::transaction(function () use ($check, $validated, $adminId, $adminName) {
-            // 1. 更新盘点单状态
-            $check->update([
-                'status' => StockCheck::STATUS_APPROVED,
-                'approved_by' => $adminId,
-                'approver_name' => $adminName,
-                'approved_at' => now(),
-                'approval_comment' => $validated['approval_comment'] ?? null,
-            ]);
+        try {
+            DB::transaction(fn () => $this->applyApproval($check, $adminId, $adminName, $validated['approval_comment'] ?? null));
+        } catch (StockRuleException $e) {
+            // 盘亏超出当前库存等业务规则拒绝：事务已回滚，盘点单状态仍为 pending。
+            // 显式映射 422——不 catch 会被全局 Handler 落进 500 分支。
+            return $this->error('审核失败：'.$e->getMessage().'，请核对实盘数量后重试', 422);
+        }
 
-            // 2. 遍历差异商品调库存（盘盈 + / 盘亏 -），流水类型 check_in/check_out
-            foreach ($check->items as $item) {
-                $diff = (int) $item->diff_qty;
-                if ($diff === 0) {
-                    continue;
-                }
-                $this->stockService->adjust(
-                    (int) $item->product_id,
-                    (int) $check->warehouse_id,
-                    $diff,
-                    (float) $item->cost_price,
-                    (int) $check->id,
-                    $diff > 0 ? 'check_in' : 'check_out',
-                    ($diff > 0 ? '库存盘盈-' : '库存盘亏-').$check->check_no,
-                    'Stocktaking'
-                );
+        return $this->success($check->load('items', 'warehouse'), '审核通过，库存与财务凭证已生成');
+    }
+
+    /**
+     * 审核通过的核心逻辑：调库存 + 生成盘盈/盘亏凭证 + 现金流水 + 经营历程。
+     * 调用方负责开启事务并校验状态为 pending；本方法不再重复校验状态。
+     *
+     * @throws StockRuleException 任一条明细的盘亏超出该仓当前库存
+     */
+    private function applyApproval(StockCheck $check, ?int $adminId, string $adminName, ?string $comment): void
+    {
+        // 1. 更新盘点单状态
+        $check->update([
+            'status' => StockCheck::STATUS_APPROVED,
+            'approved_by' => $adminId,
+            'approver_name' => $adminName,
+            'approved_at' => now(),
+            'approval_comment' => $comment,
+        ]);
+
+        // 2. 遍历差异商品调库存（盘盈 + / 盘亏 -），流水类型 check_in/check_out
+        foreach ($check->items as $item) {
+            $diff = (int) $item->diff_qty;
+            if ($diff === 0) {
+                continue;
             }
+            $this->stockService->adjust(
+                (int) $item->product_id,
+                (int) $check->warehouse_id,
+                $diff,
+                (float) $item->cost_price,
+                (int) $check->id,
+                $diff > 0 ? 'check_in' : 'check_out',
+                ($diff > 0 ? '库存盘盈-' : '库存盘亏-').$check->check_no,
+                'Stocktaking'
+            );
+        }
 
-            $profitAmount = (float) $check->profit_amount;
-            $lossAmount = (float) $check->loss_amount;
-            $checkDate = $check->check_date?->toDateString() ?? now()->toDateString();
+        $profitAmount = (float) $check->profit_amount;
+        $lossAmount = (float) $check->loss_amount;
+        $checkDate = $check->check_date?->toDateString() ?? now()->toDateString();
 
-            // 3. 盘盈 → 其他收入单（自动审核）
-            if ($profitAmount > 0.01) {
-                $receiveNo = $this->generateNo('QT', 'receives', 'receive_no');
-                DB::table('receives')->insert([
-                    'receive_no' => $receiveNo,
-                    'receive_type' => 2, // 其他收款
-                    'customer_id' => null,
-                    'sales_order_id' => null,
-                    'amount' => $profitAmount,
-                    'receive_date' => $checkDate,
-                    'payment_method' => '现金',
-                    'handler_id' => $adminId,
-                    'remark' => '库存盘盈-'.$check->check_no,
-                    'status' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $this->writeCashFlow('receive', $profitAmount, $check->id, 'Stocktaking', $checkDate, '盘盈收入：'.$check->check_no, $adminId);
-            }
-
-            // 4. 盘亏 → 一般费用单（自动审核）
-            if ($lossAmount > 0.01) {
-                $expenseNo = $this->generateNo('FY', 'expenses', 'expense_no');
-                DB::table('expenses')->insert([
-                    'expense_no' => $expenseNo,
-                    'expense_type' => '库存盘亏',
-                    'amount' => $lossAmount,
-                    'expense_date' => $checkDate,
-                    'handler_id' => $adminId,
-                    'remark' => '库存盘亏-'.$check->check_no,
-                    'status' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $this->writeCashFlow('expense', -$lossAmount, $check->id, 'Stocktaking', $checkDate, '盘亏支出：'.$check->check_no, $adminId);
-            }
-
-            // 5. 经营历程
-            DB::table('order_operation_logs')->insert([
-                'order_id' => $check->id,
-                'order_no' => $check->check_no,
-                'order_type' => 'stocktaking',
-                'user_id' => $adminId,
-                'user_name' => $adminName,
-                'operator_id' => $adminId,
-                'operator_name' => $adminName,
-                'action' => 'approve',
-                'action_label' => '盘点审核通过',
-                'detail' => '库存盘点审核通过，盘盈¥'.number_format($profitAmount, 2).'，盘亏¥'.number_format($lossAmount, 2),
-                'remark' => $validated['approval_comment'] ?? null,
-                'from_status' => StockCheck::STATUS_PENDING,
-                'to_status' => StockCheck::STATUS_APPROVED,
+        // 3. 盘盈 → 其他收入单（自动审核）
+        if ($profitAmount > 0.01) {
+            $receiveNo = $this->generateNo('QT', 'receives', 'receive_no');
+            DB::table('receives')->insert([
+                'receive_no' => $receiveNo,
+                'receive_type' => 2, // 其他收款
+                'customer_id' => null,
+                'sales_order_id' => null,
+                'amount' => $profitAmount,
+                'receive_date' => $checkDate,
+                'payment_method' => '现金',
+                'handler_id' => $adminId,
+                'remark' => '库存盘盈-'.$check->check_no,
+                'status' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $this->writeCashFlow('receive', $profitAmount, $check->id, 'Stocktaking', $checkDate, '盘盈收入：'.$check->check_no, $adminId);
+        }
 
-            return $this->success($check->load('items', 'warehouse'), '审核通过，库存与财务凭证已生成');
-        });
+        // 4. 盘亏 → 一般费用单（自动审核）
+        if ($lossAmount > 0.01) {
+            $expenseNo = $this->generateNo('FY', 'expenses', 'expense_no');
+            DB::table('expenses')->insert([
+                'expense_no' => $expenseNo,
+                'expense_type' => '库存盘亏',
+                'amount' => $lossAmount,
+                'expense_date' => $checkDate,
+                'handler_id' => $adminId,
+                'remark' => '库存盘亏-'.$check->check_no,
+                'status' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $this->writeCashFlow('expense', -$lossAmount, $check->id, 'Stocktaking', $checkDate, '盘亏支出：'.$check->check_no, $adminId);
+        }
+
+        // 5. 经营历程
+        DB::table('order_operation_logs')->insert([
+            'order_id' => $check->id,
+            'order_no' => $check->check_no,
+            'order_type' => 'stocktaking',
+            'user_id' => $adminId,
+            'user_name' => $adminName,
+            'operator_id' => $adminId,
+            'operator_name' => $adminName,
+            'action' => 'approve',
+            'action_label' => '盘点审核通过',
+            'detail' => '库存盘点审核通过，盘盈¥'.number_format($profitAmount, 2).'，盘亏¥'.number_format($lossAmount, 2),
+            'remark' => $comment,
+            'from_status' => StockCheck::STATUS_PENDING,
+            'to_status' => StockCheck::STATUS_APPROVED,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 
     /** 审核驳回（待审核 → 盘点中，可继续修改） */
