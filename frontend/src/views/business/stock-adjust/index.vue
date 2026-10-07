@@ -294,7 +294,8 @@ async function onExport() {
 	}
 }
 
-// ---- 批量审核 ----const selectedRows = ref([])
+// ---- 批量审核 ----
+const selectedRows = ref([])
 const selectedPending = computed(() => selectedRows.value.filter((r) => r.status === 'pending'))
 function onSelectionChange(rows) {
 	selectedRows.value = rows || []
