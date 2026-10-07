@@ -405,6 +405,57 @@ class SalesOrderController extends Controller
         return $query;
     }
 
+    /**
+     * 最近成交价：取该客户上次成交该商品的单价（按 order_date 倒序）。
+     *
+     * 「最近价」开关打开时，前端选完商品后调这里批量取价——
+     * 只取「正常销售」明细（赠品/陈列费等清零价不算最近价），
+     * 排除红冲单（original_order_id 非空）与已作废单。
+     * 退货单不在 sales_orders（见 sales_returns 表），天然不会命中。
+     * 一次查一个客户+多个商品，避免逐行 N 次请求。
+     *
+     * @return array product_id => ['price_small','price_medium','price_large','order_no','order_date']
+     */
+    public function recentPrices(Request $request)
+    {
+        $validated = $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'product_ids' => 'required|array|min:1',
+            'product_ids.*' => 'integer|exists:products,id',
+        ]);
+
+        // 按 order_date 倒序取全部命中行，PHP 侧每商品只留第一条 = 最近一次成交价。
+        // 不用窗口函数（ROW_NUMBER 需 MySQL 8），保持与生产 MySQL 5.x 兼容。
+        $rows = DB::table('sales_order_items as soi')
+            ->join('sales_orders as so', 'soi.sales_order_id', '=', 'so.id')
+            ->selectRaw('soi.product_id, soi.price_small, soi.price_medium, soi.price_large, so.order_no, so.order_date')
+            ->where('so.customer_id', (int) $validated['customer_id'])
+            ->whereIn('soi.product_id', $validated['product_ids'])
+            ->where('soi.sale_mode', '正常销售')
+            ->whereNull('so.original_order_id')
+            ->where(function ($q) {
+                $q->where('so.status', '!=', '已作废')->orWhereNull('so.status');
+            })
+            ->orderBy('so.order_date', 'desc')
+            ->orderBy('so.id', 'desc')
+            ->get();
+
+        $result = [];
+        foreach ($rows as $row) {
+            if (! isset($result[$row->product_id])) {
+                $result[$row->product_id] = [
+                    'price_small' => $row->price_small,
+                    'price_medium' => $row->price_medium,
+                    'price_large' => $row->price_large,
+                    'order_no' => $row->order_no,
+                    'order_date' => (string) $row->order_date,
+                ];
+            }
+        }
+
+        return $this->success($result);
+    }
+
     public function show(SalesOrder $salesOrder)
     {
         $salesOrder->load(['customer', 'warehouse', 'salesman', 'items.product']);
@@ -468,7 +519,10 @@ class SalesOrderController extends Controller
             $this->applyPromotion($order, (int) $validated['customer_id']);
 
             // 下单即冻结库存（对齐旧系统：quantity 扣减 + frozen_qty 累加 + 写 stocks_history）
-            $this->freezeItems($order);
+            // 「冻结库存」开关关闭时跳过——录入期不占库存，交配送环节再冻
+            if ($validated['freeze_stock'] ?? true) {
+                $this->freezeItems($order);
+            }
 
             DB::commit();
 
@@ -656,8 +710,10 @@ class SalesOrderController extends Controller
             // 重算促销（价改/满减/买赠赠品），在重新冻结前
             $this->applyPromotion($salesOrder, (int) $validated['customer_id']);
 
-            // 按新仓库重新冻结
-            $this->freezeItems($salesOrder);
+            // 按新仓库重新冻结（开关关闭时跳过，保持与 store 同口径）
+            if ($validated['freeze_stock'] ?? true) {
+                $this->freezeItems($salesOrder);
+            }
 
             DB::commit();
 
@@ -692,6 +748,7 @@ class SalesOrderController extends Controller
             'salesman_id' => 'nullable|integer',
             'print_type' => 'nullable|string|max:20|in:none,item_note,delivery_note',
             'sort_type' => 'nullable|string|max:20|in:code,name,entry',
+            'freeze_stock' => 'nullable|boolean',
             'remark' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',

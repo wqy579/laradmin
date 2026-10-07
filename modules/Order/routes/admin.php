@@ -74,6 +74,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [SalesOrderController::class, 'index']);
         Route::get('/statistics', [SalesOrderController::class, 'statistics']);
         Route::get('/summary', [SalesOrderController::class, 'summary']);
+        // 静态路由必须在 {salesOrder} 之前，否则被路由参数吞掉
+        Route::get('/recent-prices', [SalesOrderController::class, 'recentPrices']);
         Route::post('/batch-red-flush', [SalesOrderController::class, 'batchRedFlush']);
         Route::post('/batch-update', [SalesOrderController::class, 'batchUpdate']);
         Route::get('/{salesOrder}', [SalesOrderController::class, 'show']);

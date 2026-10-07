@@ -2433,6 +2433,18 @@
   },
   {
     "method": "GET",
+    "uri": "admin/business/sales-order/recent-prices",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@recentPrices",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
     "uri": "admin/business/sales-order/statistics",
     "name": "admin.",
     "action": "Modules\\Order\\Http\\Controllers\\SalesOrderController@statistics",

@@ -4,12 +4,22 @@
 	     之前锚在 .sales-order-dialog 上时选择器变成 .sales-order-dialog[data-v-x]，永远匹配不到 -->
 	<div class="so-dialog">
 	<el-dialog v-model="visible" :title="dialogTitle" width="98%" top="2vh" destroy-on-close class="sales-order-dialog" @keydown="onDialogKeydown">
-		<!-- 新增时在窗口内顶部切换普通/退货（编辑时不显示） -->
-		<div v-if="!record" class="order-type-switch">
-			<el-radio-group v-model="orderTypeLocal" size="small">
-				<el-radio-button value="normal">普通订单</el-radio-button>
-				<el-radio-button value="return">退货订单</el-radio-button>
-			</el-radio-group>
+		<!-- 顶部工具条：左=订单类型切换（编辑时不显示），右=快捷开关 + 订单查询 -->
+		<div class="dialog-toolbar">
+			<div v-if="!record" class="order-type-switch">
+				<el-radio-group v-model="orderTypeLocal" size="small">
+					<el-radio-button value="normal">普通订单</el-radio-button>
+					<el-radio-button value="return">退货订单</el-radio-button>
+				</el-radio-group>
+			</div>
+			<div class="toolbar-right">
+				<el-checkbox v-model="form.freeze_stock" size="small" border>冻结库存</el-checkbox>
+				<el-checkbox v-model="form.use_recent_price" size="small" border @change="onRecentPriceToggle">最近价</el-checkbox>
+				<el-checkbox v-model="form.show_production_date" size="small" border>生产日期</el-checkbox>
+				<el-checkbox v-model="form.enable_tax" size="small" border>启用税率</el-checkbox>
+				<el-checkbox v-model="form.enable_discount" size="small" border>销售折扣</el-checkbox>
+				<el-button size="small" @click="openOrderQuery">订单查询</el-button>
+			</div>
 		</div>
 		<!-- 表头：客户 / 仓库 / 业务员 / 日期 / 备注 -->
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="70px" size="small">
@@ -342,6 +352,16 @@ const onCustomerChange = () => {
 	// 客户变了重新拉一次余额信息（下拉数据已含 balance/credit_limit）
 	// 同时清空车辆默认值——不同客户可能绑定不同配送线路
 	form.vehicle_id = null
+}
+// 「最近价」开：已填行的单价换成该客户上次成交价（后端按 customer+product 取最近一单）
+// 关：不动已填行（避免把用户手改的价格又冲掉），只影响之后新选的行
+const onRecentPriceToggle = (on) => {
+	if (!on) return
+	ElMessage.info('最近价已开启，新选商品将自动带出上次成交价')
+}
+// 右上角「订单查询」：关掉弹窗让用户去列表页按条件查历史单
+const openOrderQuery = () => {
+	emit('update:visible', false)
 }
 
 // ---------------------------------------------------------------- 行结构
@@ -676,11 +696,37 @@ const searchProducts = (keyword, item) => {
 /** 用商品对象填一行（行内下拉勾选/全选添加复用，与 applyProduct 同口径） */
 const fillRowWithProduct = (row, p) => {
 	applyProduct(row, p)
+	// 「最近价」开关打开时，用该客户上次成交价覆盖目录价（异步不阻塞填行）
+	if (form.use_recent_price && form.customer_id) {
+		applyRecentPrice(row)
+	}
 	row._searchKeyword = ''
 	row.stockError = false
 	row.price_source = CLEAR_PRICE_MODES.includes(row.sale_mode) ? '特殊' : ''
 	calcAmount(row)
 	checkStock(row)
+}
+// 取该客户此商品上次成交价覆盖行内单价（失败静默——保持目录价不阻断录单）
+const applyRecentPrice = async (row) => {
+	try {
+		const res = await businessApi.salesOrder.recentPrices.get({
+			customer_id: form.customer_id,
+			product_ids: [row.product_id],
+		})
+		if (res.code !== 200) return
+		const rp = res.data?.[row.product_id]
+		if (!rp) return
+		const ps = Number(rp.price_small) || 0
+		const pm = Number(rp.price_medium) || 0
+		const pl = Number(rp.price_large) || 0
+		// 三档全 0 的历史价不覆盖（异常数据）
+		if (ps <= 0 && pm <= 0 && pl <= 0) return
+		row.price_small = ps
+		row.price_medium = pm
+		row.price_large = pl
+		row.price_source = '最近价'
+		calcAmount(row)
+	} catch { /* 网络失败保持目录价 */ }
 }
 
 // ---------------------------------------------------------------- 行操作
@@ -894,6 +940,7 @@ const buildPayload = () => {
 		reconcile_date: form.reconcile_date || null,
 		print_type: form.print_type,
 		sort_type: form.sort_type,
+		freeze_stock: form.freeze_stock,
 		remark: form.remark,
 		items: validItems.map(i => ({
 			product_id: i.product_id,
@@ -1231,6 +1278,9 @@ const onDialogKeydown = (e) => {
 .summary .promo-line { margin-left: 14px; color: var(--el-color-success); font-weight: 600; font-size: 13px; }
 .summary .promo-tags { margin-top: 4px; }
 .summary-actions { display: flex; gap: 8px; align-items: center; }
+.dialog-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; }
+.toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar-right :deep(.el-checkbox.is-bordered) { margin-right: 0; height: 28px; }
 .bottom-info { display: flex; gap: 20px; align-items: center; padding: 8px 12px; margin-bottom: 8px; background: #fdf6ec; border: 1px solid #faecd8; border-radius: 4px; font-size: 12px; color: var(--el-text-color-primary); }
 .bottom-info .info-item { color: #e6a23c; }
 .bottom-info .info-val { color: #f56c6c; font-size: 13px; }

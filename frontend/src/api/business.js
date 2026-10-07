@@ -95,6 +95,7 @@ const businessApi = {
 		summary: { get: (params) => request.get('business/sales-order/summary', { params }) },
 		batchRedFlush: { post: (params) => request.post('business/sales-order/batch-red-flush', params) },
 		batchUpdate: { post: (params) => request.post('business/sales-order/batch-update', params) },
+		recentPrices: { get: (params) => request.get('business/sales-order/recent-prices', { params }) },
 	},
 
 	// 库存流水
