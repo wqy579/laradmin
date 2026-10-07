@@ -2708,6 +2708,18 @@
     ]
   },
   {
+    "method": "POST",
+    "uri": "admin/business/stock-adjust/batch-approve",
+    "name": "admin.",
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@batchApprove",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
     "method": "GET",
     "uri": "admin/business/stock-adjust/warehouse-products",
     "name": "admin.",

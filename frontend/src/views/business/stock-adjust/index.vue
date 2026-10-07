@@ -4,6 +4,9 @@
 		<div class="page-header">
 			<span class="page-title">库存调整</span>
 			<div class="header-actions">
+				<el-button type="success" :disabled="selectedPending.length === 0" @click="openBatchAudit">
+					批量审核（{{ selectedPending.length }}）
+				</el-button>
 				<el-button type="primary" @click="openForm()">
 					<i class="el-icon-plus"></i>新增调整单
 				</el-button>
@@ -55,9 +58,11 @@
 				height="100%"
 				stripe
 				show-pagination
+				:checkbox-config="{ checkMethod: ({ row }) => row.status === 'pending' }"
 				emptyText="暂无调整单，点击右上角新增调整单"
 				@pageChange="onPageChange"
 				@pageSizeChange="onPageSizeChange"
+				@selectionChange="onSelectionChange"
 			>
 				<template #adjust_no="{ row }">
 					<el-link type="primary" @click="openDetail(row)">{{ row.adjust_no }}</el-link>
@@ -112,11 +117,24 @@
 		<el-dialog v-model="detailVisible" title="库存调整单详情" width="900px" top="5vh">
 			<stock-adjust-detail v-if="detailVisible" :id="detailId" />
 		</el-dialog>
+
+		<!-- 批量审核 -->
+		<el-dialog v-model="batchVisible" title="批量审核确认" width="480px">
+			<p style="line-height:1.6;color:#666;font-size:14px">
+				您已选择 <b>{{ selectedPending.length }}</b> 张待审核调整单，确认批量审核通过？
+				通过后将逐一调整库存并生成财务凭证，任一单据失败将整体回滚，操作不可撤销。
+			</p>
+			<el-input v-model="batchComment" type="textarea" :rows="3" placeholder="输入审核意见（可选）" style="margin-top:12px" />
+			<template #footer>
+				<el-button @click="batchVisible = false">取消</el-button>
+				<el-button type="success" :loading="batchLoading" @click="doBatchApprove">确认审核</el-button>
+			</template>
+		</el-dialog>
 	</div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import businessApi from '@/api/business'
 import sTable from '@/components/sTable/index.vue'
@@ -149,6 +167,7 @@ const statusMeta = {
 }
 
 const columns = [
+	{ type: 'checkbox', width: 50 },
 	{ prop: 'adjust_no', title: '调整单号', width: 180, slots: { default: 'adjust_no' } },
 	{ prop: 'warehouse_name', title: '仓库', width: 120 },
 	{ prop: 'adjust_date', title: '调整日期', width: 120 },
@@ -239,6 +258,44 @@ function onSaved() {
 	formVisible.value = false
 	auditVisible.value = false
 	fetchData()
+}
+
+// ---- 批量审核 ----
+const selectedRows = ref([])
+const selectedPending = computed(() => selectedRows.value.filter((r) => r.status === 'pending'))
+function onSelectionChange(rows) {
+	selectedRows.value = rows || []
+}
+
+const batchVisible = ref(false)
+const batchComment = ref('')
+const batchLoading = ref(false)
+function openBatchAudit() {
+	batchComment.value = ''
+	batchVisible.value = true
+}
+
+async function doBatchApprove() {
+	const ids = selectedPending.value.map((r) => r.id)
+	if (!ids.length) {
+		ElMessage.warning('请勾选待审核的调整单')
+		return
+	}
+	batchLoading.value = true
+	try {
+		const res = await businessApi.stockAdjust.batchApprove.post({ ids, approval_comment: batchComment.value })
+		const d = res.data || {}
+		const skipped = d.skipped || []
+		ElMessage.success(`批量审核完成：成功 ${d.approved || 0} 张${skipped.length ? `，跳过 ${skipped.length} 张` : ''}`)
+		batchVisible.value = false
+		selectedRows.value = []
+		tableRef.value?.clearCheckboxRow?.()
+		fetchData()
+	} catch (e) {
+		ElMessage.error(e?.response?.data?.message || '批量审核失败')
+	} finally {
+		batchLoading.value = false
+	}
 }
 
 async function submit(row) {

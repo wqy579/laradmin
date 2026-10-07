@@ -195,6 +195,7 @@ const businessApi = {
 		approve: { post: (id, params) => request.post(`business/stock-adjust/${id}/approve`, params) },
 		reject: { post: (id, params) => request.post(`business/stock-adjust/${id}/reject`, params) },
 		cancel: { post: (id) => request.post(`business/stock-adjust/${id}/cancel`) },
+		batchApprove: { post: (params) => request.post('business/stock-adjust/batch-approve', params) },
 		warehouseProducts: { get: (params) => request.get('business/stock-adjust/warehouse-products', { params }) },
 	},
 

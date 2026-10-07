@@ -126,6 +126,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/stock-adjust')->group(function () {
         Route::get('/', [StockAdjustController::class, 'index']);
         Route::post('/', [StockAdjustController::class, 'store']);
+        // 静态路由必须先于 /{id}，否则 batch-approve 会被当成 id 吞掉
+        Route::post('/batch-approve', [StockAdjustController::class, 'batchApprove']);
         Route::get('/{id}', [StockAdjustController::class, 'show']);
         Route::put('/{id}', [StockAdjustController::class, 'update']);
         Route::delete('/{id}', [StockAdjustController::class, 'destroy']);

@@ -7,6 +7,7 @@ use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Stock\Exceptions\StockRuleException;
 use Modules\Stock\Models\StockAdjust;
 use Modules\Stock\Models\StockAdjustItem;
 use Modules\Stock\Services\StockService;
@@ -99,6 +100,9 @@ class StockAdjustController extends Controller
         if (! $adjust) {
             return $this->notFound('调整单不存在');
         }
+
+        // 与列表接口字段对齐：补扁平 warehouse_name，前端不必再钻进 warehouse 对象
+        $adjust->warehouse_name = $adjust->warehouse?->name ?? '';
 
         return $this->success($adjust);
     }
@@ -336,113 +340,187 @@ class StockAdjustController extends Controller
             return $this->error('只有待审核的调整单才能审核', 422);
         }
 
-        $admin = auth('admin')->user();
-        $adminId = $admin?->id;
-        $adminName = $admin?->real_name ?? $admin?->username ?? '管理员';
+        [$adminId, $adminName] = $this->currentAdmin();
 
-        return DB::transaction(function () use ($adjust, $validated, $adminId, $adminName) {
-            // 1. 更新状态
-            $adjust->update([
-                'status' => StockAdjust::STATUS_APPROVED,
-                'approved_by' => $adminId,
-                'approver_name' => $adminName,
-                'approved_at' => now(),
-                'approval_comment' => $validated['approval_comment'] ?? null,
-            ]);
+        DB::transaction(fn () => $this->applyApproval($adjust, $adminId, $adminName, $validated['approval_comment'] ?? null));
 
-            // 2. 遍历明细调库存
-            $lossAmount = 0.0;
-            $gainAmount = 0.0;
-            $adjustDate = $adjust->adjust_date?->toDateString() ?? now()->toDateString();
+        return $this->success($adjust->load('items', 'warehouse'), '审核通过，库存与财务凭证已生成');
+    }
 
-            foreach ($adjust->items as $item) {
-                $adjustQty = (float) $item->adjust_qty;
-                if ($adjustQty == 0) {
-                    continue;
+    /**
+     * 批量审核：勾选多张待审核单批量通过，全部在一个事务内执行库存联动。
+     * 任一张库存不足即整体回滚（与组装/拆分/采购退货的批量审核语义一致）。
+     */
+    public function batchApprove(Request $request)
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+            'approval_comment' => 'nullable|string|max:500',
+            'remark' => 'nullable|string|max:500',
+        ]);
+
+        // 兼容前端传 remark 或 approval_comment 两种参数名
+        $comment = $validated['approval_comment'] ?? $validated['remark'] ?? null;
+
+        [$adminId, $adminName] = $this->currentAdmin();
+
+        $adjusts = StockAdjust::with('items')->whereIn('id', $validated['ids'])->orderBy('id')->get();
+
+        try {
+            $result = DB::transaction(function () use ($adjusts, $adminId, $adminName, $comment) {
+                $approved = 0;
+                $skipped = [];
+
+                foreach ($adjusts as $adjust) {
+                    if ($adjust->status === StockAdjust::STATUS_APPROVED) {
+                        $skipped[] = ['id' => $adjust->id, 'adjust_no' => $adjust->adjust_no, 'reason' => '已审核'];
+
+                        continue;
+                    }
+                    if ($adjust->status !== StockAdjust::STATUS_PENDING) {
+                        $skipped[] = ['id' => $adjust->id, 'adjust_no' => $adjust->adjust_no, 'reason' => '非待审核'];
+
+                        continue;
+                    }
+                    if ($adjust->items->isEmpty()) {
+                        $skipped[] = ['id' => $adjust->id, 'adjust_no' => $adjust->adjust_no, 'reason' => '无明细'];
+
+                        continue;
+                    }
+
+                    $this->applyApproval($adjust, $adminId, $adminName, $comment);
+                    $approved++;
                 }
-                $changeType = $adjustQty > 0 ? 'adjust_in' : 'adjust_out';
-                $this->stockService->adjust(
-                    (int) $item->product_id,
-                    (int) $adjust->warehouse_id,
-                    (int) round($adjustQty),
-                    (float) $item->unit_cost,
-                    (int) $adjust->id,
-                    $changeType,
-                    ($adjustQty > 0 ? '库存调整入库-' : '库存调整出库-').$adjust->adjust_no
-                );
 
-                $totalCost = (float) $item->total_cost;
-                if ($adjustQty < 0) {
-                    $lossAmount += $totalCost;
-                } else {
-                    $gainAmount += $totalCost;
-                }
+                return ['approved' => $approved, 'skipped' => $skipped];
+            });
+        } catch (StockRuleException $e) {
+            return $this->error('批量审核失败：'.$e->getMessage().'，已全部回滚', 422);
+        }
+
+        return $this->success($result, "批量审核完成：成功 {$result['approved']} 张，跳过 ".count($result['skipped']).' 张');
+    }
+
+    /**
+     * 审核通过的核心逻辑（单张）：调库存 + 生成费用/收款单 + 现金流水 + 经营历程。
+     * 调用方负责开启事务并校验状态为 pending；本方法不再重复校验状态。
+     */
+    private function applyApproval(StockAdjust $adjust, ?int $adminId, string $adminName, ?string $comment): void
+    {
+        $adjust->update([
+            'status' => StockAdjust::STATUS_APPROVED,
+            'approved_by' => $adminId,
+            'approver_name' => $adminName,
+            'approved_at' => now(),
+            'approval_comment' => $comment,
+        ]);
+
+        $lossAmount = 0.0;
+        $gainAmount = 0.0;
+        $adjustDate = $adjust->adjust_date?->toDateString() ?? now()->toDateString();
+
+        foreach ($adjust->items as $item) {
+            $adjustQty = (float) $item->adjust_qty;
+            if ($adjustQty == 0) {
+                continue;
             }
+            $this->stockService->adjust(
+                (int) $item->product_id,
+                (int) $adjust->warehouse_id,
+                (int) round($adjustQty),
+                (float) $item->unit_cost,
+                (int) $adjust->id,
+                $adjustQty > 0 ? 'adjust_in' : 'adjust_out',
+                ($adjustQty > 0 ? '库存调整入库-' : '库存调整出库-').$adjust->adjust_no
+            );
 
-            // 3. 库存损耗 → 费用单（自动审核）
-            if ($lossAmount > 0.01) {
-                $expenseNo = $this->generateNo('FY', 'expenses', 'expense_no');
-                DB::table('expenses')->insert([
-                    'expense_no' => $expenseNo,
-                    'expense_type' => '库存损耗',
-                    'amount' => $lossAmount,
-                    'expense_date' => $adjustDate,
-                    'handler_id' => $adminId,
-                    'remark' => '库存调整损耗-'.$adjust->adjust_no,
-                    'status' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $this->writeCashFlow('expense', -$lossAmount, $adjust->id, 'StockAdjust', $adjustDate, '损耗支出：'.$adjust->adjust_no, $adminId);
+            $totalCost = (float) $item->total_cost;
+            if ($adjustQty < 0) {
+                $lossAmount += $totalCost;
+            } else {
+                $gainAmount += $totalCost;
             }
+        }
 
-            // 4. 库存溢余 → 收款单（自动审核）
-            if ($gainAmount > 0.01) {
-                $receiveNo = $this->generateNo('QT', 'receives', 'receive_no');
-                DB::table('receives')->insert([
-                    'receive_no' => $receiveNo,
-                    'receive_type' => 2, // 其他收款
-                    'customer_id' => null,
-                    'sales_order_id' => null,
-                    'amount' => $gainAmount,
-                    'receive_date' => $adjustDate,
-                    'payment_method' => '现金',
-                    'handler_id' => $adminId,
-                    'remark' => '库存调整溢余-'.$adjust->adjust_no,
-                    'status' => 1,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $this->writeCashFlow('receive', $gainAmount, $adjust->id, 'StockAdjust', $adjustDate, '溢余收入：'.$adjust->adjust_no, $adminId);
-            }
-
-            // 5. 经营历程（写入 order_operation_logs）
-            DB::table('order_operation_logs')->insert([
-                'order_id' => $adjust->id,
-                'order_no' => $adjust->adjust_no,
-                'order_type' => 'stock_adjust',
-                'user_id' => $adminId,
-                'user_name' => $adminName,
-                'operator_id' => $adminId,
-                'operator_name' => $adminName,
-                'action' => 'approve',
-                'action_label' => '调整审核通过',
-                'detail' => '库存调整审核通过，溢余¥'.number_format($gainAmount, 2).'，损耗¥'.number_format($lossAmount, 2),
-                'remark' => $validated['approval_comment'] ?? null,
-                'from_status' => StockAdjust::STATUS_PENDING,
-                'to_status' => StockAdjust::STATUS_APPROVED,
+        // 库存损耗 → 费用单（自动审核）
+        if ($lossAmount > 0.01) {
+            $lossRemark = '库存调整损耗-'.$adjust->adjust_no.$this->reasonSuffix($adjust->reason);
+            DB::table('expenses')->insert([
+                'expense_no' => $this->generateNo('FY', 'expenses', 'expense_no'),
+                'expense_type' => '库存损耗',
+                'amount' => $lossAmount,
+                'expense_date' => $adjustDate,
+                'handler_id' => $adminId,
+                'remark' => $lossRemark,
+                'status' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+            $this->writeCashFlow('expense', -$lossAmount, $adjust->id, 'StockAdjust', $adjustDate, '损耗支出：'.$lossRemark, $adminId);
+        }
 
-            return $this->success($adjust->load('items', 'warehouse'), '审核通过，库存与财务凭证已生成');
-        });
+        // 库存溢余 → 收款单（自动审核）
+        if ($gainAmount > 0.01) {
+            $gainRemark = '库存调整溢余-'.$adjust->adjust_no.$this->reasonSuffix($adjust->reason);
+            DB::table('receives')->insert([
+                'receive_no' => $this->generateNo('QT', 'receives', 'receive_no'),
+                'receive_type' => 2, // 其他收款
+                'customer_id' => null,
+                'sales_order_id' => null,
+                'amount' => $gainAmount,
+                'receive_date' => $adjustDate,
+                'payment_method' => '现金',
+                'handler_id' => $adminId,
+                'remark' => $gainRemark,
+                'status' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $this->writeCashFlow('receive', $gainAmount, $adjust->id, 'StockAdjust', $adjustDate, '溢余收入：'.$gainRemark, $adminId);
+        }
+
+        // 经营历程（写入 order_operation_logs）
+        DB::table('order_operation_logs')->insert([
+            'order_id' => $adjust->id,
+            'order_no' => $adjust->adjust_no,
+            'order_type' => 'stock_adjust',
+            'user_id' => $adminId,
+            'user_name' => $adminName,
+            'operator_id' => $adminId,
+            'operator_name' => $adminName,
+            'action' => 'approve',
+            'action_label' => '调整审核通过',
+            'detail' => '库存调整审核通过，溢余¥'.number_format($gainAmount, 2).'，损耗¥'.number_format($lossAmount, 2),
+            'remark' => $comment,
+            'from_status' => StockAdjust::STATUS_PENDING,
+            'to_status' => StockAdjust::STATUS_APPROVED,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /** 调整原因拼进凭证备注（有则追加，无则空串） */
+    private function reasonSuffix(?string $reason): string
+    {
+        $reason = trim((string) $reason);
+
+        return $reason === '' ? '' : '（'.$reason.'）';
+    }
+
+    /** 当前登录管理员 [id, 显示名] */
+    private function currentAdmin(): array
+    {
+        $admin = auth('admin')->user();
+
+        return [$admin?->id, $admin?->real_name ?? $admin?->username ?? '管理员'];
     }
 
     /** 审核驳回（pending → draft，可继续修改） */
     public function reject(Request $request, $id)
     {
-        $validated = $request->validate(['approval_comment' => 'nullable|string|max:500']);
+        // 兼容前端传 comment 或 approval_comment 两种参数名（与组装/拆分模块一致）
+        $comment = $request->input('comment', $request->input('approval_comment'));
 
         $adjust = StockAdjust::find($id);
         if (! $adjust) {
@@ -452,7 +530,7 @@ class StockAdjustController extends Controller
             return $this->error('只有待审核的调整单才能驳回', 422);
         }
 
-        $adjust->update(['status' => StockAdjust::STATUS_DRAFT, 'approval_comment' => $validated['approval_comment'] ?? null]);
+        $adjust->update(['status' => StockAdjust::STATUS_DRAFT, 'approval_comment' => $comment]);
 
         return $this->success($adjust, '已驳回，可继续修改');
     }
