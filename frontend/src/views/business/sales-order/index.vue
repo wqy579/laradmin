@@ -264,7 +264,7 @@
 		</div>
 
 		<!-- 订单编辑/新增弹窗 -->
-		<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :orderType="orderType" :record="currentOrder" :customers="customers" :suppliers="suppliers" :warehouses="warehouses" :salesmen="salesmen" @success="doRefresh" />
+		<SalesOrderDialog v-if="dialog.order" v-model:visible="dialog.order" :orderType="orderType" :record="currentOrder" :customers="customers" :suppliers="suppliers" :warehouses="warehouses" :salesmen="salesmen" :vehicles="vehicles" @success="doRefresh" />
 
 		<!-- 详情弹窗 -->
 		<el-dialog v-model="dialog.detail" title="订单详情" width="800px" top="5vh" destroy-on-close>
