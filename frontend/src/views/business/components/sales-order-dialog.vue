@@ -269,15 +269,17 @@
 			</div>
 		</div>
 
-		<!-- 底部信息条：客户余额/欠款（选客户后显示） -->
-		<div class="bottom-info" v-if="selectedCustomer">
-			<span class="info-item">
-				客户余额: <b class="info-val">{{ selectedCustomer.balance || 0 }}</b> 元
-			</span>
-			<span class="info-item">
-				安全欠款: <b class="info-val">{{ selectedCustomer.credit_limit ? (selectedCustomer.balance > selectedCustomer.credit_limit ? selectedCustomer.balance - selectedCustomer.credit_limit : 0) : 0 }}</b> 元
-			</span>
-			<span class="info-hint">{{ form.print_type === 'delivery_note' ? '已选打印送货单' : form.print_type === 'item_note' ? '已选打印订单明细单' : '不打印' }}，选车申报，提交后在订单查询【待配送】进行发货收款</span>
+		<!-- 底部信息条：操作提示常显；客户余额/欠款选客户后显示（balance 为欠款余额，正数=客户欠我们的） -->
+		<div class="bottom-info">
+			<template v-if="selectedCustomer">
+				<span class="info-item">
+					客户余额: <b class="info-val">{{ Number(selectedCustomer.balance || 0).toFixed(2) }}</b> 元
+				</span>
+				<span class="info-item">
+					安全欠款: <b class="info-val">{{ safeCreditAmount }}</b> 元
+				</span>
+			</template>
+			<span class="info-hint">{{ bottomHint }}</span>
 		</div>
 		<!-- 合计 + 清空列表 + 提交 -->
 		<div class="summary">
@@ -373,6 +375,26 @@ const visible = computed({ get: () => props.visible, set: (v) => emit('update:vi
 // 编辑旧单时若该客户已作废，下拉不回填其名（作废即不存在，留空提示重选）。
 const customerOptions = computed(() => props.customers.filter((c) => c.is_active))
 const selectedCustomer = computed(() => props.customers.find((c) => c.id === form.customer_id) || null)
+// 安全欠款 = 余额超出信用额度的部分。balance 语义是「欠款余额」（正数=客户欠我们的），
+// 未设额度（credit_limit=0）时按无限额处理，不显示安全欠款。
+const safeCreditAmount = computed(() => {
+	if (!selectedCustomer.value) return '0.00'
+	const balance = Number(selectedCustomer.value.balance) || 0
+	const limit = Number(selectedCustomer.value.credit_limit) || 0
+	if (!limit || balance <= limit) return '0.00'
+	return (balance - limit).toFixed(2)
+})
+// 底部操作提示：状态随开关变化（对齐连凯「冻结库存模式，选车申报…」提示语）
+const bottomHint = computed(() => {
+	const parts = []
+	parts.push(form.freeze_stock ? '冻结库存模式' : '不冻结库存')
+	if (form.vehicle_id) parts.push('已选车申报')
+	else parts.push('选车申报')
+	if (form.print_type === 'delivery_note') parts.push('打印送货单')
+	else if (form.print_type === 'item_note') parts.push('打印订单明细单')
+	parts.push('提交后在订单查询【待配送】进行发货收款')
+	return parts.join('，') + '。'
+})
 const onCustomerChange = () => {
 	// 客户变了重新拉一次余额信息（下拉数据已含 balance/credit_limit）
 	// 同时清空车辆默认值——不同客户可能绑定不同配送线路
