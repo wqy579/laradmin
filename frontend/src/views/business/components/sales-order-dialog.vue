@@ -13,37 +13,76 @@
 		</div>
 		<!-- 表头：客户 / 仓库 / 业务员 / 日期 / 备注 -->
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="70px" size="small">
-			<el-row :gutter="16">
-				<el-col :span="6">
+			<el-row :gutter="12">
+				<el-col :span="5">
 					<el-form-item label="客户" prop="customer_id">
-						<el-select v-model="form.customer_id" placeholder="请选择客户" filterable clearable style="width:100%">
+						<el-select v-model="form.customer_id" placeholder="请选择客户" filterable clearable style="width:100%" @change="onCustomerChange">
 							<el-option v-for="c in customerOptions" :key="c.id" :label="c.name" :value="c.id" />
 						</el-select>
 					</el-form-item>
 				</el-col>
-				<el-col :span="6">
+				<el-col :span="4">
 					<el-form-item label="仓库" prop="warehouse_id">
 						<el-select v-model="form.warehouse_id" placeholder="请选择仓库" filterable clearable style="width:100%" @change="onWarehouseChange">
 							<el-option v-for="w in warehouses" :key="w.id" :label="w.name" :value="w.id" />
 						</el-select>
 					</el-form-item>
 				</el-col>
-				<el-col :span="6">
+				<el-col :span="3">
 					<el-form-item label="业务员">
-						<el-select v-model="form.salesman_id" placeholder="请选择业务员" filterable clearable style="width:100%">
+						<el-select v-model="form.salesman_id" placeholder="请选择" filterable clearable style="width:100%">
 							<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
 						</el-select>
 					</el-form-item>
 				</el-col>
-				<el-col :span="6">
-					<el-form-item label="日期" prop="order_date">
-						<el-date-picker v-model="form.order_date" type="date" value-format="YYYY-MM-DD" placeholder="请选择日期" style="width:100%" />
+				<el-col :span="3">
+					<el-form-item label="下单日期" prop="order_date">
+						<el-date-picker v-model="form.order_date" type="date" value-format="YYYY-MM-DD" placeholder="下单日期" style="width:100%" />
+					</el-form-item>
+				</el-col>
+				<el-col :span="3">
+					<el-form-item label="送货日期">
+						<el-date-picker v-model="form.delivery_date" type="date" value-format="YYYY-MM-DD" placeholder="送货日期" style="width:100%" />
 					</el-form-item>
 				</el-col>
 			</el-row>
-			<el-form-item label="备注">
-				<el-input v-model="form.remark" placeholder="输入备注..." clearable style="width:100%" />
-			</el-form-item>
+			<el-row :gutter="12">
+				<el-col :span="3">
+					<el-form-item label="配送车辆">
+						<el-select v-model="form.vehicle_id" placeholder="选择车辆" filterable clearable style="width:100%">
+							<el-option v-for="v in vehicles" :key="v.id" :label="`${v.plate_no} (${v.driver_name || '暂无司机'})`" :value="v.id" />
+						</el-select>
+					</el-form-item>
+				</el-col>
+				<el-col :span="3">
+					<el-form-item label="对账日期">
+						<el-date-picker v-model="form.reconcile_date" type="date" value-format="YYYY-MM-DD" placeholder="对账日期" style="width:100%" />
+					</el-form-item>
+				</el-col>
+				<el-col :span="3">
+					<el-form-item label="打印类型">
+						<el-select v-model="form.print_type" style="width:100%">
+							<el-option label="不打印" value="none" />
+							<el-option label="订单明细单" value="item_note" />
+							<el-option label="送货单" value="delivery_note" />
+						</el-select>
+					</el-form-item>
+				</el-col>
+				<el-col :span="3">
+					<el-form-item label="申报顺序">
+						<el-select v-model="form.sort_type" style="width:100%">
+							<el-option label="按录入顺序" value="entry" />
+							<el-option label="按商品编码" value="code" />
+							<el-option label="按商品名称" value="name" />
+						</el-select>
+					</el-form-item>
+				</el-col>
+				<el-col :span="12">
+					<el-form-item label="备注">
+						<el-input v-model="form.remark" placeholder="输入备注..." clearable style="width:100%" />
+					</el-form-item>
+				</el-col>
+			</el-row>
 		</el-form>
 
 		<!-- 三栏：主分类 / 子分类 / 商品表格，行内远程搜索选择 -->
@@ -200,7 +239,17 @@
 			</div>
 		</div>
 
-		<!-- 合计：与旧系统底部一致，大/中/小三档数量 + 总金额 -->
+		<!-- 底部信息条：客户余额/欠款（选客户后显示） -->
+		<div class="bottom-info" v-if="selectedCustomer">
+			<span class="info-item">
+				客户余额: <b class="info-val">{{ selectedCustomer.balance || 0 }}</b> 元
+			</span>
+			<span class="info-item">
+				安全欠款: <b class="info-val">{{ selectedCustomer.credit_limit ? (selectedCustomer.balance > selectedCustomer.credit_limit ? selectedCustomer.balance - selectedCustomer.credit_limit : 0) : 0 }}</b> 元
+			</span>
+			<span class="info-hint">{{ form.print_type === 'delivery_note' ? '已选打印送货单' : form.print_type === 'item_note' ? '已选打印订单明细单' : '不打印' }}，选车申报，提交后在订单查询【待配送】进行发货收款</span>
+		</div>
+		<!-- 合计 + 清空列表 + 提交 -->
 		<div class="summary">
 			<div>
 				<b>合计：</b>
@@ -211,9 +260,12 @@
 					<el-tag v-for="a in promo.applied" :key="a.promotion_id" size="small" type="success" effect="plain" style="margin-right:4px">{{ a.name }}</el-tag>
 				</div>
 			</div>
-			<el-button type="primary" :loading="submitting" @click="handleSubmit">
-				{{ submitting ? '提交中...' : '提交' }}
-			</el-button>
+			<div class="summary-actions">
+				<el-button @click="clearItems">清空列表</el-button>
+				<el-button type="primary" :loading="submitting" @click="handleSubmit">
+					{{ submitting ? '提交中...' : '提交' }}
+				</el-button>
+			</div>
 		</div>
 	</el-dialog>
 	</div>
@@ -240,6 +292,7 @@ const props = defineProps({
 	suppliers: { type: Array, default: () => [] },
 	warehouses: { type: Array, default: () => [] },
 	salesmen: { type: Array, default: () => [] },
+	vehicles: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['update:visible', 'success'])
 
@@ -260,6 +313,17 @@ const form = reactive({
 	warehouse_id: null,
 	salesman_id: null,
 	order_date: null,
+	delivery_date: null,
+	dispatch_date: null,
+	vehicle_id: null,
+	reconcile_date: null,
+	print_type: 'none',
+	sort_type: 'entry',
+	freeze_stock: true,
+	use_recent_price: false,
+	show_production_date: false,
+	enable_tax: false,
+	enable_discount: false,
 	remark: '',
 	items: [],
 })
@@ -273,6 +337,12 @@ const visible = computed({ get: () => props.visible, set: (v) => emit('update:vi
 // 客户下拉只列启用客户。禁用即作废——作废客户不在下拉出现；
 // 编辑旧单时若该客户已作废，下拉不回填其名（作废即不存在，留空提示重选）。
 const customerOptions = computed(() => props.customers.filter((c) => c.is_active))
+const selectedCustomer = computed(() => props.customers.find((c) => c.id === form.customer_id) || null)
+const onCustomerChange = () => {
+	// 客户变了重新拉一次余额信息（下拉数据已含 balance/credit_limit）
+	// 同时清空车辆默认值——不同客户可能绑定不同配送线路
+	form.vehicle_id = null
+}
 
 // ---------------------------------------------------------------- 行结构
 
@@ -644,6 +714,10 @@ const removeItem = (idx) => {
 	// 始终补齐到 EMPTY_ROWS 行，避免删行后留下空白
 	while (form.items.length < EMPTY_ROWS) form.items.push(blankRow())
 }
+const clearItems = () => {
+	form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
+	if (promo.value.applied && promo.value.applied.length) promo.value = { discount_total: 0, final_total: 0, applied: [] }
+}
 
 // ---------------------------------------------------------------- 商品行内搜索下拉（对齐旧系统新增订单）
 // 每行商品格 = 搜索输入框 + 下拉建议；每条建议带 checkbox：勾=填下一空行、取消=清该行；
@@ -814,6 +888,12 @@ const buildPayload = () => {
 	const base = {
 		warehouse_id: form.warehouse_id,
 		order_date: form.order_date,
+		delivery_date: form.delivery_date || null,
+		dispatch_date: form.dispatch_date || null,
+		vehicle_id: form.vehicle_id || null,
+		reconcile_date: form.reconcile_date || null,
+		print_type: form.print_type,
+		sort_type: form.sort_type,
 		remark: form.remark,
 		items: validItems.map(i => ({
 			product_id: i.product_id,
@@ -1150,6 +1230,11 @@ const onDialogKeydown = (e) => {
 .summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 16px; }
 .summary .promo-line { margin-left: 14px; color: var(--el-color-success); font-weight: 600; font-size: 13px; }
 .summary .promo-tags { margin-top: 4px; }
+.summary-actions { display: flex; gap: 8px; align-items: center; }
+.bottom-info { display: flex; gap: 20px; align-items: center; padding: 8px 12px; margin-bottom: 8px; background: #fdf6ec; border: 1px solid #faecd8; border-radius: 4px; font-size: 12px; color: var(--el-text-color-primary); }
+.bottom-info .info-item { color: #e6a23c; }
+.bottom-info .info-val { color: #f56c6c; font-size: 13px; }
+.bottom-info .info-hint { color: var(--el-text-color-secondary); font-size: 11px; margin-left: auto; }
 
 /* 三栏：主分类 / 子分类 / 商品表格
    高度限定为「输入框 20 行」(20 行 * 31px ≈ 620 + 表头 34 + 内边距 ≈ 680px)：
