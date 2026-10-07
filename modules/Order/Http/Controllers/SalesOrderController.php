@@ -32,15 +32,38 @@ class SalesOrderController extends Controller
         // 三档数量都没填时回落到 quantity × price：兼容旧版简单接口契约
         // （只传 quantity/price 的调用方），避免算出一笔 0 元单。
         if (((float) ($data['qty_large'] ?? 0) + (float) ($data['qty_medium'] ?? 0) + (float) ($data['qty_small'] ?? 0)) == 0.0) {
-            return round((float) ($data['quantity'] ?? 0) * (float) ($data['price'] ?? 0), 2);
+            $base = (float) ($data['quantity'] ?? 0) * (float) ($data['price'] ?? 0);
+
+            return round($this->applyTaxAndDiscount($base, $data), 2);
         }
 
-        return round(
-            (float) ($data['qty_large'] ?? 0) * (float) ($data['price_large'] ?? 0)
+        $base = (float) ($data['qty_large'] ?? 0) * (float) ($data['price_large'] ?? 0)
             + (float) ($data['qty_medium'] ?? 0) * (float) ($data['price_medium'] ?? 0)
-            + (float) ($data['qty_small'] ?? 0) * (float) ($data['price_small'] ?? 0),
-            2
-        );
+            + (float) ($data['qty_small'] ?? 0) * (float) ($data['price_small'] ?? 0);
+
+        return round($this->applyTaxAndDiscount($base, $data), 2);
+    }
+
+    /**
+     * 价税分离 + 折扣：amount = base + base×tax_rate% − base×discount_rate%。
+     *
+     * 税率按不含税价计税（价税分离），折扣按原价打折后减——两项都以 base 为基数，
+     * 不做复合（与前端 calcAmount 同口径：base + tax − discount）。
+     * tax_rate/discount_rate 缺省 0，等价于原价，旧单不受影响。
+     */
+    private function applyTaxAndDiscount(float $base, array $data): float
+    {
+        $amount = $base;
+        $taxRate = (float) ($data['tax_rate'] ?? 0);
+        if ($taxRate > 0) {
+            $amount += $base * ($taxRate / 100);
+        }
+        $discountRate = (float) ($data['discount_rate'] ?? 0);
+        if ($discountRate > 0) {
+            $amount -= $base * ($discountRate / 100);
+        }
+
+        return $amount;
     }
 
     /**
@@ -495,6 +518,7 @@ class SalesOrderController extends Controller
 
             $order = SalesOrder::create([
                 'order_no' => $orderNo,
+                'order_type' => $validated['order_type'] ?? 'normal',
                 'customer_id' => $validated['customer_id'],
                 'warehouse_id' => $validated['warehouse_id'],
                 'order_date' => $validated['order_date'],
@@ -686,6 +710,7 @@ class SalesOrderController extends Controller
             }
 
             $salesOrder->update([
+                'order_type' => $validated['order_type'] ?? 'normal',
                 'customer_id' => $validated['customer_id'],
                 'warehouse_id' => $validated['warehouse_id'],
                 'order_date' => $validated['order_date'],
@@ -749,6 +774,7 @@ class SalesOrderController extends Controller
             'print_type' => 'nullable|string|max:20|in:none,item_note,delivery_note',
             'sort_type' => 'nullable|string|max:20|in:code,name,entry',
             'freeze_stock' => 'nullable|boolean',
+            'order_type' => 'nullable|string|max:20|in:normal,process,exchange,give_back',
             'remark' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -763,6 +789,12 @@ class SalesOrderController extends Controller
             'items.*.sale_mode' => 'nullable|string|max:20',
             'items.*.remark' => 'nullable|string|max:500',
             'items.*.price_source' => ['nullable', 'string', 'max:20', 'in:,特殊'],
+            // 扩展字段：production_date/tax_rate/discount_rate 必须在这里声明，
+            // 否则 $request->validate() 只返回规则里出现过的键，三个字段会被静默丢弃，
+            // storeItems 里拿到的永远是 null/0（前端勾了开关也不生效）。
+            'items.*.production_date' => 'nullable|date',
+            'items.*.tax_rate' => 'nullable|numeric|min:0|max:100',
+            'items.*.discount_rate' => 'nullable|numeric|min:0|max:100',
         ];
 
         $messages = [
@@ -824,6 +856,9 @@ class SalesOrderController extends Controller
                 'sale_mode' => $itemData['sale_mode'] ?? '正常销售',
                 'price_source' => ($itemData['price_source'] ?? '') === '特殊' ? '特殊' : null,
                 'remark' => $this->cleanRemark($itemData),
+                'production_date' => $itemData['production_date'] ?? null,
+                'tax_rate' => round((float) ($itemData['tax_rate'] ?? 0), 2),
+                'discount_rate' => round((float) ($itemData['discount_rate'] ?? 0), 2),
             ]);
 
             $totalAmount += $amount;

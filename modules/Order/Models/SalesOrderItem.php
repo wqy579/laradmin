@@ -15,6 +15,13 @@ class SalesOrderItem extends Model
         'qty_large', 'qty_medium', 'qty_small',
         'price', 'price_large', 'price_medium', 'price_small',
         'amount', 'remark', 'sale_mode', 'price_source',
+        'production_date', 'tax_rate', 'discount_rate',
+    ];
+
+    protected $casts = [
+        'production_date' => 'date',
+        'tax_rate' => 'decimal:2',
+        'discount_rate' => 'decimal:2',
     ];
 
     public function salesOrder(): BelongsTo

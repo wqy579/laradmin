@@ -7,10 +7,12 @@
 		<!-- 顶部工具条：左=订单类型切换（编辑时不显示），右=快捷开关 + 订单查询 -->
 		<div class="dialog-toolbar">
 			<div v-if="!record" class="order-type-switch">
-				<el-radio-group v-model="orderTypeLocal" size="small">
-					<el-radio-button value="normal">普通订单</el-radio-button>
-					<el-radio-button value="return">退货订单</el-radio-button>
-				</el-radio-group>
+				<el-tabs v-model="orderTypeLocal" class="type-tabs" @tab-click="onTypeChange">
+					<el-tab-pane label="普通订单" name="normal" />
+					<el-tab-pane label="处理订单" name="process" />
+					<el-tab-pane label="换货订单" name="exchange" />
+					<el-tab-pane label="还货订单" name="give_back" />
+				</el-tabs>
 			</div>
 			<div class="toolbar-right">
 				<el-checkbox v-model="form.freeze_stock" size="small" border>冻结库存</el-checkbox>
@@ -140,11 +142,14 @@
 						<tr>
 							<th class="c-idx">#</th>
 							<th class="c-product">商品</th>
+							<th v-if="form.show_production_date" class="c-date">生产日期</th>
 							<th class="c-spec">规格</th>
 							<th class="c-mode">销售模式</th>
 							<th class="c-stock">库存</th>
 							<th class="c-qty">数量</th>
 							<th class="c-price">单价</th>
+							<th v-if="form.enable_tax" class="c-tax">税率%</th>
+							<th v-if="form.enable_discount" class="c-discount">折扣%</th>
 							<th class="c-amount">金额</th>
 							<th class="c-remark">备注</th>
 							<th class="c-action">操作</th>
@@ -195,6 +200,11 @@
 									<div v-else-if="item.showSuggestions && !item._loading" class="prod-suggestions prod-sugg-empty">暂无商品</div>
 								</div>
 							</td>
+							<template v-if="form.show_production_date">
+								<td class="c-date">
+									<el-date-picker v-model="item.production_date" type="date" value-format="YYYY-MM-DD" placeholder="-" size="small" style="width:100%" />
+								</td>
+							</template>
 							<td class="c-spec">{{ item.spec || '-' }}</td>
 							<td class="c-mode">
 								<el-select v-model="item.sale_mode" size="small" style="width:100%" @change="onModeChange(item)">
@@ -233,6 +243,16 @@
 								</div>
 								<div v-if="item.price_source" class="price-source">{{ item.price_source }}</div>
 							</td>
+							<template v-if="form.enable_tax">
+								<td class="c-tax">
+									<el-input v-model.number="item.tax_rate" size="small" type="number" min="0" max="100" step="1" placeholder="0" style="width:50px" @input="calcAmount(item)" />
+								</td>
+							</template>
+							<template v-if="form.enable_discount">
+								<td class="c-discount">
+									<el-input v-model.number="item.discount_rate" size="small" type="number" min="0" max="100" step="1" placeholder="0" style="width:50px" @input="calcAmount(item)" />
+								</td>
+							</template>
 							<td class="c-amount">{{ Number(item.amount || 0).toFixed(2) }}</td>
 							<td class="c-remark">
 								<el-input v-model="item.remark" size="small" placeholder="备注" />
@@ -309,13 +329,18 @@ const emit = defineEmits(['update:visible', 'success'])
 const formRef = ref(null)
 const submitting = ref(false)
 const saleModes = SALE_MODES
-const isReturn = computed(() => orderTypeLocal.value === 'return')
-// 新增时窗口内切换普通/退货；编辑时按 record 类型判断
+// 订单类型：normal / process / exchange / give_back（退货是独立模块 sales_returns 表，不在此对话框）
+const ORDER_TYPE_LABELS = { normal: '普通订单', process: '处理订单', exchange: '换货订单', give_back: '还货订单' }
 const orderTypeLocal = ref(props.orderType || 'normal')
+const orderTypeLabel = computed(() => ORDER_TYPE_LABELS[orderTypeLocal.value] || '订单')
 const dialogTitle = computed(() => {
-	if (props.record) return isReturn.value ? '编辑退货订单' : '编辑销售订单'
-	return isReturn.value ? '新增退货订单' : '新增销售订单'
+	if (props.record) return `编辑${orderTypeLabel.value}`
+	return `新增${orderTypeLabel.value}`
 })
+// 切换类型时清掉行内数据（不同类型的明细语义不同）
+const onTypeChange = () => {
+	initBlank()
+}
 
 const form = reactive({
 	customer_id: null,
@@ -395,6 +420,9 @@ const blankRow = () => ({
 	unit_conversion_medium: 0,
 	amount: 0,
 	remark: '',
+	production_date: null,
+	tax_rate: 0,
+	discount_rate: 0,
 	_options: [],
 	_loading: false,
 	_searchKeyword: '',
@@ -412,6 +440,10 @@ const applyProduct = (item, p) => {
 	item.product_id = p.id
 	item.product_name = p.name
 	item.spec = p.spec_display || p.spec || '-'
+	// 开关开启且商品有生产日期时回填到行内
+	if (form.show_production_date && p.production_date) {
+		item.production_date = p.production_date
+	}
 	item.unit_large = p.price_unit || ''
 	item.unit_medium = p.barcode_medium_unit || ''
 	item.unit_small = p.price_unit_small || ''
@@ -584,12 +616,22 @@ const onLargeQtyChange = qtyHandler('qty_large')
 // ---------------------------------------------------------------- 金额计算
 // 大单位 + 中单位 + 小单位三段相加，与旧系统 calcAmount 一致
 
+/**
+ * 金额计算：qty × price 三档相加，可叠加税率与折扣率。
+ * 开关只管 UI 列是否可见/可编辑；金额始终按行内真实值算，
+ * 保证「关闭开关 → 保存 → 打开 → 金额不变」行为正确。
+ * 税率按不含税价计税（价税分离），折扣按原价打折后减。
+ */
 const calcAmount = (item) => {
-	item.amount = Math.round(
-		((Number(item.qty_large) || 0) * (Number(item.price_large) || 0)
-			+ (Number(item.qty_medium) || 0) * (Number(item.price_medium) || 0)
-			+ (Number(item.qty_small) || 0) * (Number(item.price_small) || 0)) * 100
-	) / 100
+	const qtyLg = Number(item.qty_large) || 0
+	const qtyMd = Number(item.qty_medium) || 0
+	const qtySm = Number(item.qty_small) || 0
+	const base = qtyLg * (Number(item.price_large) || 0)
+		+ qtyMd * (Number(item.price_medium) || 0)
+		+ qtySm * (Number(item.price_small) || 0)
+	const tax = base * (Number(item.tax_rate) || 0) / 100
+	const discount = base * (Number(item.discount_rate) || 0) / 100
+	item.amount = Math.round((base + tax - discount) * 100) / 100
 }
 
 // ---------------------------------------------------------------- 单价换算
@@ -743,13 +785,13 @@ const duplicateItem = (idx) => {
 		product_id, product_name, spec, sale_mode, price_source, stock, stockDisplay,
 		qty_large, qty_medium, qty_small, price_large, price_medium, price_small,
 		unit_large, unit_medium, unit_small, unit_conversion, unit_conversion_medium,
-		amount, remark, _options,
+		amount, remark, production_date, tax_rate, discount_rate, _options,
 	} = src
 	Object.assign(copy, {
 		product_id, product_name, spec, sale_mode, price_source, stock, stockDisplay,
 		qty_large, qty_medium, qty_small, price_large, price_medium, price_small,
 		unit_large, unit_medium, unit_small, unit_conversion, unit_conversion_medium,
-		amount, remark, _options,
+		amount, remark, production_date, tax_rate, discount_rate, _options,
 	})
 	form.items.splice(idx + 1, 0, copy)
 }
@@ -872,6 +914,11 @@ const clearProductFromRow = (row, reopen = false) => {
 	row.price_small = 0
 	row.amount = 0
 	row.remark = ''
+	// 新字段也要清掉，否则清空商品重选后，上一个商品的税率/生产日期
+	// 还留在行里被 calcAmount 算进金额（开关默认关，列不显示，金额却错了）
+	row.production_date = null
+	row.tax_rate = 0
+	row.discount_rate = 0
 	row._searchKeyword = ''
 	row._options = []
 	row.checkedProducts = []
@@ -955,13 +1002,15 @@ const buildPayload = () => {
 			sale_mode: i.sale_mode,
 			price_source: i.price_source || '',
 			remark: i.remark || '',
+			// 这三个字段始终按行内真实值提交，不用开关门控：
+			// 开关只决定列是否可见/可编辑，不决定是否落库。否则编辑已有税率
+			// 的订单时关掉开关一保存，原税率就被覆盖成 0，金额跟着算错。
+			production_date: i.production_date || null,
+			tax_rate: Number(i.tax_rate) || 0,
+			discount_rate: Number(i.discount_rate) || 0,
 		})),
 	}
-	// 退货订单：客户 + return_date（退客户的货）；普通订单：客户 + 业务员
-	if (isReturn.value) {
-		return { customer_id: form.customer_id, salesman_id: form.salesman_id || null, return_date: form.order_date, ...base }
-	}
-	return { customer_id: form.customer_id, salesman_id: form.salesman_id || null, ...base }
+	return { order_type: orderTypeLocal.value, customer_id: form.customer_id, salesman_id: form.salesman_id || null, ...base }
 }
 
 const handleSubmit = async () => {
@@ -992,12 +1041,10 @@ const handleSubmit = async () => {
 				continue
 			}
 		}
-		// 库存校验：退货模块跳过；无 stocks 行(stock<=0)也算不足
-		if (!isReturn.value) {
-			const need = requiredSmall(i)
-			if (need > (Number(i.stock) || 0)) {
-				errs.push(`「${i.product_name}」库存不足，可用: ${formatStock(i.stock, i.unit_conversion, i.unit_conversion_medium, i.unit_large, i.unit_medium, i.unit_small)}，需要: ${need}`)
-			}
+		// 库存校验：无 stocks 行(stock<=0)也算不足
+		const need = requiredSmall(i)
+		if (need > (Number(i.stock) || 0)) {
+			errs.push(`「${i.product_name}」库存不足，可用: ${formatStock(i.stock, i.unit_conversion, i.unit_conversion_medium, i.unit_large, i.unit_medium, i.unit_small)}，需要: ${need}`)
 		}
 	}
 	if (errs.length) {
@@ -1013,13 +1060,9 @@ const handleSubmit = async () => {
 
 	submitting.value = true
 	try {
-		const res = isReturn.value
-			? (props.record
-				? await businessApi.returnOrder.edit.put(props.record.id, payload)
-				: await businessApi.returnOrder.add.post(payload))
-			: (props.record
-				? await businessApi.salesOrder.edit.put(props.record.id, payload)
-				: await businessApi.salesOrder.add.post(payload))
+		const res = props.record
+			? await businessApi.salesOrder.edit.put(props.record.id, payload)
+			: await businessApi.salesOrder.add.post(payload)
 		if (res.code === 200) {
 			ElMessage.success(res.message || '订单创建成功')
 			clearDraft()
@@ -1099,6 +1142,13 @@ const initBlank = () => {
 	form.salesman_id = null
 	form.order_date = todayStr()
 	form.remark = ''
+	form.freeze_stock = true
+	form.use_recent_price = false
+	// 3 个开关每次新建都复位——否则上一个订单（或上一个类型切换）留下的
+	// 状态会带到下一次打开，用户没勾也会出现税率/折扣列。
+	form.show_production_date = false
+	form.enable_tax = false
+	form.enable_discount = false
 	form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
 }
 
@@ -1123,6 +1173,7 @@ watch(
 		resetPicker()
 		await loadCategories()
 		if (props.record) {
+			orderTypeLocal.value = props.record.order_type || 'normal'
 			form.customer_id = props.record.customer_id
 			form.warehouse_id = props.record.warehouse_id
 			form.salesman_id = props.record.salesman_id || null
@@ -1158,6 +1209,17 @@ watch(
 				}
 				row.amount = Number(it.amount) || 0
 				row.remark = it.remark || ''
+				// 把新增的 3 个扩展字段也回填，否则编辑已存的单→关闭→重开，
+				// 或切换类型 tab → initBlank，行里的这三个字段会被清掉变成 null，
+				// buildPayload 就兜底成 0/null 覆盖了后端的真实值。
+				row.production_date = it.production_date || null
+				row.tax_rate = Number(it.tax_rate) || 0
+				row.discount_rate = Number(it.discount_rate) || 0
+				// 旧单已存了税率/折扣/生产日期，自动把对应开关打开，让列显示出来。
+				// 否则用户看到「金额含税」却找不到税率列，不知道金额怎么来的。
+				if (row.production_date) form.show_production_date = true
+				if (row.tax_rate > 0) form.enable_tax = true
+				if (row.discount_rate > 0) form.enable_discount = true
 				row._options = p.id ? [p] : []
 				form.items.push(row)
 			})
@@ -1279,6 +1341,12 @@ const onDialogKeydown = (e) => {
 .summary .promo-tags { margin-top: 4px; }
 .summary-actions { display: flex; gap: 8px; align-items: center; }
 .dialog-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; }
+/* 订单类型标签：紧凑行内样式，不与工具条按钮抢高度 */
+.dialog-toolbar .type-tabs { flex: none; }
+.dialog-toolbar .type-tabs :deep(.el-tabs__header) { margin: 0; }
+.dialog-toolbar .type-tabs :deep(.el-tabs__nav-wrap::after) { display: none; }
+.dialog-toolbar .type-tabs :deep(.el-tabs__item) { font-size: 12px; height: 28px; line-height: 28px; }
+.dialog-toolbar .type-tabs :deep(.el-tabs__item.is-active) { font-weight: 600; color: var(--el-color-primary); }
 .toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .toolbar-right :deep(.el-checkbox.is-bordered) { margin-right: 0; height: 28px; }
 .bottom-info { display: flex; gap: 20px; align-items: center; padding: 8px 12px; margin-bottom: 8px; background: #fdf6ec; border: 1px solid #faecd8; border-radius: 4px; font-size: 12px; color: var(--el-text-color-primary); }
