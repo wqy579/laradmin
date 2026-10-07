@@ -64,8 +64,55 @@ class StockAdjustController extends Controller
     /** 列表（分页 + 仓库/状态/日期/单号筛选） */
     public function index(Request $request)
     {
-        $query = StockAdjust::with('warehouse');
+        $query = $this->applyFilters(StockAdjust::with('warehouse'), $request);
 
+        $page = max(1, $request->integer('page', 1));
+        $pageSize = min(200, max(10, $request->integer('page_size', 20)));
+
+        $paginator = $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
+
+        return $this->paginated($paginator);
+    }
+
+    /**
+     * 导出 CSV：与列表同一套筛选条件（仓库/状态/类型/日期/单号），不带分页。
+     * 列：调整日期、单号、类型、仓库、总数量、总金额、原因、状态、创建人、审核人。
+     */
+    public function export(Request $request)
+    {
+        $list = $this->applyFilters(StockAdjust::with('warehouse'), $request)
+            ->orderByDesc('id')
+            ->get();
+
+        $csv = "\u{FEFF}"; // BOM：Excel 正确识别 UTF-8
+        $csv .= "库存调整单列表\n\n";
+        $csv .= "调整日期,调整单号,调整类型,仓库,调整数量,调整金额,调整原因,状态,创建人,审核人\n";
+
+        foreach ($list as $r) {
+            $csv .= sprintf(
+                "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                $r->adjust_date?->format('Y-m-d') ?? '',
+                $this->csvCell($r->adjust_no),
+                $this->typeLabel($r->adjust_type),
+                $this->csvCell($r->warehouse?->name ?? ''),
+                $r->total_qty,
+                number_format((float) $r->total_amount, 2, '.', ''),
+                $this->csvCell($r->reason ?? ''),
+                $this->statusLabel($r->status),
+                $this->csvCell($r->creator_name ?? ''),
+                $this->csvCell($r->approver_name ?? '')
+            );
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="stock_adjusts.csv"',
+        ]);
+    }
+
+    /** 列表/导出共用的筛选条件，避免两处逻辑漂移 */
+    private function applyFilters($query, Request $request)
+    {
         if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', (int) $request->input('warehouse_id'));
         }
@@ -85,12 +132,39 @@ class StockAdjustController extends Controller
             $query->where('adjust_no', 'like', '%'.trim((string) $request->input('adjust_no')).'%');
         }
 
-        $page = max(1, $request->integer('page', 1));
-        $pageSize = min(200, max(10, $request->integer('page_size', 20)));
+        return $query;
+    }
 
-        $paginator = $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
+    /** CSV 单元格转义：逗号/引号/换行会破坏列结构，统一加引号并把内部引号翻倍 */
+    private function csvCell(?string $value): string
+    {
+        $value = (string) $value;
+        if (preg_match('/[",\n\r]/', $value)) {
+            return '"'.str_replace('"', '""', $value).'"';
+        }
 
-        return $this->paginated($paginator);
+        return $value;
+    }
+
+    private function typeLabel(string $type): string
+    {
+        return match ($type) {
+            'stock_loss' => '库存损耗',
+            'stock_gain' => '库存溢余',
+            'other' => '其他',
+            default => $type,
+        };
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'draft' => '草稿',
+            'pending' => '待审核',
+            'approved' => '已审核',
+            'cancelled' => '已取消',
+            default => $status,
+        };
     }
 
     /** 详情（含明细） */
@@ -432,7 +506,8 @@ class StockAdjustController extends Controller
                 (float) $item->unit_cost,
                 (int) $adjust->id,
                 $adjustQty > 0 ? 'adjust_in' : 'adjust_out',
-                ($adjustQty > 0 ? '库存调整入库-' : '库存调整出库-').$adjust->adjust_no
+                ($adjustQty > 0 ? '库存调整入库-' : '库存调整出库-').$adjust->adjust_no,
+                'StockAdjust'
             );
 
             $totalCost = (float) $item->total_cost;

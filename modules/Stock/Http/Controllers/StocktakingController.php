@@ -380,7 +380,8 @@ class StocktakingController extends Controller
                     (float) $item->cost_price,
                     (int) $check->id,
                     $diff > 0 ? 'check_in' : 'check_out',
-                    ($diff > 0 ? '库存盘盈-' : '库存盘亏-').$check->check_no
+                    ($diff > 0 ? '库存盘盈-' : '库存盘亏-').$check->check_no,
+                    'Stocktaking'
                 );
             }
 
@@ -527,6 +528,7 @@ class StocktakingController extends Controller
         $typeLabels = [
             'stock_in' => '入库', 'stock_out' => '出库',
             'check_in' => '盘盈入库', 'check_out' => '盘亏出库',
+            'adjust_in' => '调整增加', 'adjust_out' => '调整减少',
             'sale_freeze' => '销售冻结', 'sale_unfreeze' => '销售解冻',
         ];
 

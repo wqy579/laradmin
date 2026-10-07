@@ -2721,6 +2721,18 @@
   },
   {
     "method": "GET",
+    "uri": "admin/business/stock-adjust/export",
+    "name": "admin.",
+    "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@export",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
     "uri": "admin/business/stock-adjust/warehouse-products",
     "name": "admin.",
     "action": "Modules\\Stock\\Http\\Controllers\\StockAdjustController@warehouseProducts",

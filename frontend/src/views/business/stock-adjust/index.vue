@@ -7,6 +7,7 @@
 				<el-button type="success" :disabled="selectedPending.length === 0" @click="openBatchAudit">
 					批量审核（{{ selectedPending.length }}）
 				</el-button>
+				<el-button :loading="exporting" @click="onExport">导出</el-button>
 				<el-button type="primary" @click="openForm()">
 					<i class="el-icon-plus"></i>新增调整单
 				</el-button>
@@ -260,8 +261,40 @@ function onSaved() {
 	fetchData()
 }
 
-// ---- 批量审核 ----
-const selectedRows = ref([])
+// ---- 导出（沿用当前筛选条件）----
+const exporting = ref(false)
+async function onExport() {
+	exporting.value = true
+	try {
+		const params = new URLSearchParams()
+		;['warehouse_id', 'adjust_type', 'status', 'adjust_no'].forEach((k) => {
+			if (searchForm[k] !== '' && searchForm[k] != null) params.set(k, searchForm[k])
+		})
+		if (dateRange.value && dateRange.value.length === 2) {
+			params.set('start_date', dateRange.value[0])
+			params.set('end_date', dateRange.value[1])
+		}
+		const token = localStorage.getItem('laradmin_token') || localStorage.getItem('token')
+		const res = await fetch(`/admin/business/stock-adjust/export?${params}`, {
+			headers: { Authorization: `Bearer ${token}` },
+		})
+		if (!res.ok) throw new Error(`HTTP ${res.status}`)
+		const blob = await res.blob()
+		const url = URL.createObjectURL(blob)
+		const a = document.createElement('a')
+		a.href = url
+		a.download = `库存调整单_${new Date().toISOString().slice(0, 10)}.csv`
+		a.click()
+		URL.revokeObjectURL(url)
+		ElMessage.success('导出成功')
+	} catch (e) {
+		ElMessage.error('导出失败')
+	} finally {
+		exporting.value = false
+	}
+}
+
+// ---- 批量审核 ----const selectedRows = ref([])
 const selectedPending = computed(() => selectedRows.value.filter((r) => r.status === 'pending'))
 function onSelectionChange(rows) {
 	selectedRows.value = rows || []

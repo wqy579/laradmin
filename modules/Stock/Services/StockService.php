@@ -131,14 +131,17 @@ class StockService
      *
      * 与 stockIn/stockOut 的区别：
      *   - 不校验库存是否充足（盘亏是把账面修正为实物，库存可能本就记错）；
-     *   - change_type 由调用方指定（check_in 盘盈 / check_out 盘亏），流水语义更清晰；
+     *   - change_type 由调用方指定（check_in 盘盈 / check_out 盘亏 / adjust_in 调整增加 / adjust_out 调整减少）；
      *   - delta 为负即减少、为正即增加；会按 实盘数量×成本 重算 total_amount。
+     *
+     * $relatedType 由调用方指定归属单据（Stocktaking 盘点 / StockAdjust 库存调整），
+     * 台账与流水按它区分来源；不传时兜底为 Stocktaking（历史行为）。
      *
      * 仍走 lockForUpdate 行锁 + recordHistory + syncProductStockQty，与其它写操作一致。
      */
-    public function adjust(int $productId, int $warehouseId, int $delta, float $costPrice, int $relatedId, string $changeType, string $remark): Stock
+    public function adjust(int $productId, int $warehouseId, int $delta, float $costPrice, int $relatedId, string $changeType, string $remark, ?string $relatedType = null): Stock
     {
-        return DB::transaction(function () use ($productId, $warehouseId, $delta, $costPrice, $relatedId, $changeType, $remark) {
+        return DB::transaction(function () use ($productId, $warehouseId, $delta, $costPrice, $relatedId, $changeType, $remark, $relatedType) {
             /** @var Stock|null $stock */
             $stock = Stock::where('product_id', $productId)
                 ->where('warehouse_id', $warehouseId)
@@ -169,7 +172,7 @@ class StockService
             $this->recordHistory(
                 $productId, $warehouseId, $changeType, $delta,
                 $before, (int) $stock->quantity,
-                $relatedId, 'Stocktaking', $remark
+                $relatedId, $relatedType ?? 'Stocktaking', $remark
             );
 
             $this->syncProductStockQty($productId);
