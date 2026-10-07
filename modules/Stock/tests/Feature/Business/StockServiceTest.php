@@ -120,6 +120,64 @@ class StockServiceTest extends TestCase
         $this->assertSame(7, (int) $stock->fresh()->quantity);
     }
 
+    /**
+     * 回归：调整减少方向（adjust_out / check_out）不得把库存打穿到负数。
+     *
+     * 之前 adjust() 明确不校验库存，导致调整单审核、盘点盘亏审核都能把库存减成负数
+     * （真实案例：商品 118 被调成 -99965）。修复后与 stockOut 的边界一致。
+     */
+    public function test_adjust_out_fails_when_insufficient(): void
+    {
+        $this->stocks->stockIn($this->product->id, $this->warehouse->id, 5);
+
+        $this->expectException(StockRuleException::class);
+        $this->expectExceptionMessage('库存不足');
+
+        $this->stocks->adjust($this->product->id, $this->warehouse->id, -6, 10.0, 1, 'adjust_out', '库存调整出库');
+    }
+
+    /** 调整减少到恰好为 0 是允许的（边界内） */
+    public function test_adjust_out_allows_exact_zero(): void
+    {
+        $this->stocks->stockIn($this->product->id, $this->warehouse->id, 5);
+
+        $stock = $this->stocks->adjust($this->product->id, $this->warehouse->id, -5, 10.0, 1, 'adjust_out', '库存调整出库');
+
+        $this->assertSame(0, (int) $stock->quantity);
+    }
+
+    /** 无库存行时减少调整同样被拒，不得创建负库存行 */
+    public function test_adjust_out_fails_when_no_stock_row(): void
+    {
+        $this->expectException(StockRuleException::class);
+
+        $this->stocks->adjust($this->product->id, $this->warehouse->id, -1, 10.0, 1, 'adjust_out', '库存调整出库');
+    }
+
+    /** 增加方向不受库存校验限制（adjust_in / check_in 可凭空盘盈） */
+    public function test_adjust_in_has_no_upper_bound(): void
+    {
+        $stock = $this->stocks->adjust($this->product->id, $this->warehouse->id, 3, 10.0, 1, 'adjust_in', '库存调整入库');
+
+        $this->assertSame(3, (int) $stock->quantity);
+    }
+
+    /** 失败调整不得改动库存，也不得留下流水 */
+    public function test_insufficient_adjust_rolls_back(): void
+    {
+        $this->stocks->stockIn($this->product->id, $this->warehouse->id, 2);
+
+        try {
+            $this->stocks->adjust($this->product->id, $this->warehouse->id, -5, 10.0, 1, 'adjust_out', '库存调整出库');
+        } catch (StockRuleException) {
+            // 期望抛出
+        }
+
+        $this->assertDatabaseHas('stocks', ['quantity' => 2]);
+        // 只有 stockIn 那一条流水，失败的 adjust 不应写入
+        $this->assertDatabaseCount('stocks_history', 1);
+    }
+
     public function test_query_filters_by_product_and_warehouse(): void
     {
         $other = Warehouse::create(['code' => uniqid('W'), 'name' => '另一仓库']);
