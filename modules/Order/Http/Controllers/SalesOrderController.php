@@ -116,7 +116,7 @@ class SalesOrderController extends Controller
             $o->operator_name = $adminNames[$o->created_by] ?? null;
             $o->warehouse_name = $o->warehouse?->name;
             // 红冲单在 order_type 上继承原单（见 batchRedFlush），只能靠 original_order_id 识别
-            $o->is_flush = !empty($o->original_order_id);
+            $o->is_flush = ! empty($o->original_order_id);
             $flags = $giftFlags->get($o->id);
             $o->has_gift = (bool) ($flags?->has_gift);
             $o->has_special = (bool) ($flags?->has_special);

@@ -430,12 +430,10 @@ const fetchData = async () => {
 				quickFilters.value[3].count = d.quick_counts.gift || 0
 				quickFilters.value[4].count = d.quick_counts.remark || 0
 			}
-			// 首屏带额外下拉数据
-			if (paginationProps.currentPage === 1) {
-				if (d.customers) customers.value = d.customers
-				if (d.warehouses) warehouses.value = d.warehouses
-				if (d.salesmen) salesmen.value = d.salesmen
-			}
+			// 注意：列表接口返回的 customers/warehouses/salesmen 是精简 shape
+			// （Customer 只 select id,name，缺 is_active；对话框按 is_active 过滤客户
+			// 会把这些行全丢掉，导致客户下拉为空）。下拉数据统一由 onMounted 的
+			// 独立请求加载，这里不再用列表响应覆盖它。
 		}
 	} finally {
 		loading.value = false

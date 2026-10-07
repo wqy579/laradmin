@@ -838,7 +838,15 @@ const buildPayload = () => {
 }
 
 const handleSubmit = async () => {
-	await formRef.value.validate()
+	try {
+		await formRef.value.validate()
+	} catch (invalidFields) {
+		// 校验失败：el-form 会在字段下方标红，但用户常注意不到，这里再弹一条明确提示。
+		// invalidFields 是 { 字段: [{message}] } 形状，取出首条消息拼成一句话。
+		const first = Object.values(invalidFields || {})?.flat?.()?.[0]?.message
+		ElMessage.error(first || '请先完善表单必填项（客户、仓库、日期）')
+		return
+	}
 
 	// 提交前前端校验：数量空、正常销售价格 0、库存不足（退货不校验库存）
 	const errs = []
