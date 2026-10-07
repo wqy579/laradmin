@@ -192,37 +192,37 @@ class SalesOrderController extends Controller
      * 与 applyOrderFilters 等价，但跳过指定字段（用于聚合统计时「不带自身维度」）。
      * 例如统计类型分布时剔除 order_type，统计快捷筛选分布时剔除 quick_filter。
      *
-     * @param  array  $skip 要跳过的字段名
+     * @param  array  $skip  要跳过的字段名
      */
     private function applyOrderFiltersWithout($query, Request $request, array $skip): void
     {
         $skip = array_flip($skip);
 
-        if (!isset($skip['keyword']) && $request->filled('keyword')) {
+        if (! isset($skip['keyword']) && $request->filled('keyword')) {
             $query->where('order_no', 'like', '%'.$request->keyword.'%');
         }
-        if (!isset($skip['status']) && $request->filled('status')) {
+        if (! isset($skip['status']) && $request->filled('status')) {
             $query->where('status', $request->status);
         }
-        if (!isset($skip['customer_id']) && $request->filled('customer_id')) {
+        if (! isset($skip['customer_id']) && $request->filled('customer_id')) {
             $query->where('customer_id', $request->customer_id);
         }
-        if (!isset($skip['salesman_id']) && $request->filled('salesman_id')) {
+        if (! isset($skip['salesman_id']) && $request->filled('salesman_id')) {
             $query->where('salesman_id', $request->salesman_id);
         }
-        if (!isset($skip['vehicle_id']) && $request->filled('vehicle_id')) {
+        if (! isset($skip['vehicle_id']) && $request->filled('vehicle_id')) {
             $query->where('vehicle_id', $request->vehicle_id);
         }
-        if (!isset($skip['route_id']) && $request->filled('route_id')) {
+        if (! isset($skip['route_id']) && $request->filled('route_id')) {
             $query->whereHas('customer', fn ($q) => $q->where('route_id', $request->route_id));
         }
-        if (!isset($skip['order_type'])) {
+        if (! isset($skip['order_type'])) {
             $orderType = $request->input('order_type', 'all');
             if ($orderType !== 'all') {
                 $query->where('order_type', $orderType);
             }
         }
-        if (!isset($skip['status_tab'])) {
+        if (! isset($skip['status_tab'])) {
             $statusTab = $request->input('status_tab');
             $tabStatusMap = ['1' => 'pending', '2' => '配货中', '6' => '待调度', '3' => '待配送', '7' => '配送中'];
             if (isset($tabStatusMap[$statusTab])) {
@@ -231,7 +231,7 @@ class SalesOrderController extends Controller
                 $query->whereIn('status', ['已收款', '待收款']);
             }
         }
-        if (!isset($skip['quick_filter'])) {
+        if (! isset($skip['quick_filter'])) {
             $quickFilter = (int) $request->input('quick_filter', -1);
             if ($quickFilter === 0) {
                 $query->where('print_count', 0);
@@ -243,7 +243,7 @@ class SalesOrderController extends Controller
                 $query->whereNotNull('remark')->where('remark', '!=', '');
             }
         }
-        if (!isset($skip['quick_date'])) {
+        if (! isset($skip['quick_date'])) {
             $quickDate = $request->input('quick_date');
             if ($quickDate === 'today') {
                 $query->whereDate('order_date', now()->toDateString());
@@ -258,10 +258,10 @@ class SalesOrderController extends Controller
                 $query->whereMonth('order_date', $lastMonth->month)->whereYear('order_date', $lastMonth->year);
             }
         }
-        if (!isset($skip['start_date']) && $request->filled('start_date')) {
+        if (! isset($skip['start_date']) && $request->filled('start_date')) {
             $query->whereDate('order_date', '>=', $request->start_date);
         }
-        if (!isset($skip['end_date']) && $request->filled('end_date')) {
+        if (! isset($skip['end_date']) && $request->filled('end_date')) {
             $query->whereDate('order_date', '<=', $request->end_date);
         }
     }
