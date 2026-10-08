@@ -164,6 +164,12 @@ const systemRoutes = [
 				meta: { title: 'purchase-return' },
 			},
 			{
+				path: '/business/purchase-application',
+				name: 'PurchaseApplication',
+				component: () => import('../views/business/purchase-application/index.vue'),
+				meta: { title: 'purchase-application' },
+			},
+			{
 				path: '/business/customer-level',
 				name: 'CustomerLevel',
 				component: () => import('../views/business/customer-level/index.vue'),

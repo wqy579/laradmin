@@ -252,6 +252,23 @@ const businessApi = {
 		export: (params) => request.get('business/purchase-return/export', { params, responseType: 'blob' }),
 	},
 
+	// 采购申请（采购流程起点：草稿→提交→审批→转采购入库）
+	purchaseApplication: {
+		list: { get: (params) => request.get('business/purchase-application', { params }) },
+		detail: { get: (id) => request.get(`business/purchase-application/${id}`) },
+		create: { post: (params) => request.post('business/purchase-application', params) },
+		update: { put: (id, params) => request.put(`business/purchase-application/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/purchase-application/${id}`) },
+		submit: { post: (id) => request.post(`business/purchase-application/${id}/submit`) },
+		approve: { post: (id, params) => request.post(`business/purchase-application/${id}/approve`, params) },
+		reject: { post: (id, params) => request.post(`business/purchase-application/${id}/reject`, params) },
+		cancel: { post: (id) => request.post(`business/purchase-application/${id}/cancel`) },
+		transfer: { post: (id) => request.post(`business/purchase-application/${id}/transfer`) },
+		batchSubmit: { post: (params) => request.post('business/purchase-application/batch-submit', params) },
+		batchApprove: { post: (params) => request.post('business/purchase-application/batch-approve', params) },
+		export: (params) => request.get('business/purchase-application/export', { params, responseType: 'blob' }),
+	},
+
 	// 商品组装
 	assembly: {
 		list: { get: (params) => request.get('business/assembly', { params }) },

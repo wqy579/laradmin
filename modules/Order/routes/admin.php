@@ -10,6 +10,7 @@ use Modules\Order\Http\Controllers\PayController;
 use Modules\Order\Http\Controllers\ProductBomController;
 use Modules\Order\Http\Controllers\ProfitController;
 use Modules\Order\Http\Controllers\PromotionController;
+use Modules\Order\Http\Controllers\PurchaseApplicationController;
 use Modules\Order\Http\Controllers\PurchaseReturnController;
 use Modules\Order\Http\Controllers\ReceiveController;
 use Modules\Order\Http\Controllers\ReturnController;
@@ -143,6 +144,23 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/approve', [PurchaseReturnController::class, 'approve']);
         Route::post('/{id}/reject', [PurchaseReturnController::class, 'reject']);
         Route::post('/{id}/cancel', [PurchaseReturnController::class, 'cancel']);
+    });
+    // 采购申请管理（采购流程起点：草稿→提交→审批→转采购入库）
+    // 静态路由必须先于 /{id}，否则 export/batch-* 会被当成 id 吞掉
+    Route::prefix('business/purchase-application')->group(function () {
+        Route::get('/', [PurchaseApplicationController::class, 'index']);
+        Route::get('/export', [PurchaseApplicationController::class, 'export']);
+        Route::post('/batch-submit', [PurchaseApplicationController::class, 'batchSubmit']);
+        Route::post('/batch-approve', [PurchaseApplicationController::class, 'batchApprove']);
+        Route::get('/{id}', [PurchaseApplicationController::class, 'show']);
+        Route::post('/', [PurchaseApplicationController::class, 'store']);
+        Route::put('/{id}', [PurchaseApplicationController::class, 'update']);
+        Route::delete('/{id}', [PurchaseApplicationController::class, 'destroy']);
+        Route::post('/{id}/submit', [PurchaseApplicationController::class, 'submit']);
+        Route::post('/{id}/approve', [PurchaseApplicationController::class, 'approve']);
+        Route::post('/{id}/reject', [PurchaseApplicationController::class, 'reject']);
+        Route::post('/{id}/cancel', [PurchaseApplicationController::class, 'cancel']);
+        Route::post('/{id}/transfer', [PurchaseApplicationController::class, 'transfer']);
     });
     // 商品组装管理
     Route::prefix('business/assembly')->group(function () {

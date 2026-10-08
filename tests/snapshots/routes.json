@@ -1905,6 +1905,162 @@
   },
   {
     "method": "GET",
+    "uri": "admin/business/purchase-application",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@index",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-application",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@store",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-application/batch-approve",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@batchApprove",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-application/batch-submit",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@batchSubmit",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/purchase-application/export",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@export",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "DELETE",
+    "uri": "admin/business/purchase-application/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@destroy",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
+    "uri": "admin/business/purchase-application/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@show",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "PUT",
+    "uri": "admin/business/purchase-application/{id}",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@update",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-application/{id}/approve",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@approve",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-application/{id}/cancel",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@cancel",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-application/{id}/reject",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@reject",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-application/{id}/submit",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@submit",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "POST",
+    "uri": "admin/business/purchase-application/{id}/transfer",
+    "name": "admin.",
+    "action": "Modules\\Order\\Http\\Controllers\\PurchaseApplicationController@transfer",
+    "middleware": [
+      "api",
+      "stock.snapshot",
+      "auth.check:admin",
+      "log.request"
+    ]
+  },
+  {
+    "method": "GET",
     "uri": "admin/business/purchase-return",
     "name": "admin.",
     "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@index",
