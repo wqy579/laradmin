@@ -119,13 +119,18 @@ class StockReportController extends Controller
         // 否则 MySQL/SQLite 会按字符串比较，除法结果不可预期）。注意 MySQL 不支持 CAST AS
         // NUMERIC（仅 SQLite 容忍），跨库统一用 DECIMAL 才能过 CI 的 MySQL 8.0 门槛。
         $conversion = 'CAST(COALESCE(NULLIF(p.unit_conversion, ""), "1") AS DECIMAL(20,6))';
-        $costPrice = 'COALESCE(NULLIF(s.cost_price, 0), p.cost_price, 0)';
+        // 单行成本单价（明细维度展示 / 聚合维度内 SUM 使用）：取库存成本，为空取商品成本。
+        // 聚合维度里 s.cost_price 只能出现在 SUM() 内部——only_full_group_by 模式下，
+        // 非聚合的 SELECT 列必须是 GROUP BY 列或功能依赖，否则 MySQL 8.0 直接 1055。
+        $lineCostPrice = 'COALESCE(NULLIF(s.cost_price, 0), p.cost_price, 0)';
+        // 聚合维度的成本单价展示列：用 p.cost_price（已在 GROUP BY 内，group-by 安全）。
+        $productCostPrice = 'COALESCE(p.cost_price, 0)';
 
         $measures = [
             DB::raw('SUM(s.quantity) as qty'),
             DB::raw("SUM(s.quantity / {$conversion}) as qty_large"),
-            DB::raw("{$costPrice} as cost_price"),
-            DB::raw("SUM(s.quantity * {$costPrice}) as cost_amount"),
+            DB::raw("{$productCostPrice} as cost_price"),
+            DB::raw("SUM(s.quantity * {$lineCostPrice}) as cost_amount"),
             DB::raw('COALESCE(p.price_small, p.price_large, 0) as retail_price'),
             DB::raw('SUM(s.quantity * COALESCE(p.price_small, p.price_large, 0)) as retail_amount'),
         ];
@@ -142,8 +147,8 @@ class StockReportController extends Controller
                         'mc.name as main_category_name', 'sc.name as sub_category_name',
                         's.quantity as qty',
                         DB::raw("s.quantity / {$conversion} as qty_large"),
-                        DB::raw("{$costPrice} as cost_price"),
-                        DB::raw("s.quantity * {$costPrice} as cost_amount"),
+                        DB::raw("{$lineCostPrice} as cost_price"),
+                        DB::raw("s.quantity * {$lineCostPrice} as cost_amount"),
                         DB::raw('COALESCE(p.price_small, p.price_large, 0) as retail_price'),
                         DB::raw('s.quantity * COALESCE(p.price_small, p.price_large, 0) as retail_amount'),
                     ])
@@ -176,7 +181,7 @@ class StockReportController extends Controller
                     ->select(array_merge([
                         DB::raw('SUM(s.quantity) as qty'),
                         DB::raw("SUM(s.quantity / {$conversion}) as qty_large"),
-                        DB::raw("SUM(s.quantity * {$costPrice}) as cost_amount"),
+                        DB::raw("SUM(s.quantity * {$lineCostPrice}) as cost_amount"),
                         DB::raw('SUM(s.quantity * COALESCE(p.price_small, p.price_large, 0)) as retail_amount'),
                     ], [
                         DB::raw('COALESCE(b.name, "未指定品牌") as brand_name'),
