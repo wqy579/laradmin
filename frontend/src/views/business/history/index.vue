@@ -101,7 +101,7 @@ const typeOptions = [
 	{ label: '库存调整', value: 'stock_adjust' },
 	{ label: '商品组装', value: 'assembly' },
 	{ label: '商品拆分', value: 'split' },
-	{ label: '采购申请转入库', value: 'purchase_application' },
+	{ label: '采购申请', value: 'purchase_application' },
 ]
 
 const columns = [

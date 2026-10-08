@@ -187,12 +187,6 @@ class BusinessHistoryController extends Controller
         return "CONVERT({$expr} USING utf8mb4)";
     }
 
-    /** 字符串字面量：显式转 utf8mb4，避免与列 collation 冲突 */
-    private function lit(string $value): string
-    {
-        return $this->u8("'".str_replace("'", "''", $value)."'");
-    }
-
     /** 可空外键列：存在则取别名.列，否则常量 NULL */
     private function idExpr(string $alias, string $table, string $column): string
     {
@@ -644,34 +638,50 @@ class BusinessHistoryController extends Controller
                 .$this->filter($v['salesman_id'] ?? null, 'sa', 'stock_adjusts', 'created_by');
         }
 
-        // 13. 采购申请（转入库=支出。审批/驳回等中间状态不进资金流，只计终态 transferred，
-        //     与 stock_ins 不重复——transfer 不写 stock_ins 表）
-        if ($want('purchase_application') && $this->hasTable('purchase_applications')) {
+        // 13. 采购申请操作流水（数据源 order_operation_logs：创建/提交/审批/驳回/取消/转入库
+        //     每个状态节点后端都在写该表）。金额只计转入库=支出（与 stock_ins 不重复——
+        //     transfer 不写 stock_ins 表），其余操作金额 0 但留痕，审计可追溯全流程。
+        if ($want('purchase_application') && $this->hasTable('order_operation_logs')) {
+            // 操作动作 → 展示标签映射（与 PurchaseApplicationController::writeOperationLog 的 action 对齐）
+            $actionLabel = "CASE ol.action
+                    WHEN 'create' THEN '采购申请创建'
+                    WHEN 'submit' THEN '采购申请提交'
+                    WHEN 'approve' THEN '采购申请审批通过'
+                    WHEN 'reject' THEN '采购申请驳回'
+                    WHEN 'cancel' THEN '采购申请取消'
+                    WHEN 'edit' THEN '采购申请修改'
+                    ELSE '采购申请转入库'
+                END";
+
             $parts[] = "
-                SELECT CONVERT('purchase_application' USING utf8mb4) as type_key, CONVERT('采购申请转入库' USING utf8mb4) as type_label, CONVERT('primary' USING utf8mb4) as type_color,
-                       {$this->dateExpr('pa', 'purchase_applications', 'apply_date')} as `date`,
-                       {$this->strExpr('pa', 'purchase_applications', 'apply_no')} as order_no,
+                SELECT CONVERT('purchase_application' USING utf8mb4) as type_key,
+                       {$this->u8($actionLabel)} as type_label,
+                       CONVERT('primary' USING utf8mb4) as type_color,
+                       {$this->dateExpr('ol', 'order_operation_logs', 'created_at')} as `date`,
+                       {$this->strExpr('ol', 'order_operation_logs', 'order_no')} as order_no,
                        NULL as customer_id,
                        {$this->idExpr('pa', 'purchase_applications', 'supplier_id')} as supplier_id,
                        {$this->idExpr('pa', 'purchase_applications', 'warehouse_id')} as warehouse_id,
-                       {$this->idExpr('pa', 'purchase_applications', 'created_by')} as salesman_id,
+                       {$this->idExpr('ol', 'order_operation_logs', 'operator_id')} as salesman_id,
                        {$this->refNameExpr('purchase_applications', 'supplier_id', 's')} as partner_name,
                        {$this->refNameExpr('purchase_applications', 'warehouse_id', 'w')} as warehouse_name,
-                       {$this->userNameExpr('purchase_applications', 'created_by')} as salesman_name,
+                       {$this->userNameExpr('order_operation_logs', 'operator_id')} as salesman_name,
                        0 as income,
-                       {$this->numExpr('pa', 'purchase_applications', 'total_amount')} as expense,
-                       {$this->strExpr('pa', 'purchase_applications', 'remark')} as remark,
-                       pa.id
-                FROM purchase_applications pa
-                ".$this->join('LEFT JOIN suppliers s ON s.id = pa.supplier_id', 'purchase_applications', 'supplier_id').'
+                       CASE WHEN ol.action = 'transfer' THEN {$this->numExpr('pa', 'purchase_applications', 'total_amount')} ELSE 0 END as expense,
+                       {$this->strExpr('ol', 'order_operation_logs', 'detail')} as remark,
+                       ol.id
+                FROM order_operation_logs ol
+                ".$this->join('LEFT JOIN purchase_applications pa ON pa.id = ol.order_id', 'purchase_applications', 'id').'
+                '.$this->join('LEFT JOIN suppliers s ON s.id = pa.supplier_id', 'purchase_applications', 'supplier_id').'
                 '.$this->join('LEFT JOIN warehouses w ON w.id = pa.warehouse_id', 'purchase_applications', 'warehouse_id').'
-                '.$this->join('LEFT JOIN auth_user u ON u.id = pa.created_by', 'purchase_applications', 'created_by').'
-                WHERE '.($this->hasColumn('purchase_applications', 'status')
-                    ? "pa.status = 'transferred'"
+                '.$this->join('LEFT JOIN auth_user u ON u.id = ol.operator_id', 'order_operation_logs', 'operator_id').'
+                WHERE '.($this->hasColumn('order_operation_logs', 'order_type')
+                    ? "ol.order_type = 'purchase_application'"
                     : '1=1')."
-                {$this->dateCond($v, 'pa', 'purchase_applications', 'apply_date')}"
+                {$this->dateCond($v, 'ol', 'order_operation_logs', 'created_at')}"
                 .$this->filter($v['supplier_id'] ?? null, 'pa', 'purchase_applications', 'supplier_id')
-                .$this->filter($v['warehouse_id'] ?? null, 'pa', 'purchase_applications', 'warehouse_id');
+                .$this->filter($v['warehouse_id'] ?? null, 'pa', 'purchase_applications', 'warehouse_id')
+                .$this->filter($v['salesman_id'] ?? null, 'ol', 'order_operation_logs', 'operator_id');
         }
 
         if (empty($parts)) {
