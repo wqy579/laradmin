@@ -644,6 +644,36 @@ class BusinessHistoryController extends Controller
                 .$this->filter($v['salesman_id'] ?? null, 'sa', 'stock_adjusts', 'created_by');
         }
 
+        // 13. 采购申请（转入库=支出。审批/驳回等中间状态不进资金流，只计终态 transferred，
+        //     与 stock_ins 不重复——transfer 不写 stock_ins 表）
+        if ($want('purchase_application') && $this->hasTable('purchase_applications')) {
+            $parts[] = "
+                SELECT CONVERT('purchase_application' USING utf8mb4) as type_key, CONVERT('采购申请转入库' USING utf8mb4) as type_label, CONVERT('primary' USING utf8mb4) as type_color,
+                       {$this->dateExpr('pa', 'purchase_applications', 'apply_date')} as `date`,
+                       {$this->strExpr('pa', 'purchase_applications', 'apply_no')} as order_no,
+                       NULL as customer_id,
+                       {$this->idExpr('pa', 'purchase_applications', 'supplier_id')} as supplier_id,
+                       {$this->idExpr('pa', 'purchase_applications', 'warehouse_id')} as warehouse_id,
+                       {$this->idExpr('pa', 'purchase_applications', 'created_by')} as salesman_id,
+                       {$this->refNameExpr('purchase_applications', 'supplier_id', 's')} as partner_name,
+                       {$this->refNameExpr('purchase_applications', 'warehouse_id', 'w')} as warehouse_name,
+                       {$this->userNameExpr('purchase_applications', 'created_by')} as salesman_name,
+                       0 as income,
+                       {$this->numExpr('pa', 'purchase_applications', 'total_amount')} as expense,
+                       {$this->strExpr('pa', 'purchase_applications', 'remark')} as remark,
+                       pa.id
+                FROM purchase_applications pa
+                ".$this->join('LEFT JOIN suppliers s ON s.id = pa.supplier_id', 'purchase_applications', 'supplier_id').'
+                '.$this->join('LEFT JOIN warehouses w ON w.id = pa.warehouse_id', 'purchase_applications', 'warehouse_id').'
+                '.$this->join('LEFT JOIN auth_user u ON u.id = pa.created_by', 'purchase_applications', 'created_by').'
+                WHERE '.($this->hasColumn('purchase_applications', 'status')
+                    ? "pa.status = 'transferred'"
+                    : '1=1')."
+                {$this->dateCond($v, 'pa', 'purchase_applications', 'apply_date')}"
+                .$this->filter($v['supplier_id'] ?? null, 'pa', 'purchase_applications', 'supplier_id')
+                .$this->filter($v['warehouse_id'] ?? null, 'pa', 'purchase_applications', 'warehouse_id');
+        }
+
         if (empty($parts)) {
             return 'SELECT NULL as type_key, NULL as type_label, NULL as type_color, NULL as `date`,
                     NULL as order_no, NULL as customer_id, NULL as supplier_id, NULL as warehouse_id,

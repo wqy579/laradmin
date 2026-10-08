@@ -98,8 +98,10 @@ const typeOptions = [
 	{ label: '付款单', value: 'pay' },
 	{ label: '现金费用', value: 'expense' },
 	{ label: '库存盘点', value: 'stock_check' },
+	{ label: '库存调整', value: 'stock_adjust' },
 	{ label: '商品组装', value: 'assembly' },
 	{ label: '商品拆分', value: 'split' },
+	{ label: '采购申请转入库', value: 'purchase_application' },
 ]
 
 const columns = [

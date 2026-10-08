@@ -121,7 +121,7 @@
 			<el-table-column v-if="hasLargeUnit" label="大" width="120">
 				<template #header>大<span class="u-h">{{ firstLargeUnit }}</span></template>
 				<template #default="{ row }">
-					<el-input v-model="row.qty_large" size="small" style="width:50px" @input="calcAmount(row)" />
+					<el-input v-model="row.qty_large" size="small" style="width:50px" @input="onLargeQtyChange(row)" />
 					<span class="u-sep">×</span>
 					<el-input v-model="row.price_large" size="small" style="width:55px" @input="onLargePriceChange(row)" />
 				</template>
@@ -129,7 +129,7 @@
 			<el-table-column v-if="hasMediumUnit" label="中" width="120">
 				<template #header>中<span class="u-h">{{ firstMediumUnit }}</span></template>
 				<template #default="{ row }">
-					<el-input v-model="row.qty_medium" size="small" style="width:50px" @input="calcAmount(row)" />
+					<el-input v-model="row.qty_medium" size="small" style="width:50px" @input="onMediumQtyChange(row)" />
 					<span class="u-sep">×</span>
 					<el-input v-model="row.price_medium" size="small" style="width:55px" @input="onMediumPriceChange(row)" />
 				</template>
@@ -137,7 +137,7 @@
 			<el-table-column label="小" width="120">
 				<template #header>小<span class="u-h">{{ firstSmallUnit }}</span></template>
 				<template #default="{ row }">
-					<el-input v-model="row.qty_small" size="small" style="width:50px" @input="calcAmount(row)" />
+					<el-input v-model="row.qty_small" size="small" style="width:50px" @input="onSmallQtyChange(row)" />
 					<span class="u-sep">×</span>
 					<el-input v-model="row.price_small" size="small" style="width:55px" @input="onSmallPriceChange(row)" />
 				</template>
@@ -257,6 +257,42 @@ const applyProduct = (item, p) => {
 	const c = item.unit_conversion;
 	if (!item.price_medium && csm > 0 && mc > 0) item.price_medium = Math.round(csm * mc * 100) / 100;
 	if (!item.price_large && csm > 0 && c > 0) item.price_large = Math.round(csm * c * 100) / 100;
+	calcAmount(item);
+};
+
+// 数量互斥换算：三档（大/中/小）同一商品只按一档计价，避免金额双重计算。
+// 输大件 → 小袋=大×大→小倍率、清中件；输中件 → 小袋=中×中→小倍率、清大件；
+// 输小袋 → 若超出倍率则进位到中/大件（50 袋/40 → 大1+小10），否则只填小袋。
+const onLargeQtyChange = (item) => {
+	const lg = Number(item.qty_large) || 0;
+	const mc = Number(item.unit_conversion_medium) || 0;
+	const c = Number(item.unit_conversion) || 0;
+	item.qty_large = lg;
+	item.qty_medium = 0;
+	item.qty_small = c > 0 ? lg * c : 0;
+	calcAmount(item);
+};
+const onMediumQtyChange = (item) => {
+	const md = Number(item.qty_medium) || 0;
+	const mc = Number(item.unit_conversion_medium) || 0;
+	item.qty_medium = md;
+	item.qty_large = 0;
+	item.qty_small = mc > 0 ? md * mc : 0;
+	calcAmount(item);
+};
+const onSmallQtyChange = (item) => {
+	const sm = Number(item.qty_small) || 0;
+	const mc = Number(item.unit_conversion_medium) || 0;
+	const c = Number(item.unit_conversion) || 0;
+	if (c > 0) {
+		item.qty_large = Math.floor(sm / c);
+		item.qty_small = sm % c;
+	} else if (mc > 0) {
+		item.qty_medium = Math.floor(sm / mc);
+		item.qty_small = sm % mc;
+	} else {
+		item.qty_small = sm;
+	}
 	calcAmount(item);
 };
 
