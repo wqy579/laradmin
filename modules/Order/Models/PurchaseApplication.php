@@ -5,6 +5,8 @@ namespace Modules\Order\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Auth\Models\User;
+use Modules\Order\Models\Supplier;
 
 class PurchaseApplication extends Model
 {
@@ -64,11 +66,11 @@ class PurchaseApplication extends Model
 
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Auth\Models\User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function approver(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Auth\Models\User::class, 'approved_by');
+        return $this->belongsTo(User::class, 'approved_by');
     }
 }

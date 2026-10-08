@@ -2,6 +2,7 @@
 
 namespace Modules\Order\Http\Controllers;
 
+use App\Contracts\TaskNotification;
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
@@ -11,7 +12,6 @@ use Modules\Order\Models\PurchaseApplication;
 use Modules\Order\Models\PurchaseApplicationItem;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Services\StockService;
-use Modules\System\Facades\Notifier;
 use Modules\Business\Models\Employee;
 
 /**
@@ -37,7 +37,10 @@ class PurchaseApplicationController extends Controller
 {
     use ResponseTrait;
 
-    public function __construct(private StockService $stockService) {}
+    public function __construct(
+        private StockService $stockService,
+        private TaskNotification $notifier,
+    ) {}
 
     /** 列表（分页 + 单号/供应商/状态/审批人/日期/关键词筛选） */
     public function index(Request $request)
@@ -633,10 +636,11 @@ class PurchaseApplicationController extends Controller
                 'amount' => $amount,
                 'cost_price' => $costPrice,
                 'remark' => $item['remark'] ?? null,
-                'sort' => $item['sort'] ?? $sort++,
+                'sort' => $item['sort'] ?? $sort,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
+            $sort++;
         }
 
         return [$itemRows, $totals];
@@ -676,7 +680,7 @@ class PurchaseApplicationController extends Controller
             return; // 员工未关联系统账号，静默跳过
         }
         try {
-            Notifier::sendToUser(
+            $this->notifier->sendToUser(
                 (int) $userId,
                 "采购申请待审批 {$app->apply_no}",
                 "供应商：{$app->supplier_name}，金额：¥".number_format((float) $app->total_amount, 2),
@@ -696,7 +700,7 @@ class PurchaseApplicationController extends Controller
             return;
         }
         try {
-            Notifier::sendToUser((int) $app->created_by, $title, $content, 'info', 'task', ['action_type' => 'purchase_application', 'id' => $app->id]);
+            $this->notifier->sendToUser((int) $app->created_by, $title, $content, 'info', 'task', ['action_type' => 'purchase_application', 'id' => $app->id]);
         } catch (\Throwable $e) {
             // 通知失败不影响主流程
         }
