@@ -119,7 +119,7 @@ class PurchaseApplicationController extends Controller
 
         $admin = auth('admin')->user();
         $adminId = $admin?->id;
-        $adminName = $admin?->real_name ?? $admin?->username ?? '管理员';
+        $adminName = $admin?->real_name ?? ($admin?->username ?? '管理员');
 
         return DB::transaction(function () use ($validated, $adminId, $adminName) {
             [$itemRows, $totals] = $this->buildItemRows($validated['items']);
@@ -746,7 +746,7 @@ class PurchaseApplicationController extends Controller
     {
         $admin = auth('admin')->user();
 
-        return [$admin?->id, $admin?->real_name ?? $admin?->username ?? '管理员'];
+        return [$admin?->id, $admin?->real_name ?? ($admin?->username ?? '管理员')];
     }
 
     /** 单号：前缀+Ymd+6位序号（对齐 StockAdjustController::generateNo） */

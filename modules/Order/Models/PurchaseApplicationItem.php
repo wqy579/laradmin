@@ -4,7 +4,6 @@ namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Order\Models\PurchaseApplication;
 use Modules\Stock\Models\Product;
 
 class PurchaseApplicationItem extends Model
