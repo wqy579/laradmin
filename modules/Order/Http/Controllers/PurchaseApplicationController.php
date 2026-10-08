@@ -7,12 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Modules\Business\Models\Employee;
 use Modules\Order\Models\PurchaseApplication;
 use Modules\Order\Models\PurchaseApplicationItem;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Services\StockService;
-use Modules\Business\Models\Employee;
 
 /**
  * 采购申请（PurchaseApplication）
@@ -449,10 +448,12 @@ class PurchaseApplicationController extends Controller
             foreach ($apps as $app) {
                 if ($app->status !== PurchaseApplication::STATUS_DRAFT) {
                     $skipped[] = ['id' => $app->id, 'apply_no' => $app->apply_no, 'reason' => '非草稿'];
+
                     continue;
                 }
                 if ($app->items->isEmpty()) {
                     $skipped[] = ['id' => $app->id, 'apply_no' => $app->apply_no, 'reason' => '无明细'];
+
                     continue;
                 }
                 $app->update(['status' => PurchaseApplication::STATUS_PENDING]);
@@ -487,10 +488,12 @@ class PurchaseApplicationController extends Controller
             foreach ($apps as $app) {
                 if ($app->status === PurchaseApplication::STATUS_APPROVED) {
                     $skipped[] = ['id' => $app->id, 'apply_no' => $app->apply_no, 'reason' => '已审批'];
+
                     continue;
                 }
                 if ($app->status !== PurchaseApplication::STATUS_PENDING) {
                     $skipped[] = ['id' => $app->id, 'apply_no' => $app->apply_no, 'reason' => '非待审批'];
+
                     continue;
                 }
                 $app->update([
