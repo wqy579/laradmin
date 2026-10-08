@@ -44,6 +44,8 @@ class ArchitectureTest extends TestCase
         'Order->Auth',      // 订单审批/下单记录发起人，引用 Auth 的用户表
         'Stock->Order',     // 价格体系 PriceService 复用 Order 的促销算价引擎，
         // 促销价是取价第一优先级，同库同事务，抽契约收益低
+        'Office->Auth',     // 内部邮件/公司公告的收发双方与可见范围都落在 Auth 的用户与部门表上，
+        // 办公模块自身不维护人员主数据，抽契约只会把一次联表变成跨模块调用
     ];
 
     /**

@@ -214,6 +214,10 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::put('/logs/{visitLog}', [VisitLogController::class, 'update']);
         Route::delete('/logs/{visitLog}', [VisitLogController::class, 'destroy']);
         Route::get('/achievement', [VisitLogController::class, 'achievement']);
+        // 达成率走势（双击行开的折线图）与地图轨迹：静态路由，必须落在 /logs/{id} 之外
+        Route::get('/trend', [VisitLogController::class, 'trend']);
+        Route::get('/trajectory', [VisitLogController::class, 'trajectory']);
+        Route::get('/schedule/export', [VisitLogController::class, 'scheduleExport']);
         Route::get('/schedule', [VisitLogController::class, 'schedule']);
     });
     // 收款管理

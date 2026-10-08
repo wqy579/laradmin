@@ -333,7 +333,12 @@ const businessApi = {
 			delete: { delete: (id) => request.delete(`business/visit/logs/${id}`) },
 		},
 		achievement: { get: (params) => request.get('business/visit/achievement', { params }) },
+		// 达成率走势（双击行打开的折线图）
+		trend: { get: (params) => request.get('business/visit/trend', { params }) },
 		schedule: { get: (params) => request.get('business/visit/schedule', { params }) },
+		scheduleExport: { get: (params) => request.get('business/visit/schedule/export', { params, responseType: 'blob' }) },
+		// 拜访轨迹（地图弹窗用）
+		trajectory: { get: (params) => request.get('business/visit/trajectory', { params }) },
 	},
 
 	// 收款管理
@@ -385,6 +390,70 @@ const businessApi = {
 		update: { put: (id, params) => request.put(`business/attendance/${id}`, params) },
 		delete: { delete: (id) => request.delete(`business/attendance/${id}`) },
 		statistics: { get: (params) => request.get('business/attendance/statistics', { params }) },
+	},
+
+	// 模块一：最近价格
+	recentPrice: {
+		list: { get: (params) => request.get('business/recent-prices', { params }) },
+		export: { get: (params) => request.get('business/recent-prices/export', { params, responseType: 'blob' }) },
+	},
+
+	// 模块二~五：报表（销售 / 库存 / 业务员 / 综合）
+	report: {
+		options: { get: (params) => request.get('business/report/options', { params }) },
+		sales: {
+			get: (params) => request.get('business/report/sales', { params }),
+			export: { get: (params) => request.get('business/report/sales/export', { params, responseType: 'blob' }) },
+		},
+		stock: {
+			get: (params) => request.get('business/report/stock', { params }),
+			export: { get: (params) => request.get('business/report/stock/export', { params, responseType: 'blob' }) },
+		},
+		salesman: {
+			get: (params) => request.get('business/report/salesman', { params }),
+			export: { get: (params) => request.get('business/report/salesman/export', { params, responseType: 'blob' }) },
+		},
+		combined: {
+			get: (params) => request.get('business/report/combined', { params }),
+			export: { get: (params) => request.get('business/report/combined/export', { params, responseType: 'blob' }) },
+		},
+		templates: {
+			list: { get: (params) => request.get('business/report/templates', { params }) },
+			save: { post: (params) => request.post('business/report/templates', params) },
+			delete: { delete: (id) => request.delete(`business/report/templates/${id}`) },
+		},
+	},
+
+	// 模块六：内部邮件
+	mail: {
+		list: { get: (params) => request.get('business/mail', { params }) },
+		detail: { get: (id) => request.get(`business/mail/${id}`) },
+		send: { post: (params) => request.post('business/mail', params) },
+		update: { put: (id, params) => request.put(`business/mail/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/mail/${id}`) },
+		read: { post: (id) => request.post(`business/mail/${id}/read`) },
+		unread: { post: (id) => request.post(`business/mail/${id}/unread`) },
+		unreadCount: { get: () => request.get('business/mail/unread-count') },
+		contacts: { get: () => request.get('business/mail/contacts') },
+		batchRead: { post: (params) => request.post('business/mail/batch-read', params) },
+		batchUnread: { post: (params) => request.post('business/mail/batch-unread', params) },
+		batchDelete: { post: (params) => request.post('business/mail/batch-delete', params) },
+	},
+
+	// 模块七：公司公告
+	notice: {
+		list: { get: (params) => request.get('business/notice', { params }) },
+		detail: { get: (id) => request.get(`business/notice/${id}`) },
+		create: { post: (params) => request.post('business/notice', params) },
+		update: { put: (id, params) => request.put(`business/notice/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/notice/${id}`) },
+	},
+
+	// 模块十：小程序设置
+	miniProgramSetting: {
+		list: { get: () => request.get('business/mini-program-settings') },
+		save: { put: (group, params) => request.put(`business/mini-program-settings/${group}`, params) },
+		reset: { post: (group) => request.post(`business/mini-program-settings/${group}/reset`) },
 	},
 }
 

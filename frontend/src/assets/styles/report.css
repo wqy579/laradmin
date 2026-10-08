@@ -1,0 +1,341 @@
+/*
+ * 连凯对标 10 个空白模块 · 通用版式规范
+ *
+ * 这里集中落地设计方案里的「通用规范」章节，10 个页面共用同一套类名，
+ * 避免每个 vue 文件各抄一遍色值导致改一处漏九处。
+ * 色值与文档一一对应：主色 #409eff / 成功 #67c23a / 警告 #e6a23c / 危险 #f56c6c；
+ * 边框 #dcdfe6，浅边框 #e4e7ed，背景 #f5f7fa。
+ */
+:root {
+	--rp-primary: #409eff;
+	--rp-primary-hover: #66b1ff;
+	--rp-success: #67c23a;
+	--rp-warning: #e6a23c;
+	--rp-danger: #f56c6c;
+	--rp-border: #dcdfe6;
+	--rp-border-light: #e4e7ed;
+	--rp-bg: #f5f7fa;
+	--rp-title: #303133;
+	--rp-text: #606266;
+	--rp-text-weak: #909399;
+	--rp-row-alt: #fafafa;
+}
+
+/* ========== 页面骨架：查询区 / 按钮栏 / tab 区 / 表格区 ========== */
+.rp-page {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	background: #fff;
+	overflow: hidden;
+}
+
+/* 查询区：背景 #f5f7fa，默认折叠为一行高度，展开后 200px 内滚动 */
+.rp-query {
+	background: var(--rp-bg);
+	border-bottom: 1px solid var(--rp-border-light);
+	flex-shrink: 0;
+}
+.rp-query-body {
+	padding: 12px 16px;
+	overflow: auto;
+	transition: max-height 0.2s ease;
+}
+.rp-query-body.is-collapsed {
+	max-height: 52px;
+	overflow: hidden;
+}
+.rp-query-body.is-expanded {
+	max-height: 200px;
+}
+.rp-query-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 8px 16px;
+	align-items: center;
+}
+.rp-field {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+/* 标签 13px #606266 */
+.rp-field > .rp-label {
+	flex: 0 0 76px;
+	font-size: 13px;
+	color: var(--rp-text);
+	text-align: right;
+	white-space: nowrap;
+}
+.rp-field > .rp-control {
+	flex: 1;
+	min-width: 0;
+}
+.rp-field.is-check > .rp-label {
+	flex: 0 0 auto;
+}
+
+/* 按钮栏：40px 高 */
+.rp-toolbar {
+	height: 40px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 16px;
+	flex-shrink: 0;
+}
+.rp-toolbar .rp-spacer {
+	flex: 1;
+}
+
+/* 主按钮：36px 高、左右 padding 20px、圆角 4px、hover #66b1ff */
+.rp-btn-primary {
+	height: 36px !important;
+	padding: 0 20px !important;
+	border-radius: 4px !important;
+	background: var(--rp-primary) !important;
+	border-color: var(--rp-primary) !important;
+	color: #fff !important;
+}
+.rp-btn-primary:hover,
+.rp-btn-primary:focus {
+	background: var(--rp-primary-hover) !important;
+	border-color: var(--rp-primary-hover) !important;
+}
+.rp-btn-plain {
+	height: 36px;
+	padding: 0 16px;
+	border-radius: 4px;
+	border: 1px solid var(--rp-border);
+	background: #fff;
+	color: var(--rp-text);
+	cursor: pointer;
+	font-size: 13px;
+	line-height: 1;
+}
+.rp-btn-plain:hover {
+	color: var(--rp-primary);
+	border-color: var(--rp-primary-hover);
+}
+
+/* tab 区 */
+.rp-tabs {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+.rp-tabs > :deep(.el-tabs__header) {
+	margin: 0;
+	padding: 0 16px;
+	background: #fff;
+}
+.rp-tabs > :deep(.el-tabs__content) {
+	flex: 1;
+	min-height: 0;
+	padding: 0;
+}
+.rp-tabs > :deep(.el-tab-pane) {
+	height: 100%;
+}
+
+/* 表格区：撑满剩余空间 */
+.rp-table-wrap {
+	flex: 1;
+	min-height: 0;
+	padding: 0 0 0 0;
+}
+
+/* ========== 字体规范 ========== */
+/* 标题 16px bold #303133 */
+.rp-title {
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--rp-title);
+}
+/* 表格表头 13px bold #909399 */
+.rp-table :deep(.vxe-header--row) {
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--rp-text-weak);
+}
+.rp-table :deep(.vxe-header--column) {
+	background: var(--rp-bg) !important;
+	height: 40px !important;
+}
+/* 行高 36px、交替行 #fafafa */
+.rp-table :deep(.vxe-body--row) {
+	height: 36px;
+}
+.rp-table :deep(.vxe-table--body tr.vxe-body--row:nth-child(even) .vxe-cell) {
+	background: var(--rp-row-alt);
+}
+
+/* ========== 数值与状态配色 ========== */
+.rp-num {
+	font-variant-numeric: tabular-nums;
+}
+.rp-money {
+	font-variant-numeric: tabular-nums;
+}
+.rp-danger {
+	color: var(--rp-danger);
+	font-weight: 600;
+}
+.rp-success {
+	color: var(--rp-success);
+	font-weight: 600;
+}
+.rp-warning {
+	color: var(--rp-warning);
+	font-weight: 600;
+}
+
+/* 销售单价：文档要求 #f56c6c 加粗 */
+.rp-price {
+	color: var(--rp-danger);
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+/* ========== 综合报表概览卡片 ========== */
+.rp-cards {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 12px;
+	padding: 12px 16px;
+}
+.rp-card {
+	border: 1px solid var(--rp-border-light);
+	border-radius: 4px;
+	padding: 14px 16px;
+	background: #fff;
+}
+.rp-card-label {
+	font-size: 13px;
+	color: var(--rp-text);
+}
+.rp-card-value {
+	margin-top: 8px;
+	font-size: 24px;
+	font-weight: 700;
+	color: var(--rp-title);
+	font-variant-numeric: tabular-nums;
+}
+.rp-card-compare {
+	margin-top: 6px;
+	font-size: 12px;
+	color: var(--rp-text-weak);
+}
+
+/* ========== 汇总行 ========== */
+.rp-summary {
+	display: flex;
+	gap: 20px;
+	align-items: center;
+	padding: 6px 16px;
+	background: var(--rp-bg);
+	border-top: 1px solid var(--rp-border-light);
+	font-size: 13px;
+	color: var(--rp-text);
+	flex-shrink: 0;
+	flex-wrap: wrap;
+}
+.rp-summary b {
+	color: var(--rp-title);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ========== 达成率配色（模块八） ========== */
+.rp-rate-high {
+	color: var(--rp-success);
+	font-weight: 700;
+}
+.rp-rate-mid {
+	color: var(--rp-warning);
+	font-weight: 700;
+}
+.rp-rate-low {
+	color: var(--rp-danger);
+	font-weight: 700;
+}
+
+/* ========== 左侧菜单（邮件 / 小程序设置） ========== */
+.rp-aside {
+	width: 200px;
+	flex-shrink: 0;
+	border-right: 1px solid var(--rp-border-light);
+	background: #fff;
+	padding: 8px 0;
+	overflow: auto;
+}
+.rp-aside-item {
+	height: 40px;
+	line-height: 40px;
+	padding: 0 16px;
+	font-size: 13px;
+	color: var(--rp-text);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.rp-aside-item:hover {
+	background: var(--rp-bg);
+}
+.rp-aside-item.is-active {
+	background: var(--rp-bg);
+	color: var(--rp-primary);
+	font-weight: 600;
+	border-right: 2px solid var(--rp-primary);
+}
+.rp-aside-badge {
+	margin-left: auto;
+}
+
+/* 通用 flex 行容器 */
+.rp-row {
+	display: flex;
+	gap: 12px;
+	height: 100%;
+	min-height: 0;
+}
+.rp-main {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+/* 空数据/加载态容器 */
+.rp-empty-box {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--rp-text-weak);
+	font-size: 13px;
+}
+
+/* 帮助视频 tab 内容 */
+.rp-help {
+	padding: 16px;
+	overflow: auto;
+	height: 100%;
+}
+.rp-help h3 {
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--rp-title);
+	margin: 0 0 12px;
+}
+.rp-help ol {
+	padding-left: 20px;
+	margin: 0;
+}
+.rp-help li {
+	font-size: 13px;
+	color: var(--rp-text);
+	line-height: 24px;
+}
