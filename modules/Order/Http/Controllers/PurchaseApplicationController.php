@@ -557,7 +557,7 @@ class PurchaseApplicationController extends Controller
             'apply_date' => 'nullable|date',
             'expected_date' => 'nullable|date',
             'payment_type' => 'nullable|in:cash,transfer,monthly,other',
-            'approver_id' => 'nullable|exists:employees,id',
+            'approver_id' => 'required|exists:employees,id',
             'attachment' => 'nullable|array',
             'remark' => 'nullable|string|max:500',
             'submit_for_approval' => 'nullable|boolean',

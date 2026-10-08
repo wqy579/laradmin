@@ -54,11 +54,13 @@
 						<template v-if="row.status === 'draft'">
 							<el-button link type="primary" @click="openForm(row)">编辑</el-button>
 							<el-button link type="warning" @click="onSubmit(row)">提交</el-button>
+							<el-button link type="info" @click="onCancel(row)">取消</el-button>
 							<el-button link type="danger" @click="onDelete(row)">删除</el-button>
 						</template>
 						<template v-else-if="row.status === 'pending'">
 							<el-button link type="success" @click="openAudit(row, true)">通过</el-button>
 							<el-button link type="danger" @click="openAudit(row, false)">驳回</el-button>
+							<el-button link type="info" @click="onCancel(row)">取消</el-button>
 							<el-button link type="info" @click="openDetail(row)">查看</el-button>
 						</template>
 						<template v-else-if="row.status === 'approved'">
@@ -202,17 +204,23 @@ const onBatchAudit = async () => {
 	try {
 		const ids = selectedPending.value.map((r) => r.id);
 		const res = await api.purchaseApplication.batchApprove.post({ ids, remark: batchRemark.value });
-		ElMessage.success(res.data.message || `成功审批 ${ids.length} 张`);
+		ElMessage.success(res.message || `成功审批 ${ids.length} 张`);
 		batchAuditVisible.value = false;
 		load();
+	} catch (e) {
+		ElMessage.error(e.response?.data?.message || e.message || '批量审批失败');
 	} finally { batchLoading.value = false; }
 };
 
 const onBatchSubmit = async () => {
 	const ids = selectedDraft.value.map((r) => r.id);
-	await api.purchaseApplication.batchSubmit.post({ ids });
-	ElMessage.success(`成功提交 ${ids.length} 张`);
-	load();
+	try {
+		const res = await api.purchaseApplication.batchSubmit.post({ ids });
+		ElMessage.success(res.message || `成功提交 ${ids.length} 张`);
+		load();
+	} catch (e) {
+		ElMessage.error(e.response?.data?.message || e.message || '批量提交失败');
+	}
 };
 
 const onExport = async () => {
@@ -257,6 +265,7 @@ const openForm = (row) => {
 const onSaved = () => { load(); };
 
 const onSubmit = (row) => {
+	if (!row.total_quantity || Number(row.total_quantity) <= 0) return ElMessage.warning('明细数量不能为空，请先编辑补充商品');
 	ElMessageBox.confirm('确认提交审批？', '提示', { type: 'warning' })
 		.then(async () => { await api.purchaseApplication.submit.post(row.id); ElMessage.success('已提交'); load(); })
 		.catch(() => {});
@@ -265,6 +274,12 @@ const onSubmit = (row) => {
 const onDelete = (row) => {
 	ElMessageBox.confirm('确认删除该采购申请？', '提示', { type: 'warning' })
 		.then(async () => { await api.purchaseApplication.delete.delete(row.id); ElMessage.success('已删除'); load(); })
+		.catch(() => {});
+};
+
+const onCancel = (row) => {
+	ElMessageBox.confirm(`确认取消采购申请 ${row.apply_no}？取消后不可恢复。`, '取消确认', { type: 'warning', confirmButtonText: '确认取消', cancelButtonText: '返回' })
+		.then(async () => { await api.purchaseApplication.cancel.post(row.id); ElMessage.success('已取消'); load(); })
 		.catch(() => {});
 };
 

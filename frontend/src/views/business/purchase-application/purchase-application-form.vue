@@ -27,8 +27,8 @@
 					</el-form-item>
 				</el-col>
 				<el-col :span="4">
-					<el-form-item label="审批人">
-						<el-select v-model="form.approver_id" placeholder="选填" filterable clearable style="width:100%">
+					<el-form-item label="审批人" required>
+						<el-select v-model="form.approver_id" placeholder="请选择审批人" filterable clearable style="width:100%">
 							<el-option v-for="e in employees" :key="e.id" :label="e.name" :value="e.id" />
 						</el-select>
 					</el-form-item>
@@ -210,10 +210,10 @@ const pickerSubs = computed(() => categories.value.find(m => m.id === picker.mai
 const totalProductCount = computed(() => categories.value.reduce((s, m) => s + (m.product_count || 0), 0));
 const currentMainProductCount = computed(() => categories.value.find(m => m.id === picker.mainId)?.product_count || 0);
 
-const selectPickerMain = (m) => { picker.mainId = m.id; picker.mainName = m.name; picker.subId = null; picker.subName = ''; };
-const selectPickerSub = (s) => { picker.subId = s.id; picker.subName = s.name; };
-const selectPickerAllMain = () => { picker.mainId = null; picker.mainName = ''; picker.subId = null; picker.subName = ''; };
-const selectPickerAllSub = () => { picker.subId = null; picker.subName = ''; };
+const selectPickerMain = (m) => { picker.mainId = m.id; picker.mainName = m.name; picker.subId = null; picker.subName = ''; prodKeyword.value = ''; searchProducts(); };
+const selectPickerSub = (s) => { picker.subId = s.id; picker.subName = s.name; prodKeyword.value = ''; searchProducts(); };
+const selectPickerAllMain = () => { picker.mainId = null; picker.mainName = ''; picker.subId = null; picker.subName = ''; prodKeyword.value = ''; searchProducts(); };
+const selectPickerAllSub = () => { picker.subId = null; picker.subName = ''; prodKeyword.value = ''; searchProducts(); };
 
 // 商品搜索
 const prodKeyword = ref('');
@@ -336,7 +336,7 @@ const open = async (row) => {
 	if (row && row.id) {
 		// 编辑：拉详情回填
 		const res = await api.purchaseApplication.detail.get(row.id);
-		const d = res.data.data;
+		const d = res.data;
 		form.value = {
 			id: d.id,
 			supplier_id: d.supplier_id, warehouse_id: d.warehouse_id,
@@ -365,6 +365,7 @@ const open = async (row) => {
 
 const onSave = async (submit) => {
 	if (!form.value.supplier_id) return ElMessage.warning('请选择供应商');
+	if (!form.value.approver_id) return ElMessage.warning('请选择审批人');
 	if (!form.value.items.length) return ElMessage.warning('请添加商品');
 	const validItems = form.value.items.filter(i => i.product_id && ((Number(i.qty_large) || 0) + (Number(i.qty_medium) || 0) + (Number(i.qty_small) || 0) > 0));
 	if (!validItems.length) return ElMessage.warning('请录入有效的商品数量');
