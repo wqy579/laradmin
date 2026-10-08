@@ -116,8 +116,9 @@ class StockReportController extends Controller
         $query = $this->baseQuery($params);
 
         // 换算比：1 大单位 = unit_conversion 个小单位（varchar 存的是数字串，需显式转型，
-        // 否则 MySQL/SQLite 会按字符串比较，除法结果不可预期）
-        $conversion = 'CAST(COALESCE(NULLIF(p.unit_conversion, ""), "1") AS NUMERIC)';
+        // 否则 MySQL/SQLite 会按字符串比较，除法结果不可预期）。注意 MySQL 不支持 CAST AS
+        // NUMERIC（仅 SQLite 容忍），跨库统一用 DECIMAL 才能过 CI 的 MySQL 8.0 门槛。
+        $conversion = 'CAST(COALESCE(NULLIF(p.unit_conversion, ""), "1") AS DECIMAL(20,6))';
         $costPrice = 'COALESCE(NULLIF(s.cost_price, 0), p.cost_price, 0)';
 
         $measures = [
