@@ -308,7 +308,7 @@ const hasLargeUnit = computed(() => form.value.items.some(i => i.unit_conversion
 const hasMediumUnit = computed(() => form.value.items.some(i => i.unit_conversion_medium > 0));
 const firstLargeUnit = computed(() => form.value.items.find(i => i.unit_large)?.unit_large || '');
 const firstMediumUnit = computed(() => form.value.items.find(i => i.unit_medium)?.unit_medium || '');
-const firstSmallUnit = computed(() => form.value.items.find(i => i.unit_small)?.unit_small || '小');
+const firstSmallUnit = computed(() => form.value.items.find(i => i.unit_small)?.unit_small || '');
 
 const onUploadSuccess = (file) => {
 	if (!form.value.attachment) form.value.attachment = [];
@@ -319,13 +319,13 @@ const onUploadSuccess = (file) => {
 const loadBasics = async () => {
 	const [sRes, wRes, eRes, cRes] = await Promise.all([
 		api.supplier.list.get({ page_size: 200 }),
-		api.warehouse.list.get(),
+		api.warehouse.list.get({ page_size: 200 }),
 		api.employee.list.get({ page_size: 200 }),
 		api.product.categories.get(),
 	]);
-	suppliers.value = sRes.data.data.data || sRes.data.data || [];
-	warehouses.value = wRes.data.data.data || wRes.data.data || [];
-	employees.value = eRes.data.data.data || eRes.data.data || [];
+	suppliers.value = sRes.data?.list || [];
+	warehouses.value = wRes.data?.list || [];
+	employees.value = eRes.data?.list || [];
 	categories.value = cRes.code === 200 ? (cRes.data || cRes.data?.data || []) : [];
 };
 

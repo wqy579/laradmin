@@ -233,14 +233,14 @@ const load = async () => {
 	loading.value = true;
 	try {
 		const res = await api.purchaseApplication.list.get(query);
-		list.value = res.data.data.data || [];
-		total.value = res.data.data.total || 0;
+		list.value = res.data?.list || [];
+		total.value = res.data?.total || 0;
 	} finally { loading.value = false; }
 };
 
 const loadSuppliers = async () => {
 	const res = await api.supplier.list.get({ page_size: 200 });
-	suppliers.value = res.data.data.data || res.data.data || [];
+	suppliers.value = res.data?.list || [];
 };
 
 const reset = () => {
@@ -294,7 +294,7 @@ const onTransfer = (row) => {
 
 const openDetail = async (row) => {
 	const res = await api.purchaseApplication.detail.get(row.id);
-	detail.value = res.data.data;
+	detail.value = res.data;
 	detailVisible.value = true;
 };
 
