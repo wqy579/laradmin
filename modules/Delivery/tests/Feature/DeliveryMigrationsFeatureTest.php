@@ -224,6 +224,59 @@ class DeliveryMigrationsFeatureTest extends TestCase
         );
     }
 
+    /**
+     * 自愈迁移后 7 子菜单的 parent_id 正确指向 delivery 顶级菜单，
+     * status=1、type=menu、component 非空。
+     *
+     * 回归点：parent_id 错位或 component 为空时，AuthService::buildMenuTree
+     * 构建不出 children，前端 menu-item.vue 因 children 为空把顶级菜单渲染成
+     * el-menu-item 直接跳配货单（问题2的现象）。
+     */
+    public function test_delivery_submenus_have_correct_parent_and_component(): void
+    {
+        $topId = DB::table('auth_permission')->where('name', 'delivery')->value('id');
+        $this->assertNotNull($topId, 'delivery 顶级菜单不存在');
+
+        $expected = [
+            'delivery.picking', 'delivery.pick', 'delivery.check', 'delivery.load',
+            'delivery.task', 'delivery.collection', 'delivery.remit',
+        ];
+        foreach ($expected as $name) {
+            $row = DB::table('auth_permission')->where('name', $name)->first();
+            $this->assertNotNull($row, "子菜单 {$name} 不存在");
+            $this->assertEquals($topId, $row->parent_id, "{$name} 的 parent_id 未指向 delivery 顶级菜单");
+            $this->assertEquals('menu', $row->type, "{$name} 的 type 应为 menu");
+            $this->assertEquals(1, $row->status, "{$name} 的 status 应为 1");
+            $this->assertNotEmpty($row->component, "{$name} 的 component 不能为空");
+        }
+    }
+
+    /**
+     * 自愈迁移后 super_admin 角色持有全部 8 个 delivery 权限。
+     *
+     * isSuperAdmin 走全量权限分支不依赖角色绑定，但非超管角色依赖
+     * auth_role_permission 关联——这里验证关联已落（super_admin 是基准）。
+     */
+    public function test_super_admin_role_holds_all_delivery_permissions(): void
+    {
+        $superRole = DB::table('auth_role')->where('code', 'super_admin')->first();
+        if (! $superRole) {
+            $this->markTestSkipped('super_admin 角色不存在（非全新安装环境），跳过角色授权断言');
+        }
+        $expected = [
+            'delivery', 'delivery.picking', 'delivery.pick', 'delivery.check',
+            'delivery.load', 'delivery.task', 'delivery.collection', 'delivery.remit',
+        ];
+        $permIds = DB::table('auth_permission')->whereIn('name', $expected)->pluck('id');
+        $this->assertCount(8, $permIds, 'delivery 权限菜单应为 8 条');
+
+        $linked = DB::table('auth_role_permission')
+            ->where('role_id', $superRole->id)
+            ->whereIn('permission_id', $permIds)
+            ->count();
+        $this->assertSame(8, $linked, 'super_admin 角色应持有全部 8 个 delivery 权限');
+    }
+
     public function test_collection_uses_separate_no_prefix_from_existing_receive(): void
     {
         // 回归防护：原有收款单用 SK 前缀，配送收款用独立前缀，单号命名空间不冲突

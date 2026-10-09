@@ -274,7 +274,23 @@ class PickingController extends Controller
         }
     }
 
-    /** 确认配货：冻结库存 + 自动生成拣货单 + 订单状态推进「配货中」 */
+    /**
+     * 确认配货：冻结库存 + 自动生成拣货单 + 订单状态推进「配货中」。
+     *
+     * 库存冻结策略（避免与下单冻结重复）：
+     * 销售订单创建时（SalesOrderController::store，freeze_stock 默认 true）已调
+     * StockService::freeze 把 stocks.frozen_qty 累加一次。若配货确认时再 freeze，
+     * StockService::freeze 的库存不足判定（quantity - frozen_qty < 需要量）会抛
+     * StockRuleException，导致事务整体回滚——这正是「确认配货后状态不变、拣货单
+     * 不生成」的根因。
+     *
+     * 因此这里先查 stocks_history 是否已有该订单的 sale_freeze 流水：
+     * - 有（订单已冻结过）：配货不重复 freeze，只标记 frozen_from_order=true，
+     *   复用订单已有的冻结量。装车出库（LoadController::confirm）时 unfreeze
+     *   释放的正是这一次冻结，配对一致。
+     * - 无（订单创建时 freeze_stock=false 跳过了冻结）：配货才执行真正的 freeze，
+     *   frozen_from_order=false，后续装车/取消时按原逻辑 unfreeze。
+     */
     public function confirm(Request $request, int $id)
     {
         $picking = DeliveryPicking::with('items')->find($id);
@@ -287,17 +303,30 @@ class PickingController extends Controller
 
         $admin = auth('admin')->user();
 
+        // 订单是否已在创建时冻结过库存（查 stocks_history 的 sale_freeze 流水）
+        $orderAlreadyFrozen = DB::table('stocks_history')
+            ->where('related_id', $picking->sales_order_id)
+            ->where('change_type', 'sale_freeze')
+            ->exists();
+
         DB::beginTransaction();
         try {
             // 1. 冻结库存（若已冻结则跳过）
             if (! $picking->stock_frozen) {
-                foreach ($picking->items as $item) {
-                    $this->stocks->freeze(
-                        (int) $item->product_id,
-                        (int) $picking->warehouse_id,
-                        (int) $item->quantity,
-                        (int) $picking->sales_order_id // relatedId 用订单ID，与销售冻结流水一致
-                    );
+                if ($orderAlreadyFrozen) {
+                    // 订单下单时已冻结，配货不重复 freeze，复用订单已有冻结量
+                    $picking->frozen_from_order = true;
+                } else {
+                    // 订单未冻结（freeze_stock=false 跳过），配货执行真正冻结
+                    foreach ($picking->items as $item) {
+                        $this->stocks->freeze(
+                            (int) $item->product_id,
+                            (int) $picking->warehouse_id,
+                            (int) $item->quantity,
+                            (int) $picking->sales_order_id // relatedId 用订单ID，与销售冻结流水一致
+                        );
+                    }
+                    $picking->frozen_from_order = false;
                 }
                 $picking->stock_frozen = true;
             }
@@ -354,7 +383,10 @@ class PickingController extends Controller
         DB::beginTransaction();
         try {
             // 解冻已冻结的库存
-            if ($picking->stock_frozen) {
+            // frozen_from_order=true 表示冻结量源自订单下单时（配货未额外 freeze），
+            // 该冻结量归订单所有，配货取消不释放——由订单 cancel/destroy 时统一 unfreeze。
+            // frozen_from_order=false 才是配货自己冻的，取消时需释放。
+            if ($picking->stock_frozen && ! $picking->frozen_from_order) {
                 foreach ($picking->items as $item) {
                     $this->stocks->unfreeze(
                         (int) $item->product_id,
