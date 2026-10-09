@@ -50,7 +50,7 @@ class StockService
         return [
             'data' => $paginator,
             'products' => Product::where('is_active', true)->orderBy('name')->get(),
-            'warehouses' => Warehouse::where('is_active', true)->get(),
+            'warehouses' => Warehouse::where('is_active', true)->where('type', 'normal')->get(),
         ];
     }
 

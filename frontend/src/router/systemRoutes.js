@@ -308,6 +308,55 @@ const systemRoutes = [
 				component: () => import('../views/business/statement/index.vue'),
 				meta: { title: 'statement' },
 			},
+			// 车销业务
+			{
+				path: '/business/van-requisition',
+				name: 'VanRequisition',
+				component: () => import('../views/business/van-requisition/index.vue'),
+				meta: { title: 'vanRequisition' },
+			},
+			{
+				path: '/business/van-picking',
+				name: 'VanPicking',
+				component: () => import('../views/business/van-picking/index.vue'),
+				meta: { title: 'vanPicking' },
+			},
+			{
+				path: '/business/van-sale-order',
+				name: 'VanSaleOrder',
+				component: () => import('../views/business/van-sale-order/index.vue'),
+				meta: { title: 'vanSaleOrder' },
+			},
+			{
+				path: '/business/van-stock',
+				name: 'VanStock',
+				component: () => import('../views/business/van-stock/index.vue'),
+				meta: { title: 'vanStock' },
+			},
+			{
+				path: '/business/van-return-order',
+				name: 'VanReturnOrder',
+				component: () => import('../views/business/van-return-order/index.vue'),
+				meta: { title: 'vanReturnOrder' },
+			},
+			{
+				path: '/business/van-borrow-order',
+				name: 'VanBorrowOrder',
+				component: () => import('../views/business/van-borrow-order/index.vue'),
+				meta: { title: 'vanBorrowOrder' },
+			},
+			{
+				path: '/business/van-return-borrow-order',
+				name: 'VanReturnBorrowOrder',
+				component: () => import('../views/business/van-return-borrow-order/index.vue'),
+				meta: { title: 'vanReturnBorrowOrder' },
+			},
+			{
+				path: '/business/van-exchange-order',
+				name: 'VanExchangeOrder',
+				component: () => import('../views/business/van-exchange-order/index.vue'),
+				meta: { title: 'vanExchangeOrder' },
+			},
 			// 权限管理
 			{
 				path: '/auth/permission',

@@ -1017,6 +1017,450 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/delivery-check",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-check/unchecked",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@unchecked",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-check/{id}",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-check/{id}/confirm",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-check/{id}/start",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@start",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-collection",
+        "name": "admin.admin.delivery.collection.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CollectionController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-collection",
+        "name": "admin.admin.delivery.collection.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CollectionController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-collection/pending-tasks",
+        "name": "admin.admin.delivery.collection.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CollectionController@pendingTasks",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-collection/{id}",
+        "name": "admin.admin.delivery.collection.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CollectionController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-load",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-load",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/delivery-load/{id}",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-load/{id}",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-load/{id}/confirm",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-pick",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-pick/{id}",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-pick/{id}/cancel",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-pick/{id}/confirm",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-pick/{id}/start",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@start",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-picking",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-picking",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-picking/pending-orders",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@pendingOrders",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/delivery-picking/{id}",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-picking/{id}",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/delivery-picking/{id}",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-picking/{id}/cancel",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-picking/{id}/confirm",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-remit",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-remit",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-remit/unremit-summary",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@unremitSummary",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-remit/{id}",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-remit/{id}/confirm",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-task",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-task/{id}",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-task/{id}/deliver",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@deliver",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-task/{id}/exception",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@exception",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-task/{id}/start",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@start",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/delivery/statistics",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@statistics",
@@ -3828,6 +4272,834 @@
         "uri": "admin/business/transfer/{transfer}/execute",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\TransferController@execute",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-borrow-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-borrow-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-borrow-order/balances",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@balances",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-borrow-order/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-borrow-order/vehicle-products",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@vehicleProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/van-borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/van-borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-borrow-order/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-borrow-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanBorrowOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-exchange-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-exchange-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-exchange-order/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-exchange-order/vehicle-products",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@vehicleProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/van-exchange-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-exchange-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/van-exchange-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-exchange-order/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-exchange-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanExchangeOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-picking",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-picking",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-picking/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/van-picking/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-picking/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/van-picking/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-picking/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-picking/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-picking/{id}/check",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@check",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-picking/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanPickingController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-requisition",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-requisition",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-requisition/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-requisition/warehouse-products",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@warehouseProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/van-requisition/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-requisition/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/van-requisition/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-requisition/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-requisition/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-requisition/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-requisition/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-borrow-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnBorrowOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-borrow-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnBorrowOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-borrow-order/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnBorrowOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/van-return-borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnBorrowOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnBorrowOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/van-return-borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnBorrowOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-borrow-order/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnBorrowOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-borrow-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnBorrowOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-order/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-order/vehicle-products",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@vehicleProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/van-return-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/van-return-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-order/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-sale-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-sale-order",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-sale-order/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-sale-order/vehicle-products",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@vehicleProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/van-sale-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-sale-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/van-sale-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-sale-order/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-sale-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanSaleOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-stock",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanStockController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-stock/history",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanStockController@history",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-stock/warning",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanStockController@warning",
         "middleware": [
             "api",
             "stock.snapshot",

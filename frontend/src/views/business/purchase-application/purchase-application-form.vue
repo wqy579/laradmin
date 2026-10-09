@@ -355,7 +355,7 @@ const onUploadSuccess = (file) => {
 const loadBasics = async () => {
 	const [sRes, wRes, eRes, cRes] = await Promise.all([
 		api.supplier.list.get({ page_size: 200 }),
-		api.warehouse.list.get({ page_size: 200 }),
+		api.warehouse.list.get({type:"normal",  page_size: 200 }),
 		api.employee.list.get({ page_size: 200 }),
 		api.product.categories.get(),
 	]);

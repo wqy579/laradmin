@@ -22,7 +22,7 @@ class TransferController extends Controller
         }
         $query->orderBy('id', 'desc');
         $transfers = $query->paginate($request->integer('per_page', 20));
-        $warehouses = Warehouse::where('is_active', true)->get();
+        $warehouses = Warehouse::where('is_active', true)->where('type', 'normal')->get();
 
         return response()->json(['data' => $transfers, 'warehouses' => $warehouses]);
     }

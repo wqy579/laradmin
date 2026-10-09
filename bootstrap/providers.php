@@ -4,9 +4,13 @@ use App\Providers\AppServiceProvider;
 use Modules\Auth\Providers\AuthServiceProvider;
 use Modules\Business\Providers\BusinessServiceProvider;
 use Modules\Delivery\Providers\DeliveryServiceProvider;
+use Modules\Miniapp\Providers\MiniappServiceProvider;
+use Modules\Office\Providers\OfficeServiceProvider;
 use Modules\Order\Providers\OrderServiceProvider;
+use Modules\Report\Providers\ReportServiceProvider;
 use Modules\Stock\Providers\StockServiceProvider;
 use Modules\System\Providers\SystemServiceProvider;
+use Modules\VanSales\Providers\VanSalesServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -16,4 +20,8 @@ return [
     OrderServiceProvider::class,
     BusinessServiceProvider::class,
     DeliveryServiceProvider::class,
+    ReportServiceProvider::class,
+    OfficeServiceProvider::class,
+    MiniappServiceProvider::class,
+    VanSalesServiceProvider::class,
 ];

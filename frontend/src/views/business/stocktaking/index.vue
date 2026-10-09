@@ -180,7 +180,7 @@ async function fetchData() {
 
 async function fetchWarehouses() {
 	try {
-		const res = await businessApi.warehouse.list.get({})
+		const res = await businessApi.warehouse.list.get({type:"normal"})
 		warehouses.value = res.data?.list || res.data || []
 	} catch (e) { /* 忽略 */ }
 }

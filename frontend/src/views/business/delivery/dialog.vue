@@ -152,7 +152,7 @@ async function fetchCustomers() {
 }
 
 async function fetchWarehouses() {
-    const res = await businessApi.warehouse.list.get({ per_page: 1000 })
+    const res = await businessApi.warehouse.list.get({type:"normal",  per_page: 1000 })
     warehouses.value = res.data?.list || []
 }
 

@@ -20,6 +20,11 @@ class WarehouseController extends Controller
         if ($request->filled('is_active')) {
             $query->where('is_active', (bool) $request->is_active);
         }
+        // 车销引入 type 列（normal/vehicle）后，消费方需显式过滤避免车辆仓混入普通下拉。
+        // 不传 type 则返回全部，向后兼容历史调用点。
+        if ($request->filled('type')) {
+            $query->where('type', $request->string('type')->toString());
+        }
         $query->orderBy('id');
         $warehouses = $query->paginate($request->integer('page_size', 20));
 
@@ -40,11 +45,14 @@ class WarehouseController extends Controller
             'contact' => 'nullable|string|max:50',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
+            'type' => 'nullable|string|in:normal,vehicle',
+            'vehicle_id' => 'nullable|integer|exists:vehicles,id',
         ]);
         if (empty($validated['code'])) {
             $validated['code'] = $this->generateCode();
         }
         $validated['is_active'] = (bool) ($validated['is_active'] ?? true);
+        $validated['type'] = $validated['type'] ?? 'normal';
         $warehouse = Warehouse::create($validated);
 
         return $this->created($warehouse, '创建成功');
@@ -59,6 +67,8 @@ class WarehouseController extends Controller
             'contact' => 'nullable|string|max:50',
             'phone' => 'nullable|string|max:20',
             'is_active' => 'nullable|boolean',
+            'type' => 'nullable|string|in:normal,vehicle',
+            'vehicle_id' => 'nullable|integer|exists:vehicles,id',
         ]);
         $warehouse->update($validated);
 

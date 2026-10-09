@@ -912,7 +912,7 @@ onMounted(async () => {
 			businessApi.employee.list.get({ is_active: 1, page_size: 9999 }).then((r) => (r.code === 200 && (salesmen.value = r.data?.list || []))),
 			businessApi.customer.list.get({ page_size: 9999 }).then((r) => (r.code === 200 && (customers.value = r.data?.list || []))),
 			businessApi.supplier.list.get({ page_size: 9999 }).then((r) => (r.code === 200 && (suppliers.value = r.data?.list || []))),
-			businessApi.warehouse.list.get({ page_size: 9999 }).then((r) => (r.code === 200 && (warehouses.value = r.data?.list || []))),
+			businessApi.warehouse.list.get({type:"normal",  page_size: 9999 }).then((r) => (r.code === 200 && (warehouses.value = r.data?.list || []))),
 			// 退货订单计数（独立模块，只取 total，page_size=1）
 			businessApi.salesReturn.list.get({ page_size: 1 }).then((r) => (r.code === 200 && (returnCount.value = r.data?.total || 0))),
 		])

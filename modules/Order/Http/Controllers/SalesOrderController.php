@@ -195,7 +195,7 @@ class SalesOrderController extends Controller
         $extra = [];
         if (! $request->has('page') || $request->integer('page', 1) === 1) {
             $extra['customers'] = Customer::where('is_active', true)->orderBy('name')->get(['id', 'name']);
-            $extra['warehouses'] = Warehouse::where('is_active', true)->get(['id', 'name']);
+            $extra['warehouses'] = Warehouse::where('is_active', true)->where('type', 'normal')->get(['id', 'name']);
             $extra['salesmen'] = \DB::table('employees')->orderBy('id')->get(['id', 'name']);
         }
 
