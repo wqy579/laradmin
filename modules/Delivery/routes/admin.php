@@ -62,6 +62,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/start', [TaskController::class, 'start'])->whereNumber('id');
         Route::post('/{id}/deliver', [TaskController::class, 'deliver'])->whereNumber('id');
         Route::post('/{id}/exception', [TaskController::class, 'exception'])->whereNumber('id');
+        Route::post('/{id}/cancel', [TaskController::class, 'cancel'])->whereNumber('id');
     });
 
     // 配送收款

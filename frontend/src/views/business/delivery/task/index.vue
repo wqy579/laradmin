@@ -10,6 +10,7 @@
 					<el-option label="已送达" value="delivered" />
 					<el-option label="已收款" value="paid" />
 					<el-option label="异常" value="exception" />
+					<el-option label="已取消" value="cancelled" />
 				</el-select>
 				<el-button type="primary" @click="doSearch">查询</el-button>
 				<el-button @click="doReset">重置</el-button>
@@ -31,6 +32,7 @@
 				<el-button v-if="row.status === 'pending'" type="success" link size="small" @click="handleStart(row)">开始配送</el-button>
 				<el-button v-if="row.status === 'delivering'" type="success" link size="small" @click="handleDeliver(row)">确认送达</el-button>
 				<el-button v-if="row.status === 'delivering' || row.status === 'delivered'" type="danger" link size="small" @click="handleException(row)">异常登记</el-button>
+				<el-button v-if="['pending', 'delivering', 'exception'].includes(row.status)" type="danger" link size="small" @click="handleCancel(row)">取消</el-button>
 			</template>
 		</sTable>
 
@@ -65,8 +67,8 @@ const columns = [
 
 const dialog = reactive({ detail: false })
 const currentRow = ref(null)
-const statusLabel = (s) => ({ pending: '待配送', delivering: '配送中', delivered: '已送达', paid: '已收款', exception: '异常' }[s] || s)
-const statusType = (s) => ({ pending: 'info', delivering: 'primary', delivered: 'warning', paid: 'success', exception: 'danger' }[s] || 'info')
+const statusLabel = (s) => ({ pending: '待配送', delivering: '配送中', delivered: '已送达', paid: '已收款', exception: '异常', cancelled: '已取消' }[s] || s)
+const statusType = (s) => ({ pending: 'info', delivering: 'primary', delivered: 'warning', paid: 'success', exception: 'danger', cancelled: 'info' }[s] || 'info')
 const fmt = (n) => Number(n || 0).toFixed(2)
 
 const doSearch = () => search()
@@ -84,6 +86,18 @@ const handleDeliver = async (row) => {
 	} catch (e) { if (e && e.message) ElMessage.error(e.message) }
 }
 const handleException = (row) => { currentRow.value = row; dialog.detail = true }
+const handleCancel = async (row) => {
+	try {
+		const { value } = await ElMessageBox.prompt('取消任务将生成退货入库单，商品退回仓库', '取消配送任务', {
+			inputPlaceholder: '请填写取消原因（必填）',
+			inputPattern: /\S+/,
+			inputErrorMessage: '取消原因不能为空',
+			type: 'warning',
+		})
+		const res = await businessApi.deliveryTask.cancel.post(row.id, { cancel_reason: value })
+		if (res.code === 200) { ElMessage.success(res.message || '任务已取消，已生成退货入库单'); refresh() }
+	} catch (e) { if (e && e.message) ElMessage.error(e.message) }
+}
 onMounted(() => refresh())
 </script>
 

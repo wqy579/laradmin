@@ -10,11 +10,14 @@ use Modules\Delivery\Models\DeliveryPick;
 use Modules\Delivery\Models\DeliveryPicking;
 use Modules\Delivery\Models\DeliveryPickItem;
 use Modules\Delivery\Models\DeliveryTask;
+use Modules\Stock\Models\StockAdjust;
+use Modules\Stock\Models\StockAdjustItem;
 
 /**
  * 配送管理跨单据流转编排。
  *
- * 封装自动生成逻辑：配货单→拣货单、拣货单→验货单、装车单→配送任务。
+ * 封装自动生成逻辑：配货单→拣货单、拣货单→验货单、装车单→配送任务、
+ * 验货差异→报损/报溢草稿（复用 StockAdjust 审核）。
  * 纯 PHP 类，方法在调用方事务内执行（不另开事务）。
  */
 class DeliveryFlowService
@@ -147,6 +150,102 @@ class DeliveryFlowService
         }
 
         return $tasks;
+    }
+
+    /**
+     * 验货差异生成报损单草稿（文档 §5.5.4）。
+     *
+     * 验货实拣 < 应拣（diff_qty > 0）即破损/丢失，自动建一张 stock_loss 草稿。
+     * 仅建草稿，不直接动库存——扣减在 StockAdjustController::approve 审核通过后
+     * 由 StockService::adjust 完成，保留审核控制点。
+     *
+     * diff_qty < 0（实验>应验）在验货环节不会发生：CheckController::confirm 强制
+     * actual_qty <= pick_qty，故 diff 恒 >= 0。报溢只会来自库存盘点，不是验货，
+     * 因此这里只处理报损方向，不为不可达的报溢写分支。
+     *
+     * 一张验货单可能含多条差异明细，合并到同一张调整单。无差异返回 null。
+     */
+    public function createStockAdjustFromCheckDiff(
+        DeliveryCheck $check,
+        int $warehouseId,
+        ?int $adminId,
+        ?string $adminName,
+    ): ?StockAdjust {
+        $diffItems = $check->items->filter(fn ($i) => (int) $i->diff_qty > 0)->values();
+        if ($diffItems->isEmpty()) {
+            return null;
+        }
+
+        // 预取库存与商品档案（一次查全，避免 N+1）
+        $productIds = $diffItems->pluck('product_id')->unique()->all();
+        $stockMap = DB::table('stocks')
+            ->where('warehouse_id', $warehouseId)
+            ->whereIn('product_id', $productIds)
+            ->get()
+            ->keyBy('product_id');
+        $productMap = DB::table('products')->whereIn('id', $productIds)->get()->keyBy('id');
+
+        $totalQty = 0.0;
+        $totalAmount = 0.0;
+        $itemRows = [];
+
+        foreach ($diffItems as $item) {
+            $productId = (int) $item->product_id;
+            $product = $productMap->get($productId);
+            if (! $product) {
+                continue;
+            }
+            $stock = $stockMap->get($productId);
+            $beforeQty = (float) ($stock?->quantity ?? 0);
+            $adjustQty = -(int) $item->diff_qty; // 报损方向取反：实验少了→扣减
+            $afterQty = $beforeQty + $adjustQty;
+            $unitCost = (float) ($stock?->cost_price ?? $product->cost_price ?? 0);
+            $totalCost = round(abs($adjustQty) * $unitCost, 2);
+
+            $totalQty += $adjustQty;
+            $totalAmount += $totalCost;
+
+            $itemRows[] = [
+                'product_id' => $productId,
+                'product_code' => $product->code,
+                'product_name' => $product->name,
+                'spec' => $product->spec,
+                'unit' => $product->price_unit_small,
+                'before_qty' => $beforeQty,
+                'adjust_qty' => $adjustQty,
+                'after_qty' => $afterQty,
+                'unit_cost' => $unitCost,
+                'total_cost' => $totalCost,
+                'remark' => $item->remark,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        if (empty($itemRows)) {
+            return null;
+        }
+
+        $adjust = StockAdjust::create([
+            'adjust_no' => $this->generateNo('TZ', 'stock_adjusts', 'adjust_no'),
+            'warehouse_id' => $warehouseId,
+            'adjust_date' => now()->toDateString(),
+            'adjust_type' => StockAdjust::TYPE_STOCK_LOSS,
+            'status' => StockAdjust::STATUS_DRAFT,
+            'total_qty' => round($totalQty, 2),
+            'total_amount' => round($totalAmount, 2),
+            'reason' => '验货差异自动生成：'.$check->check_no,
+            'created_by' => $adminId,
+            'creator_name' => $adminName ?? '系统',
+        ]);
+
+        foreach ($itemRows as &$row) {
+            $row['adjust_id'] = $adjust->id;
+        }
+        unset($row);
+        StockAdjustItem::insert($itemRows);
+
+        return $adjust;
     }
 
     /** 单号生成：前缀+Ymd+6位流水（参考 StockAdjustController::generateNo） */

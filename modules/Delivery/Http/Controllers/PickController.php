@@ -2,6 +2,7 @@
 
 namespace Modules\Delivery\Http\Controllers;
 
+use App\Contracts\TaskNotification;
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
@@ -16,7 +17,10 @@ class PickController extends Controller
 {
     use ResponseTrait;
 
-    public function __construct(private DeliveryFlowService $flow) {}
+    public function __construct(
+        private DeliveryFlowService $flow,
+        private TaskNotification $notifier,
+    ) {}
 
     public function index(Request $request)
     {
@@ -116,6 +120,7 @@ class PickController extends Controller
         DB::beginTransaction();
         try {
             $shortTotal = 0;
+            $shortItems = []; // 缺货明细，commit 后发通知用
             foreach ($validated['items'] as $row) {
                 $item = $pick->items->firstWhere('id', $row['id']);
                 if (! $item) {
@@ -133,6 +138,9 @@ class PickController extends Controller
                     'remark' => $row['remark'] ?? null,
                 ]);
                 $shortTotal += $short;
+                if ($short > 0) {
+                    $shortItems[] = ['name' => $item->product_name, 'short' => $short];
+                }
             }
 
             $pick->short_qty = $shortTotal;
@@ -149,6 +157,9 @@ class PickController extends Controller
             $pick->save();
 
             DB::commit();
+
+            // 缺货通知：事务外发，通知失败不影响拣货确认结果
+            $this->notifyShortage($pick, $shortItems, $admin?->id);
 
             return $this->success($pick->fresh(['items']), '拣货确认成功，已生成验货单');
         } catch (\Exception $e) {
@@ -192,6 +203,39 @@ class PickController extends Controller
             DB::rollBack();
 
             return $this->error($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * 拣货缺货通知（文档 §5.5.6）。
+     *
+     * 拣货实拣 < 应拣即缺货，说明仓库实际库存不足。通知到确认拣货的操作人，
+     * 让其决定补货或调整订单。事务外发送——通知失败不应回滚已成功的拣货确认。
+     * 无缺货（$shortItems 空）或无操作人时不发。
+     */
+    private function notifyShortage(DeliveryPick $pick, array $shortItems, ?int $adminId): void
+    {
+        if (empty($shortItems) || ! $adminId) {
+            return;
+        }
+
+        $lines = array_map(
+            fn ($i) => $i['name'].' 缺 '.$i['short'],
+            $shortItems
+        );
+        $content = '拣货单 '.$pick->pick_no.' 存在缺货：'.implode('，', $lines).'。';
+
+        try {
+            $this->notifier->sendToUser(
+                $adminId,
+                '拣货缺货提醒',
+                $content,
+                TaskNotification::TYPE_WARNING,
+                TaskNotification::CATEGORY_REMINDER,
+            );
+        } catch (\Throwable $e) {
+            // 通知是 best-effort：DB 可能缺 user_ids 等约束，但拣货数据已落库
+            report($e);
         }
     }
 }

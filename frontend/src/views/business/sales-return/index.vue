@@ -27,6 +27,7 @@
         <el-select v-model="filters.status" placeholder="全部" clearable style="width:120px;height:34px">
           <el-option label="待审核" value="pending" />
           <el-option label="已审核" value="approved" />
+          <el-option label="自动退货" value="auto_return" />
           <el-option label="已取消" value="cancelled" />
         </el-select>
       </div>
@@ -91,6 +92,7 @@
         <template #default="{ row }">
           <span v-if="row.status === 'pending'" style="background:#fffbe6;color:#faad14;padding:2px 10px;border-radius:4px;font-size:12px">待审核</span>
           <span v-else-if="row.status === 'approved'" style="background:#f6ffed;color:#52c41a;padding:2px 10px;border-radius:4px;font-size:12px">已审核</span>
+          <span v-else-if="row.status === 'auto_return'" style="background:#e6f7ff;color:#1890ff;padding:2px 10px;border-radius:4px;font-size:12px">自动退货</span>
           <span v-else style="background:#f5f5f5;color:#999;padding:2px 10px;border-radius:4px;font-size:12px">已取消</span>
         </template>
       </vxe-column>
@@ -343,6 +345,7 @@
           <el-descriptions-item label="状态">
             <span v-if="detailData.status === 'pending'" style="background:#fffbe6;color:#faad14;padding:2px 8px;border-radius:4px;font-size:12px">待审核</span>
             <span v-else-if="detailData.status === 'approved'" style="background:#f6ffed;color:#52c41a;padding:2px 8px;border-radius:4px;font-size:12px">已审核</span>
+            <span v-else-if="detailData.status === 'auto_return'" style="background:#e6f7ff;color:#1890ff;padding:2px 8px;border-radius:4px;font-size:12px">自动退货</span>
             <span v-else style="background:#f5f5f5;color:#999;padding:2px 8px;border-radius:4px;font-size:12px">已取消</span>
           </el-descriptions-item>
           <el-descriptions-item label="制单人">{{ detailData.creator?.real_name || '-' }}</el-descriptions-item>

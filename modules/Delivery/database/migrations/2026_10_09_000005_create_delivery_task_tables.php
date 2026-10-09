@@ -49,6 +49,7 @@ return new class extends Migration
                 $table->index('load_id');
                 $table->index('delivery_person_id');
                 $table->index('customer_id');
+                $table->index('sales_order_id');
                 $table->index('status');
             });
         }

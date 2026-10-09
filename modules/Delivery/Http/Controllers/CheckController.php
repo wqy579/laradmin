@@ -7,11 +7,14 @@ use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Delivery\Models\DeliveryCheck;
+use Modules\Delivery\Models\DeliveryPick;
 use Modules\Delivery\Services\DeliveryFlowService;
+use Modules\Stock\Models\StockAdjust;
 
 /**
  * 验货单管理（验货员验货）。由拣货单自动生成，录入实际验货数量，
- * 差异必须填备注；确认验货后可被装车单引用，验货异常退回拣货环节。
+ * 差异必须填备注；确认验货后可被装车单引用，验货异常退回拣货环节，
+ * 同时按差异生成报损单草稿供库管审核扣减库存。
  */
 class CheckController extends Controller
 {
@@ -139,9 +142,20 @@ class CheckController extends Controller
                 $check->save();
                 // 拣货单状态回退为拣货中，重新拣货
                 DB::table('delivery_pick')->where('id', $check->pick_id)->update(['status' => 'picking']);
+
+                // 验货差异生成库存调整草稿（报损/报溢），供库管审核后扣减/增加库存
+                $warehouseId = (int) DeliveryPick::where('id', $check->pick_id)->value('warehouse_id');
+                $admin = auth('admin')->user();
+                $this->flow->createStockAdjustFromCheckDiff(
+                    $check,
+                    $warehouseId,
+                    $admin?->id,
+                    $admin?->real_name ?? $admin?->username,
+                );
+
                 DB::commit();
 
-                return $this->success($check->fresh(['items']), '验货存在差异，已标记异常并退回拣货环节');
+                return $this->success($check->fresh(['items']), '验货存在差异，已标记异常并退回拣货环节，已生成库存调整草稿待审核');
             }
 
             $check->status = DeliveryCheck::STATUS_CHECKED;

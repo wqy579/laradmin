@@ -430,6 +430,7 @@ const businessApi = {
 		start: { post: (id) => request.post(`business/delivery-task/${id}/start`) },
 		deliver: { post: (id) => request.post(`business/delivery-task/${id}/deliver`) },
 		exception: { post: (id, params) => request.post(`business/delivery-task/${id}/exception`, params) },
+		cancel: { post: (id, params) => request.post(`business/delivery-task/${id}/cancel`, params) },
 	},
 	// 配送收款
 	deliveryCollection: {

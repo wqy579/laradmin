@@ -25,7 +25,13 @@ class DeliveryLoadItem extends Model
         'amount' => 'decimal:2',
     ];
 
-    public function load(): BelongsTo
+    /**
+     * 装车单关联。
+     *
+     * 不可命名为 load()：会遮蔽 Eloquent 内核 Model::load($relations)，
+     * 类加载即 fatal。全仓无引用本关联的代码（控制器用的是 eager-load 方法）。
+     */
+    public function deliveryLoad(): BelongsTo
     {
         return $this->belongsTo(DeliveryLoad::class, 'load_id');
     }

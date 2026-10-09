@@ -460,8 +460,10 @@ class SalesReturnController extends Controller
         if (! $return) {
             return $this->notFound();
         }
-        if (in_array($return->status, ['approved'], true)) {
-            return $this->error('已审核的退货单不能取消', 422);
+        // approved（已审核，退款/应收已冲减）与 auto_return（配送取消自动退货，
+        // 库存已回补）都已完成账务动作，不能再取消，否则库存与单据不一致。
+        if (in_array($return->status, ['approved', 'auto_return'], true)) {
+            return $this->error('已审核或自动退货的退货单不能取消', 422);
         }
         $return->status = 'cancelled';
         $return->save();
@@ -573,6 +575,7 @@ class SalesReturnController extends Controller
             'draft' => '草稿',
             'pending' => '待审核',
             'approved' => '已审核',
+            'auto_return' => '自动退货',
             'cancelled' => '已取消',
             default => $status,
         };
