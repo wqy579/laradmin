@@ -43,7 +43,8 @@
       "Tests\\Order\\": "modules/Order/tests/",
       "Tests\\Report\\": "modules/Report/tests/",
       "Tests\\Stock\\": "modules/Stock/tests/",
-      "Tests\\System\\": "modules/System/tests/"
+      "Tests\\System\\": "modules/System/tests/",
+      "Tests\\VanSales\\": "modules/VanSales/tests/"
     }
   },
   "scripts": {
