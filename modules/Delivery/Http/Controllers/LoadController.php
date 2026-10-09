@@ -236,7 +236,10 @@ class LoadController extends Controller
                         'DeliveryLoad',
                         '装车出库 '.$load->load_no
                     );
-                    // 释放配货时冻结的量（freeze 用 orderId 关联，unfreeze 也用同一 orderId）
+                    // 释放配货环节占用的冻结量（freeze 用 orderId 关联，unfreeze 也用同一 orderId）。
+                    // frozen_from_order=true 时配货未额外 freeze、复用的是订单下单时的冻结，
+                    // 这里 unfreeze 释放的正是那一次冻结——订单出库后冻结量应释放，与 stockOut
+                    // 扣减 quantity 配对，链路自洽（见 PickingController::confirm 的冻结策略注释）。
                     $this->stocks->unfreeze(
                         (int) $productId,
                         (int) $warehouseId,
