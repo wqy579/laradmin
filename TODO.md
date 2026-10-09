@@ -24,10 +24,14 @@
 - 状态：🔄 进行中
 - 已完成：
   - 修复 CI 红灯——composer.json autoload-dev 补齐 Miniapp/Office/Report/VanSales 映射（commit b4ef8f4）
-  - 新增 VanSales 测试套件（40 测试/258 断言）：迁移契约 + 全新安装菜单完整性
-  - 修复 BusinessSeeder 漏写全部 9 条 van 菜单（全新安装后车销 8 页面不可达）
+  - 新增 VanSales 测试套件（50 测试/333 断言）：迁移契约 + 全新安装菜单完整性 + 车上退仓流程 + 上交货款流程
+  - 修复 BusinessSeeder 漏写全部 van 菜单（全新安装后车销页面不可达）
   - 修复 register_van_menu 图标 'Van' → 'ElIconVan'（前端渲染空图标）
-- 下一步：车上退仓（P0）+ 车销上交货款（P1）
+  - 车上退仓（VRW）：vehicle→warehouse 反向调拨，迁移/模型/控制器/路由/菜单/前端占位 + 流程测试
+  - 车销上交货款（VRM，纯台账型）：van_remit 表，pending→confirmed/rejected，confirm 写 cash_flow(related_type=VanRemit)，pendingSummary 实时计算
+  - 扩展迁移契约测试常量纳入 VRW/VRM 两表
+  - 更新路由基线快照（routes.json）
+- 下一步：考虑要货单 approved 冻结泄漏（P0）、decreaseBorrowBalance 负数下限（P3）
 
 ---
 

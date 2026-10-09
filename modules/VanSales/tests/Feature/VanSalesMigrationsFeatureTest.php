@@ -42,18 +42,20 @@ class VanSalesMigrationsFeatureTest extends TestCase
         'van_return_borrow_orders', 'van_exchange_orders',
     ];
 
-    /** 全部 7 张单据主表（常量表达式不可调用函数，显式列出） */
+    /** 全部 9 张单据主表（常量表达式不可调用函数，显式列出） */
     private const MAIN_TABLES = [
         'van_requisitions', 'van_picking', 'van_sale_orders',
         'van_return_orders', 'van_borrow_orders',
         'van_return_borrow_orders', 'van_exchange_orders',
+        'van_return_to_warehouse', 'van_remit',
     ];
 
-    /** 明细表（7 张，换货明细为换入/换出同行结构） */
+    /** 明细表（9 张，换货明细为换入/换出同行结构） */
     private const ITEM_TABLES = [
         'van_requisition_items', 'van_picking_items', 'van_sale_order_items',
         'van_return_order_items', 'van_borrow_order_items',
         'van_return_borrow_order_items', 'van_exchange_order_items',
+        'van_return_to_warehouse_items', 'van_remit_items',
     ];
 
     /** 单据主表 -> 单据编号列 */
@@ -65,6 +67,8 @@ class VanSalesMigrationsFeatureTest extends TestCase
         'van_borrow_orders' => 'borrow_no',
         'van_return_borrow_orders' => 'return_no',
         'van_exchange_orders' => 'exchange_no',
+        'van_return_to_warehouse' => 'return_no',
+        'van_remit' => 'remit_no',
     ];
 
     /** 单据编号列前缀：每个单据独立命名空间，避免单号跨单据冲突 */
@@ -76,6 +80,8 @@ class VanSalesMigrationsFeatureTest extends TestCase
         'van_borrow_orders' => 'VJT',
         'van_return_borrow_orders' => 'VHT',
         'van_exchange_orders' => 'VHD',
+        'van_return_to_warehouse' => 'VRW',
+        'van_remit' => 'VRM',
     ];
 
     /** 明细表 -> 父单据外键列 */
@@ -87,6 +93,8 @@ class VanSalesMigrationsFeatureTest extends TestCase
         'van_borrow_order_items' => 'order_id',
         'van_return_borrow_order_items' => 'order_id',
         'van_exchange_order_items' => 'order_id',
+        'van_return_to_warehouse_items' => 'order_id',
+        'van_remit_items' => 'remit_id',
     ];
 
     // ==================== 车辆伪装成仓库：全模块的架构支点 ====================
@@ -444,13 +452,26 @@ class VanSalesMigrationsFeatureTest extends TestCase
 
     public function test_all_main_docs_default_to_draft(): void
     {
-        foreach (self::MAIN_TABLES as $table) {
+        // van_remit 例外：上交单状态流转 pending→confirmed/rejected，无 draft 态，
+        // 业务员提交即为已上交（pending 待确认），故默认 pending 而非 draft。
+        $draftTables = array_values(array_filter(self::MAIN_TABLES, fn ($t) => $t !== 'van_remit'));
+        foreach ($draftTables as $table) {
             $this->assertEquals(
                 'draft',
                 $this->columnDefault($table, 'status'),
                 "{$table}.status 默认值应为 draft"
             );
         }
+    }
+
+    public function test_van_remit_defaults_to_pending(): void
+    {
+        // 上交单无草稿态：业务员提交即已上交，默认 pending（待出纳确认）
+        $this->assertEquals(
+            'pending',
+            $this->columnDefault('van_remit', 'status'),
+            'van_remit.status 默认值应为 pending（已上交待确认，无 draft 态）'
+        );
     }
 
     // ==================== 菜单契约 ====================
@@ -495,7 +516,7 @@ class VanSalesMigrationsFeatureTest extends TestCase
             ->where('name', 'like', 'van.%')
             ->pluck('id')
             ->all();
-        $this->assertCount(8, $childIds, 'van 子菜单应有 8 个');
+        $this->assertCount(10, $childIds, 'van 子菜单应有 10 个');
 
         $vanId = DB::table('auth_permission')->where('name', 'van')->value('id');
         $this->assertNotNull($vanId, 'van 顶级菜单未注册');
@@ -604,6 +625,8 @@ class VanSalesMigrationsFeatureTest extends TestCase
             'modules/VanSales/Http/Controllers/VanBorrowOrderController.php' => 'VJT',
             'modules/VanSales/Http/Controllers/VanReturnBorrowOrderController.php' => 'VHT',
             'modules/VanSales/Http/Controllers/VanExchangeOrderController.php' => 'VHD',
+            'modules/VanSales/Http/Controllers/VanReturnToWarehouseController.php' => 'VRW',
+            'modules/VanSales/Http/Controllers/VanRemitController.php' => 'VRM',
         ];
         foreach ($controllers as $file => $prefix) {
             $path = base_path($file);

@@ -4641,6 +4641,90 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/van-remit",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRemitController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-remit",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRemitController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-remit/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRemitController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-remit/pending-summary",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRemitController@pendingSummary",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-remit/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRemitController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-remit/{id}/confirm",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRemitController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-remit/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanRemitController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/van-requisition",
         "name": "admin.",
         "action": "Modules\\VanSales\\Http\\Controllers\\VanRequisitionController@index",
@@ -4968,6 +5052,138 @@
         "uri": "admin/business/van-return-order/{id}/cancel",
         "name": "admin.",
         "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-to-warehouse",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-to-warehouse",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-to-warehouse/export",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-to-warehouse/vehicle-stock",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@vehicleStock",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/van-return-to-warehouse/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/van-return-to-warehouse/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/van-return-to-warehouse/{id}",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-to-warehouse/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-to-warehouse/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-to-warehouse/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/van-return-to-warehouse/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\VanSales\\Http\\Controllers\\VanReturnToWarehouseController@submit",
         "middleware": [
             "api",
             "stock.snapshot",

@@ -198,6 +198,8 @@ class BusinessSeeder extends Seeder
             ['name' => 'van.borrow-order', 'title' => '车销借货单', 'path' => '/business/van-borrow-order', 'component' => 'business/van-borrow-order/index', 'sort' => 6],
             ['name' => 'van.return-borrow-order', 'title' => '车销还货单', 'path' => '/business/van-return-borrow-order', 'component' => 'business/van-return-borrow-order/index', 'sort' => 7],
             ['name' => 'van.exchange-order', 'title' => '车销换货单', 'path' => '/business/van-exchange-order', 'component' => 'business/van-exchange-order/index', 'sort' => 8],
+            ['name' => 'van.return-to-warehouse', 'title' => '车上退仓', 'path' => '/business/van-return-to-warehouse', 'component' => 'business/van-return-to-warehouse/index', 'sort' => 9],
+            ['name' => 'van.remit', 'title' => '上交货款', 'path' => '/business/van-remit', 'component' => 'business/van-remit/index', 'sort' => 10],
         ];
         foreach ($vanMenus as $menu) {
             Permission::firstOrCreate(['name' => $menu['name']], [

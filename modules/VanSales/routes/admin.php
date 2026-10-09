@@ -4,9 +4,11 @@ use Illuminate\Support\Facades\Route;
 use Modules\VanSales\Http\Controllers\VanBorrowOrderController;
 use Modules\VanSales\Http\Controllers\VanExchangeOrderController;
 use Modules\VanSales\Http\Controllers\VanPickingController;
+use Modules\VanSales\Http\Controllers\VanRemitController;
 use Modules\VanSales\Http\Controllers\VanRequisitionController;
 use Modules\VanSales\Http\Controllers\VanReturnBorrowOrderController;
 use Modules\VanSales\Http\Controllers\VanReturnOrderController;
+use Modules\VanSales\Http\Controllers\VanReturnToWarehouseController;
 use Modules\VanSales\Http\Controllers\VanSaleOrderController;
 use Modules\VanSales\Http\Controllers\VanStockController;
 
@@ -117,5 +119,31 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::delete('/{id}', [VanExchangeOrderController::class, 'destroy']);
         Route::post('/{id}/approve', [VanExchangeOrderController::class, 'approve']);
         Route::post('/{id}/cancel', [VanExchangeOrderController::class, 'cancel']);
+    });
+
+    // 车上退仓（车 → 仓库）
+    Route::prefix('business/van-return-to-warehouse')->group(function () {
+        Route::get('/vehicle-stock', [VanReturnToWarehouseController::class, 'vehicleStock']);
+        Route::get('/export', [VanReturnToWarehouseController::class, 'export']);
+        Route::get('/', [VanReturnToWarehouseController::class, 'index']);
+        Route::post('/', [VanReturnToWarehouseController::class, 'store']);
+        Route::get('/{id}', [VanReturnToWarehouseController::class, 'show']);
+        Route::put('/{id}', [VanReturnToWarehouseController::class, 'update']);
+        Route::delete('/{id}', [VanReturnToWarehouseController::class, 'destroy']);
+        Route::post('/{id}/submit', [VanReturnToWarehouseController::class, 'submit']);
+        Route::post('/{id}/approve', [VanReturnToWarehouseController::class, 'approve']);
+        Route::post('/{id}/reject', [VanReturnToWarehouseController::class, 'reject']);
+        Route::post('/{id}/cancel', [VanReturnToWarehouseController::class, 'cancel']);
+    });
+
+    // 车销上交货款
+    Route::prefix('business/van-remit')->group(function () {
+        Route::get('/pending-summary', [VanRemitController::class, 'pendingSummary']);
+        Route::get('/export', [VanRemitController::class, 'export']);
+        Route::get('/', [VanRemitController::class, 'index']);
+        Route::post('/', [VanRemitController::class, 'store']);
+        Route::get('/{id}', [VanRemitController::class, 'show']);
+        Route::post('/{id}/confirm', [VanRemitController::class, 'confirm']);
+        Route::post('/{id}/reject', [VanRemitController::class, 'reject']);
     });
 });

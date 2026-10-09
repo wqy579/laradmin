@@ -39,12 +39,14 @@ class VanSalesSeedFeatureTest extends TestCase
         'van.borrow-order',
         'van.return-borrow-order',
         'van.exchange-order',
+        'van.return-to-warehouse',
+        'van.remit',
     ];
 
     private bool $installed = false;
 
     /**
-     * 全新安装（db:seed）后 9 条车销菜单必须全部存在。
+     * 全新安装（db:seed）后 11 条车销菜单必须全部存在。
      *
      * 缺失即意味着 BusinessSeeder 未同步 van 菜单，而 AuthSeeder 的 truncate
      * 已清掉迁移阶段的记录——用户看到的是「已开发的车销模块在新环境里根本进不去」。
@@ -95,6 +97,8 @@ class VanSalesSeedFeatureTest extends TestCase
             'van.borrow-order' => ['/business/van-borrow-order', 'business/van-borrow-order/index'],
             'van.return-borrow-order' => ['/business/van-return-borrow-order', 'business/van-return-borrow-order/index'],
             'van.exchange-order' => ['/business/van-exchange-order', 'business/van-exchange-order/index'],
+            'van.return-to-warehouse' => ['/business/van-return-to-warehouse', 'business/van-return-to-warehouse/index'],
+            'van.remit' => ['/business/van-remit', 'business/van-remit/index'],
         ];
 
         foreach ($expected as $name => [$path, $component]) {
@@ -116,7 +120,7 @@ class VanSalesSeedFeatureTest extends TestCase
             ->where('name', 'like', 'van.%')
             ->get();
 
-        $this->assertCount(8, $children, 'van 子菜单应有 8 个');
+        $this->assertCount(10, $children, 'van 子菜单应有 10 个');
         foreach ($children as $child) {
             $this->assertEquals(
                 $vanId,
@@ -137,7 +141,7 @@ class VanSalesSeedFeatureTest extends TestCase
 
         $vanId = DB::table('auth_permission')->where('name', 'van')->value('id');
         $childIds = DB::table('auth_permission')->where('name', 'like', 'van.%')->pluck('id')->all();
-        $this->assertCount(8, $childIds, 'van 子菜单应有 8 个');
+        $this->assertCount(10, $childIds, 'van 子菜单应有 10 个');
 
         // 复刻授权回填：持有 van 或 van.% 的角色 → 补全部 van 菜单
         $roleIds = DB::table('auth_role_permission as rp')

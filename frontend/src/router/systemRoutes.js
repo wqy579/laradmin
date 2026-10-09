@@ -357,6 +357,18 @@ const systemRoutes = [
 				component: () => import('../views/business/van-exchange-order/index.vue'),
 				meta: { title: 'vanExchangeOrder' },
 			},
+			{
+				path: '/business/van-return-to-warehouse',
+				name: 'VanReturnToWarehouse',
+				component: () => import('../views/business/van-return-to-warehouse/index.vue'),
+				meta: { title: 'vanReturnToWarehouse' },
+			},
+			{
+				path: '/business/van-remit',
+				name: 'VanRemit',
+				component: () => import('../views/business/van-remit/index.vue'),
+				meta: { title: 'vanRemit' },
+			},
 			// 权限管理
 			{
 				path: '/auth/permission',
