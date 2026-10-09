@@ -32,10 +32,15 @@ class BorrowOrder extends Model
     ];
 
     const STATUS_DRAFT = 'draft';
+
     const STATUS_UNRETURNED = 'unreturned';
+
     const STATUS_PARTIAL = 'partial';
+
     const STATUS_CLEARED = 'cleared';
+
     const STATUS_CONVERTED = 'converted';
+
     const STATUS_CANCELLED = 'cancelled';
 
     public function items(): HasMany

@@ -5,7 +5,6 @@ namespace Modules\BorrowReturn\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Modules\BorrowReturn\Models\BorrowOrder;
 use Modules\Order\Models\Customer;
 use Modules\Stock\Models\Warehouse;
 
@@ -30,7 +29,9 @@ class BorrowReturnOrder extends Model
     ];
 
     const STATUS_PENDING = 'pending';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_CANCELLED = 'cancelled';
 
     public function items(): HasMany

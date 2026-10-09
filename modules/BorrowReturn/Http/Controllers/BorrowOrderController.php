@@ -6,11 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Modules\BorrowReturn\Models\BorrowOrder;
 use Modules\BorrowReturn\Models\BorrowOrderItem;
 use Modules\BorrowReturn\Models\CustomerBorrowBalance;
-use Modules\Order\Models\Customer;
 use Modules\Order\Models\SalesOrder;
 use Modules\Order\Models\SalesOrderItem;
 use Modules\Stock\Exceptions\StockRuleException;
@@ -184,45 +182,45 @@ class BorrowOrderController extends Controller
 
         try {
             return DB::transaction(function () use ($validated, $adminId, $adminName) {
-            $whId = (int) $validated['warehouse_id'];
-            $customerId = (int) $validated['customer_id'];
+                $whId = (int) $validated['warehouse_id'];
+                $customerId = (int) $validated['customer_id'];
 
-            $stockMap = DB::table('stocks')->where('warehouse_id', $whId)->get()->keyBy('product_id');
-            $productIds = collect($validated['items'])->pluck('product_id')->map(fn ($v) => (int) $v)->unique();
-            $productMap = DB::table('products')->whereIn('id', $productIds)->get()->keyBy('id');
+                $stockMap = DB::table('stocks')->where('warehouse_id', $whId)->get()->keyBy('product_id');
+                $productIds = collect($validated['items'])->pluck('product_id')->map(fn ($v) => (int) $v)->unique();
+                $productMap = DB::table('products')->whereIn('id', $productIds)->get()->keyBy('id');
 
-            $itemRows = $this->buildItemRows($validated['items'], $productMap, $stockMap, true);
+                $itemRows = $this->buildItemRows($validated['items'], $productMap, $stockMap, true);
 
-            $order = BorrowOrder::create([                'borrow_no' => $this->generateNo('JH', 'borrow_orders', 'borrow_no'),
-                'customer_id' => $customerId,
-                'customer_name' => DB::table('customers')->where('id', $customerId)->value('name'),
-                'contact' => $validated['contact'] ?? null,
-                'contact_phone' => $validated['contact_phone'] ?? null,
-                'warehouse_id' => $whId,
-                'warehouse_name' => DB::table('warehouses')->where('id', $whId)->value('name'),
-                'salesman_id' => $adminId,
-                'salesman_name' => $adminName,
-                'borrow_date' => $validated['borrow_date'] ?? now()->toDateString(),
-                'due_date' => $validated['due_date'] ?? null,
-                'borrow_reason' => $validated['borrow_reason'] ?? null,
-                'total_kinds' => count($itemRows),
-                'total_qty' => (int) collect($itemRows)->sum('borrow_qty'),
-                'total_amount' => round((float) collect($itemRows)->sum('amount'), 2),
-                'returned_qty' => 0,
-                'returned_amount' => 0,
-                'status' => BorrowOrder::STATUS_DRAFT,
-                'created_by' => $adminId,
-                'creator_name' => $adminName,
-                'remark' => $validated['remark'] ?? null,
-            ]);
+                $order = BorrowOrder::create(['borrow_no' => $this->generateNo('JH', 'borrow_orders', 'borrow_no'),
+                    'customer_id' => $customerId,
+                    'customer_name' => DB::table('customers')->where('id', $customerId)->value('name'),
+                    'contact' => $validated['contact'] ?? null,
+                    'contact_phone' => $validated['contact_phone'] ?? null,
+                    'warehouse_id' => $whId,
+                    'warehouse_name' => DB::table('warehouses')->where('id', $whId)->value('name'),
+                    'salesman_id' => $adminId,
+                    'salesman_name' => $adminName,
+                    'borrow_date' => $validated['borrow_date'] ?? now()->toDateString(),
+                    'due_date' => $validated['due_date'] ?? null,
+                    'borrow_reason' => $validated['borrow_reason'] ?? null,
+                    'total_kinds' => count($itemRows),
+                    'total_qty' => (int) collect($itemRows)->sum('borrow_qty'),
+                    'total_amount' => round((float) collect($itemRows)->sum('amount'), 2),
+                    'returned_qty' => 0,
+                    'returned_amount' => 0,
+                    'status' => BorrowOrder::STATUS_DRAFT,
+                    'created_by' => $adminId,
+                    'creator_name' => $adminName,
+                    'remark' => $validated['remark'] ?? null,
+                ]);
 
-            foreach ($itemRows as &$row) {
-                $row['order_id'] = $order->id;
-            }
-            unset($row);
-            BorrowOrderItem::insert($itemRows);
+                foreach ($itemRows as &$row) {
+                    $row['order_id'] = $order->id;
+                }
+                unset($row);
+                BorrowOrderItem::insert($itemRows);
 
-            return $this->created($order->load('items', 'customer', 'warehouse'), '草稿已保存');
+                return $this->created($order->load('items', 'customer', 'warehouse'), '草稿已保存');
             });
         } catch (\RuntimeException $e) {
             return $this->error($e->getMessage(), 422);
@@ -257,38 +255,38 @@ class BorrowOrderController extends Controller
 
         try {
             return DB::transaction(function () use ($order, $validated) {
-            $whId = (int) $validated['warehouse_id'];
-            $customerId = (int) $validated['customer_id'];
-            $stockMap = DB::table('stocks')->where('warehouse_id', $whId)->get()->keyBy('product_id');
-            $productIds = collect($validated['items'])->pluck('product_id')->map(fn ($v) => (int) $v)->unique();
-            $productMap = DB::table('products')->whereIn('id', $productIds)->get()->keyBy('id');
+                $whId = (int) $validated['warehouse_id'];
+                $customerId = (int) $validated['customer_id'];
+                $stockMap = DB::table('stocks')->where('warehouse_id', $whId)->get()->keyBy('product_id');
+                $productIds = collect($validated['items'])->pluck('product_id')->map(fn ($v) => (int) $v)->unique();
+                $productMap = DB::table('products')->whereIn('id', $productIds)->get()->keyBy('id');
 
-            $itemRows = $this->buildItemRows($validated['items'], $productMap, $stockMap, true);
+                $itemRows = $this->buildItemRows($validated['items'], $productMap, $stockMap, true);
 
-            $order->items()->delete();
-            foreach ($itemRows as &$row) {
-                $row['order_id'] = $order->id;
-            }
-            unset($row);
-            BorrowOrderItem::insert($itemRows);
+                $order->items()->delete();
+                foreach ($itemRows as &$row) {
+                    $row['order_id'] = $order->id;
+                }
+                unset($row);
+                BorrowOrderItem::insert($itemRows);
 
-            $order->update([
-                'customer_id' => $customerId,
-                'customer_name' => DB::table('customers')->where('id', $customerId)->value('name'),
-                'contact' => $validated['contact'] ?? null,
-                'contact_phone' => $validated['contact_phone'] ?? null,
-                'warehouse_id' => $whId,
-                'warehouse_name' => DB::table('warehouses')->where('id', $whId)->value('name'),
-                'borrow_date' => $validated['borrow_date'] ?? $order->borrow_date?->toDateString() ?? now()->toDateString(),
-                'due_date' => array_key_exists('due_date', $validated) ? $validated['due_date'] : $order->due_date,
-                'borrow_reason' => $validated['borrow_reason'] ?? null,
-                'total_kinds' => count($itemRows),
-                'total_qty' => (int) collect($itemRows)->sum('borrow_qty'),
-                'total_amount' => round((float) collect($itemRows)->sum('amount'), 2),
-                'remark' => array_key_exists('remark', $validated) ? $validated['remark'] : $order->remark,
-            ]);
+                $order->update([
+                    'customer_id' => $customerId,
+                    'customer_name' => DB::table('customers')->where('id', $customerId)->value('name'),
+                    'contact' => $validated['contact'] ?? null,
+                    'contact_phone' => $validated['contact_phone'] ?? null,
+                    'warehouse_id' => $whId,
+                    'warehouse_name' => DB::table('warehouses')->where('id', $whId)->value('name'),
+                    'borrow_date' => $validated['borrow_date'] ?? $order->borrow_date?->toDateString() ?? now()->toDateString(),
+                    'due_date' => array_key_exists('due_date', $validated) ? $validated['due_date'] : $order->due_date,
+                    'borrow_reason' => $validated['borrow_reason'] ?? null,
+                    'total_kinds' => count($itemRows),
+                    'total_qty' => (int) collect($itemRows)->sum('borrow_qty'),
+                    'total_amount' => round((float) collect($itemRows)->sum('amount'), 2),
+                    'remark' => array_key_exists('remark', $validated) ? $validated['remark'] : $order->remark,
+                ]);
 
-            return $this->success($order->load('items', 'customer', 'warehouse'), '草稿已更新');
+                return $this->success($order->load('items', 'customer', 'warehouse'), '草稿已更新');
             });
         } catch (\RuntimeException $e) {
             return $this->error($e->getMessage(), 422);

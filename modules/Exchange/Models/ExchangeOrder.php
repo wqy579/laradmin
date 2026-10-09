@@ -31,17 +31,25 @@ class ExchangeOrder extends Model
     ];
 
     const STATUS_DRAFT = 'draft';
+
     const STATUS_PENDING = 'pending';
+
     const STATUS_APPROVED = 'approved';
+
     const STATUS_CANCELLED = 'cancelled';
 
     const PAYMENT_CASH = 'cash';
+
     const PAYMENT_WECHAT = 'wechat';
+
     const PAYMENT_ALIPAY = 'alipay';
+
     const PAYMENT_BANK = 'bank';
+
     const PAYMENT_CREDIT = 'credit';
 
     const REFUND_CASH_RETURN = 'cash_return';
+
     const REFUND_OFFSET = 'offset';
 
     public function items(): HasMany
