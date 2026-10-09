@@ -765,6 +765,162 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/borrow-order",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/borrow-order",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/borrow-order/export",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/borrow-order/warehouse-products",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@warehouseProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/borrow-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/borrow-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/borrow-order/{id}/confirm",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/borrow-order/{id}/convert",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowOrderController@convert",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/borrow-summary",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowSummaryController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/borrow-summary/customer-detail",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowSummaryController@customerDetail",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/borrow-summary/trend",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowSummaryController@trend",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/cash-flow",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\CashFlowController@index",
@@ -1764,6 +1920,186 @@
         "uri": "admin/business/employee/{employee}",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\EmployeeController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/exchange-order",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/exchange-order",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/exchange-order/export",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/exchange-order/warehouse-products",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@warehouseProducts",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/exchange-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/exchange-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/exchange-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/exchange-order/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/exchange-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/exchange-order/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/exchange-order/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/exchange-summary",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeSummaryController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/exchange-summary/customer-detail",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeSummaryController@customerDetail",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/exchange-summary/product-rank",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeSummaryController@productRank",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/exchange-summary/reason-distribution",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeSummaryController@reasonDistribution",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3204,6 +3540,114 @@
         "uri": "admin/business/return",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\ReturnController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/return-order",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/return-order",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/return-order/export",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/return-order/pending-borrow-items",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@pendingBorrowItems",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/return-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/return-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/return-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/return-order/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/return-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\BorrowReturn\\Http\\Controllers\\BorrowReturnOrderController@cancel",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -5592,6 +6036,102 @@
         "uri": "admin/business/warehouse/{warehouse}",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\WarehouseController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/category-proportion",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@categoryProportion",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/customer-rank",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@customerRank",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/inventory-overview",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@inventoryOverview",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/inventory-warning",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@inventoryWarning",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/metrics",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@metrics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/realtime-orders",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@realtimeOrders",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/sales-trend",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@salesTrend",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/salesman-rank",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@salesmanRank",
         "middleware": [
             "api",
             "stock.snapshot",

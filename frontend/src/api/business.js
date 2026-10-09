@@ -547,6 +547,74 @@ const businessApi = {
 		vehicleProducts: { get: (params) => request.get('business/van-exchange-order/vehicle-products', { params }) },
 		export: (params) => request.get('business/van-exchange-order/export', { params, responseType: 'blob' }),
 	},
+
+	// ============ 借还货管理（库存管理下） ============
+	// 借货单
+	borrowOrder: {
+		list: { get: (params) => request.get('business/borrow-order', { params }) },
+		detail: { get: (id) => request.get(`business/borrow-order/${id}`) },
+		create: { post: (params) => request.post('business/borrow-order', params) },
+		update: { put: (id, params) => request.put(`business/borrow-order/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/borrow-order/${id}`) },
+		confirm: { post: (id) => request.post(`business/borrow-order/${id}/confirm`) },
+		cancel: { post: (id, params) => request.post(`business/borrow-order/${id}/cancel`, params) },
+		convert: { post: (id) => request.post(`business/borrow-order/${id}/convert`) },
+		warehouseProducts: { get: (params) => request.get('business/borrow-order/warehouse-products', { params }) },
+		export: (params) => request.get('business/borrow-order/export', { params, responseType: 'blob' }),
+	},
+	// 还货单
+	returnOrder: {
+		list: { get: (params) => request.get('business/return-order', { params }) },
+		detail: { get: (id) => request.get(`business/return-order/${id}`) },
+		create: { post: (params) => request.post('business/return-order', params) },
+		update: { put: (id, params) => request.put(`business/return-order/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/return-order/${id}`) },
+		approve: { post: (id) => request.post(`business/return-order/${id}/approve`) },
+		cancel: { post: (id, params) => request.post(`business/return-order/${id}/cancel`, params) },
+		pendingBorrowItems: { get: (params) => request.get('business/return-order/pending-borrow-items', { params }) },
+		export: (params) => request.get('business/return-order/export', { params, responseType: 'blob' }),
+	},
+	// 借货汇总
+	borrowSummary: {
+		index: { get: (params) => request.get('business/borrow-summary', { params }) },
+		customerDetail: { get: (params) => request.get('business/borrow-summary/customer-detail', { params }) },
+		trend: { get: (params) => request.get('business/borrow-summary/trend', { params }) },
+	},
+
+	// ============ 换货管理（库存管理下） ============
+	// 换货单
+	exchangeOrder: {
+		list: { get: (params) => request.get('business/exchange-order', { params }) },
+		detail: { get: (id) => request.get(`business/exchange-order/${id}`) },
+		create: { post: (params) => request.post('business/exchange-order', params) },
+		update: { put: (id, params) => request.put(`business/exchange-order/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/exchange-order/${id}`) },
+		submit: { post: (id, params) => request.post(`business/exchange-order/${id}/submit`, params) },
+		approve: { post: (id) => request.post(`business/exchange-order/${id}/approve`) },
+		reject: { post: (id, params) => request.post(`business/exchange-order/${id}/reject`, params) },
+		cancel: { post: (id, params) => request.post(`business/exchange-order/${id}/cancel`, params) },
+		warehouseProducts: { get: (params) => request.get('business/exchange-order/warehouse-products', { params }) },
+		export: (params) => request.get('business/exchange-order/export', { params, responseType: 'blob' }),
+	},
+	// 换货汇总
+	exchangeSummary: {
+		index: { get: (params) => request.get('business/exchange-summary', { params }) },
+		reasonDistribution: { get: (params) => request.get('business/exchange-summary/reason-distribution', { params }) },
+		productRank: { get: (params) => request.get('business/exchange-summary/product-rank', { params }) },
+		customerDetail: { get: (params) => request.get('business/exchange-summary/customer-detail', { params }) },
+	},
+
+	// ============ 智慧大屏 ============
+	dashboard: {
+		metrics: { get: (params) => request.get('dashboard/metrics', { params }) },
+		realtimeOrders: { get: (params) => request.get('dashboard/realtime-orders', { params }) },
+		categoryProportion: { get: (params) => request.get('dashboard/category-proportion', { params }) },
+		salesTrend: { get: (params) => request.get('dashboard/sales-trend', { params }) },
+		customerRank: { get: (params) => request.get('dashboard/customer-rank', { params }) },
+		inventoryOverview: { get: (params) => request.get('dashboard/inventory-overview', { params }) },
+		inventoryWarning: { get: (params) => request.get('dashboard/inventory-warning', { params }) },
+		salesmanRank: { get: (params) => request.get('dashboard/salesman-rank', { params }) },
+	},
 }
 
 export default businessApi

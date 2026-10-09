@@ -55,6 +55,13 @@ class ArchitectureTest extends TestCase
         //   与 Order->Stock 同理：同库同事务，抽契约收益低于耦合成本
         'VanSales->Order',  // 车销单据的客户快照引用 Order 的 Customer 主数据表，
         //   与 Order->Business（拜访人）同理，跨模块只读主数据
+        'BorrowReturn->Stock',  // 仓库借还货复用 StockService 出入库 + 报损单（stock_adjusts），
+        //   与 VanSales->Stock 同理：同库同事务
+        'BorrowReturn->Order',  // 借货转销售生成 Order 的 SalesOrder，引用 Customer 主数据
+        'Exchange->Stock',  // 换货换出/换入走 StockService 出入库，与 VanSales->Stock 同理
+        'Exchange->Order',  // 换货单客户快照引用 Order 的 Customer 主数据表
+        'Dashboard->Stock',  // 大屏聚合读 Stock 的库存/商品/品牌主数据（含测试夹具构造商品/仓库）
+        'Dashboard->Order',  // 大屏聚合读 Order 的销售单/客户主数据（含测试夹具构造客户）
     ];
 
     /**

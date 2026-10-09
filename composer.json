@@ -33,20 +33,23 @@
       "Modules\\Delivery\\": "modules/Delivery/"
     }
   },
-  "autoload-dev": {
-    "psr-4": {
-      "Tests\\": "tests/",
-      "Tests\\Auth\\": "modules/Auth/tests/",
-      "Tests\\Delivery\\": "modules/Delivery/tests/",
-      "Tests\\Miniapp\\": "modules/Miniapp/tests/",
-      "Tests\\Office\\": "modules/Office/tests/",
-      "Tests\\Order\\": "modules/Order/tests/",
-      "Tests\\Report\\": "modules/Report/tests/",
-      "Tests\\Stock\\": "modules/Stock/tests/",
-      "Tests\\System\\": "modules/System/tests/",
-      "Tests\\VanSales\\": "modules/VanSales/tests/"
-    }
-  },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/",
+            "Tests\\Auth\\": "modules/Auth/tests/",
+            "Tests\\Delivery\\": "modules/Delivery/tests/",
+            "Tests\\Miniapp\\": "modules/Miniapp/tests/",
+            "Tests\\Office\\": "modules/Office/tests/",
+            "Tests\\Order\\": "modules/Order/tests/",
+            "Tests\\Report\\": "modules/Report/tests/",
+            "Tests\\Stock\\": "modules/Stock/tests/",
+            "Tests\\System\\": "modules/System/tests/",
+            "Tests\\VanSales\\": "modules/VanSales/tests/",
+            "Tests\\BorrowReturn\\": "modules/BorrowReturn/tests/",
+            "Tests\\Exchange\\": "modules/Exchange/tests/",
+            "Tests\\Dashboard\\": "modules/Dashboard/tests/"
+        }
+    },
   "scripts": {
     "post-autoload-dump": [
       "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

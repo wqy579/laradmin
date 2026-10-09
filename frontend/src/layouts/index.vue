@@ -117,6 +117,11 @@ function getTitle(item) {
 
 function handleMenuSelect(index) {
 	const item = findMenuItem(index)
+	if (item?.meta?.openWindow) {
+		window.open('#' + index, '_blank')
+		mobileSidebarVisible.value = false
+		return
+	}
 	appStore.addTag({ path: index, title: getTitle(item) || index, icon: getIcon(item), closable: getClosable(item), sort: item.sort ?? item.meta?.sort ?? 0, id: item.id ?? 0 })
 	router.push(index)
 	mobileSidebarVisible.value = false
