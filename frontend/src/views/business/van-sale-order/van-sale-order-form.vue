@@ -28,6 +28,7 @@
 		<template #footer>
 			<el-button @click="visible = false">取消</el-button>
 			<el-button type="primary" @click="onSave()" :loading="saving">保存草稿</el-button>
+			<el-button type="success" @click="onConfirm()" :loading="confirming">确认销售</el-button>
 		</template>
 		<el-dialog v-model="addDialog" title="从车上库存添加商品" width="700px" append-to-body>
 			<el-input v-model="prodKeyword" placeholder="搜索商品" clearable @keyup.enter="searchProducts" style="margin-bottom:12px;width:300px"><template #append><el-button @click="searchProducts">搜索</el-button></template></el-input>
@@ -44,7 +45,7 @@ import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import api from '@/api/business.js';
 const emit = defineEmits(['saved']);
-const visible = ref(false); const saving = ref(false);
+const visible = ref(false); const saving = ref(false); const confirming = ref(false);
 const customers = ref([]); const vehicles = ref([]); const productOptions = ref([]);
 const prodKeyword = ref(''); const addDialog = ref(false);
 const form = ref({ id: null, customer_id: null, vehicle_id: null, vehicle_warehouse_id: null, sale_date: new Date().toISOString().slice(0, 10), payment_method: 'cash', paid_amount: 0, items: [] });
@@ -73,15 +74,42 @@ const addProduct = (p) => {
 };
 const open = async (row) => { visible.value = true; await loadBasics(); if (row && row.id) { const res = await api.vanSaleOrder.detail.get(row.id); const d = res.data; form.value = { id: d.id, customer_id: d.customer_id, vehicle_id: d.vehicle_id, vehicle_warehouse_id: d.vehicle_warehouse_id, sale_date: d.sale_date, payment_method: d.payment_method, paid_amount: d.paid_amount, items: (d.items || []).map(i => ({ product_id: i.product_id, product_name: i.product_name, spec: i.spec, stock_qty: i.stock_qty, sale_qty: i.sale_qty, unit_price: i.unit_price, amount: Number(i.amount) || 0 })) }; } else { form.value = { id: null, customer_id: null, vehicle_id: null, vehicle_warehouse_id: null, sale_date: new Date().toISOString().slice(0, 10), payment_method: 'cash', paid_amount: 0, items: [] }; } };
 const onSave = async () => {
-	if (!form.value.customer_id) return ElMessage.warning('请选择客户');
-	if (!form.value.vehicle_warehouse_id) return ElMessage.warning('请选择车辆');
-	if (!form.value.items.length) return ElMessage.warning('请添加商品');
-	const validItems = form.value.items.filter(i => i.product_id && (Number(i.sale_qty) || 0) > 0);
-	if (!validItems.length) return ElMessage.warning('请录入有效数量');
-	const payload = { customer_id: form.value.customer_id, vehicle_id: form.value.vehicle_id, vehicle_warehouse_id: form.value.vehicle_warehouse_id, sale_date: form.value.sale_date, payment_method: form.value.payment_method, paid_amount: form.value.paid_amount, items: validItems.map(i => ({ product_id: i.product_id, sale_qty: i.sale_qty, unit_price: i.unit_price })) };
+	const payload = validateAndBuildPayload();
+	if (!payload) return;
 	saving.value = true;
-	try { if (form.value.id) { await api.vanSaleOrder.update.put(form.value.id, payload); } else { await api.vanSaleOrder.create.post(payload); } ElMessage.success('草稿已保存'); visible.value = false; emit('saved'); }
-	catch (e) { ElMessage.error(e.response?.data?.message || '保存失败'); } finally { saving.value = false; }
+	try {
+		await persistDraft(payload);
+		ElMessage.success('草稿已保存');
+		visible.value = false; emit('saved');
+	} catch (e) { ElMessage.error(e.response?.data?.message || '保存失败'); } finally { saving.value = false; }
+};
+// 确认销售：现场交易一步完成 —— 先存草稿拿 id，再调 approve 扣库存+收款/挂账
+const onConfirm = async () => {
+	const payload = validateAndBuildPayload();
+	if (!payload) return;
+	confirming.value = true;
+	try {
+		const id = await persistDraft(payload);
+		await api.vanSaleOrder.approve.post(id);
+		ElMessage.success('销售已确认，车上库存已扣减');
+		visible.value = false; emit('saved');
+	} catch (e) { ElMessage.error(e.response?.data?.message || '确认失败'); } finally { confirming.value = false; }
+};
+// 校验 + 组装 payload，失败返回 null（已弹提示）
+const validateAndBuildPayload = () => {
+	if (!form.value.customer_id) { ElMessage.warning('请选择客户'); return null; }
+	if (!form.value.vehicle_warehouse_id) { ElMessage.warning('请选择车辆'); return null; }
+	if (!form.value.items.length) { ElMessage.warning('请添加商品'); return null; }
+	const validItems = form.value.items.filter(i => i.product_id && (Number(i.sale_qty) || 0) > 0);
+	if (!validItems.length) { ElMessage.warning('请录入有效数量'); return null; }
+	return { customer_id: form.value.customer_id, vehicle_id: form.value.vehicle_id, vehicle_warehouse_id: form.value.vehicle_warehouse_id, sale_date: form.value.sale_date, payment_method: form.value.payment_method, paid_amount: form.value.paid_amount, items: validItems.map(i => ({ product_id: i.product_id, sale_qty: i.sale_qty, unit_price: i.unit_price })) };
+};
+// 存草稿（新建或更新），返回订单 id
+const persistDraft = async (payload) => {
+	let id = form.value.id;
+	if (id) { await api.vanSaleOrder.update.put(id, payload); }
+	else { const res = await api.vanSaleOrder.create.post(payload); id = res.data?.id; form.value.id = id; }
+	return id;
 };
 const onClose = () => { form.value = { id: null, customer_id: null, vehicle_id: null, vehicle_warehouse_id: null, sale_date: new Date().toISOString().slice(0, 10), payment_method: 'cash', paid_amount: 0, items: [] }; };
 defineExpose({ open });
