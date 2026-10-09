@@ -17,7 +17,8 @@ return new class extends Migration
         $parentId = DB::table('auth_permission')->where('name', 'inventory')->value('id');
 
         $children = [
-            ['name' => 'borrow-return', 'title' => '借还货管理', 'path' => '/business/borrow-return', 'component' => 'business/borrow-return/index', 'sort' => 40, 'is_parent' => true],
+            // 循环箭头：菜单图标存在 meta.icon 里，运行时才拿到名字，缺失会静默渲染成空 <el-icon>
+            ['name' => 'borrow-return', 'title' => '借还货管理', 'path' => '/business/borrow-return', 'component' => 'business/borrow-return/index', 'sort' => 40, 'is_parent' => true, 'icon' => 'ElIconRefresh'],
             ['name' => 'borrow.order', 'title' => '借货单', 'path' => '/business/borrow-order', 'component' => 'business/borrow-return/borrow-order/index', 'sort' => 10, 'parent' => 'borrow-return'],
             ['name' => 'borrow.return', 'title' => '还货单', 'path' => '/business/return-order', 'component' => 'business/borrow-return/return-order/index', 'sort' => 20, 'parent' => 'borrow-return'],
             ['name' => 'borrow.summary', 'title' => '借货汇总', 'path' => '/business/borrow-summary', 'component' => 'business/borrow-return/borrow-summary/index', 'sort' => 30, 'parent' => 'borrow-return'],
@@ -35,7 +36,7 @@ return new class extends Migration
                     'parent_id' => $pid,
                     'path' => $child['path'],
                     'component' => $child['component'],
-                    'meta' => json_encode([]),
+                    'meta' => json_encode(isset($child['icon']) ? ['icon' => $child['icon']] : []),
                     'sort' => $child['sort'],
                     'status' => 1,
                     'created_at' => now(),

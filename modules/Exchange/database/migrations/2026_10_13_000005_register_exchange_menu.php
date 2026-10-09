@@ -13,7 +13,8 @@ return new class extends Migration
         $parentId = DB::table('auth_permission')->where('name', 'inventory')->value('id');
 
         $children = [
-            ['name' => 'exchange', 'title' => '换货管理', 'path' => '/business/exchange', 'component' => 'business/exchange/index', 'sort' => 50, 'is_parent' => true],
+            // 交换箭头：菜单图标存在 meta.icon 里，运行时才拿到名字，缺失会静默渲染成空 <el-icon>
+            ['name' => 'exchange', 'title' => '换货管理', 'path' => '/business/exchange', 'component' => 'business/exchange/index', 'sort' => 50, 'is_parent' => true, 'icon' => 'ElIconSort'],
             ['name' => 'exchange.order', 'title' => '换货单', 'path' => '/business/exchange-order', 'component' => 'business/exchange/exchange-order/index', 'sort' => 10, 'parent' => 'exchange'],
             ['name' => 'exchange.summary', 'title' => '换货汇总', 'path' => '/business/exchange-summary', 'component' => 'business/exchange/exchange-summary/index', 'sort' => 20, 'parent' => 'exchange'],
         ];
@@ -30,7 +31,7 @@ return new class extends Migration
                     'parent_id' => $pid,
                     'path' => $child['path'],
                     'component' => $child['component'],
-                    'meta' => json_encode([]),
+                    'meta' => json_encode(isset($child['icon']) ? ['icon' => $child['icon']] : []),
                     'sort' => $child['sort'],
                     'status' => 1,
                     'created_at' => now(),

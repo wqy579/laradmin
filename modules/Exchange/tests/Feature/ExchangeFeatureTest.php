@@ -33,6 +33,17 @@ class ExchangeFeatureTest extends TestCase
         return ['admin' => $admin, 'customer' => $customer, 'warehouse' => $warehouse, 'out' => $out, 'in' => $in];
     }
 
+    /**
+     * 菜单图标：换货管理挂的是交换箭头。缺 meta.icon 时前端 <component :is="">
+     * 解析不到，侧边栏静默渲染成空 <el-icon>，且不报错——只能靠这条用例钉住。
+     */
+    public function test_exchange_menu_has_icon(): void
+    {
+        $meta = json_decode(DB::table('auth_permission')->where('name', 'exchange')->value('meta') ?? 'null', true) ?? [];
+
+        $this->assertSame('ElIconSort', $meta['icon'] ?? '');
+    }
+
     public function test_exchange_approve_swaps_stock_and_settles_diff(): void
     {
         $d = $this->seedData();

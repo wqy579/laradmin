@@ -38,6 +38,19 @@ class BorrowReturnFeatureTest extends TestCase
         return DB::table('stocks')->where('product_id', $productId)->where('warehouse_id', $warehouseId)->first();
     }
 
+    /**
+     * 菜单图标：借还货管理挂的是循环箭头。缺 meta.icon 时前端 <component :is="">
+     * 解析不到，侧边栏静默渲染成空 <el-icon>，且不报错——只能靠这条用例钉住。
+     * MenuIconTest 只校验 parent_id=0 的顶层菜单，借还货是 inventory 的子菜单，
+     * 正好不在它的覆盖范围内。
+     */
+    public function test_borrow_menu_has_icon(): void
+    {
+        $meta = json_decode(DB::table('auth_permission')->where('name', 'borrow-return')->value('meta') ?? 'null', true) ?? [];
+
+        $this->assertSame('ElIconRefresh', $meta['icon'] ?? '');
+    }
+
     public function test_borrow_confirm_freezes_stock_and_records_balance(): void
     {
         $d = $this->seedData();
