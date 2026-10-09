@@ -27,7 +27,8 @@ return new class extends Migration
                 // ElIcon 前缀是前端约定（boot.js 只注册 ElIcon* / AIcon*），
                 // 存 'Van' 会解析不到组件、静默渲染成空 <el-icon>，且与配送的 ElIconVan 不一致。
                 'meta' => json_encode(['icon' => 'ElIconVan']),
-                'sort' => 11,
+                // 12 = 配送管理(11)之后；BusinessSeeder 同值，避免与 delivery 撞序
+                'sort' => 12,
                 'status' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),
