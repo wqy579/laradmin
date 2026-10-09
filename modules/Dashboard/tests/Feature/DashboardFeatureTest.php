@@ -48,6 +48,30 @@ class DashboardFeatureTest extends TestCase
     }
 
     /**
+     * 智慧大屏必须作为独立顶级菜单存在，且不能再用 /dashboard —— 该路径在
+     * systemRoutes.js 里静态绑给"首页"，同一路径静态路由先命中，点大屏会打开首页。
+     * meta.icon 还必须是 ElIcon 前缀（前端 boot.js 只注册带该前缀的图标组件）。
+     */
+    public function test_bigscreen_menu_is_registered(): void
+    {
+        $menu = DB::table('auth_permission')->where('name', 'bigscreen')->where('type', 'menu')->first();
+
+        $this->assertNotNull($menu, '智慧大屏菜单缺失');
+        $this->assertSame('/big-screen', $menu->path);
+        $this->assertSame('dashboard/index', $menu->component);
+        $this->assertSame(0, (int) $menu->parent_id);
+
+        $meta = json_decode($menu->meta ?? 'null', true) ?? [];
+        $this->assertStringStartsWith('ElIcon', $meta['icon'] ?? '');
+
+        $legacy = DB::table('auth_permission')
+            ->where('name', 'dashboard')
+            ->where('component', 'dashboard/index')
+            ->exists();
+        $this->assertFalse($legacy, '指向 /dashboard 的旧大屏菜单必须清掉');
+    }
+
+    /**
      * 销售单实际用的是中文状态（已收款/待收款/配送中…），早期大屏只认 approved，
      * 导致正常销售单一条都统计不到、今日销售额恒为 0。这里守住这个口径。
      */

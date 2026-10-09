@@ -18,7 +18,13 @@ return new class extends Migration
 
         $children = [
             // 循环箭头：菜单图标存在 meta.icon 里，运行时才拿到名字，缺失会静默渲染成空 <el-icon>
-            ['name' => 'borrow-return', 'title' => '借还货管理', 'path' => '/business/borrow-return', 'component' => 'business/borrow-return/index', 'sort' => 40, 'is_parent' => true, 'icon' => 'ElIconRefresh'],
+            //
+            // path 必须指向真实子路由、component 必须为空——这是本仓库分组菜单的硬约定
+            // （见 BusinessSeeder 顶部注释）：子路由以绝对路径挂在分组下，分组一旦自带
+            // component，子页面就要在它内部再渲染一层 <router-view>；没有的话子页面永远
+            // 出不来，表现为「菜单在、点进去卡在 loading」。2026-10-10 借还货/换货
+            // 就是栽在这里（当时分组填了 /business/borrow-return + 自己的落地页）。
+            ['name' => 'borrow-return', 'title' => '借还货管理', 'path' => '/business/borrow-order', 'component' => '', 'sort' => 40, 'is_parent' => true, 'icon' => 'ElIconRefresh'],
             ['name' => 'borrow.order', 'title' => '借货单', 'path' => '/business/borrow-order', 'component' => 'business/borrow-return/borrow-order/index', 'sort' => 10, 'parent' => 'borrow-return'],
             ['name' => 'borrow.return', 'title' => '还货单', 'path' => '/business/return-order', 'component' => 'business/borrow-return/return-order/index', 'sort' => 20, 'parent' => 'borrow-return'],
             ['name' => 'borrow.summary', 'title' => '借货汇总', 'path' => '/business/borrow-summary', 'component' => 'business/borrow-return/borrow-summary/index', 'sort' => 30, 'parent' => 'borrow-return'],

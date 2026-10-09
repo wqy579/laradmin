@@ -119,7 +119,7 @@ class InventoryMenuTest extends TestCase
         Artisan::call('db:seed', ['--class' => 'DatabaseSeeder', '--force' => true]);
 
         $missing = [];
-        foreach (DB::table('auth_permission')->whereNotNull('component')->get() as $menu) {
+        foreach (DB::table('auth_permission')->whereNotNull('component')->where('component', '<>', '')->get() as $menu) {
             if (! $this->viewExists($menu->component)) {
                 $missing[] = sprintf('%s (%s) → %s', $menu->name, $menu->title, $menu->component);
             }

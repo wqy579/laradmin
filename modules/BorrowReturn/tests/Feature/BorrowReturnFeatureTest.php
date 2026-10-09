@@ -51,6 +51,26 @@ class BorrowReturnFeatureTest extends TestCase
         $this->assertSame('ElIconRefresh', $meta['icon'] ?? '');
     }
 
+    /**
+     * 分组菜单的路由约定（2026-10-10 生产事故）：分组自带 component 时，子页面会变成
+     * 它的嵌套路由，必须靠分组组件内部的 <router-view> 才能渲染——当时那个落地页没写，
+     * 结果点进去永远卡在 loading 文案上。约定是：component 留空 + path 指向第一个子路由。
+     */
+    public function test_borrow_menu_group_points_to_first_child_route(): void
+    {
+        $group = DB::table('auth_permission')->where('name', 'borrow-return')->firstOrFail();
+
+        $this->assertEmpty($group->component, '分组菜单不得自带 component，否则子页面会被当成它的嵌套路由');
+
+        $firstChild = DB::table('auth_permission')
+            ->where('parent_id', $group->id)
+            ->orderBy('sort')
+            ->firstOrFail();
+
+        $this->assertSame($firstChild->path, $group->path, '分组 path 必须指向第一个子路由');
+        $this->assertNotEmpty($firstChild->component, '第一个子菜单必须带 component');
+    }
+
     public function test_borrow_confirm_freezes_stock_and_records_balance(): void
     {
         $d = $this->seedData();

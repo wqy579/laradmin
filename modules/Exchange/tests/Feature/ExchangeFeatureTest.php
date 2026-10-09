@@ -44,6 +44,22 @@ class ExchangeFeatureTest extends TestCase
         $this->assertSame('ElIconSort', $meta['icon'] ?? '');
     }
 
+    /** 同借还货：分组菜单必须 component 留空 + path 指向第一个子路由 */
+    public function test_exchange_menu_group_points_to_first_child_route(): void
+    {
+        $group = DB::table('auth_permission')->where('name', 'exchange')->firstOrFail();
+
+        $this->assertEmpty($group->component, '分组菜单不得自带 component，否则子页面会变成嵌套路由渲染不出来');
+
+        $firstChild = DB::table('auth_permission')
+            ->where('parent_id', $group->id)
+            ->orderBy('sort')
+            ->firstOrFail();
+
+        $this->assertSame($firstChild->path, $group->path);
+        $this->assertNotEmpty($firstChild->component);
+    }
+
     public function test_exchange_approve_swaps_stock_and_settles_diff(): void
     {
         $d = $this->seedData();

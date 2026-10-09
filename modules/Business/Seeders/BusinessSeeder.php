@@ -52,6 +52,69 @@ class BusinessSeeder extends Seeder
             ]);
         }
 
+        // 智慧大屏：单个页面的顶级菜单，必须自己带 component（顶级菜单的 component
+        // 在上面统一置空，这里单独写回去），否则 path 没有组件可渲染，点进去是空白。
+        // icon 必须带 ElIcon 前缀（boot.js 只注册 ElIcon*/AIcon*）。
+        Permission::firstOrCreate(['name' => 'bigscreen'], [
+            'title' => '智慧大屏',
+            'type' => 'menu',
+            'parent_id' => 0,
+            'path' => '/big-screen',
+            'component' => 'dashboard/index',
+            'sort' => 90,
+            'status' => 1,
+            'meta' => ['icon' => 'ElIconMonitor'],
+        ]);
+
+        // 借还货 / 换货：AuthSeeder 会 truncate auth_permission，迁移阶段注册的同名菜单
+        // 会被清掉，这里负责全新安装路径的重建（同 van / delivery 的做法）。
+        // 分组菜单只定 path（指向第一个子路由）+ component 空串，子路由才是真正的页面。
+        foreach ([
+            [
+                'top' => ['name' => 'borrow-return', 'title' => '借还货管理', 'parent' => 'inventory', 'path' => '/business/borrow-order', 'sort' => 40, 'icon' => 'ElIconRefresh'],
+                'children' => [
+                    ['name' => 'borrow.order', 'title' => '借货单', 'path' => '/business/borrow-order', 'component' => 'business/borrow-return/borrow-order/index', 'sort' => 1],
+                    ['name' => 'borrow.return', 'title' => '还货单', 'path' => '/business/return-order', 'component' => 'business/borrow-return/return-order/index', 'sort' => 2],
+                    ['name' => 'borrow.summary', 'title' => '借还货查询', 'path' => '/business/borrow-summary', 'component' => 'business/borrow-return/borrow-summary/index', 'sort' => 3],
+                ],
+            ],
+            [
+                'top' => ['name' => 'exchange', 'title' => '换货管理', 'parent' => 'inventory', 'path' => '/business/exchange-order', 'sort' => 50, 'icon' => 'ElIconSort'],
+                'children' => [
+                    ['name' => 'exchange.order', 'title' => '换货单', 'path' => '/business/exchange-order', 'component' => 'business/exchange/exchange-order/index', 'sort' => 1],
+                    ['name' => 'exchange.summary', 'title' => '换货查询', 'path' => '/business/exchange-summary', 'component' => 'business/exchange/exchange-summary/index', 'sort' => 2],
+                ],
+            ],
+        ] as $group) {
+            $top = $group['top'];
+            $parentId = Permission::where('name', $top['parent'])->value('id');
+
+            Permission::firstOrCreate(['name' => $top['name']], [
+                'title' => $top['title'],
+                'type' => 'menu',
+                'parent_id' => $parentId ?? 0,
+                'path' => $top['path'],
+                'component' => '',
+                'sort' => $top['sort'],
+                'status' => 1,
+                'meta' => ['icon' => $top['icon']],
+            ]);
+
+            $groupId = Permission::where('name', $top['name'])->value('id');
+
+            foreach ($group['children'] as $child) {
+                Permission::firstOrCreate(['name' => $child['name']], [
+                    'title' => $child['title'],
+                    'type' => 'menu',
+                    'parent_id' => $groupId,
+                    'path' => $child['path'],
+                    'component' => $child['component'],
+                    'sort' => $child['sort'],
+                    'status' => 1,
+                ]);
+            }
+        }
+
         // 资料管理子菜单
         $dataMenus = [
             ['name' => 'data.product', 'title' => '商品档案', 'parent' => 'data', 'path' => '/business/product', 'component' => 'business/product/index', 'sort' => 1],

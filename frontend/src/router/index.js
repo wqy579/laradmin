@@ -113,6 +113,8 @@ function transformMenusToRoutes(menus) {
 				},
 			}
 
+			const children = Array.isArray(menu.children) ? menu.children : []
+
 			if (menu.component) {
 				const comp = loadComponent(menu.component)
 				// ⚠️ 组件缺失时不能 return：父菜单少写一个落地页，会让整棵子树（下面所有
@@ -121,8 +123,19 @@ function transformMenusToRoutes(menus) {
 				if (comp) route.component = comp
 			}
 
-			if (menu.children && menu.children.length > 0) {
-				route.children = transformMenusToRoutes(menu.children)
+			if (children.length > 0) {
+				route.children = transformMenusToRoutes(children)
+
+				// 分组菜单（有子菜单）自身不挂组件时，点它会落到一个没有任何页面与之
+				// 对应的 path 上。给一层 redirect 兜底，直接进第一个子页面。
+				// 注意：子路由 path 是绝对路径（以 / 开头），必须原样跳；且当分组自己的
+				// path 就等于首个子的 path 时不能加 redirect，否则重定向成环。
+				if (!route.redirect && !route.component) {
+					const first = children.find((child) => child && child.path)
+					if (first && first.path.split('?')[0] !== routePath) {
+						route.redirect = first.path.split('?')[0]
+					}
+				}
 			}
 
 			if (menu.redirect) {
@@ -147,12 +160,21 @@ function transformMenusToRoutes(menus) {
  * 规范路径是 /business/borrow-order、/dashboard，路径对不上就被判成 404「未开发」。
  * 这里补一层重定向，两种写法都能进。
  */
-// 只列「菜单里没有、但可能被直接访问」的路径。父菜单路径（/business/borrow-return、
-// /business/exchange）本身已是落地页并重定向到首个子页面，再注册同名别名会重复，故不列。
+// 只列「菜单里没有、但可能被直接访问」的路径。
+//
+// 父菜单（分组）的 path 按本项目约定直接指向第一个子路由（component 为空），
+// 所以 /business/borrow-return、/business/exchange 这两个历史 URL 已经没有对应
+// 记录了，靠这里的别名仍能打开；/dashboard 是"首页"，智慧大屏在 /big-screen。
 const ROUTE_ALIASES = {
 	'/business/borrow': '/business/borrow-order',
+	'/business/borrow-return': '/business/borrow-order',
+	'/business/exchange': '/business/exchange-order',
 	'/business/return': '/business/return-order',
-	'/dashboard-big': '/dashboard',
+	'/business/exchange-order-list': '/business/exchange-order',
+	'/dashboard-big': '/big-screen',
+	'/bigscreen': '/big-screen',
+	'/screen': '/big-screen',
+	'/large-screen': '/big-screen',
 }
 
 function addAliasRoutes() {
