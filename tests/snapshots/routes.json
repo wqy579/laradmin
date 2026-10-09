@@ -1017,6 +1017,450 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/delivery-check",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-check/unchecked",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@unchecked",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-check/{id}",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-check/{id}/confirm",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-check/{id}/start",
+        "name": "admin.admin.delivery.check.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CheckController@start",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-collection",
+        "name": "admin.admin.delivery.collection.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CollectionController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-collection",
+        "name": "admin.admin.delivery.collection.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CollectionController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-collection/pending-tasks",
+        "name": "admin.admin.delivery.collection.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CollectionController@pendingTasks",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-collection/{id}",
+        "name": "admin.admin.delivery.collection.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\CollectionController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-load",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-load",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/delivery-load/{id}",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-load/{id}",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-load/{id}/confirm",
+        "name": "admin.admin.delivery.load.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\LoadController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-pick",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-pick/{id}",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-pick/{id}/cancel",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-pick/{id}/confirm",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-pick/{id}/start",
+        "name": "admin.admin.delivery.pick.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickController@start",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-picking",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-picking",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-picking/pending-orders",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@pendingOrders",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/delivery-picking/{id}",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-picking/{id}",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/delivery-picking/{id}",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-picking/{id}/cancel",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-picking/{id}/confirm",
+        "name": "admin.admin.delivery.picking.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\PickingController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-remit",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-remit",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-remit/unremit-summary",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@unremitSummary",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-remit/{id}",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-remit/{id}/confirm",
+        "name": "admin.admin.delivery.remit.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\RemitController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-task",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/delivery-task/{id}",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-task/{id}/deliver",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@deliver",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-task/{id}/exception",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@exception",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/delivery-task/{id}/start",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@start",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/delivery/statistics",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\DeliveryController@statistics",
