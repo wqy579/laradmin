@@ -4,6 +4,7 @@ namespace Modules\Delivery\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Delivery\Models\DeliveryLoad;
@@ -329,7 +330,7 @@ class TaskController extends Controller
      * 「全部终态」的判定会永远为 false，装车单与订单会被永久卡在配送中。
      */
     private function allTerminal(
-        \Illuminate\Database\Eloquent\Collection $tasks,
+        Collection $tasks,
         ?\Closure $condition = null,
     ): bool {
         $condition ??= fn ($t) => in_array($t->status, DeliveryTask::TERMINAL_STATUSES, true);

@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 use Modules\Delivery\Models\DeliveryCheck;
 use Modules\Delivery\Models\DeliveryPick;
 use Modules\Delivery\Services\DeliveryFlowService;
-use Modules\Stock\Models\StockAdjust;
 
 /**
  * 验货单管理（验货员验货）。由拣货单自动生成，录入实际验货数量，

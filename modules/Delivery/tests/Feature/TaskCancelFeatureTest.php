@@ -3,6 +3,7 @@
 namespace Tests\Delivery\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Modules\Delivery\Models\DeliveryLoad;
 use Modules\Delivery\Models\DeliveryLoadItem;
 use Modules\Delivery\Models\DeliveryTask;
@@ -122,7 +123,7 @@ class TaskCancelFeatureTest extends TestCase
         ]);
     }
 
-    private function assertCancel(string $reason): \Illuminate\Testing\TestResponse
+    private function assertCancel(string $reason): TestResponse
     {
         return $this->postJson('/admin/business/delivery-task/999999/cancel', ['cancel_reason' => $reason]);
     }
