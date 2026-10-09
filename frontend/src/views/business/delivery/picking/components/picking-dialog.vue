@@ -11,9 +11,9 @@
 			</el-form-item>
 		</el-form>
 		<el-table v-if="form.items.length" :data="form.items" border size="small" style="margin-top: 8px">
-			<el-table-column prop="product_code" label="商品编码" width="120" />
+			<el-table-column prop="product_code" label="商品编码" width="120" :formatter="(row) => row.product_code || '-'" />
 			<el-table-column prop="product_name" label="商品名称" width="180" />
-			<el-table-column prop="spec" label="规格" width="100" />
+			<el-table-column prop="spec" label="规格" width="100" :formatter="(row) => row.spec || '-'" />
 			<el-table-column prop="unit" label="单位" width="70" />
 			<el-table-column prop="order_qty" label="订单数量" width="90" align="center" />
 			<el-table-column label="配货数量" width="120">
@@ -65,7 +65,7 @@ const handleSubmit = async () => {
 		}
 		const res = await businessApi.deliveryPicking.add.post(payload)
 		if (res.code === 200) { ElMessage.success(res.message || '创建成功'); emit('success'); emit('update:visible', false) }
-	} catch (e) { if (e && e.message) ElMessage.error(e.message) } finally { submitting.value = false }
+	} catch (e) { /* 拦截器已弹错误提示，此处静默吞掉，避免重复 toast */ } finally { submitting.value = false }
 }
 
 onMounted(async () => {

@@ -11,9 +11,9 @@
 			</el-descriptions-item>
 		</el-descriptions>
 		<el-table :data="detail?.items || []" border size="small" style="margin-top: 12px">
-			<el-table-column prop="product_code" label="商品编码" width="120" />
+			<el-table-column prop="product_code" label="商品编码" width="120" :formatter="(row) => row.product_code || '-'" />
 			<el-table-column prop="product_name" label="商品名称" width="180" />
-			<el-table-column prop="spec" label="规格" width="100" />
+			<el-table-column prop="spec" label="规格" width="100" :formatter="(row) => row.spec || '-'" />
 			<el-table-column prop="unit" label="单位" width="70" />
 			<el-table-column prop="quantity" label="配货数量" width="90" align="center" />
 			<el-table-column prop="price" label="单价" width="90" align="right" />

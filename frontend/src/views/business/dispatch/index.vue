@@ -48,7 +48,7 @@ const statusLabel = (s) => ({ '待配送': '待配送', '配送中': '配送中'
 
 const columns = [
 	{ type: 'checkbox', width: 48, fixed: 'left' },
-	{ prop: 'order_no', title: '订单编号', width: 120, slots: { default: 'order_no' } },
+	{ prop: 'order_no', title: '订单编号', width: 120 },
 	{ prop: 'customer_name', title: '客户', width: 150 },
 	{ prop: 'warehouse_name', title: '仓库', width: 100 },
 	{ prop: 'salesman_name', title: '业务员', width: 90 },

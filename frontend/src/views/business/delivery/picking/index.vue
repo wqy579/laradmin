@@ -95,11 +95,13 @@ const handleConfirm = async (row) => {
 		await ElMessageBox.confirm('确认配货将冻结库存并生成拣货单，订单状态变为「配货中」，是否继续？', '确认配货', { type: 'warning' })
 		const res = await businessApi.deliveryPicking.confirm.post(row.id)
 		if (res.code === 200) { ElMessage.success(res.message || '配货确认成功'); refresh() }
-	} catch (e) { if (e && e.message) ElMessage.error(e.message) }
+	} catch (e) { /* 拦截器已弹错误提示，此处静默吞掉，避免重复 toast */ }
 }
 const handleDelete = async (row) => {
-	const res = await businessApi.deliveryPicking.delete.delete(row.id)
-	if (res.code === 200) { ElMessage.success('删除成功'); refresh() }
+	try {
+		const res = await businessApi.deliveryPicking.delete.delete(row.id)
+		if (res.code === 200) { ElMessage.success('删除成功'); refresh() }
+	} catch (e) { /* 拦截器已弹错误提示，此处静默吞掉，避免重复 toast */ }
 }
 
 onMounted(async () => {
