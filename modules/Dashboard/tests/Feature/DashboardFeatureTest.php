@@ -61,7 +61,10 @@ class DashboardFeatureTest extends TestCase
         $p = Product::create(['name' => '可乐', 'code' => 'P1', 'price_small' => 3, 'price_unit_small' => '瓶', 'cost_price' => 2, 'is_active' => true]);
         DB::table('stocks')->insert(['product_id' => $p->id, 'warehouse_id' => $warehouse->id, 'quantity' => 50, 'cost_price' => 2]);
 
-        DB::table('sales_orders')->insert([
+        // 必须取回真实自增 id：MySQL 的 AUTO_INCREMENT 在 RefreshDatabase 的事务回滚后
+        // 不会回退，硬编码 1 会在第二个用例里撞上外键约束（SQLite 每次重建内存库，
+        // 所以本地跑不出来，只有 CI 的 MySQL 会红）。
+        $orderId = DB::table('sales_orders')->insertGetId([
             'order_no' => 'XS1',
             'customer_id' => $customer->id,
             'warehouse_id' => $warehouse->id,
@@ -71,7 +74,7 @@ class DashboardFeatureTest extends TestCase
             'status' => '已收款',
         ]);
         DB::table('sales_order_items')->insert([
-            'sales_order_id' => 1,
+            'sales_order_id' => $orderId,
             'product_id' => $p->id,
             'quantity' => 10,
             'price' => 10,
