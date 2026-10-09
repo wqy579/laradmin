@@ -32,7 +32,11 @@ class BusinessSeeder extends Seeder
             // 注册的 van 菜单连同图标会被清掉，重建完全依赖这里的定义。
             // 图标必须带 ElIcon 前缀（前端 boot.js 只注册 ElIcon*/AIcon*），
             // 存 'Van' 会静默渲染成空 <el-icon>（见 VanSalesSeedFeatureTest）。
-            ['name' => 'van', 'title' => '车销业务', 'parent_id' => 0, 'path' => '', 'sort' => 12, 'status' => 1, 'meta' => ['icon' => 'ElIconVan']],
+            // path 必须指向真实子路由：前端 transformMenusToRoutes 用
+            // filter(menu => menu && menu.path) 过滤，path 为空字符串的顶级菜单
+            // 会连同整棵子树被丢弃（2026-10-09 生产实测：van 菜单授权已补全，
+            // 但顶级 path='' 仍导致左侧无"车销业务"入口）。与 delivery 写法一致。
+            ['name' => 'van', 'title' => '车销业务', 'parent_id' => 0, 'path' => '/business/van-requisition', 'sort' => 12, 'status' => 1, 'meta' => ['icon' => 'ElIconVan']],
         ];
 
         foreach ($topMenus as $menu) {

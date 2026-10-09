@@ -22,7 +22,10 @@ return new class extends Migration
                 'name' => 'van',
                 'type' => 'menu',
                 'parent_id' => 0,
-                'path' => '',
+                // path 必须指向真实子路由：前端 transformMenusToRoutes 用
+                // filter(menu => menu && menu.path) 过滤，空 path 会让顶级菜单
+                // 连同整棵子树被丢弃。与 delivery 的写法一致（指向第一个子菜单）。
+                'path' => '/business/van-requisition',
                 'component' => '',
                 // ElIcon 前缀是前端约定（boot.js 只注册 ElIcon* / AIcon*），
                 // 存 'Van' 会解析不到组件、静默渲染成空 <el-icon>，且与配送的 ElIconVan 不一致。
