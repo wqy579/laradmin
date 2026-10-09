@@ -5,6 +5,7 @@ namespace Modules\Delivery\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Order\Models\Customer;
 
 /**
  * @property string $status
@@ -30,7 +31,9 @@ class DeliveryPicking extends Model
 
     // 状态
     const STATUS_PENDING = 'pending';   // 待配货
+
     const STATUS_PICKED = 'picked';     // 已配货
+
     const STATUS_CANCELLED = 'cancelled'; // 已取消
 
     public function items(): HasMany
@@ -40,6 +43,6 @@ class DeliveryPicking extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Order\Models\Customer::class, 'customer_id');
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
 }

@@ -27,8 +27,11 @@ class DeliveryLoad extends Model
     ];
 
     const STATUS_PENDING = 'pending';         // 待装车
+
     const STATUS_LOADED = 'loaded';           // 已装车
+
     const STATUS_DELIVERING = 'delivering';    // 配送中
+
     const STATUS_COMPLETED = 'completed';     // 已完成
 
     public function items(): HasMany

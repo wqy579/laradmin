@@ -26,8 +26,11 @@ class DeliveryCheck extends Model
     ];
 
     const STATUS_PENDING = 'pending';     // 待验货
+
     const STATUS_CHECKING = 'checking';   // 验货中
+
     const STATUS_CHECKED = 'checked';     // 已验货
+
     const STATUS_EXCEPTION = 'exception'; // 验货异常
 
     public function items(): HasMany

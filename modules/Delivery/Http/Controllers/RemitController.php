@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Delivery\Models\DeliveryCollection;
 use Modules\Delivery\Models\DeliveryRemit;
 use Modules\Delivery\Models\DeliveryRemitItem;
@@ -224,7 +225,7 @@ class RemitController extends Controller
             // 写现金流水备查（flow_type=receive, related=DeliveryRemit）
             foreach ($remit->items as $item) {
                 DB::table('cash_flows')->insert([
-                    'flow_no' => 'CF'.date('YmdHis').strtoupper(\Illuminate\Support\Str::random(4)).$item->id,
+                    'flow_no' => 'CF'.date('YmdHis').strtoupper(Str::random(4)).$item->id,
                     'flow_type' => 'receive',
                     'related_id' => $remit->id,
                     'related_type' => 'DeliveryRemit',

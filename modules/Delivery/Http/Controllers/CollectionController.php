@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Modules\Delivery\Models\DeliveryCollection;
 use Modules\Delivery\Models\DeliveryTask;
 
@@ -179,7 +180,7 @@ class CollectionController extends Controller
     {
         $admin = auth('admin')->user();
         DB::table('cash_flows')->insert([
-            'flow_no' => 'CF'.date('YmdHis').strtoupper(\Illuminate\Support\Str::random(4)),
+            'flow_no' => 'CF'.date('YmdHis').strtoupper(Str::random(4)),
             'flow_type' => 'receive',
             'customer_id' => $task->customer_id,
             'supplier_id' => null,

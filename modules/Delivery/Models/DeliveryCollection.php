@@ -27,14 +27,20 @@ class DeliveryCollection extends Model
     ];
 
     const STATUS_PENDING = 'pending';   // 待收款
+
     const STATUS_PARTIAL = 'partial';   // 部分收款
+
     const STATUS_PAID = 'paid';         // 已收款
 
     // 收款方式
     const METHOD_CASH = '现金';
+
     const METHOD_WECHAT = '微信';
+
     const METHOD_ALIPAY = '支付宝';
+
     const METHOD_BANK = '银行卡';
+
     const METHOD_CREDIT = '挂账';
 
     public function task(): BelongsTo

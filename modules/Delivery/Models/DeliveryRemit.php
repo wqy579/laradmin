@@ -29,7 +29,9 @@ class DeliveryRemit extends Model
     ];
 
     const STATUS_PENDING = 'pending';     // 待上交
+
     const STATUS_REMITTED = 'remitted';   // 已上交
+
     const STATUS_CONFIRMED = 'confirmed'; // 已确认
 
     public function items(): HasMany

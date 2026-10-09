@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Modules\Auth\Models\Permission;
 
 /**
  * 注册「配送管理」菜单（独立顶级，7 子菜单），幂等 + 补角色授权。

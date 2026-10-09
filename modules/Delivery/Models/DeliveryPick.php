@@ -26,8 +26,11 @@ class DeliveryPick extends Model
     ];
 
     const STATUS_PENDING = 'pending';   // 待拣货
+
     const STATUS_PICKING = 'picking';   // 拣货中
+
     const STATUS_PICKED = 'picked';     // 已拣货
+
     const STATUS_CANCELLED = 'cancelled'; // 已取消
 
     public function items(): HasMany

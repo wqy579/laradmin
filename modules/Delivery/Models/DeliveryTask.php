@@ -33,13 +33,19 @@ class DeliveryTask extends Model
     ];
 
     const STATUS_PENDING = 'pending';       // 待配送
+
     const STATUS_DELIVERING = 'delivering'; // 配送中
+
     const STATUS_DELIVERED = 'delivered';   // 已送达
+
     const STATUS_PAID = 'paid';             // 已收款
+
     const STATUS_EXCEPTION = 'exception';   // 异常
 
     const EXCEPTION_REJECT = 'reject';     // 客户拒收
+
     const EXCEPTION_DAMAGED = 'damaged';   // 商品破损
+
     const EXCEPTION_ADDRESS = 'address';   // 地址错误
 
     public function load(): BelongsTo
