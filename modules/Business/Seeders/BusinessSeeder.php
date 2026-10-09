@@ -27,6 +27,12 @@ class BusinessSeeder extends Seeder
             ['name' => 'visit', 'title' => '拜访管理', 'parent_id' => 0, 'path' => '/business/route', 'sort' => 9, 'status' => 1, 'meta' => ['icon' => 'ElIconLocation']],
             ['name' => 'miniapp', 'title' => '小程序管理', 'parent_id' => 0, 'path' => '/mp-icons', 'sort' => 10, 'status' => 1, 'meta' => ['icon' => 'ElIconPlatform']],
             ['name' => 'delivery', 'title' => '配送管理', 'parent_id' => 0, 'path' => '/business/delivery-picking', 'sort' => 11, 'status' => 1, 'meta' => ['icon' => 'ElIconVan']],
+            // 车销业务：独立顶级，与配送共用 Van 图标（车辆/物流语义）。
+            // 必须在 Seeder 里定义：AuthSeeder 会 Permission::truncate()，迁移阶段
+            // 注册的 van 菜单连同图标会被清掉，重建完全依赖这里的定义。
+            // 图标必须带 ElIcon 前缀（前端 boot.js 只注册 ElIcon*/AIcon*），
+            // 存 'Van' 会静默渲染成空 <el-icon>（见 VanSalesSeedFeatureTest）。
+            ['name' => 'van', 'title' => '车销业务', 'parent_id' => 0, 'path' => '', 'sort' => 12, 'status' => 1, 'meta' => ['icon' => 'ElIconVan']],
         ];
 
         foreach ($topMenus as $menu) {
@@ -171,6 +177,33 @@ class BusinessSeeder extends Seeder
                 'title' => $menu['title'],
                 'type' => 'menu',
                 'parent_id' => $deliveryTopId,
+                'path' => $menu['path'],
+                'component' => $menu['component'],
+                'sort' => $menu['sort'],
+                'status' => 1,
+            ]);
+        }
+
+        // 车销业务子菜单（8 个页面，对应前端 systemRoutes.js 的 8 条 van 路由）
+        // path / component 必须与前端路由严格对齐，否则菜单点进去 404 或白屏。
+        // 迁移阶段（register_van_menu / register_van_stage2_menu）已注册同名记录，
+        // 但 AuthSeeder 的 truncate 会清掉它们，这里负责全新安装路径的重建。
+        $vanTopId = Permission::where('name', 'van')->value('id');
+        $vanMenus = [
+            ['name' => 'van.requisition', 'title' => '要货申请', 'path' => '/business/van-requisition', 'component' => 'business/van-requisition/index', 'sort' => 1],
+            ['name' => 'van.picking', 'title' => '拣货验货', 'path' => '/business/van-picking', 'component' => 'business/van-picking/index', 'sort' => 2],
+            ['name' => 'van.sale-order', 'title' => '车销销售单', 'path' => '/business/van-sale-order', 'component' => 'business/van-sale-order/index', 'sort' => 3],
+            ['name' => 'van.stock', 'title' => '车上库存', 'path' => '/business/van-stock', 'component' => 'business/van-stock/index', 'sort' => 4],
+            ['name' => 'van.return-order', 'title' => '车销退货单', 'path' => '/business/van-return-order', 'component' => 'business/van-return-order/index', 'sort' => 5],
+            ['name' => 'van.borrow-order', 'title' => '车销借货单', 'path' => '/business/van-borrow-order', 'component' => 'business/van-borrow-order/index', 'sort' => 6],
+            ['name' => 'van.return-borrow-order', 'title' => '车销还货单', 'path' => '/business/van-return-borrow-order', 'component' => 'business/van-return-borrow-order/index', 'sort' => 7],
+            ['name' => 'van.exchange-order', 'title' => '车销换货单', 'path' => '/business/van-exchange-order', 'component' => 'business/van-exchange-order/index', 'sort' => 8],
+        ];
+        foreach ($vanMenus as $menu) {
+            Permission::firstOrCreate(['name' => $menu['name']], [
+                'title' => $menu['title'],
+                'type' => 'menu',
+                'parent_id' => $vanTopId,
                 'path' => $menu['path'],
                 'component' => $menu['component'],
                 'sort' => $menu['sort'],

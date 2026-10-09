@@ -18,6 +18,17 @@
 - 状态：✅ 已完成（PR #14）
 - 下一步：待分配
 
+### 会话 C
+- 分支：feat/van-sales-completion
+- 任务：VanSales 测试套件 + 全新安装菜单缺陷修复 + CI autoload 红灯
+- 状态：🔄 进行中
+- 已完成：
+  - 修复 CI 红灯——composer.json autoload-dev 补齐 Miniapp/Office/Report/VanSales 映射（commit b4ef8f4）
+  - 新增 VanSales 测试套件（40 测试/258 断言）：迁移契约 + 全新安装菜单完整性
+  - 修复 BusinessSeeder 漏写全部 9 条 van 菜单（全新安装后车销 8 页面不可达）
+  - 修复 register_van_menu 图标 'Van' → 'ElIconVan'（前端渲染空图标）
+- 下一步：车上退仓（P0）+ 车销上交货款（P1）
+
 ---
 
 ## 待办任务池

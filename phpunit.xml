@@ -29,6 +29,9 @@
         <testsuite name="Delivery">
             <directory>modules/Delivery/tests</directory>
         </testsuite>
+        <testsuite name="VanSales">
+            <directory>modules/VanSales/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

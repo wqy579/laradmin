@@ -24,7 +24,9 @@ return new class extends Migration
                 'parent_id' => 0,
                 'path' => '',
                 'component' => '',
-                'meta' => json_encode(['icon' => 'Van']),
+                // ElIcon 前缀是前端约定（boot.js 只注册 ElIcon* / AIcon*），
+                // 存 'Van' 会解析不到组件、静默渲染成空 <el-icon>，且与配送的 ElIconVan 不一致。
+                'meta' => json_encode(['icon' => 'ElIconVan']),
                 'sort' => 11,
                 'status' => 1,
                 'created_at' => now(),
