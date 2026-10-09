@@ -123,7 +123,7 @@ class VanSalesMigrationsFeatureTest extends TestCase
         // 迁移 up() 会为每辆已有车辆回填一条 type='vehicle' 的仓库记录（按 vehicle_id 判重幂等）。
         // RefreshDatabase 跑全量 migrate:fresh 时 vehicles 表为空，迁移不回填，
         // 所以这里手动插一辆车再重放回填逻辑，才能真正测到回填行为与幂等性。
-        $plate = 'TEST-0001'.uniqid();
+        $plate = 'T1'.uniqid();
         $vehicle = DB::table('vehicles')->insertGetId([
             'plate_no' => $plate,
             'driver_name' => '测试司机', // vehicles.driver_name NOT NULL
@@ -646,7 +646,7 @@ class VanSalesMigrationsFeatureTest extends TestCase
         // 架构约束：warehouses 加了 type 列后，普通业务下拉必须按 type='normal' 过滤，
         // 否则车辆仓会混进普通仓库选择器。校验回填的车辆仓可按 type 过滤出、
         // 且每条都带 vehicle_id（能回溯到具体车辆）。
-        $plate = 'TEST-0002'.uniqid();
+        $plate = 'T2'.uniqid();
         $vehicle = DB::table('vehicles')->insertGetId([
             'plate_no' => $plate,
             'driver_name' => '测试司机',
