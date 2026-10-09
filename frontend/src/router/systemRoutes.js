@@ -308,6 +308,31 @@ const systemRoutes = [
 				component: () => import('../views/business/statement/index.vue'),
 				meta: { title: 'statement' },
 			},
+			// 车销业务
+			{
+				path: '/business/van-requisition',
+				name: 'VanRequisition',
+				component: () => import('../views/business/van-requisition/index.vue'),
+				meta: { title: 'vanRequisition' },
+			},
+			{
+				path: '/business/van-picking',
+				name: 'VanPicking',
+				component: () => import('../views/business/van-picking/index.vue'),
+				meta: { title: 'vanPicking' },
+			},
+			{
+				path: '/business/van-sale-order',
+				name: 'VanSaleOrder',
+				component: () => import('../views/business/van-sale-order/index.vue'),
+				meta: { title: 'vanSaleOrder' },
+			},
+			{
+				path: '/business/van-stock',
+				name: 'VanStock',
+				component: () => import('../views/business/van-stock/index.vue'),
+				meta: { title: 'vanStock' },
+			},
 			// 权限管理
 			{
 				path: '/auth/permission',

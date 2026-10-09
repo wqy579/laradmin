@@ -446,6 +446,54 @@ const businessApi = {
 		confirm: { post: (id) => request.post(`business/delivery-remit/${id}/confirm`) },
 		unremitSummary: { get: (params) => request.get('business/delivery-remit/unremit-summary', { params }) },
 	},
+
+	// 车销业务：要货申请
+	vanRequisition: {
+		list: { get: (params) => request.get('business/van-requisition', { params }) },
+		detail: { get: (id) => request.get(`business/van-requisition/${id}`) },
+		create: { post: (params) => request.post('business/van-requisition', params) },
+		update: { put: (id, params) => request.put(`business/van-requisition/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/van-requisition/${id}`) },
+		submit: { post: (id) => request.post(`business/van-requisition/${id}/submit`) },
+		approve: { post: (id, params) => request.post(`business/van-requisition/${id}/approve`, params) },
+		reject: { post: (id, params) => request.post(`business/van-requisition/${id}/reject`, params) },
+		cancel: { post: (id) => request.post(`business/van-requisition/${id}/cancel`) },
+		warehouseProducts: { get: (params) => request.get('business/van-requisition/warehouse-products', { params }) },
+		export: (params) => request.get('business/van-requisition/export', { params, responseType: 'blob' }),
+	},
+
+	// 车销业务：拣货（含验货）
+	vanPicking: {
+		list: { get: (params) => request.get('business/van-picking', { params }) },
+		detail: { get: (id) => request.get(`business/van-picking/${id}`) },
+		create: { post: (params) => request.post('business/van-picking', params) },
+		update: { put: (id, params) => request.put(`business/van-picking/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/van-picking/${id}`) },
+		submit: { post: (id) => request.post(`business/van-picking/${id}/submit`) },
+		approve: { post: (id) => request.post(`business/van-picking/${id}/approve`) },
+		check: { post: (id, params) => request.post(`business/van-picking/${id}/check`, params) },
+		cancel: { post: (id) => request.post(`business/van-picking/${id}/cancel`) },
+	},
+
+	// 车销业务：销售单
+	vanSaleOrder: {
+		list: { get: (params) => request.get('business/van-sale-order', { params }) },
+		detail: { get: (id) => request.get(`business/van-sale-order/${id}`) },
+		create: { post: (params) => request.post('business/van-sale-order', params) },
+		update: { put: (id, params) => request.put(`business/van-sale-order/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/van-sale-order/${id}`) },
+		approve: { post: (id) => request.post(`business/van-sale-order/${id}/approve`) },
+		cancel: { post: (id) => request.post(`business/van-sale-order/${id}/cancel`) },
+		vehicleProducts: { get: (params) => request.get('business/van-sale-order/vehicle-products', { params }) },
+		export: (params) => request.get('business/van-sale-order/export', { params, responseType: 'blob' }),
+	},
+
+	// 车销业务：车上库存管理
+	vanStock: {
+		list: { get: (params) => request.get('business/van-stock', { params }) },
+		history: { get: (params) => request.get('business/van-stock/history', { params }) },
+		warning: { get: (params) => request.get('business/van-stock/warning', { params }) },
+	},
 }
 
 export default businessApi
