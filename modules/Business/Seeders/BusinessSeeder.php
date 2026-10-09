@@ -26,6 +26,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'office', 'title' => '办公管理', 'parent_id' => 0, 'path' => '/business/mail', 'sort' => 8, 'status' => 1, 'meta' => ['icon' => 'ElIconMemo']],
             ['name' => 'visit', 'title' => '拜访管理', 'parent_id' => 0, 'path' => '/business/route', 'sort' => 9, 'status' => 1, 'meta' => ['icon' => 'ElIconLocation']],
             ['name' => 'miniapp', 'title' => '小程序管理', 'parent_id' => 0, 'path' => '/mp-icons', 'sort' => 10, 'status' => 1, 'meta' => ['icon' => 'ElIconPlatform']],
+            ['name' => 'delivery', 'title' => '配送管理', 'parent_id' => 0, 'path' => '/business/delivery-picking', 'sort' => 11, 'status' => 1, 'meta' => ['icon' => 'ElIconVan']],
         ];
 
         foreach ($topMenus as $menu) {
@@ -137,6 +138,41 @@ class BusinessSeeder extends Seeder
                 'parent_id' => $parentId,
                 'path' => $menu['path'],
                 'component' => $menu['component'] ?? null,
+                'sort' => $menu['sort'],
+                'status' => 1,
+            ]);
+        }
+
+        // 配送管理（独立顶级，完整配送业务闭环）
+        // 注：与 order.dispatch 旧壳页面并存；本组为新的配货→拣货→验货→装车→任务→收款→上交闭环入口。
+        // 必须在 Seeder 里定义：AuthSeeder 会 truncate auth_permission，迁移阶段补的菜单会被清掉。
+        Permission::firstOrCreate(['name' => 'delivery'], [
+            'title' => '配送管理',
+            'type' => 'menu',
+            'parent_id' => 0,
+            'path' => '/business/delivery-picking',
+            'component' => null,
+            'meta' => ['icon' => 'ElIconVan'],
+            'sort' => 6,
+            'status' => 1,
+        ]);
+        $deliveryTopId = Permission::where('name', 'delivery')->value('id');
+        $deliveryMenus = [
+            ['name' => 'delivery.picking', 'title' => '配货单', 'path' => '/business/delivery-picking', 'component' => 'business/delivery/picking/index', 'sort' => 1],
+            ['name' => 'delivery.pick', 'title' => '拣货单', 'path' => '/business/delivery-pick', 'component' => 'business/delivery/pick/index', 'sort' => 2],
+            ['name' => 'delivery.check', 'title' => '验货单', 'path' => '/business/delivery-check', 'component' => 'business/delivery/check/index', 'sort' => 3],
+            ['name' => 'delivery.load', 'title' => '装车单', 'path' => '/business/delivery-load', 'component' => 'business/delivery/load/index', 'sort' => 4],
+            ['name' => 'delivery.task', 'title' => '配送任务', 'path' => '/business/delivery-task', 'component' => 'business/delivery/task/index', 'sort' => 5],
+            ['name' => 'delivery.collection', 'title' => '配送收款', 'path' => '/business/delivery-collection', 'component' => 'business/delivery/collection/index', 'sort' => 6],
+            ['name' => 'delivery.remit', 'title' => '上交货款', 'path' => '/business/delivery-remit', 'component' => 'business/delivery/remit/index', 'sort' => 7],
+        ];
+        foreach ($deliveryMenus as $menu) {
+            Permission::firstOrCreate(['name' => $menu['name']], [
+                'title' => $menu['title'],
+                'type' => 'menu',
+                'parent_id' => $deliveryTopId,
+                'path' => $menu['path'],
+                'component' => $menu['component'],
                 'sort' => $menu['sort'],
                 'status' => 1,
             ]);

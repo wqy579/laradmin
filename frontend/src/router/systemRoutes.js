@@ -335,6 +335,49 @@ const systemRoutes = [
 			},
 		],
 	},
+	// 配送管理（双保险静态路由，菜单来自后端 auth_permission）
+	{
+		path: '/business/delivery-picking',
+		name: 'DeliveryPicking',
+		component: () => import('../views/business/delivery/picking/index.vue'),
+		meta: { title: '配货单' },
+	},
+	{
+		path: '/business/delivery-pick',
+		name: 'DeliveryPick',
+		component: () => import('../views/business/delivery/pick/index.vue'),
+		meta: { title: '拣货单' },
+	},
+	{
+		path: '/business/delivery-check',
+		name: 'DeliveryCheck',
+		component: () => import('../views/business/delivery/check/index.vue'),
+		meta: { title: '验货单' },
+	},
+	{
+		path: '/business/delivery-load',
+		name: 'DeliveryLoad',
+		component: () => import('../views/business/delivery/load/index.vue'),
+		meta: { title: '装车单' },
+	},
+	{
+		path: '/business/delivery-task',
+		name: 'DeliveryTask',
+		component: () => import('../views/business/delivery/task/index.vue'),
+		meta: { title: '配送任务' },
+	},
+	{
+		path: '/business/delivery-collection',
+		name: 'DeliveryCollection',
+		component: () => import('../views/business/delivery/collection/index.vue'),
+		meta: { title: '配送收款' },
+	},
+	{
+		path: '/business/delivery-remit',
+		name: 'DeliveryRemit',
+		component: () => import('../views/business/delivery/remit/index.vue'),
+		meta: { title: '上交货款' },
+	},
 ]
 
 export default systemRoutes

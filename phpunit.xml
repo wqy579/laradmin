@@ -20,20 +20,14 @@
         <testsuite name="Order">
             <directory>modules/Order/tests</directory>
         </testsuite>
-        <testsuite name="Report">
-            <directory>modules/Report/tests</directory>
-        </testsuite>
-        <testsuite name="Office">
-            <directory>modules/Office/tests</directory>
-        </testsuite>
-        <testsuite name="Miniapp">
-            <directory>modules/Miniapp/tests</directory>
-        </testsuite>
         <testsuite name="Business">
             <directory>modules/Business/tests</directory>
         </testsuite>
         <testsuite name="System">
             <directory>modules/System/tests</directory>
+        </testsuite>
+        <testsuite name="Delivery">
+            <directory>modules/Delivery/tests</directory>
         </testsuite>
     </testsuites>
     <source>

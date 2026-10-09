@@ -29,19 +29,18 @@
       "Hhxsv5\\LaravelS\\": "vendor/hhxsv5/laravel-s/src",
       "Modules\\": "modules/",
       "Modules\\Order\\": "modules/Order/",
-      "Modules\\Stock\\": "modules/Stock/"
+      "Modules\\Stock\\": "modules/Stock/",
+      "Modules\\Delivery\\": "modules/Delivery/"
     }
   },
   "autoload-dev": {
     "psr-4": {
       "Tests\\": "tests/",
-            "Tests\\Auth\\": "modules/Auth/tests/",
-            "Tests\\Report\\": "modules/Report/tests/",
-            "Tests\\Office\\": "modules/Office/tests/",
-            "Tests\\Miniapp\\": "modules/Miniapp/tests/",
-            "Tests\\Order\\": "modules/Order/tests/",
-            "Tests\\Stock\\": "modules/Stock/tests/",
-            "Tests\\System\\": "modules/System/tests/"
+      "Tests\\Auth\\": "modules/Auth/tests/",
+      "Tests\\Order\\": "modules/Order/tests/",
+      "Tests\\Stock\\": "modules/Stock/tests/",
+      "Tests\\Delivery\\": "modules/Delivery/tests/",
+      "Tests\\System\\": "modules/System/tests/"
     }
   },
   "scripts": {
@@ -73,5 +72,10 @@
     }
   },
   "minimum-stability": "stable",
-  "prefer-stable": true
+  "prefer-stable": true,
+  "repositories": [{
+    "name": "packagist",
+    "type": "composer",
+    "url": "https://mirrors.tencent.com/composer/"
+  }]
 }
