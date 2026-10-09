@@ -7,6 +7,7 @@
 				<el-col :span="8"><el-form-item label="换货日期"><el-date-picker v-model="form.exchange_date" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item></el-col>
 			</el-row>
 			<el-row :gutter="16">
+				<el-col :span="12"><el-form-item label="原销售单号"><el-select v-model="form.sales_order_id" placeholder="输入销售单号搜索（可留空）" filterable remote clearable reserve-keyword :remote-method="searchSalesOrder" :loading="soLoading" style="width:100%" @change="onSalesOrderChange" @clear="form.sales_order_no = ''"><el-option v-for="o in salesOrderOptions" :key="o.id" :label="`${o.order_no} / ${o.customer_name || ''}`" :value="o.id" /></el-select></el-form-item></el-col>
 				<el-col :span="12"><el-form-item label="换货原因" required><el-input v-model="form.exchange_reason" placeholder="如：包装破损、口味不符" style="width:100%" /></el-form-item></el-col>
 			</el-row>
 		</el-form>
@@ -42,7 +43,8 @@ import api from '@/api/business.js';
 const emit = defineEmits(['saved']);
 const visible = ref(false); const saving = ref(false);
 const customers = ref([]); const warehouses = ref([]); const outOptions = ref([]); const inOptions = ref([]);
-const form = ref({ id: null, customer_id: null, warehouse_id: null, exchange_date: new Date().toISOString().slice(0, 10), exchange_reason: '', items: [] });
+const salesOrderOptions = ref([]); const soLoading = ref(false);
+const form = ref({ id: null, customer_id: null, warehouse_id: null, sales_order_id: null, sales_order_no: '', exchange_date: new Date().toISOString().slice(0, 10), exchange_reason: '', items: [] });
 const totalOut = computed(() => form.value.items.reduce((s, i) => s + (Number(i.amount_out) || 0), 0).toFixed(2));
 const totalIn = computed(() => form.value.items.reduce((s, i) => s + (Number(i.amount_in) || 0), 0).toFixed(2));
 const totalDiff = computed(() => (Number(totalIn.value) - Number(totalOut.value)).toFixed(2));
@@ -51,11 +53,50 @@ const loadBasics = async () => {
 	const [cRes, wRes, pRes] = await Promise.all([api.customer.list.get({ page_size: 200 }), api.warehouse.list.get({ page_size: 200 }), api.product.list.get({ page_size: 200 })]);
 	customers.value = cRes.data?.list || []; warehouses.value = wRes.data?.list || []; outOptions.value = pRes.data?.list || [];
 };
+// 原销售单号远程搜索（用于带出原商品明细）
+const searchSalesOrder = async (kw) => {
+	if (!kw) { salesOrderOptions.value = []; return; }
+	soLoading.value = true;
+	try {
+		const res = await api.salesOrder.list.get({ order_no: kw, page_size: 20 });
+		salesOrderOptions.value = res.data?.list || [];
+	} finally { soLoading.value = false; }
+};
+// 选中原销售单：自动带出客户/仓库，并把原商品明细填进换出侧（客户退回的商品）
+const onSalesOrderChange = async (id) => {
+	const picked = salesOrderOptions.value.find((o) => o.id === id);
+	form.value.sales_order_no = picked?.order_no || '';
+	if (!id) return;
+	try {
+		const res = await api.exchangeOrder.salesOrderItems.get({ sales_order_id: id });
+		const data = res.data;
+		if (!data) return;
+		if (!form.value.customer_id && data.order?.customer_id) form.value.customer_id = data.order.customer_id;
+		// onWarehouseChange 会清空明细，必须先于填充明细调用
+		if (!form.value.warehouse_id && data.order?.warehouse_id) {
+			form.value.warehouse_id = data.order.warehouse_id;
+			await onWarehouseChange();
+		}
+		form.value.items = (data.items || []).map((i) => ({
+			product_id_out: i.product_id,
+			product_id_in: null,
+			qty: Number(i.quantity) || 1,
+			unit_price_out: Number(i.price) || 0,
+			unit_price_in: 0,
+			amount_out: Number(i.amount) || 0,
+			amount_in: 0,
+			diff: -(Number(i.amount) || 0),
+		}));
+		ElMessage.success(`已带出原销售单 ${data.order?.order_no || ''} 的 ${form.value.items.length} 条商品明细`);
+	} catch (e) {
+		ElMessage.error('带出原销售单明细失败');
+	}
+};
 const onWarehouseChange = async () => { form.value.items = []; inOptions.value = []; if (form.value.warehouse_id) { const res = await api.exchangeOrder.warehouseProducts.get({ warehouse_id: form.value.warehouse_id }); inOptions.value = res.data?.list || []; } };
 const addRow = () => { form.value.items.push({ product_id_out: null, product_id_in: null, qty: 1, unit_price_out: 0, unit_price_in: 0, amount_out: 0, amount_in: 0, diff: 0 }); };
 const onOutChange = (row, pid) => { const p = outOptions.value.find(o => o.id === pid); if (p) { row.unit_price_out = Number(p.price_small) || 0; } calcRow(row); };
 const onInChange = (row, pid) => { const p = inOptions.value.find(o => o.product_id === pid); if (p) { row.unit_price_in = Number(p.price_small) || 0; } calcRow(row); };
-const open = async (row) => { visible.value = true; await loadBasics(); if (row && row.id) { const res = await api.exchangeOrder.detail.get(row.id); const d = res.data; form.value = { id: d.id, customer_id: d.customer_id, warehouse_id: d.warehouse_id, exchange_date: d.exchange_date, exchange_reason: d.exchange_reason, items: (d.items || []).map(i => ({ product_id_out: i.product_id_out, product_id_in: i.product_id_in, qty: i.qty, unit_price_out: i.unit_price_out, unit_price_in: i.unit_price_in, amount_out: Number(i.amount_out) || 0, amount_in: Number(i.amount_in) || 0, diff: Number(i.diff_amount) || 0 })) }; if (form.value.warehouse_id) { const r2 = await api.exchangeOrder.warehouseProducts.get({ warehouse_id: form.value.warehouse_id }); inOptions.value = r2.data?.list || []; } } else { form.value = { id: null, customer_id: null, warehouse_id: null, exchange_date: new Date().toISOString().slice(0, 10), exchange_reason: '', items: [] }; } };
+const open = async (row) => { visible.value = true; await loadBasics(); if (row && row.id) { const res = await api.exchangeOrder.detail.get(row.id); const d = res.data; form.value = { id: d.id, customer_id: d.customer_id, warehouse_id: d.warehouse_id, sales_order_id: d.sales_order_id || null, sales_order_no: d.sales_order_no || '', exchange_date: d.exchange_date, exchange_reason: d.exchange_reason, items: (d.items || []).map(i => ({ product_id_out: i.product_id_out, product_id_in: i.product_id_in, qty: i.qty, unit_price_out: i.unit_price_out, unit_price_in: i.unit_price_in, amount_out: Number(i.amount_out) || 0, amount_in: Number(i.amount_in) || 0, diff: Number(i.diff_amount) || 0 })) }; if (form.value.warehouse_id) { const r2 = await api.exchangeOrder.warehouseProducts.get({ warehouse_id: form.value.warehouse_id }); inOptions.value = r2.data?.list || []; } } else { form.value = { id: null, customer_id: null, warehouse_id: null, sales_order_id: null, sales_order_no: '', exchange_date: new Date().toISOString().slice(0, 10), exchange_reason: '', items: [] }; } };
 const onSave = async () => {
 	if (!form.value.customer_id) return ElMessage.warning('请选择客户');
 	if (!form.value.warehouse_id) return ElMessage.warning('请选择仓库');
@@ -63,12 +104,12 @@ const onSave = async () => {
 	if (!form.value.items.length) return ElMessage.warning('请添加换货明细');
 	const validItems = form.value.items.filter(i => i.product_id_out && i.product_id_in && (Number(i.qty) || 0) > 0);
 	if (!validItems.length) return ElMessage.warning('请录入有效换货明细（换入/换出商品均须选择）');
-	const payload = { customer_id: form.value.customer_id, warehouse_id: form.value.warehouse_id, exchange_date: form.value.exchange_date, exchange_reason: form.value.exchange_reason, items: validItems.map(i => ({ product_id_out: i.product_id_out, product_id_in: i.product_id_in, qty: i.qty, unit_price_out: i.unit_price_out, unit_price_in: i.unit_price_in })) };
+	const payload = { customer_id: form.value.customer_id, warehouse_id: form.value.warehouse_id, sales_order_id: form.value.sales_order_id || null, sales_order_no: form.value.sales_order_no || '', exchange_date: form.value.exchange_date, exchange_reason: form.value.exchange_reason, items: validItems.map(i => ({ product_id_out: i.product_id_out, product_id_in: i.product_id_in, qty: i.qty, unit_price_out: i.unit_price_out, unit_price_in: i.unit_price_in })) };
 	saving.value = true;
 	try { if (form.value.id) { await api.exchangeOrder.update.put(form.value.id, payload); } else { await api.exchangeOrder.create.post(payload); } ElMessage.success('草稿已保存'); visible.value = false; emit('saved'); }
 	catch (e) { ElMessage.error(e.response?.data?.message || '保存失败'); } finally { saving.value = false; }
 };
-const onClose = () => { form.value = { id: null, customer_id: null, warehouse_id: null, exchange_date: new Date().toISOString().slice(0, 10), exchange_reason: '', items: [] }; };
+const onClose = () => { form.value = { id: null, customer_id: null, warehouse_id: null, sales_order_id: null, sales_order_no: '', exchange_date: new Date().toISOString().slice(0, 10), exchange_reason: '', items: [] }; };
 defineExpose({ open });
 </script>
 <style scoped>.amt { color: #f5222d; font-weight: 700; } .summary { margin-top: 12px; text-align: right; font-size: 14px; }</style>

@@ -574,7 +574,7 @@ const businessApi = {
 		pendingBorrowItems: { get: (params) => request.get('business/return-order/pending-borrow-items', { params }) },
 		export: (params) => request.get('business/return-order/export', { params, responseType: 'blob' }),
 	},
-	// 借货汇总
+	// 借还货查询
 	borrowSummary: {
 		index: { get: (params) => request.get('business/borrow-summary', { params }) },
 		customerDetail: { get: (params) => request.get('business/borrow-summary/customer-detail', { params }) },
@@ -594,9 +594,11 @@ const businessApi = {
 		reject: { post: (id, params) => request.post(`business/exchange-order/${id}/reject`, params) },
 		cancel: { post: (id, params) => request.post(`business/exchange-order/${id}/cancel`, params) },
 		warehouseProducts: { get: (params) => request.get('business/exchange-order/warehouse-products', { params }) },
+		// 选原销售单后带出该单商品明细（自动填充「原商品」表格）
+		salesOrderItems: { get: (params) => request.get('business/exchange-order/sales-order-items', { params }) },
 		export: (params) => request.get('business/exchange-order/export', { params, responseType: 'blob' }),
 	},
-	// 换货汇总
+	// 换货查询
 	exchangeSummary: {
 		index: { get: (params) => request.get('business/exchange-summary', { params }) },
 		reasonDistribution: { get: (params) => request.get('business/exchange-summary/reason-distribution', { params }) },
@@ -614,6 +616,11 @@ const businessApi = {
 		inventoryOverview: { get: (params) => request.get('dashboard/inventory-overview', { params }) },
 		inventoryWarning: { get: (params) => request.get('dashboard/inventory-warning', { params }) },
 		salesmanRank: { get: (params) => request.get('dashboard/salesman-rank', { params }) },
+		coreMetrics: { get: (params) => request.get('dashboard/core-metrics', { params }) },
+		productRank: { get: (params) => request.get('dashboard/product-rank', { params }) },
+		regionSales: { get: (params) => request.get('dashboard/region-sales', { params }) },
+		deliveryStatus: { get: (params) => request.get('dashboard/delivery-status', { params }) },
+		financeOverview: { get: (params) => request.get('dashboard/finance-overview', { params }) },
 	},
 }
 

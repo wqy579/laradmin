@@ -14,6 +14,7 @@ class ExchangeOrder extends Model
 
     protected $fillable = [
         'exchange_no', 'customer_id', 'customer_name', 'warehouse_id', 'warehouse_name',
+        'sales_order_id', 'sales_order_no',
         'salesman_id', 'salesman_name', 'exchange_date', 'exchange_reason',
         'total_kinds_out', 'total_kinds_in', 'total_qty_out', 'total_qty_in',
         'amount_out', 'amount_in', 'diff_amount', 'payment_method', 'refund_method',

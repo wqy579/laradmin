@@ -32,7 +32,13 @@ class BorrowReturnFeatureTest extends TestCase
         return ['admin' => $admin, 'customer' => $customer, 'warehouse' => $warehouse, 'p1' => $p1, 'p2' => $p2];
     }
 
-    public function test_borrow_confirm_deducts_stock_and_records_balance(): void
+    /** 库存行：quantity=账面总量，frozen_qty=冻结量，可用=两者之差 */
+    private function stockRow(int $productId, int $warehouseId)
+    {
+        return DB::table('stocks')->where('product_id', $productId)->where('warehouse_id', $warehouseId)->first();
+    }
+
+    public function test_borrow_confirm_freezes_stock_and_records_balance(): void
     {
         $d = $this->seedData();
 
@@ -47,17 +53,43 @@ class BorrowReturnFeatureTest extends TestCase
         $store->assertOk();
         $id = $store->json('data.id');
 
-        $this->assertEquals(100, (int) DB::table('stocks')->where('product_id', $d['p1']->id)->where('warehouse_id', $d['warehouse']->id)->value('quantity'), '草稿不扣库存');
+        $this->assertEquals(100, (int) $this->stockRow($d['p1']->id, $d['warehouse']->id)->quantity, '草稿不动库存');
+        $this->assertEquals(0, (int) $this->stockRow($d['p1']->id, $d['warehouse']->id)->frozen_qty, '草稿不冻结');
 
         $confirm = $this->postJson("/admin/business/borrow-order/{$id}/confirm");
         $confirm->assertOk();
-        $this->assertEquals(90, (int) DB::table('stocks')->where('product_id', $d['p1']->id)->where('warehouse_id', $d['warehouse']->id)->value('quantity'), '确认借货应扣库存');
+
+        // 方案口径：借货确认只「冻结」库存，账面总量 quantity 不减
+        $row = $this->stockRow($d['p1']->id, $d['warehouse']->id);
+        $this->assertEquals(100, (int) $row->quantity, '借货确认不扣减账面库存');
+        $this->assertEquals(10, (int) $row->frozen_qty, '借货确认冻结 10');
         $this->assertEquals(BorrowOrder::STATUS_UNRETURNED, $confirm->json('data.status'));
 
         $this->assertEquals(10, (int) DB::table('customer_borrow_balances')->where('product_id', $d['p1']->id)->where('customer_id', $d['customer']->id)->value('qty'));
     }
 
-    public function test_return_approve_restores_stock_and_updates_status(): void
+    public function test_borrow_cancel_releases_frozen_stock(): void
+    {
+        $d = $this->seedData();
+
+        $id = $this->postJson('/admin/business/borrow-order', [
+            'customer_id' => $d['customer']->id,
+            'warehouse_id' => $d['warehouse']->id,
+            'items' => [['product_id' => $d['p1']->id, 'borrow_qty' => 10, 'unit_price' => 3]],
+        ])->json('data.id');
+        $this->postJson("/admin/business/borrow-order/{$id}/confirm")->assertOk();
+        $this->assertEquals(10, (int) $this->stockRow($d['p1']->id, $d['warehouse']->id)->frozen_qty);
+
+        $cancel = $this->postJson("/admin/business/borrow-order/{$id}/cancel", ['cancel_reason' => '客户取消']);
+        $cancel->assertOk();
+
+        $row = $this->stockRow($d['p1']->id, $d['warehouse']->id);
+        $this->assertEquals(0, (int) $row->frozen_qty, '取消借货应释放冻结');
+        $this->assertEquals(100, (int) $row->quantity, '取消不改变账面总量');
+        $this->assertEquals(BorrowOrder::STATUS_CANCELLED, DB::table('borrow_orders')->where('id', $id)->value('status'));
+    }
+
+    public function test_return_approve_unfreezes_stock_and_updates_status(): void
     {
         $d = $this->seedData();
 
@@ -67,6 +99,7 @@ class BorrowReturnFeatureTest extends TestCase
             'items' => [['product_id' => $d['p1']->id, 'borrow_qty' => 10, 'unit_price' => 3]],
         ])->json('data.id');
         $this->postJson("/admin/business/borrow-order/{$borrow}/confirm")->assertOk();
+        $this->assertEquals(10, (int) $this->stockRow($d['p1']->id, $d['warehouse']->id)->frozen_qty, '借货后冻结 10');
 
         $pending = $this->getJson("/admin/business/return-order/pending-borrow-items?borrow_order_id={$borrow}");
         $pending->assertOk();
@@ -85,7 +118,10 @@ class BorrowReturnFeatureTest extends TestCase
         $approve->assertOk();
         $this->assertEquals(BorrowReturnOrder::STATUS_APPROVED, $approve->json('data.status'));
 
-        $this->assertEquals(94, (int) DB::table('stocks')->where('product_id', $d['p1']->id)->where('warehouse_id', $d['warehouse']->id)->value('quantity'), '完好数量应回库(100-10+4)');
+        // 还货 4：只解冻 4（借货未扣减 quantity，完好归还无需回库），冻结余 6
+        $row = $this->stockRow($d['p1']->id, $d['warehouse']->id);
+        $this->assertEquals(100, (int) $row->quantity, '还货只解冻，账面总量不变');
+        $this->assertEquals(6, (int) $row->frozen_qty, '还 4 后冻结余 6');
         $this->assertEquals(BorrowOrder::STATUS_PARTIAL, DB::table('borrow_orders')->where('id', $borrow)->value('status'), '部分还');
     }
 
@@ -106,6 +142,11 @@ class BorrowReturnFeatureTest extends TestCase
         $this->assertEquals(BorrowOrder::STATUS_CONVERTED, $convert->json('data.status'));
         $this->assertSame(1, DB::table('sales_orders')->where('order_type', 'borrow_convert')->count());
         $this->assertEquals($arBefore + 30, (float) DB::table('customers')->where('id', $d['customer']->id)->value('balance'), '应收账款+30');
+
+        // 转销售 = 解冻 + 实际出库：账面总量减 10、冻结清零
+        $row = $this->stockRow($d['p1']->id, $d['warehouse']->id);
+        $this->assertEquals(90, (int) $row->quantity, '转销售应实际出库');
+        $this->assertEquals(0, (int) $row->frozen_qty, '转销售后冻结清零');
     }
 
     public function test_borrow_summary_endpoints(): void

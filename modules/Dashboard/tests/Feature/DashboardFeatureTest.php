@@ -40,5 +40,65 @@ class DashboardFeatureTest extends TestCase
         $this->getJson('/admin/dashboard/inventory-overview')->assertOk();
         $this->getJson('/admin/dashboard/inventory-warning')->assertOk();
         $this->getJson('/admin/dashboard/salesman-rank')->assertOk();
+        $this->getJson('/admin/dashboard/core-metrics')->assertOk();
+        $this->getJson('/admin/dashboard/product-rank')->assertOk();
+        $this->getJson('/admin/dashboard/region-sales')->assertOk();
+        $this->getJson('/admin/dashboard/delivery-status')->assertOk();
+        $this->getJson('/admin/dashboard/finance-overview')->assertOk();
+    }
+
+    /**
+     * 销售单实际用的是中文状态（已收款/待收款/配送中…），早期大屏只认 approved，
+     * 导致正常销售单一条都统计不到、今日销售额恒为 0。这里守住这个口径。
+     */
+    public function test_metrics_count_chinese_status_sales_orders(): void
+    {
+        $this->actingAsAdmin();
+
+        $warehouse = Warehouse::create(['code' => 'WH1', 'name' => '主仓库', 'type' => 'normal', 'is_active' => true]);
+        $customer = Customer::create(['code' => 'C1', 'name' => '客户', 'address' => '广东省深圳市南山区', 'is_active' => true]);
+        // cost_price 必须设在商品上：利润按 products.cost_price 计算（口径同 ProfitController）
+        $p = Product::create(['name' => '可乐', 'code' => 'P1', 'price_small' => 3, 'price_unit_small' => '瓶', 'cost_price' => 2, 'is_active' => true]);
+        DB::table('stocks')->insert(['product_id' => $p->id, 'warehouse_id' => $warehouse->id, 'quantity' => 50, 'cost_price' => 2]);
+
+        DB::table('sales_orders')->insert([
+            'order_no' => 'XS1',
+            'customer_id' => $customer->id,
+            'warehouse_id' => $warehouse->id,
+            'order_date' => now()->toDateString(),
+            'total_qty' => 10,
+            'total_amount' => 100,
+            'status' => '已收款',
+        ]);
+        DB::table('sales_order_items')->insert([
+            'sales_order_id' => 1,
+            'product_id' => $p->id,
+            'quantity' => 10,
+            'price' => 10,
+            'amount' => 100,
+        ]);
+
+        $res = $this->getJson('/admin/dashboard/metrics');
+        $res->assertOk();
+        $this->assertEquals(100, (float) $res->json('data.today_sales'), '中文状态(已收款)的销售单必须计入今日销售额');
+        $this->assertEquals(1, (int) $res->json('data.today_order_count'));
+
+        // 核心指标：总订单数/总销售额/总利润（利润 = 销售额 - 数量×成本价 = 100 - 10×2）
+        $core = $this->getJson('/admin/dashboard/core-metrics');
+        $core->assertOk();
+        $this->assertEquals(1, (int) $core->json('data.total_order_count'));
+        $this->assertEquals(100, (float) $core->json('data.total_sales_amount'));
+        $this->assertEquals(80, (float) $core->json('data.total_profit'));
+
+        // 地区销售：从客户地址里解析出「广东」
+        $region = $this->getJson('/admin/dashboard/region-sales');
+        $region->assertOk();
+        $this->assertContains('广东', collect($region->json('data.list'))->pluck('name')->all());
+
+        // 配送状态：已收款归入「已完成」
+        $delivery = $this->getJson('/admin/dashboard/delivery-status');
+        $delivery->assertOk();
+        $done = collect($delivery->json('data.list'))->firstWhere('name', '已完成');
+        $this->assertEquals(1, (int) $done['value']);
     }
 }

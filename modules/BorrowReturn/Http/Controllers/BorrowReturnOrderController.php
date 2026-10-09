@@ -410,7 +410,7 @@ class BorrowReturnOrderController extends Controller
         return $this->success(null, '已删除');
     }
 
-    /** 审核还货（pending → approved）：完好回库 + 减借货余额 + 破损生成报损单 */
+    /** 审核还货（pending → approved）：解冻借货冻结量 + 减借货余额 + 破损出库并生成报损单 */
     public function approve($id)
     {
         $order = BorrowReturnOrder::with('items')->find($id);
@@ -442,15 +442,26 @@ class BorrowReturnOrderController extends Controller
                     if ($returnQty <= 0) {
                         continue;
                     }
-                    // 完好数量回库
-                    if ((int) $item->good_qty > 0) {
-                        $this->stockService->stockIn(
+                    // 方案口径：借货时只冻结、未扣减 quantity，所以完好归还只需解冻，
+                    // 不需要再入库（账面总量本来就没变）。
+                    $this->stockService->unfreeze(
+                        (int) $item->product_id,
+                        $whId,
+                        $returnQty,
+                        (int) $order->id,
+                        'BorrowReturnOrder',
+                        'borrow_unfreeze',
+                        '还货解冻'
+                    );
+                    // 破损部分不再归还：解冻后实际出库，随后生成报损单
+                    if ((int) $item->bad_qty > 0) {
+                        $this->stockService->stockOut(
                             (int) $item->product_id,
                             $whId,
-                            (int) $item->good_qty,
-                            null,
+                            (int) $item->bad_qty,
                             (int) $order->id,
-                            'BorrowReturnOrder'
+                            'BorrowReturnOrder',
+                            '还货破损出库'
                         );
                     }
                     // 减客户借货余额（按总还货数量）
@@ -489,7 +500,7 @@ class BorrowReturnOrderController extends Controller
             return $this->error('审核还货失败：'.$e->getMessage(), 422);
         }
 
-        return $this->success($order->load('items', 'customer', 'warehouse', 'borrowOrder'), '还货已审核，库存已更新');
+        return $this->success($order->load('items', 'customer', 'warehouse', 'borrowOrder'), '还货已审核，冻结库存已释放');
     }
 
     public function cancel($id, Request $request)

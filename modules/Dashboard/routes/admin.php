@@ -18,5 +18,11 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/inventory-overview', [DashboardController::class, 'inventoryOverview']);
         Route::get('/inventory-warning', [DashboardController::class, 'inventoryWarning']);
         Route::get('/salesman-rank', [DashboardController::class, 'salesmanRank']);
+        // 大屏新增：核心指标（总额+环比）、商品销量排行、地区销售（地图热力）、配送状态、财务概览
+        Route::get('/core-metrics', [DashboardController::class, 'coreMetrics']);
+        Route::get('/product-rank', [DashboardController::class, 'productRank']);
+        Route::get('/region-sales', [DashboardController::class, 'regionSales']);
+        Route::get('/delivery-status', [DashboardController::class, 'deliveryStatus']);
+        Route::get('/finance-overview', [DashboardController::class, 'financeOverview']);
     });
 });

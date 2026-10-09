@@ -1965,6 +1965,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/exchange-order/sales-order-items",
+        "name": "admin.",
+        "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@salesOrderItems",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/exchange-order/warehouse-products",
         "name": "admin.",
         "action": "Modules\\Exchange\\Http\\Controllers\\ExchangeOrderController@warehouseProducts",
@@ -6057,9 +6069,45 @@
     },
     {
         "method": "GET",
+        "uri": "admin/dashboard/core-metrics",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@coreMetrics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/dashboard/customer-rank",
         "name": "admin.",
         "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@customerRank",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/delivery-status",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@deliveryStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/finance-overview",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@financeOverview",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -6105,9 +6153,33 @@
     },
     {
         "method": "GET",
+        "uri": "admin/dashboard/product-rank",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@productRank",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/dashboard/realtime-orders",
         "name": "admin.",
         "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@realtimeOrders",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/region-sales",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@regionSales",
         "middleware": [
             "api",
             "stock.snapshot",

@@ -220,9 +220,9 @@ class StockService
      * 冻结库存：累加冻结数量（不动 quantity 总量），可用 = quantity - frozen_qty。
      * 之前 freeze 同时减 quantity 加 frozen，导致同商品多行时可用被双重扣（第二行 quantity 已减、frozen 又加，可用 = (q-N)-(f+N) = q-f-2N）。改为只加 frozen，可用口径正确。
      */
-    public function freeze(int $productId, int $warehouseId, int $quantity, int $orderId): Stock
+    public function freeze(int $productId, int $warehouseId, int $quantity, int $orderId, string $relatedType = 'SalesOrder', string $changeType = 'sale_freeze', string $remark = '销售订单冻结'): Stock
     {
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId) {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId, $relatedType, $changeType, $remark) {
             $stock = Stock::where('product_id', $productId)
                 ->where('warehouse_id', $warehouseId)
                 ->lockForUpdate()
@@ -242,8 +242,8 @@ class StockService
 
             // 流水记冻结量变化：before=frozen_qty 冻结前, after=frozen_qty 冻结后, change_qty=冻结量(正)
             $this->recordHistory(
-                $productId, $warehouseId, 'sale_freeze', $quantity,
-                $beforeFrozen, (int) $stock->frozen_qty, $orderId, 'SalesOrder', '销售订单冻结'
+                $productId, $warehouseId, $changeType, $quantity,
+                $beforeFrozen, (int) $stock->frozen_qty, $orderId, $relatedType, $remark
             );
 
             $this->syncProductStockQty($productId);
@@ -255,9 +255,9 @@ class StockService
     /**
      * 解冻库存：减少冻结数量（不动 quantity），与 freeze 对称。
      */
-    public function unfreeze(int $productId, int $warehouseId, int $quantity, int $orderId): ?Stock
+    public function unfreeze(int $productId, int $warehouseId, int $quantity, int $orderId, string $relatedType = 'SalesOrder', string $changeType = 'sale_unfreeze', string $remark = '销售订单解冻'): ?Stock
     {
-        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId) {
+        return DB::transaction(function () use ($productId, $warehouseId, $quantity, $orderId, $relatedType, $changeType, $remark) {
             $stock = Stock::where('product_id', $productId)
                 ->where('warehouse_id', $warehouseId)
                 ->lockForUpdate()
@@ -273,8 +273,8 @@ class StockService
 
             // 解冻：before/after 记 frozen_qty，change_qty 负数（释放冻结）
             $this->recordHistory(
-                $productId, $warehouseId, 'sale_unfreeze', -$quantity,
-                $beforeFrozen, (int) $stock->frozen_qty, $orderId, 'SalesOrder', '销售订单解冻'
+                $productId, $warehouseId, $changeType, -$quantity,
+                $beforeFrozen, (int) $stock->frozen_qty, $orderId, $relatedType, $remark
             );
 
             $this->syncProductStockQty($productId);

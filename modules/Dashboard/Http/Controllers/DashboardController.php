@@ -17,11 +17,21 @@ class DashboardController extends Controller
 {
     use ResponseTrait;
 
+    /**
+     * 计入销售统计的订单状态。
+     *
+     * ⚠️ 销售单实际用的是中文状态（pending / 配货中 / 待调度 / 待配送 / 配送中 /
+     * 已收款 / 待收款），只有「借货转销售」生成的单是 approved。早期这里只写
+     * approved，导致大屏的今日销售额、订单数永远是 0——正常销售单一条都没统计到。
+     * 这里与 SalesOrderController 的口径（已收款 / 待收款）对齐，并兼容转销售单。
+     */
+    private const SALES_STATUS = ['已收款', '待收款', 'approved', 'completed'];
+
     /** 核心指标看板 */
     public function metrics(Request $request)
     {
         $today = now()->toDateString();
-        $approved = ['approved'];
+        $approved = self::SALES_STATUS;
 
         $todaySales = (float) DB::table('sales_orders')
             ->whereIn('status', $approved)
@@ -79,7 +89,7 @@ class DashboardController extends Controller
 
         $list = DB::table('sales_orders as so')
             ->leftJoin('customers as c', 'c.id', '=', 'so.customer_id')
-            ->where('so.status', 'approved')
+            ->whereIn('so.status', self::SALES_STATUS)
             ->orderByDesc('so.id')
             ->limit($limit)
             ->get([
@@ -108,7 +118,7 @@ class DashboardController extends Controller
             ->join('sales_orders as so', 'so.id', '=', 'soi.sales_order_id')
             ->join('products as p', 'p.id', '=', 'soi.product_id')
             ->leftJoin('brands as b', 'b.id', '=', 'p.brand_id')
-            ->where('so.status', 'approved')
+            ->whereIn('so.status', self::SALES_STATUS)
             ->select(DB::raw('COALESCE(b.name, "其他") as category'), DB::raw('SUM(soi.amount) as amount'))
             ->groupBy(DB::raw('COALESCE(b.name, "其他")'))
             ->orderByDesc('amount')
@@ -135,7 +145,7 @@ class DashboardController extends Controller
         $start = now()->subDays($days - 1)->startOfDay();
 
         $rows = DB::table('sales_orders')
-            ->where('status', 'approved')
+            ->whereIn('status', self::SALES_STATUS)
             ->where('order_date', '>=', $start->toDateString())
             ->select(DB::raw('DATE(order_date) as d'), DB::raw('SUM(total_amount) as amount'), DB::raw('COUNT(*) as orders'))
             ->groupBy('d')
@@ -161,7 +171,7 @@ class DashboardController extends Controller
 
         $rows = DB::table('sales_orders as so')
             ->leftJoin('customers as c', 'c.id', '=', 'so.customer_id')
-            ->where('so.status', 'approved')
+            ->whereIn('so.status', self::SALES_STATUS)
             ->whereDate('so.order_date', $today)
             ->select('so.customer_id', 'c.name as customer_name', DB::raw('SUM(so.total_amount) as amount'))
             ->groupBy('so.customer_id', 'c.name')
@@ -253,7 +263,7 @@ class DashboardController extends Controller
 
         $rows = DB::table('sales_orders as so')
             ->leftJoin('auth_user as u', 'u.id', '=', 'so.salesman_id')
-            ->where('so.status', 'approved')
+            ->whereIn('so.status', self::SALES_STATUS)
             ->whereDate('so.order_date', $today)
             ->select('so.salesman_id', 'u.real_name as salesman_name', DB::raw('SUM(so.total_amount) as amount'))
             ->groupBy('so.salesman_id', 'u.real_name')
@@ -270,5 +280,194 @@ class DashboardController extends Controller
                 'rate' => 0,
             ];
         })]);
+    }
+
+    /**
+     * 核心指标（中间栏 4 张卡）：总客户数 / 总订单数 / 总销售额 / 总利润 + 环比。
+     * 环比 = 今日较昨日的变化率（%）；客户数用今日新增数表示增长。
+     */
+    public function coreMetrics(Request $request)
+    {
+        $today = now()->toDateString();
+        $yesterday = now()->subDay()->toDateString();
+
+        $totalCustomerCount = (int) DB::table('customers')->where('is_active', 1)->count();
+
+        $agg = DB::table('sales_orders')
+            ->whereIn('status', self::SALES_STATUS)
+            ->select(DB::raw('COUNT(*) as cnt'), DB::raw('SUM(total_amount) as amount'))
+            ->first();
+        $totalOrderCount = (int) ($agg->cnt ?? 0);
+        $totalSalesAmount = (float) ($agg->amount ?? 0);
+
+        // 利润 = 销售额 - 销售成本（数量 × 商品成本价），成本口径同 ProfitController
+        $totalCost = $this->costBetween(null, null);
+        $todayCost = $this->costBetween($today, $today);
+        $yesterdayCost = $this->costBetween($yesterday, $yesterday);
+
+        $dayAgg = function (string $date) {
+            return DB::table('sales_orders')
+                ->whereIn('status', self::SALES_STATUS)
+                ->whereDate('order_date', $date)
+                ->select(DB::raw('COUNT(*) as cnt'), DB::raw('SUM(total_amount) as amount'))
+                ->first();
+        };
+        $t = $dayAgg($today);
+        $y = $dayAgg($yesterday);
+
+        $todayOrders = (int) ($t->cnt ?? 0);
+        $todaySales = (float) ($t->amount ?? 0);
+        $yOrders = (int) ($y->cnt ?? 0);
+        $ySales = (float) ($y->amount ?? 0);
+
+        return $this->success([
+            'total_customer_count' => $totalCustomerCount,
+            'total_order_count' => $totalOrderCount,
+            'total_sales_amount' => round($totalSalesAmount, 2),
+            'total_profit' => round($totalSalesAmount - $totalCost, 2),
+            'order_ratio' => $this->growthRate($todayOrders, $yOrders),
+            'sales_ratio' => $this->growthRate($todaySales, $ySales),
+            'profit_ratio' => $this->growthRate($todaySales - $todayCost, $ySales - $yesterdayCost),
+            'customer_growth' => (int) DB::table('customers')->whereDate('created_at', $today)->count(),
+            // 客单价 = 今日销售额 / 今日订单数
+            'avg_order_amount' => $todayOrders > 0 ? round($todaySales / $todayOrders, 2) : 0,
+        ]);
+    }
+
+    /** 销售成本：可限定日期区间（传 null 表示不限），用于算利润 */
+    private function costBetween(?string $from, ?string $to): float
+    {
+        $q = DB::table('sales_order_items as soi')
+            ->join('sales_orders as so', 'so.id', '=', 'soi.sales_order_id')
+            ->join('products as p', 'p.id', '=', 'soi.product_id')
+            ->whereIn('so.status', self::SALES_STATUS);
+
+        if ($from !== null) {
+            $q->whereDate('so.order_date', '>=', $from);
+        }
+        if ($to !== null) {
+            $q->whereDate('so.order_date', '<=', $to);
+        }
+
+        return (float) $q->sum(DB::raw('soi.quantity * COALESCE(p.cost_price, 0)'));
+    }
+
+    /** 增长率（%）：基期为 0 时，本期 >0 记 100（全量增长），否则 0 */
+    private function growthRate(float $current, float $base): float
+    {
+        if ($base <= 0) {
+            return $current > 0 ? 100.0 : 0.0;
+        }
+
+        return round(($current - $base) / $base * 100, 1);
+    }
+
+    /** 商品销量排行 TOP10（按销售数量，横向柱状图用） */
+    public function productRank(Request $request)
+    {
+        $limit = min(20, max(5, $request->integer('limit', 10)));
+
+        $rows = DB::table('sales_order_items as soi')
+            ->join('sales_orders as so', 'so.id', '=', 'soi.sales_order_id')
+            ->join('products as p', 'p.id', '=', 'soi.product_id')
+            ->whereIn('so.status', self::SALES_STATUS)
+            ->select('p.id as product_id', 'p.name as product_name', DB::raw('SUM(soi.quantity) as qty'), DB::raw('SUM(soi.amount) as amount'))
+            ->groupBy('p.id', 'p.name')
+            ->orderByDesc('qty')
+            ->limit($limit)
+            ->get();
+
+        return $this->success(['list' => $rows->map(fn ($r) => [
+            'product_id' => $r->product_id,
+            'product_name' => $r->product_name,
+            'qty' => (int) $r->qty,
+            'amount' => round((float) $r->amount, 2),
+        ])]);
+    }
+
+    /**
+     * 按地区（省份）汇总销售额，供大屏地图热力使用。
+     *
+     * 客户表没有独立省份字段，只有 address，这里用省级行政区名匹配地址文本，
+     * 匹配不到归入「未知」。是尽力而为的解析——将来客户表若加 province 字段，
+     * 改成按该字段 group by 即可。返回名与前端 china.json 的省份名保持一致。
+     */
+    public function regionSales(Request $request)
+    {
+        $provinces = ['北京', '天津', '上海', '重庆', '河北', '山西', '辽宁', '吉林', '黑龙江', '江苏', '浙江', '安徽', '福建', '江西', '山东', '河南', '湖北', '湖南', '广东', '海南', '四川', '贵州', '云南', '陕西', '甘肃', '青海', '内蒙古', '广西', '西藏', '宁夏', '新疆'];
+
+        $rows = DB::table('sales_orders as so')
+            ->join('customers as c', 'c.id', '=', 'so.customer_id')
+            ->whereIn('so.status', self::SALES_STATUS)
+            ->get(['c.address', 'so.total_amount']);
+
+        $bucket = [];
+        foreach ($rows as $r) {
+            $addr = (string) ($r->address ?? '');
+            $hit = null;
+            foreach ($provinces as $pv) {
+                if ($addr !== '' && str_contains($addr, $pv)) {
+                    $hit = $pv;
+                    break;
+                }
+            }
+            $key = $hit ?? '未知';
+            $bucket[$key] = ($bucket[$key] ?? 0) + (float) $r->total_amount;
+        }
+
+        $list = [];
+        foreach ($bucket as $name => $amount) {
+            $list[] = ['name' => $name, 'value' => round($amount, 2)];
+        }
+        usort($list, fn ($a, $b) => $b['value'] <=> $a['value']);
+
+        return $this->success(['list' => $list, 'max' => $list[0]['value'] ?? 0]);
+    }
+
+    /** 配送状态统计：待配送 / 配送中 / 已完成（环形图展示占比） */
+    public function deliveryStatus(Request $request)
+    {
+        // 已完成包含借货转销售生成的 approved，避免这部分单子在哪都不显示
+        $groups = [
+            '待配送' => ['待配送'],
+            '配送中' => ['配送中'],
+            '已完成' => ['已收款', 'approved', 'completed'],
+        ];
+
+        $list = [];
+        foreach ($groups as $label => $statuses) {
+            $list[] = [
+                'name' => $label,
+                'value' => (int) DB::table('sales_orders')->whereIn('status', $statuses)->count(),
+            ];
+        }
+
+        return $this->success(['list' => $list, 'total' => array_sum(array_column($list, 'value'))]);
+    }
+
+    /** 财务概览：今日收款 / 今日付款 / 应收账款 / 应付账款 */
+    public function financeOverview(Request $request)
+    {
+        $today = now()->toDateString();
+
+        // 收款/付款口径同 ProfitController：status=1 表示已生效
+        $todayReceive = (float) DB::table('receives')->where('status', 1)->whereDate('receive_date', $today)->sum('amount');
+        $todayPay = (float) DB::table('pays')->where('status', 1)->whereDate('pay_date', $today)->sum('amount');
+
+        // 应收账款 = 已发货未收款订单的未收部分
+        $receivable = (float) DB::table('sales_orders')
+            ->whereIn('status', ['配送中', '待收款'])
+            ->whereRaw('paid_amount < total_amount')
+            ->sum(DB::raw('total_amount - paid_amount'));
+
+        // 应付账款 = 未付款的付款单
+        $payable = (float) DB::table('pays')->where('status', 0)->sum('amount');
+
+        return $this->success([
+            'today_receive' => round($todayReceive, 2),
+            'today_pay' => round($todayPay, 2),
+            'receivable' => round($receivable, 2),
+            'payable' => round($payable, 2),
+        ]);
     }
 }

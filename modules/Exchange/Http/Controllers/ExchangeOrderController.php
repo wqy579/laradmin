@@ -53,6 +53,64 @@ class ExchangeOrderController extends Controller
         return $this->success(['list' => $products, 'total' => $products->count()]);
     }
 
+    /**
+     * 按「原销售单号」带出该单的商品明细，供新增换货单弹窗自动填充「原商品」表格。
+     *
+     * 只做读取、不校验库存：换出商品是客户退回来的（入库），不占用可用库存。
+     * 支持按 id 或单号查询，前端选择销售单后传 id 更稳妥。
+     */
+    public function salesOrderItems(Request $request)
+    {
+        $request->validate([
+            'sales_order_id' => 'nullable|integer',
+            'sales_order_no' => 'required_without:sales_order_id|string|max:40',
+        ]);
+
+        $query = DB::table('sales_orders as so');
+        if ($request->filled('sales_order_id')) {
+            $query->where('so.id', (int) $request->input('sales_order_id'));
+        } else {
+            $query->where('so.order_no', trim((string) $request->input('sales_order_no')));
+        }
+
+        $order = $query->first(['so.id', 'so.order_no', 'so.customer_id', 'so.warehouse_id', 'so.order_date', 'so.status']);
+        if (! $order) {
+            return $this->notFound('未找到该销售单');
+        }
+
+        $customerId = (int) $order->customer_id;
+        $items = DB::table('sales_order_items as si')
+            ->join('products as p', 'si.product_id', '=', 'p.id')
+            ->where('si.sales_order_id', (int) $order->id)
+            ->orderBy('si.id')
+            ->get([
+                'si.id as sales_order_item_id', 'si.product_id',
+                'p.code as product_code', 'p.name as product_name', 'p.spec',
+                'p.price_unit_small as unit',
+                'si.quantity', 'si.price', 'si.amount',
+            ])
+            ->map(function ($r) {
+                $r->quantity = (int) $r->quantity;
+                $r->price = (float) $r->price;
+                $r->amount = (float) $r->amount;
+
+                return $r;
+            });
+
+        return $this->success([
+            'order' => [
+                'id' => (int) $order->id,
+                'order_no' => $order->order_no,
+                'customer_id' => $customerId,
+                'customer_name' => DB::table('customers')->where('id', $customerId)->value('name'),
+                'warehouse_id' => (int) $order->warehouse_id,
+                'order_date' => $order->order_date,
+                'status' => $order->status,
+            ],
+            'items' => $items,
+        ]);
+    }
+
     public function index(Request $request)
     {
         $query = $this->applyFilters(ExchangeOrder::with(['customer', 'warehouse']), $request);
@@ -178,6 +236,9 @@ class ExchangeOrderController extends Controller
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
+            // 关联原销售单（选单号后自动带出原商品明细），可为空表示无原单
+            'sales_order_id' => 'nullable|integer',
+            'sales_order_no' => 'nullable|string|max:40',
             'exchange_date' => 'nullable|date',
             'exchange_reason' => 'nullable|string|max:40',
             'remark' => 'nullable|string|max:500',
@@ -209,6 +270,8 @@ class ExchangeOrderController extends Controller
                     'exchange_no' => $this->generateNo('HH', 'exchange_orders', 'exchange_no'),
                     'customer_id' => $customerId,
                     'customer_name' => DB::table('customers')->where('id', $customerId)->value('name'),
+                    'sales_order_id' => $validated['sales_order_id'] ?? null,
+                    'sales_order_no' => $validated['sales_order_no'] ?? null,
                     'warehouse_id' => $whId,
                     'warehouse_name' => DB::table('warehouses')->where('id', $whId)->value('name'),
                     'salesman_id' => $adminId,
@@ -254,6 +317,9 @@ class ExchangeOrderController extends Controller
         $validated = $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'warehouse_id' => 'required|exists:warehouses,id',
+            // 关联原销售单（选单号后自动带出原商品明细），可为空表示无原单
+            'sales_order_id' => 'nullable|integer',
+            'sales_order_no' => 'nullable|string|max:40',
             'exchange_date' => 'nullable|date',
             'exchange_reason' => 'nullable|string|max:40',
             'remark' => 'nullable|string|max:500',
@@ -288,6 +354,8 @@ class ExchangeOrderController extends Controller
                 $order->update([
                     'customer_id' => $customerId,
                     'customer_name' => DB::table('customers')->where('id', $customerId)->value('name'),
+                    'sales_order_id' => $validated['sales_order_id'] ?? null,
+                    'sales_order_no' => $validated['sales_order_no'] ?? null,
                     'warehouse_id' => $whId,
                     'warehouse_name' => DB::table('warehouses')->where('id', $whId)->value('name'),
                     'exchange_date' => $validated['exchange_date'] ?? $order->exchange_date?->toDateString() ?? now()->toDateString(),

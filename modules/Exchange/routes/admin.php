@@ -12,7 +12,9 @@ use Modules\Exchange\Http\Controllers\ExchangeSummaryController;
 Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 换货单
     Route::prefix('business/exchange-order')->group(function () {
+        // 必须在 /{id} 之前注册，否则会被 /{id} 抢先匹配
         Route::get('/warehouse-products', [ExchangeOrderController::class, 'warehouseProducts']);
+        Route::get('/sales-order-items', [ExchangeOrderController::class, 'salesOrderItems']);
         Route::get('/export', [ExchangeOrderController::class, 'export']);
         Route::get('/', [ExchangeOrderController::class, 'index']);
         Route::post('/', [ExchangeOrderController::class, 'store']);

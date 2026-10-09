@@ -309,7 +309,7 @@ class BorrowOrderController extends Controller
         return $this->success(null, '已删除');
     }
 
-    /** 确认借货（draft → unreturned）：扣库存 + 增客户借货余额 */
+    /** 确认借货（draft → unreturned）：冻结库存（不扣减 quantity）+ 增客户借货余额 */
     public function confirm($id)
     {
         $order = BorrowOrder::with('items')->find($id);
@@ -332,13 +332,17 @@ class BorrowOrderController extends Controller
                     if ($qty <= 0) {
                         continue;
                     }
-                    $this->stockService->stockOut(
+                    // 方案口径：借货确认只「冻结」库存（quantity 不减，frozen_qty 增加），
+                    // 可用库存 = quantity - frozen_qty；还货时再解冻。与直接扣减的区别是
+                    // 账面总量不变，借出的货仍计在本仓库，只是不可再动用。
+                    $this->stockService->freeze(
                         (int) $item->product_id,
                         (int) $order->warehouse_id,
                         $qty,
                         (int) $order->id,
                         'BorrowOrder',
-                        '借货出库'
+                        'borrow_freeze',
+                        '借货冻结'
                     );
                     $this->increaseBorrowBalance((int) $order->customer_id, (int) $item->product_id, $qty);
                 }
@@ -350,10 +354,10 @@ class BorrowOrderController extends Controller
             return $this->error('确认借货失败：'.$e->getMessage(), 422);
         }
 
-        return $this->success($order->load('items', 'customer', 'warehouse'), '已确认借货，库存已扣减');
+        return $this->success($order->load('items', 'customer', 'warehouse'), '已确认借货，库存已冻结');
     }
 
-    /** 取消借货（仅未还）：恢复库存 + 清零借货余额 */
+    /** 取消借货（仅未还）：释放冻结库存 + 清零借货余额 */
     public function cancel($id, Request $request)
     {
         $order = BorrowOrder::with('items')->find($id);
@@ -374,13 +378,15 @@ class BorrowOrderController extends Controller
                     if ($qty <= 0) {
                         continue;
                     }
-                    $this->stockService->stockIn(
+                    // 取消借货：释放借货时冻结的库存（不是回库，quantity 本来就没动）
+                    $this->stockService->unfreeze(
                         (int) $item->product_id,
                         (int) $order->warehouse_id,
                         $qty,
-                        null,
                         (int) $order->id,
-                        'BorrowOrderCancel'
+                        'BorrowOrder',
+                        'borrow_unfreeze',
+                        '取消借货解冻'
                     );
                     $this->decreaseBorrowBalance((int) $order->customer_id, (int) $item->product_id, $qty);
                 }
@@ -396,12 +402,12 @@ class BorrowOrderController extends Controller
             return $this->error('取消借货失败：'.$e->getMessage(), 422);
         }
 
-        return $this->success($order, '借货单已取消，库存已恢复');
+        return $this->success($order, '借货单已取消，冻结库存已释放');
     }
 
     /**
      * 转销售（仅未还）：生成销售单，金额=借货金额，客户应收账款增加，借货余额清零。
-     * 借货时库存已扣减，转销售不再重复扣库存。
+     * 借货时只冻结了库存，转销售需先解冻再实际出库，否则账面库存永远出不去。
      */
     public function convert($id)
     {
@@ -418,51 +424,81 @@ class BorrowOrderController extends Controller
 
         [$adminId, $adminName] = $this->currentAdmin();
 
-        DB::transaction(function () use ($order, $adminId, $adminName) {
-            $salesOrder = SalesOrder::create([
-                'order_no' => $this->generateNo('XS', 'sales_orders', 'order_no'),
-                'order_type' => 'borrow_convert',
-                'customer_id' => $order->customer_id,
-                'warehouse_id' => $order->warehouse_id,
-                'order_date' => now()->toDateString(),
-                'total_qty' => $order->total_qty,
-                'total_amount' => $order->total_amount,
-                'paid_amount' => 0,
-                'status' => 'approved',
-                'salesman_id' => $order->salesman_id,
-                'salesman_name' => $order->salesman_name,
-                'created_by' => $adminId,
-                'remark' => '借货转销售-'.$order->borrow_no,
-                'payment_status' => 'unpaid',
-            ]);
+        try {
+            DB::transaction(function () use ($order, $adminId, $adminName) {
+                // 借货时只冻结了库存（quantity 未减），转销售等于货物真正卖出：
+                // 先解冻释放冻结量，再实际出库减 quantity。
+                foreach ($order->items as $item) {
+                    $qty = (int) $item->borrow_qty;
+                    if ($qty <= 0) {
+                        continue;
+                    }
+                    $this->stockService->unfreeze(
+                        (int) $item->product_id,
+                        (int) $order->warehouse_id,
+                        $qty,
+                        (int) $order->id,
+                        'BorrowOrder',
+                        'borrow_unfreeze',
+                        '转销售解冻'
+                    );
+                    $this->stockService->stockOut(
+                        (int) $item->product_id,
+                        (int) $order->warehouse_id,
+                        $qty,
+                        (int) $order->id,
+                        'BorrowOrderConvert',
+                        '转销售出库'
+                    );
+                }
 
-            $itemRows = [];
-            foreach ($order->items as $item) {
-                $itemRows[] = [
-                    'sales_order_id' => $salesOrder->id,
-                    'product_id' => $item->product_id,
-                    'quantity' => $item->borrow_qty,
-                    'actual_qty' => $item->borrow_qty,
-                    'price' => $item->unit_price,
-                    'amount' => $item->amount,
-                    'remark' => $item->remark,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-            SalesOrderItem::insert($itemRows);
+                $salesOrder = SalesOrder::create([
+                    'order_no' => $this->generateNo('XS', 'sales_orders', 'order_no'),
+                    'order_type' => 'borrow_convert',
+                    'customer_id' => $order->customer_id,
+                    'warehouse_id' => $order->warehouse_id,
+                    'order_date' => now()->toDateString(),
+                    'total_qty' => $order->total_qty,
+                    'total_amount' => $order->total_amount,
+                    'paid_amount' => 0,
+                    'status' => 'approved',
+                    'salesman_id' => $order->salesman_id,
+                    'salesman_name' => $order->salesman_name,
+                    'created_by' => $adminId,
+                    'remark' => '借货转销售-'.$order->borrow_no,
+                    'payment_status' => 'unpaid',
+                ]);
 
-            // 客户应收账款增加
-            DB::table('customers')->where('id', $order->customer_id)->increment('balance', (float) $order->total_amount);
+                $itemRows = [];
+                foreach ($order->items as $item) {
+                    $itemRows[] = [
+                        'sales_order_id' => $salesOrder->id,
+                        'product_id' => $item->product_id,
+                        'quantity' => $item->borrow_qty,
+                        'actual_qty' => $item->borrow_qty,
+                        'price' => $item->unit_price,
+                        'amount' => $item->amount,
+                        'remark' => $item->remark,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                SalesOrderItem::insert($itemRows);
 
-            // 借货余额清零
-            foreach ($order->items as $item) {
-                $this->decreaseBorrowBalance((int) $order->customer_id, (int) $item->product_id, (int) $item->borrow_qty);
-            }
+                // 客户应收账款增加
+                DB::table('customers')->where('id', $order->customer_id)->increment('balance', (float) $order->total_amount);
 
-            $order->update(['status' => BorrowOrder::STATUS_CONVERTED, 'converted_at' => now()]);
-            $this->writeOperationLog($order, $adminId, $adminName, 'convert', '转销售', BorrowOrder::STATUS_UNRETURNED, BorrowOrder::STATUS_CONVERTED, '生成销售单'.($salesOrder->order_no ?? '').'，金额¥'.number_format((float) $order->total_amount, 2));
-        });
+                // 借货余额清零
+                foreach ($order->items as $item) {
+                    $this->decreaseBorrowBalance((int) $order->customer_id, (int) $item->product_id, (int) $item->borrow_qty);
+                }
+
+                $order->update(['status' => BorrowOrder::STATUS_CONVERTED, 'converted_at' => now()]);
+                $this->writeOperationLog($order, $adminId, $adminName, 'convert', '转销售', BorrowOrder::STATUS_UNRETURNED, BorrowOrder::STATUS_CONVERTED, '生成销售单'.($salesOrder->order_no ?? '').'，金额¥'.number_format((float) $order->total_amount, 2));
+            });
+        } catch (StockRuleException $e) {
+            return $this->error('转销售失败：'.$e->getMessage(), 422);
+        }
 
         return $this->success($order->load('items', 'customer', 'warehouse'), '已转销售，应收账款已增加');
     }
@@ -479,7 +515,9 @@ class BorrowOrderController extends Controller
             }
             $qty = (int) $item['borrow_qty'];
             if ($checkStock) {
-                $stockQty = (int) ($stockMap->get($productId)?->quantity ?? 0);
+                $stockRow = $stockMap->get($productId);
+                // 可用库存 = 总量 - 已冻结：借货占用的是可用部分，不能拿总量比对
+                $stockQty = (int) ($stockRow->quantity ?? 0) - (int) ($stockRow->frozen_qty ?? 0);
                 if ($qty > $stockQty) {
                     throw new \RuntimeException("商品【{$product->name}】借货数量{$qty}超过库存{$stockQty}");
                 }

@@ -1,6 +1,6 @@
 <template>
 	<div class="page">
-		<div class="header"><span class="title">换货汇总</span>
+		<div class="header"><span class="title">换货查询</span>
 			<div class="filter">
 				<el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD" range-separator="至" start-placeholder="开始" end-placeholder="结束" style="width:240px" @change="onDateChange" />
 				<el-button type="primary" @click="load">查询</el-button>

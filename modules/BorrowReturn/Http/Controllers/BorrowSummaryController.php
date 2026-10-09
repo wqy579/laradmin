@@ -82,6 +82,9 @@ class BorrowSummaryController extends Controller
             DB::raw('COUNT(*) as borrow_times'),
             DB::raw('SUM(total_amount) as borrow_total'),
             DB::raw('SUM(returned_amount) as returned_total'),
+            // 借还货查询要按「数量」汇总，不只是金额
+            DB::raw('SUM(total_qty) as borrow_qty'),
+            DB::raw('SUM(returned_qty) as returned_qty_sum'),
             DB::raw('MAX(borrow_date) as last_borrow_date'),
         ])->groupBy('customer_id', 'customer_name', 'contact', 'contact_phone')
             ->orderByDesc('borrow_total')
@@ -100,6 +103,10 @@ class BorrowSummaryController extends Controller
                 'borrow_total' => round($borrowTotal, 2),
                 'returned_amount' => round($returnedTotal, 2),
                 'unreturned_amount' => round($borrowTotal - $returnedTotal, 2),
+                // 借货 / 已还 / 待还 数量
+                'borrow_qty' => (int) $r->borrow_qty,
+                'returned_qty' => (int) $r->returned_qty_sum,
+                'unreturned_qty' => max(0, (int) $r->borrow_qty - (int) $r->returned_qty_sum),
                 'last_borrow_date' => $r->last_borrow_date,
             ];
         });

@@ -1,6 +1,6 @@
 <template>
 	<div class="page">
-		<div class="header"><span class="title">借货汇总</span>
+		<div class="header"><span class="title">借还货查询</span>
 			<div class="filter">
 				<el-input v-model="query.customer_name" placeholder="客户" style="width:140px" clearable @keyup.enter="load" />
 				<el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD" range-separator="至" start-placeholder="开始" end-placeholder="结束" style="width:240px" @change="onDateChange" />
@@ -19,12 +19,15 @@
 			<div ref="trendEl" class="chart"></div>
 		</el-card>
 		<el-card shadow="never" class="block">
-			<template #header><div class="block-title">客户借货明细</div></template>
+			<template #header><div class="block-title">客户借还明细（按客户汇总借货 / 已还 / 待还）</div></template>
 			<el-table :data="detailList" border stripe v-loading="loading" size="small">
 				<el-table-column prop="customer_name" label="客户" min-width="160" />
 				<el-table-column prop="contact" label="联系人" width="120" />
 				<el-table-column prop="contact_phone" label="电话" width="140" />
 				<el-table-column prop="borrow_times" label="借货次数" width="90" align="center" />
+				<el-table-column prop="borrow_qty" label="借货数量" width="90" align="center" />
+				<el-table-column prop="returned_qty" label="已还数量" width="90" align="center" />
+				<el-table-column label="待还数量" width="90" align="center"><template #default="{ row }"><span class="amt">{{ row.unreturned_qty }}</span></template></el-table-column>
 				<el-table-column label="借货金额" width="120" align="right"><template #default="{ row }"><span class="amt">¥{{ row.borrow_total }}</span></template></el-table-column>
 				<el-table-column label="已还金额" width="120" align="right"><template #default="{ row }">¥{{ row.returned_amount }}</template></el-table-column>
 				<el-table-column label="未还金额" width="120" align="right"><template #default="{ row }"><span class="amt">¥{{ row.unreturned_amount }}</span></template></el-table-column>

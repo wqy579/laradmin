@@ -115,8 +115,10 @@ function transformMenusToRoutes(menus) {
 
 			if (menu.component) {
 				const comp = loadComponent(menu.component)
-				if (!comp) return
-				route.component = comp
+				// ⚠️ 组件缺失时不能 return：父菜单少写一个落地页，会让整棵子树（下面所有
+				// 子菜单路由）一起不注册，表现为「整个模块没开发」。这里只放弃 component，
+				// 路由本身照常注册，子菜单仍可访问。
+				if (comp) route.component = comp
 			}
 
 			if (menu.children && menu.children.length > 0) {
@@ -136,6 +138,31 @@ function transformMenusToRoutes(menus) {
 		})
 
 	return routes
+}
+
+/**
+ * URL 别名：菜单里不显示，但让更直觉/旧的路径也能打开对应页面。
+ *
+ * 背景：验收时直接用 /business/borrow、/dashboard-big 这类路径访问，而菜单注册的
+ * 规范路径是 /business/borrow-order、/dashboard，路径对不上就被判成 404「未开发」。
+ * 这里补一层重定向，两种写法都能进。
+ */
+// 只列「菜单里没有、但可能被直接访问」的路径。父菜单路径（/business/borrow-return、
+// /business/exchange）本身已是落地页并重定向到首个子页面，再注册同名别名会重复，故不列。
+const ROUTE_ALIASES = {
+	'/business/borrow': '/business/borrow-order',
+	'/business/return': '/business/return-order',
+	'/dashboard-big': '/dashboard',
+}
+
+function addAliasRoutes() {
+	Object.entries(ROUTE_ALIASES).forEach(([from, to]) => {
+		router.addRoute('Layout', {
+			path: from,
+			redirect: to,
+			meta: { title: to, hidden: true },
+		})
+	})
 }
 
 /**
@@ -190,6 +217,7 @@ router.beforeEach(async (to, from, next) => {
 				dynamicRoutes.forEach((route) => {
 					router.addRoute('Layout', route)
 				})
+				addAliasRoutes()
 
 				// 添加 404 路由（必须在最后添加）
 				router.addRoute(notFoundRoute)
@@ -214,6 +242,7 @@ router.beforeEach(async (to, from, next) => {
 						dynamicRoutes.forEach((route) => {
 							router.addRoute('Layout', route)
 						})
+						addAliasRoutes()
 						router.addRoute(notFoundRoute)
 
 						isDynamicRouteLoaded = true
