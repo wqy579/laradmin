@@ -423,7 +423,7 @@ const fetchCustomers = async () => {
 
 const fetchWarehouses = async () => {
   try {
-    const res = await businessApi.warehouse.list.get({ page_size: 100 })
+    const res = await businessApi.warehouse.list.get({type:"normal",  page_size: 100 })
     warehouses.value = res.data?.list || []
   } catch {}
 }

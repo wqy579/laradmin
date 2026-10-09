@@ -92,7 +92,7 @@ function search() { currentPage.value = 1; fetchData() }
 function refresh() { fetchData() }
 
 onMounted(() => {
-	businessApi.warehouse.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] })
+	businessApi.warehouse.list.get({type:"normal",  page_size: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] })
 	fetchData()
 })
 </script>

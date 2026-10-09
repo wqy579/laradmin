@@ -53,7 +53,7 @@ const handleDetail = (row) => { currentStockIn.value = row; dialog.stockIn = tru
 onMounted(() => {
 	Promise.all([
 		businessApi.product.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) products.value = r.data?.list || [] }),
-		businessApi.warehouse.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
+		businessApi.warehouse.list.get({type:"normal",  per_page: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
 		businessApi.supplier.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) suppliers.value = r.data?.list || [] }),
 	]).finally(() => refresh())
 })

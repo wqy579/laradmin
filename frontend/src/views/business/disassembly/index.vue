@@ -252,7 +252,7 @@ const fetchData = async () => {
     pagination.total = res.data?.total || 0
   } catch { ElMessage.error('加载失败') } finally { loading.value = false }
 }
-const fetchWarehouses = async () => { try { const res = await businessApi.warehouse.list.get({ page_size: 100 }); warehouses.value = res.data?.list || res.data || [] } catch {} }
+const fetchWarehouses = async () => { try { const res = await businessApi.warehouse.list.get({type:"normal",  page_size: 100 }); warehouses.value = res.data?.list || res.data || [] } catch {} }
 const fetchProducts = async () => { try { const res = await businessApi.product.list.get({ page_size: 1000, is_active: 1 }); products.value = res.data?.list || res.data?.data || [] } catch {} }
 const fetchUsers = async () => { try { const res = await authApi.user.list.get({ page_size: 200 }); users.value = res.data?.list || res.data?.data || [] } catch {} }
 const fetchStockMap = async (wid) => {

@@ -51,7 +51,7 @@ const handleDetail = (row) => { currentStockOut.value = row; dialog.stockOut = t
 onMounted(() => {
 	Promise.all([
 		businessApi.product.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) products.value = r.data?.list || [] }),
-		businessApi.warehouse.list.get({ per_page: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
+		businessApi.warehouse.list.get({type:"normal",  per_page: 9999 }).then(r => { if (r.code === 200) warehouses.value = r.data?.list || [] }),
 	]).finally(() => refresh())
 })
 </script>

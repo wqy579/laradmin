@@ -4,7 +4,9 @@ namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Modules\Stock\Models\Vehicle;
+use Modules\Stock\Models\Warehouse;
 
 class VehicleController extends Controller
 {
@@ -43,6 +45,7 @@ class VehicleController extends Controller
             'remark' => 'nullable|string',
         ]);
         $vehicle = Vehicle::create($validated);
+        $this->syncVehicleWarehouse($vehicle);
 
         return $this->created($vehicle, '创建成功');
     }
@@ -59,13 +62,18 @@ class VehicleController extends Controller
             'remark' => 'nullable|string',
         ]);
         $vehicle->update($validated);
+        $this->syncVehicleWarehouse($vehicle);
 
         return $this->success($vehicle, '更新成功');
     }
 
     public function destroy(Vehicle $vehicle)
     {
-        $vehicle->delete();
+        DB::transaction(function () use ($vehicle) {
+            // 删车辆前先删其对应的车辆仓记录（type='vehicle'），保持引用一致
+            DB::table('warehouses')->where('vehicle_id', $vehicle->id)->delete();
+            $vehicle->delete();
+        });
 
         return $this->success(null, '删除成功');
     }
@@ -74,6 +82,9 @@ class VehicleController extends Controller
     {
         $request->validate(['ids' => 'required|array', 'is_active' => 'required|boolean']);
         Vehicle::whereIn('id', $request->ids)->update(['is_active' => $request->is_active]);
+        // 同步车辆仓的启用状态
+        DB::table('warehouses')->where('type', 'vehicle')->whereIn('vehicle_id', $request->ids)
+            ->update(['is_active' => (bool) $request->is_active]);
 
         return $this->success(null, '操作成功');
     }
@@ -81,8 +92,31 @@ class VehicleController extends Controller
     public function batchDelete(Request $request)
     {
         $request->validate(['ids' => 'required|array']);
-        Vehicle::whereIn('id', $request->ids)->delete();
+        DB::transaction(function () use ($request) {
+            DB::table('warehouses')->where('type', 'vehicle')->whereIn('vehicle_id', $request->ids)->delete();
+            Vehicle::whereIn('id', $request->ids)->delete();
+        });
 
         return $this->success(null, '删除成功');
+    }
+
+    /**
+     * 车辆伪装成仓库：为每辆车维护一条 type='vehicle' 的 warehouse 记录，
+     * 车销模块的车上库存即通过该 warehouse_id 复用 stocks + StockService。
+     */
+    private function syncVehicleWarehouse(Vehicle $vehicle): void
+    {
+        DB::table('warehouses')->updateOrInsert(
+            ['vehicle_id' => $vehicle->id],
+            [
+                'code' => 'VH'.$vehicle->plate_no,
+                'name' => '车辆-'.$vehicle->plate_no,
+                'type' => 'vehicle',
+                'is_active' => (bool) $vehicle->is_active,
+                'updated_at' => now(),
+            ]
+        );
+        // updateOrInsert 不带 created_at，单独补
+        DB::table('warehouses')->where('vehicle_id', $vehicle->id)->whereNull('created_at')->update(['created_at' => now()]);
     }
 }

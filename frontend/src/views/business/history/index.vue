@@ -218,7 +218,7 @@ if (!businessApi.supplier?.list) {
 
 async function loadWarehouses() {
 	try {
-		const res = await businessApi.warehouse.list.get({ page_size: 100 })
+		const res = await businessApi.warehouse.list.get({type:"normal",  page_size: 100 })
 		warehouses.value = res.data?.list || res.data || []
 	} catch {}
 }

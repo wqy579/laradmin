@@ -27,7 +27,7 @@ class ReturnController extends Controller
         $query->orderBy('id', 'desc');
         $returns = $query->paginate($request->integer('per_page', 20));
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
-        $warehouses = Warehouse::where('is_active', true)->get();
+        $warehouses = Warehouse::where('is_active', true)->where('type', 'normal')->get();
 
         return response()->json(['data' => $returns, 'customers' => $customers, 'warehouses' => $warehouses]);
     }
