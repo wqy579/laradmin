@@ -1425,6 +1425,18 @@
     },
     {
         "method": "POST",
+        "uri": "admin/business/delivery-task/{id}/cancel",
+        "name": "admin.admin.delivery.task.",
+        "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
         "uri": "admin/business/delivery-task/{id}/deliver",
         "name": "admin.admin.delivery.task.",
         "action": "Modules\\Delivery\\Http\\Controllers\\TaskController@deliver",

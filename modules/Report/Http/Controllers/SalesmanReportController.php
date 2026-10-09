@@ -191,7 +191,9 @@ class SalesmanReportController extends Controller
         return DB::table('sales_returns as sr')
             ->join('sales_orders as so', 'so.id', '=', 'sr.order_id')
             ->whereBetween('sr.return_date', [$start, $end])
-            ->where('sr.status', '!=', 'cancelled')
+            // 只统计真实退货：cancelled 已取消、auto_return 是配送取消的自动回补
+            // （货未交付、无财务影响），都不应算作业务员名下退货金额
+            ->whereNotIn('sr.status', ['cancelled', 'auto_return'])
             ->groupBy('so.salesman_id')
             ->pluck(DB::raw('SUM(sr.total_amount)'), 'so.salesman_id')
             ->all();

@@ -37,9 +37,12 @@
     "psr-4": {
       "Tests\\": "tests/",
       "Tests\\Auth\\": "modules/Auth/tests/",
-      "Tests\\Order\\": "modules/Order/tests/",
-      "Tests\\Stock\\": "modules/Stock/tests/",
       "Tests\\Delivery\\": "modules/Delivery/tests/",
+      "Tests\\Miniapp\\": "modules/Miniapp/tests/",
+      "Tests\\Office\\": "modules/Office/tests/",
+      "Tests\\Order\\": "modules/Order/tests/",
+      "Tests\\Report\\": "modules/Report/tests/",
+      "Tests\\Stock\\": "modules/Stock/tests/",
       "Tests\\System\\": "modules/System/tests/"
     }
   },
