@@ -494,6 +494,58 @@ const businessApi = {
 		history: { get: (params) => request.get('business/van-stock/history', { params }) },
 		warning: { get: (params) => request.get('business/van-stock/warning', { params }) },
 	},
+
+	// 车销业务：退货单
+	vanReturnOrder: {
+		list: { get: (params) => request.get('business/van-return-order', { params }) },
+		detail: { get: (id) => request.get(`business/van-return-order/${id}`) },
+		create: { post: (params) => request.post('business/van-return-order', params) },
+		update: { put: (id, params) => request.put(`business/van-return-order/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/van-return-order/${id}`) },
+		approve: { post: (id) => request.post(`business/van-return-order/${id}/approve`) },
+		cancel: { post: (id) => request.post(`business/van-return-order/${id}/cancel`) },
+		vehicleProducts: { get: (params) => request.get('business/van-return-order/vehicle-products', { params }) },
+		export: (params) => request.get('business/van-return-order/export', { params, responseType: 'blob' }),
+	},
+
+	// 车销业务：借货单
+	vanBorrowOrder: {
+		list: { get: (params) => request.get('business/van-borrow-order', { params }) },
+		detail: { get: (id) => request.get(`business/van-borrow-order/${id}`) },
+		create: { post: (params) => request.post('business/van-borrow-order', params) },
+		update: { put: (id, params) => request.put(`business/van-borrow-order/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/van-borrow-order/${id}`) },
+		approve: { post: (id) => request.post(`business/van-borrow-order/${id}/approve`) },
+		cancel: { post: (id) => request.post(`business/van-borrow-order/${id}/cancel`) },
+		vehicleProducts: { get: (params) => request.get('business/van-borrow-order/vehicle-products', { params }) },
+		balances: { get: (params) => request.get('business/van-borrow-order/balances', { params }) },
+		export: (params) => request.get('business/van-borrow-order/export', { params, responseType: 'blob' }),
+	},
+
+	// 车销业务：还货单
+	vanReturnBorrowOrder: {
+		list: { get: (params) => request.get('business/van-return-borrow-order', { params }) },
+		detail: { get: (id) => request.get(`business/van-return-borrow-order/${id}`) },
+		create: { post: (params) => request.post('business/van-return-borrow-order', params) },
+		update: { put: (id, params) => request.put(`business/van-return-borrow-order/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/van-return-borrow-order/${id}`) },
+		approve: { post: (id) => request.post(`business/van-return-borrow-order/${id}/approve`) },
+		cancel: { post: (id) => request.post(`business/van-return-borrow-order/${id}/cancel`) },
+		export: (params) => request.get('business/van-return-borrow-order/export', { params, responseType: 'blob' }),
+	},
+
+	// 车销业务：换货单
+	vanExchangeOrder: {
+		list: { get: (params) => request.get('business/van-exchange-order', { params }) },
+		detail: { get: (id) => request.get(`business/van-exchange-order/${id}`) },
+		create: { post: (params) => request.post('business/van-exchange-order', params) },
+		update: { put: (id, params) => request.put(`business/van-exchange-order/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/van-exchange-order/${id}`) },
+		approve: { post: (id) => request.post(`business/van-exchange-order/${id}/approve`) },
+		cancel: { post: (id) => request.post(`business/van-exchange-order/${id}/cancel`) },
+		vehicleProducts: { get: (params) => request.get('business/van-exchange-order/vehicle-products', { params }) },
+		export: (params) => request.get('business/van-exchange-order/export', { params, responseType: 'blob' }),
+	},
 }
 
 export default businessApi

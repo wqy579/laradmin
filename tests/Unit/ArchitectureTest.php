@@ -48,6 +48,13 @@ class ArchitectureTest extends TestCase
         'Delivery->Stock',  // 配货冻结/装车出库复用 StockService，同库同事务
         'Delivery->Business', // 配送员员工档案、客户地址回溯引用 Business 主数据
         'Delivery->Auth',   // 配送员(auth_user)、菜单/操作人引用 Auth
+        'Office->Auth',     // 内部邮件/公司公告的收发双方与可见范围都落在 Auth 的用户与部门表上，
+        // 办公模块自身不维护人员主数据，抽契约只会把一次联表变成跨模块调用
+        'VanSales->Stock',  // 车销复用 Stock 的商品/仓库/车辆主数据 + 库存服务（车上仓
+        //   就是 type=vehicle 的仓库，借还换货都要走 StockService 出入库），
+        //   与 Order->Stock 同理：同库同事务，抽契约收益低于耦合成本
+        'VanSales->Order',  // 车销单据的客户快照引用 Order 的 Customer 主数据表，
+        //   与 Order->Business（拜访人）同理，跨模块只读主数据
     ];
 
     /**

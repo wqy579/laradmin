@@ -32,8 +32,46 @@ class VanPickingController extends Controller
     /** 列表 */
     public function index(Request $request)
     {
-        $query = VanPicking::with(['requisition', 'vehicle', 'vehicleWarehouse']);
+        $query = $this->applyFilters(VanPicking::with(['requisition', 'vehicle', 'vehicleWarehouse']), $request);
 
+        $page = max(1, $request->integer('page', 1));
+        $pageSize = min(200, max(10, $request->integer('page_size', 20)));
+
+        $paginator = $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
+
+        return $this->paginated($paginator);
+    }
+
+    /** 导出 */
+    public function export(Request $request)
+    {
+        $list = $this->applyFilters(VanPicking::with(['requisition', 'vehicle', 'vehicleWarehouse']), $request)
+            ->orderByDesc('id')->get();
+
+        $csv = "\u{FEFF}车销拣货单列表\n\n";
+        $csv .= "拣货单号,要货单号,拣货日期,车牌号,拣货数量,状态,是否验货\n";
+
+        foreach ($list as $r) {
+            $csv .= sprintf(
+                "%s,%s,%s,%s,%s,%s,%s\n",
+                $this->csvCell($r->picking_no),
+                $this->csvCell($r->requisition?->requisition_no ?? ''),
+                $r->pick_date?->format('Y-m-d') ?? '',
+                $this->csvCell($r->vehicle?->plate_no ?? ''),
+                $r->total_qty ?? 0,
+                $this->statusLabel($r->status),
+                $r->checked ? '已验货' : '未验货'
+            );
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="van_picking.csv"',
+        ]);
+    }
+
+    private function applyFilters($query, Request $request)
+    {
         if ($request->filled('picking_no')) {
             $query->where('picking_no', 'like', '%'.trim((string) $request->input('picking_no')).'%');
         }
@@ -50,12 +88,28 @@ class VanPickingController extends Controller
             $query->whereDate('pick_date', '<=', $request->input('end_date'));
         }
 
-        $page = max(1, $request->integer('page', 1));
-        $pageSize = min(200, max(10, $request->integer('page_size', 20)));
+        return $query;
+    }
 
-        $paginator = $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
+    private function csvCell(?string $value): string
+    {
+        $value = (string) $value;
+        if (preg_match('/[",\n\r]/', $value)) {
+            return '"'.str_replace('"', '""', $value).'"';
+        }
 
-        return $this->paginated($paginator);
+        return $value;
+    }
+
+    private function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'draft' => '草稿',
+            'pending' => '待审核',
+            'approved' => '已装车',
+            'cancelled' => '已取消',
+            default => $status,
+        };
     }
 
     /** 详情（含明细） */
