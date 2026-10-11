@@ -134,7 +134,7 @@
 					<el-button
 						type="primary" size="small"
 						:disabled="!canAddProduct"
-						:title="canAddProduct ? '' : '请先选择主分类和副分类'"
+						:title="canAddProduct ? '' : '请先选择主分类'"
 						@click="handleAdd"
 					>
 						<el-icon><Plus /></el-icon>新增产品
