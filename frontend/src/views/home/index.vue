@@ -23,20 +23,21 @@ const fmt = (n, prefix = '') => {
 }
 
 onMounted(async () => {
-  try {
-    const [coreRes, trendRes, brandRes, topRes] = await Promise.all([
-      businessApi.dashboard.coreMetrics.get(),
-      businessApi.dashboard.salesTrend.get(),
-      businessApi.dashboard.brandProportion.get(),
-      businessApi.dashboard.brandTop10.get(),
-    ])
-    if (coreRes?.data) coreMetrics.value = coreRes.data
-    if (trendRes?.data?.list) salesTrendList.value = trendRes.data.list
-    if (brandRes?.data?.list) brandProportionList.value = brandRes.data.list
-    if (topRes?.data?.list) brandTop10List.value = topRes.data.list
-  } catch (e) {
-    // 保留 widgets.js 硬编码默认值兜底，不让仪表盘白屏
-  }
+  // allSettled 而非 all：任一端点失败不能拖垮其余。
+  // 用 all 时 brandProportion 一个 500 会 reject 整个 Promise，coreMetrics/salesTrend
+  // 的真实数据被一并丢弃——表现就是四个统计卡全部退回硬编码演示值。
+  const [coreRes, trendRes, brandRes, topRes] = await Promise.allSettled([
+    businessApi.dashboard.coreMetrics.get(),
+    businessApi.dashboard.salesTrend.get(),
+    businessApi.dashboard.brandProportion.get(),
+    businessApi.dashboard.brandTop10.get(),
+  ])
+  const dataOf = (r) => (r?.status === 'fulfilled' ? r.value : undefined)
+
+  if (dataOf(coreRes)?.data) coreMetrics.value = dataOf(coreRes).data
+  if (dataOf(trendRes)?.data?.list) salesTrendList.value = dataOf(trendRes).data.list
+  if (dataOf(brandRes)?.data?.list) brandProportionList.value = dataOf(brandRes).data.list
+  if (dataOf(topRes)?.data?.list) brandTop10List.value = dataOf(topRes).data.list
 })
 
 // 用真实数据覆盖 widget 的硬编码 props；对应字段无数据时回退默认 props

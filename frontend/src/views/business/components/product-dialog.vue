@@ -14,6 +14,11 @@
 					<el-option v-for="cat in subCats" :key="cat.id" :label="cat.name" :value="cat.id" />
 				</el-select>
 			</el-form-item>
+			<el-form-item label="品牌" prop="brand_id">
+				<el-select v-model="form.brand_id" placeholder="请选择品牌" clearable filterable style="width:100%" @change="onBrandChange">
+					<el-option v-for="b in brandOptions" :key="b.id" :label="`${b.name}（${b.product_count || 0}）`" :value="b.id" />
+				</el-select>
+			</el-form-item>
 			<el-form-item label="大单位" prop="price_unit">
 				<el-select v-model="form.price_unit" placeholder="请选择大单位" clearable style="width:100%" @change="onUnitChange">
 					<el-option v-for="u in units" :key="u.value" :label="u.label" :value="u.value" />
@@ -147,7 +152,7 @@ const bomSplit = ref([])
 const bomProducts = ref([])
 
 	const form = ref({
-	name: '', main_category_id: null, sub_category_id: null,
+	name: '', main_category_id: null, sub_category_id: null, brand_id: null,
 	price_unit: '', barcode_medium_unit: '', price_unit_small: '',
 	barcode_small: '',
 	price_large: null, price_medium: null, price_small: null, shelf_life_days: null, is_active: 1,
@@ -171,6 +176,27 @@ const visible = computed({
 const mainCats = computed(() => props.categories.filter(c => c.is_main))
 const subCats = computed(() => props.categories.filter(c => !c.is_main))
 
+// 品牌下拉：品牌档案里启用的品牌 + 各品牌的商品数
+const brandOptions = ref([])
+const loadBrandOptions = async () => {
+	const res = await businessApi.brand.options.get()
+	brandOptions.value = res.data?.list || []
+}
+onMounted(loadBrandOptions)
+
+/**
+ * 选品牌 → 自动带出该品牌关联的一级分类（连凯：品牌 = 一级分类维度）。
+ * 只在新值与当前不一致时写，避免把已选的副分类误清掉。
+ */
+const onBrandChange = (brandId) => {
+	const brand = brandOptions.value.find(b => b.id === brandId)
+	const catId = brand?.category_id || null
+	if (catId && catId !== form.value.main_category_id) {
+		form.value.main_category_id = catId
+		form.value.sub_category_id = null
+	}
+}
+
 const loadBom = async (id) => {
 	if (!id) { bomAssembly.value = []; bomSplit.value = []; return }
 	try {
@@ -188,6 +214,7 @@ watch(() => props.record, (val) => {
 			name: val.name || '',
 			main_category_id: val.main_category_id || null,
 			sub_category_id: val.sub_category_id || null,
+			brand_id: val.brand_id || null,
 			price_unit: val.price_unit || '',
 			barcode_medium_unit: val.barcode_medium_unit || '',
 			price_unit_small: val.price_unit_small || '',
@@ -206,6 +233,7 @@ watch(() => props.record, (val) => {
 		form.value = {
 			name: '', main_category_id: props.prefillMain,
 			sub_category_id: props.prefillSub,
+			brand_id: null,
 			price_unit: '', barcode_medium_unit: '', price_unit_small: '',
 			barcode_small: '',
 			price_large: null, price_medium: null, price_small: null, shelf_life_days: null, is_active: 1,

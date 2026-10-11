@@ -141,23 +141,27 @@ class DashboardController extends Controller
     /**
      * 品牌销售占比（饼图）。
      *
-     * 与 categoryProportion 同源，但只统计挂了品牌的商品——无品牌的不计入，
-     * 避免「其他」一条柱吃掉大盘。前 10 名具名，其余合并为「其他」。
+     * 与 categoryProportion 同源同口径（LEFT JOIN + COALESCE）：商品未挂品牌时
+     * 归入「其他」，而不是整条不计——INNER JOIN 会让「还没有商品挂品牌」的环境
+     * 返回空列表，前端回退到硬编码演示数据，看起来就像仪表盘没接真数据。
+     * 前 10 名具名，其余合并为「其他」。
      */
     public function brandProportion(Request $request)
     {
         $rows = DB::table('sales_order_items as soi')
             ->join('sales_orders as so', 'so.id', '=', 'soi.sales_order_id')
             ->join('products as p', 'p.id', '=', 'soi.product_id')
-            ->join('brands as b', 'b.id', '=', 'p.brand_id')
+            ->leftJoin('brands as b', 'b.id', '=', 'p.brand_id')
             ->whereIn('so.status', self::SALES_STATUS)
-            ->selectRaw('b.id, b.name, SUM(soi.amount) as amount')
-            ->groupBy('b.id', 'b.name')
+            ->selectRaw("COALESCE(b.name, '其他') as name, SUM(soi.amount) as amount")
+            ->groupBy(DB::raw("COALESCE(b.name, '其他')"))
             ->orderByDesc('amount')
             ->get();
 
         $total = (float) $rows->sum('amount');
         $top = $rows->take(10);
+        // 第 11 名起合并为「其他」；LEFT JOIN 后未挂品牌本身已是「其他」，
+        // 若它在前 10 内则不再追加，避免图表出现两个「其他」。
         $restAmount = (float) $rows->slice(10)->sum('amount');
 
         $list = $top->map(function ($r) use ($total) {
@@ -168,7 +172,7 @@ class DashboardController extends Controller
             ];
         })->all();
 
-        if ($restAmount > 0) {
+        if ($restAmount > 0 && ! in_array('其他', array_column($list, 'name'), true)) {
             $list[] = [
                 'name' => '其他',
                 'value' => round($restAmount, 2),
@@ -185,10 +189,10 @@ class DashboardController extends Controller
         $rows = DB::table('sales_order_items as soi')
             ->join('sales_orders as so', 'so.id', '=', 'soi.sales_order_id')
             ->join('products as p', 'p.id', '=', 'soi.product_id')
-            ->join('brands as b', 'b.id', '=', 'p.brand_id')
+            ->leftJoin('brands as b', 'b.id', '=', 'p.brand_id')
             ->whereIn('so.status', self::SALES_STATUS)
-            ->selectRaw('b.name, SUM(soi.amount) as amount')
-            ->groupBy('b.name')
+            ->selectRaw("COALESCE(b.name, '其他') as name, SUM(soi.amount) as amount")
+            ->groupBy(DB::raw("COALESCE(b.name, '其他')"))
             ->orderByDesc('amount')
             ->limit(10)
             ->get();
