@@ -116,7 +116,7 @@ class FlowDemoSeeder extends Seeder
                     'updated_at' => $now,
                 ];
             }
-            $id = DB::table('stock_ins')->insertGetId([
+            $id = $this->insertSafe('stock_ins', [
                 'order_no' => $no,
                 'type' => 'purchase',
                 'warehouse_id' => $whId,
@@ -129,7 +129,7 @@ class FlowDemoSeeder extends Seeder
                 'updated_at' => $now,
             ]);
             foreach ($items as $it) {
-                DB::table('stock_in_items')->insert(['stock_in_id' => $id] + $it);
+                $this->insertRow('stock_in_items', ['stock_in_id' => $id] + $it);
             }
             // 真实驱动库存：通过业务动作入库（StockService 同时写 stocks 与 stocks_history）
             foreach ($products as $p) {
@@ -144,7 +144,7 @@ class FlowDemoSeeder extends Seeder
         $no = 'CK' . str_replace('-', '', $date) . '001';
         if (! DB::table('stock_outs')->where('order_no', $no)->exists()) {
             $total = 0;
-            $id = DB::table('stock_outs')->insertGetId([
+            $id = $this->insertSafe('stock_outs', [
                 'order_no' => $no,
                 'type' => 'sales',
                 'warehouse_id' => $whId,
@@ -160,7 +160,7 @@ class FlowDemoSeeder extends Seeder
                 $qty = 50;
                 $amount = round($qty * (float) $p->price_small, 2);
                 $total += $amount;
-                DB::table('stock_out_items')->insert([
+                $this->insertRow('stock_out_items', [
                     'stock_out_id' => $id,
                     'product_id' => $p->id,
                     'quantity' => $qty,
@@ -188,7 +188,7 @@ class FlowDemoSeeder extends Seeder
         }
         $qty = 5;
         $cost = (float) $product->cost_price;
-        $id = DB::table('stock_adjusts')->insertGetId([
+        $id = $this->insertSafe('stock_adjusts', [
             'adjust_no' => $no,
             'warehouse_id' => $whId,
             'adjust_date' => $date,
@@ -206,7 +206,7 @@ class FlowDemoSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        DB::table('stock_adjust_items')->insert([
+        $this->insertRow('stock_adjust_items', [
             'adjust_id' => $id,
             'product_id' => $product->id,
             'product_code' => $product->code,
@@ -260,7 +260,7 @@ class FlowDemoSeeder extends Seeder
                 'updated_at' => $now,
             ];
         }
-        $id = DB::table('sales_orders')->insertGetId([
+        $id = $this->insertSafe('sales_orders', [
             'order_no' => $no,
             'order_type' => 'normal',
             'customer_id' => $customer->id,
@@ -288,7 +288,7 @@ class FlowDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
         foreach ($items as $it) {
-            DB::table('sales_order_items')->insert(['sales_order_id' => $id] + $it);
+            $this->insertRow('sales_order_items', ['sales_order_id' => $id] + $it);
         }
 
         return $id;
@@ -302,7 +302,7 @@ class FlowDemoSeeder extends Seeder
             return;
         }
         $amount = (float) DB::table('sales_orders')->where('id', $soId)->value('total_amount');
-        $id = DB::table('receives')->insertGetId([
+        $id = $this->insertSafe('receives', [
             'receive_no' => $no,
             'receive_type' => 1,
             'customer_id' => $customer->id,
@@ -316,7 +316,7 @@ class FlowDemoSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        DB::table('receive_items')->insert([
+        $this->insertRow('receive_items', [
             'receive_id' => $id,
             'sales_order_id' => $soId,
             'order_no' => (string) DB::table('sales_orders')->where('id', $soId)->value('order_no'),
@@ -335,7 +335,7 @@ class FlowDemoSeeder extends Seeder
         if (DB::table('pays')->where('pay_no', $no)->exists()) {
             return;
         }
-        DB::table('pays')->insert([
+        $this->insertRow('pays', [
             'pay_no' => $no,
             'pay_type' => 1,
             'supplier_id' => $supplier?->id,
@@ -359,7 +359,7 @@ class FlowDemoSeeder extends Seeder
             return;
         }
         $amount = (float) DB::table('sales_orders')->where('id', $soId)->value('total_amount');
-        DB::table('cash_flows')->insert([
+        $this->insertRow('cash_flows', [
             'flow_no' => $no,
             'flow_type' => 'receive',
             'customer_id' => $customer->id,
@@ -383,7 +383,7 @@ class FlowDemoSeeder extends Seeder
 
         $pickingId = DB::table('delivery_picking')->where('picking_no', $pickingNo)->exists()
             ? (int) DB::table('delivery_picking')->where('picking_no', $pickingNo)->value('id')
-            : DB::table('delivery_picking')->insertGetId([
+            : $this->insertSafe('delivery_picking', [
                 'picking_no' => $pickingNo,
                 'sales_order_id' => $soId,
                 'order_no' => $orderNo,
@@ -405,7 +405,7 @@ class FlowDemoSeeder extends Seeder
                 'updated_at' => $now,
             ]);
         if (! DB::table('delivery_picking_items')->where('picking_id', $pickingId)->exists()) {
-            DB::table('delivery_picking_items')->insert([
+            $this->insertRow('delivery_picking_items', [
                 'picking_id' => $pickingId,
                 'sales_order_item_id' => null,
                 'product_id' => $product->id,
@@ -441,7 +441,7 @@ class FlowDemoSeeder extends Seeder
 
         $pickId = DB::table('delivery_pick')->where('pick_no', $pickNo)->exists()
             ? (int) DB::table('delivery_pick')->where('pick_no', $pickNo)->value('id')
-            : DB::table('delivery_pick')->insertGetId([
+            : $this->insertSafe('delivery_pick', [
                 'pick_no' => $pickNo,
                 'picking_id' => $pickingId,
                 'picking_no' => $pickingNo,
@@ -461,7 +461,7 @@ class FlowDemoSeeder extends Seeder
                 'updated_at' => $now,
             ]);
         if (! DB::table('delivery_pick_items')->where('pick_id', $pickId)->exists()) {
-            DB::table('delivery_pick_items')->insert([
+            $this->insertRow('delivery_pick_items', [
                 'pick_id' => $pickId,
                 'picking_item_id' => null,
                 'product_id' => $product->id,
@@ -482,7 +482,7 @@ class FlowDemoSeeder extends Seeder
 
         $checkId = DB::table('delivery_check')->where('check_no', $checkNo)->exists()
             ? (int) DB::table('delivery_check')->where('check_no', $checkNo)->value('id')
-            : DB::table('delivery_check')->insertGetId([
+            : $this->insertSafe('delivery_check', [
                 'check_no' => $checkNo,
                 'pick_id' => $pickId,
                 'pick_no' => $pickNo,
@@ -502,7 +502,7 @@ class FlowDemoSeeder extends Seeder
                 'updated_at' => $now,
             ]);
         if (! DB::table('delivery_check_items')->where('check_id', $checkId)->exists()) {
-            DB::table('delivery_check_items')->insert([
+            $this->insertRow('delivery_check_items', [
                 'check_id' => $checkId,
                 'pick_item_id' => null,
                 'product_id' => $product->id,
@@ -539,7 +539,7 @@ class FlowDemoSeeder extends Seeder
 
             return $it ? DB::table('products')->where('id', $it->product_id)->first() : null;
         })();
-        $loadId = DB::table('delivery_load')->insertGetId([
+        $loadId = $this->insertSafe('delivery_load', [
             'load_no' => $loadNo,
             'load_date' => $date,
             'delivery_person_id' => $adminId,
@@ -559,7 +559,7 @@ class FlowDemoSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        DB::table('delivery_load_items')->insert([
+        $this->insertRow('delivery_load_items', [
             'load_id' => $loadId,
             'check_id' => $checkId,
             'check_no' => $checkNo,
@@ -598,7 +598,7 @@ class FlowDemoSeeder extends Seeder
         $so = DB::table('sales_orders')->where('id', $soId)->first();
         $loadNo = (string) DB::table('delivery_load')->where('id', $loadId)->value('load_no');
         $checkNo = (string) DB::table('delivery_check')->where('id', $checkId)->value('check_no');
-        DB::table('delivery_task')->insert([
+        $this->insertRow('delivery_task', [
             'task_no' => $taskNo,
             'load_id' => $loadId,
             'load_no' => $loadNo,
@@ -645,7 +645,7 @@ class FlowDemoSeeder extends Seeder
         if (DB::table('delivery_collection')->where('collection_no', $colNo)->exists()) {
             return;
         }
-        DB::table('delivery_collection')->insert([
+        $this->insertRow('delivery_collection', [
             'collection_no' => $colNo,
             'task_id' => $taskId,
             'task_no' => $taskNo,
@@ -675,7 +675,7 @@ class FlowDemoSeeder extends Seeder
             return;
         }
         $amount = (float) DB::table('delivery_collection')->where('collect_date', $date)->sum('received_amount');
-        $remitId = DB::table('delivery_remit')->insertGetId([
+        $remitId = $this->insertSafe('delivery_remit', [
             'remit_no' => $remitNo,
             'remit_date' => $date,
             'delivery_person_id' => $adminId,
@@ -694,7 +694,7 @@ class FlowDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
         foreach (DB::table('delivery_collection')->where('collect_date', $date)->get() as $col) {
-            DB::table('delivery_remit_items')->insert([
+            $this->insertRow('delivery_remit_items', [
                 'remit_id' => $remitId,
                 'collection_id' => $col->id,
                 'collection_no' => $col->collection_no,
@@ -738,7 +738,7 @@ class FlowDemoSeeder extends Seeder
                 'updated_at' => $now,
             ];
         }
-        $id = DB::table('van_sale_orders')->insertGetId([
+        $id = $this->insertSafe('van_sale_orders', [
             'order_no' => $no,
             'salesman_id' => $adminId,
             'salesman_name' => '超级管理员',
@@ -761,7 +761,7 @@ class FlowDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
         foreach ($items as $it) {
-            DB::table('van_sale_order_items')->insert(['order_id' => $id] + $it);
+            $this->insertRow('van_sale_order_items', ['order_id' => $id] + $it);
         }
     }
 
@@ -796,7 +796,7 @@ class FlowDemoSeeder extends Seeder
                 'updated_at' => $now,
             ];
         }
-        $borrowId = DB::table('borrow_orders')->insertGetId([
+        $borrowId = $this->insertSafe('borrow_orders', [
             'borrow_no' => $borrowNo,
             'customer_id' => $customer->id,
             'customer_name' => $customer->name,
@@ -826,7 +826,7 @@ class FlowDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
         foreach ($items as $it) {
-            DB::table('borrow_order_items')->insert(['order_id' => $borrowId] + $it);
+            $this->insertRow('borrow_order_items', ['order_id' => $borrowId] + $it);
         }
 
         // 借还货单：归还一半
@@ -834,7 +834,7 @@ class FlowDemoSeeder extends Seeder
         if (DB::table('borrow_return_orders')->where('return_no', $returnNo)->exists()) {
             return;
         }
-        $retId = DB::table('borrow_return_orders')->insertGetId([
+        $retId = $this->insertSafe('borrow_return_orders', [
             'return_no' => $returnNo,
             'borrow_order_id' => $borrowId,
             'customer_id' => $customer->id,
@@ -861,7 +861,7 @@ class FlowDemoSeeder extends Seeder
             'updated_at' => $now,
         ]);
         foreach ($items as $it) {
-            DB::table('borrow_return_order_items')->insert([
+            $this->insertRow('borrow_return_order_items', [
                 'order_id' => $retId,
                 'borrow_order_item_id' => null,
                 'product_id' => $it['product_id'],
@@ -894,7 +894,7 @@ class FlowDemoSeeder extends Seeder
         $qty = 5;
         $amountOut = round($qty * (float) $productOut->price_small, 2);
         $amountIn = round($qty * (float) $productIn->price_small, 2);
-        $id = DB::table('exchange_orders')->insertGetId([
+        $id = $this->insertSafe('exchange_orders', [
             'exchange_no' => $no,
             'customer_id' => $customer->id,
             'customer_name' => $customer->name,
@@ -923,7 +923,7 @@ class FlowDemoSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        DB::table('exchange_order_items')->insert([
+        $this->insertRow('exchange_order_items', [
             'order_id' => $id,
             'product_id_out' => $productOut->id,
             'product_name_out' => $productOut->name,
@@ -956,7 +956,7 @@ class FlowDemoSeeder extends Seeder
         $so = DB::table('sales_orders')->where('id', $soId)->first();
         $qty = 2;
         $price = (float) $product->price_small;
-        $id = DB::table('sales_returns')->insertGetId([
+        $id = $this->insertSafe('sales_returns', [
             'return_no' => $no,
             'order_id' => $soId,
             'order_no' => $so->order_no,
@@ -979,7 +979,7 @@ class FlowDemoSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        DB::table('sales_return_items')->insert([
+        $this->insertRow('sales_return_items', [
             'return_id' => $id,
             'product_id' => $product->id,
             'product_code' => $product->code,
@@ -1005,7 +1005,7 @@ class FlowDemoSeeder extends Seeder
         }
         $qty = 5;
         $price = (float) $product->cost_price;
-        $id = DB::table('purchase_returns')->insertGetId([
+        $id = $this->insertSafe('purchase_returns', [
             'return_no' => $no,
             'stock_in_id' => null,
             'stock_in_no' => null,
@@ -1028,7 +1028,7 @@ class FlowDemoSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        DB::table('purchase_return_items')->insert([
+        $this->insertRow('purchase_return_items', [
             'return_id' => $id,
             'product_id' => $product->id,
             'product_code' => $product->code,
@@ -1049,15 +1049,15 @@ class FlowDemoSeeder extends Seeder
     private function seedCustomerReconciliation($customer, string $date, $now, int $adminId): void
     {
         // 往来对账通常是报表视图（应收/应付汇总），无独立表——若存在 customer_reconciliations 表则写入，
-        // 否则由 sales_orders + receives + cash_flows 的数据自然呈现。这里兜底建一条对账快照。
-        if (! Schema_hasTable('customer_reconciliations')) {
+        // 否则由 sales_orders + receives + cash_flows 的数据自然呈现。insertRow 自带缺表/缺列跳过。
+        if (! \Illuminate\Support\Facades\Schema::hasTable('customer_reconciliations')) {
             return;
         }
         $no = 'DZ' . str_replace('-', '', $date) . '001';
         if (DB::table('customer_reconciliations')->where('reconciliation_no', $no)->exists()) {
             return;
         }
-        DB::table('customer_reconciliations')->insert([
+        $this->insertRow('customer_reconciliations', [
             'reconciliation_no' => $no,
             'customer_id' => $customer->id,
             'customer_name' => $customer->name,
@@ -1076,14 +1076,14 @@ class FlowDemoSeeder extends Seeder
     // ===== 价格表 =====
     private function seedPriceList($customer, $product, int $adminId, string $date, $now): void
     {
-        if (! Schema_hasTable('price_lists')) {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('price_lists')) {
             return;
         }
         $no = 'JG' . str_replace('-', '', $date) . '001';
         if (DB::table('price_lists')->where('price_no', $no)->exists()) {
             return;
         }
-        $id = DB::table('price_lists')->insertGetId([
+        $id = $this->insertSafe('price_lists', [
             'price_no' => $no,
             'price_date' => $date,
             'customer_id' => $customer?->id,
@@ -1094,8 +1094,8 @@ class FlowDemoSeeder extends Seeder
             'created_at' => $now,
             'updated_at' => $now,
         ]);
-        if (Schema_hasTable('price_list_items')) {
-            DB::table('price_list_items')->insert([
+        if ($id > 0) {
+            $this->insertRow('price_list_items', [
                 'price_list_id' => $id,
                 'product_id' => $product->id,
                 'product_code' => $product->code,
@@ -1109,10 +1109,55 @@ class FlowDemoSeeder extends Seeder
             ]);
         }
     }
-}
 
-// 顶部辅助：避免 use Schema 在 sqlite/mysql 切换时的差异
-function Schema_hasTable(string $table): bool
-{
-    return \Illuminate\Support\Facades\Schema::hasTable($table);
+    /**
+     * 生产库 schema 可能落后于 dev（历史演进），直接 insert 会因缺列/缺表报错。
+     * 这两个辅助让 seeder 对任何 schema 版本都健壮：缺表整段跳过，缺列自动剔除。
+     */
+    private function cols(string $table, array $row): array
+    {
+        // 过滤掉目标表不存在的列；缓存列名避免重复 PRAGMA/query
+        static $cache = [];
+        if (! isset($cache[$table])) {
+            $cache[$table] = \Illuminate\Support\Facades\Schema::hasTable($table)
+                ? array_column(\Illuminate\Support\Facades\Schema::getColumns($table), 'name')
+                : [];
+        }
+        if (empty($cache[$table])) {
+            return [];
+        }
+
+        return array_filter(
+            $row,
+            fn ($k) => in_array($k, $cache[$table], true),
+            ARRAY_FILTER_USE_KEY
+        );
+    }
+
+    /** 插入并返回 id；目标表不存在或过滤后无列则返回 0（调用方应跳过后续） */
+    private function insertSafe(string $table, array $row): int
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable($table)) {
+            return 0;
+        }
+        $row = $this->cols($table, $row);
+        if (empty($row)) {
+            return 0;
+        }
+
+        return (int) DB::table($table)->insertGetId($row);
+    }
+
+    /** 无返回值的插入（用于明细行）；目标表/列缺失则静默跳过 */
+    private function insertRow(string $table, array $row): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable($table)) {
+            return;
+        }
+        $row = $this->cols($table, $row);
+        if (empty($row)) {
+            return;
+        }
+        DB::table($table)->insert($row);
+    }
 }
