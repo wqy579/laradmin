@@ -1,13 +1,73 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { GridLayout, GridItem } from 'grid-layout-plus'
 import { useResizeObserver, useWindowSize } from '@vueuse/core'
 import { useAppStore } from '../../stores/app'
 import WidgetPanel from './components/widget-panel.vue'
 import { getWidgetConfig } from './widgets'
+import businessApi from '../../api/business'
 
 const store = useAppStore()
 const showPanel = ref(false)
+
+// 仪表盘真实数据：拉后端 dashboard 统计接口覆盖 widgets.js 的硬编码演示值。
+// 拉取失败/无数据时 computeWidgetProps 回退到 widgets.js 默认 props 兜底。
+const coreMetrics = ref(null)
+const salesTrendList = ref([])
+const categoryProportionList = ref([])
+
+const fmt = (n, prefix = '') => {
+  if (n === null || n === undefined || isNaN(n)) return prefix + '0'
+  return prefix + Number(n).toLocaleString('zh-CN')
+}
+
+onMounted(async () => {
+  try {
+    const [coreRes, trendRes, catRes] = await Promise.all([
+      businessApi.dashboard.coreMetrics.get(),
+      businessApi.dashboard.salesTrend.get(),
+      businessApi.dashboard.categoryProportion.get(),
+    ])
+    if (coreRes?.data) coreMetrics.value = coreRes.data
+    if (trendRes?.data?.list) salesTrendList.value = trendRes.data.list
+    if (catRes?.data?.list) categoryProportionList.value = catRes.data.list
+  } catch (e) {
+    // 保留 widgets.js 硬编码默认值兜底，不让仪表盘白屏
+  }
+})
+
+// 用真实数据覆盖 widget 的硬编码 props；对应字段无数据时回退默认 props
+function computeWidgetProps(widgetId, defaultProps) {
+  const m = coreMetrics.value
+  switch (widgetId) {
+    case 'stat-users':
+      return m
+        ? { ...defaultProps, label: '总客户数', value: fmt(m.total_customer_count), trend: m.customer_growth ?? 0, subValue: '今日新增' }
+        : defaultProps
+    case 'stat-orders':
+      return m
+        ? { ...defaultProps, label: '总订单数', value: fmt(m.total_order_count), trend: m.order_ratio ?? 0, subValue: '较昨日' }
+        : defaultProps
+    case 'stat-revenue':
+      return m
+        ? { ...defaultProps, label: '总收入', value: fmt(m.total_sales_amount, '¥'), trend: m.sales_ratio ?? 0, subValue: '较昨日' }
+        : defaultProps
+    case 'stat-visits':
+      return m
+        ? { ...defaultProps, label: '今日利润', value: fmt(m.total_profit, '¥'), trend: m.profit_ratio ?? 0, subValue: '较昨日' }
+        : defaultProps
+    case 'chart-line':
+      return salesTrendList.value.length
+        ? { ...defaultProps, title: '销售趋势', data: salesTrendList.value.map((d) => ({ month: d.label, value: d.amount })) }
+        : defaultProps
+    case 'chart-bar':
+      return categoryProportionList.value.length
+        ? { ...defaultProps, data: categoryProportionList.value.map((d) => ({ category: d.name, value: d.value })) }
+        : defaultProps
+    default:
+      return defaultProps
+  }
+}
 
 // 监听仪表盘容器实际宽度，侧边栏折叠/展开、布局模式切换都能正确触发响应
 const gridWrapper = ref(null)
@@ -70,6 +130,13 @@ function handleAdd(widgetId) {
 function getWidget(item) {
 	return getWidgetConfig(item.widgetId)
 }
+
+// 渲染时计算 props：有真实数据则覆盖，否则用 widgets.js 默认值
+function getWidgetProps(item) {
+	const cfg = getWidgetConfig(item.widgetId)
+	if (!cfg) return {}
+	return computeWidgetProps(item.widgetId, cfg.props)
+}
 </script>
 
 <template>
@@ -100,7 +167,7 @@ function getWidget(item) {
 				<GridItem v-for="item in effectiveLayout" :key="item.i" :x="item.x" :y="item.y" :w="item.w" :h="item.h" :i="item.i" :min-w="1" :min-h="1">
 					<div class="widget-item">
 						<el-button v-if="store.dashboardEditMode" class="widget-item__delete" icon="ElIconClose" circle size="small" text type="danger" @click="store.removeDashboardWidget(item.i)" />
-						<component v-if="getWidget(item)" :is="getWidget(item).component" v-bind="getWidget(item).props" />
+						<component v-if="getWidget(item)" :is="getWidget(item).component" v-bind="getWidgetProps(item)" />
 						<el-empty v-else description="未知小部件" :image-size="60" />
 					</div>
 				</GridItem>
