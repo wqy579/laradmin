@@ -63,11 +63,12 @@ class SplitController extends Controller
             ];
         });
 
-        return $this->paginated([
-            'data' => $items,
+        return $this->success([
+            'list' => $items,
             'total' => $list->total(),
             'page' => $list->currentPage(),
             'page_size' => $list->perPage(),
+            'last_page' => $list->lastPage(),
         ]);
     }
 

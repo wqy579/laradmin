@@ -173,8 +173,8 @@ class CheckController extends Controller
     /** 待装车验货单列表（已验货可被装车单引用） */
     public function unchecked(Request $request)
     {
-        $list = DeliveryCheck::where('status', DeliveryCheck::STATUS_CHECKED)
-            ->whereNotIn('id', function ($q) {
+        $list = DeliveryCheck::where('delivery_check.status', DeliveryCheck::STATUS_CHECKED)
+            ->whereNotIn('delivery_check.id', function ($q) {
                 $q->select('check_id')->from('delivery_load_items')->whereNotNull('check_id');
             })
             ->leftJoin('customers as c', 'c.id', '=', 'delivery_check.customer_id')
