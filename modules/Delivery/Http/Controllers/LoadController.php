@@ -3,6 +3,7 @@
 namespace Modules\Delivery\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Support\Inbox;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -258,6 +259,9 @@ class LoadController extends Controller
 
             DB::commit();
 
+            // 装车确认 → 通知配送员有货待送。事务已提交，通知失败不阻断主流程。
+            $this->notifyDeliveryPerson($load);
+
             return $this->success([
                 'load' => $load->fresh(['items']),
                 'tasks' => $tasks,
@@ -270,6 +274,41 @@ class LoadController extends Controller
             DB::rollBack();
 
             return $this->error($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * 装车确认后通知该单的配送员有货待送。
+     *
+     * 配送员是装车单上绑定的 delivery_person_id（建单时选的），直接定向通知
+     * 比按权限广播更准。通知写入自身容错，失败只记日志。
+     */
+    private function notifyDeliveryPerson(DeliveryLoad $load): void
+    {
+        try {
+            $personId = (int) ($load->delivery_person_id ?? 0);
+            if ($personId <= 0) {
+                return;
+            }
+
+            $name = $load->delivery_person_name
+                ?? DB::table('auth_user')->where('id', $personId)->value('real_name')
+                ?? '配送员';
+
+            Inbox::sendToUsers(
+                [$personId],
+                "装车单 {$load->load_no} 待配送",
+                '配送员 '.$name.'：装车单 '.$load->load_no.' 已确认装车，请安排配送',
+                Inbox::TYPE_APPROVAL,
+                'delivery_load',
+                [
+                    'entity_type' => 'delivery_load',
+                    'entity_id' => $load->id,
+                    'path' => '/business/dispatch',
+                ]
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('装车确认通知发送失败: '.$e->getMessage());
         }
     }
 

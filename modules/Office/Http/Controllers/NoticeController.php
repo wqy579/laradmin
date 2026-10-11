@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
+use Modules\Office\Models\Message;
 
 /**
  * 模块七：公司公告
@@ -32,11 +35,24 @@ class NoticeController extends Controller
         $userId = (int) auth('admin')->id();
         $keyword = trim((string) $request->input('keyword', ''));
         $type = trim((string) $request->input('type', ''));
+        $status = trim((string) $request->input('status', ''));
+        $hasStatus = $this->hasStatusColumn();
         $pageSize = min(100, max(1, (int) $request->input('page_size', 20)));
 
         $query = DB::table('notices')->where(function ($q) use ($userId) {
             $this->scopeFilter($q, $userId);
         });
+
+        // 发布状态必须在外层单独 AND，不能塞进上面的 scopeFilter 闭包里。
+        // scopeFilter 用一串 ->orWhere() 拼可见范围，Laravel 不会自动加括号，
+        // 若把 status 放在同一闭包里，SQL 会变成
+        //   scope='all' OR scope='dept' OR (scope='user' AND status='published')
+        // ——按 AND 优先于 OR 的运算优先级，status 只约束最后一个 OR 分支，
+        // scope='all' 的草稿会照样漏出来。放在外层才是 (可见范围) AND status。
+        // 未传 status 默认只看已发布，显式传 draft 才出草稿。
+        if ($hasStatus) {
+            $query->where('status', $status === 'draft' ? 'draft' : 'published');
+        }
 
         if ($type !== '' && array_key_exists($type, self::TYPE_COLORS)) {
             $query->where('type', $type);
@@ -48,7 +64,11 @@ class NoticeController extends Controller
             });
         }
 
-        $paginator = $query->orderByDesc('is_top')->orderByDesc('created_at')->paginate($pageSize);
+        $paginator = $query
+            ->orderByDesc('is_top')
+            ->when($hasStatus, fn ($q) => $q->orderBy(DB::raw('published_at IS NULL'))->orderByDesc('published_at'))
+            ->orderByDesc('created_at')
+            ->paginate($pageSize);
 
         $list = collect($paginator->items())->map(function ($notice) use ($userId) {
             $notice->summary = $this->summary($notice->content);
@@ -85,6 +105,7 @@ class NoticeController extends Controller
             'scope_ids' => 'nullable|array',
             'scope_ids.*' => 'integer',
             'attachments' => 'nullable|array',
+            'status' => 'nullable|in:draft,published',
         ]);
 
         $userId = (int) auth('admin')->id();
@@ -105,7 +126,72 @@ class NoticeController extends Controller
             'updated_at' => now(),
         ]);
 
-        return $this->created(['id' => $id], '公告已发布');
+        // 新公告默认存草稿，避免「保存即全员可见」。存量库无 status 列时跳过
+        // （迁移尚未执行），此时维持旧的「存即发布」行为不报错。
+        if ($this->hasStatusColumn()) {
+            DB::table('notices')->where('id', $id)->update([
+                'status' => $validated['status'] ?? 'draft',
+                'published_at' => ($validated['status'] ?? 'draft') === 'published' ? now() : null,
+                'updated_at' => now(),
+            ]);
+        }
+
+        return $this->created(['id' => $id], '公告已保存');
+    }
+
+    /** 发布公告：草稿 → 已发布，并给全员发一条系统公告消息 */
+    public function publish(int $notice): JsonResponse
+    {
+        $userId = (int) auth('admin')->id();
+        $row = DB::table('notices')->where('id', $notice)->first();
+
+        if (! $row) {
+            return $this->notFound('公告不存在');
+        }
+        if (! $this->canEdit($row, $userId)) {
+            return $this->forbidden('只能发布自己发布的公告');
+        }
+
+        DB::table('notices')->where('id', $notice)->update([
+            'status' => 'published',
+            'published_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->notifyAll($row);
+
+        return $this->success(['id' => $notice], '公告已发布');
+    }
+
+    /** 发布成功后推送一条系统公告消息给全体用户 */
+    private function notifyAll(object $row): void
+    {
+        try {
+            $userIds = DB::table('auth_user')->where('status', 1)->whereNull('deleted_at')->pluck('id')->all();
+            if (empty($userIds)) {
+                return;
+            }
+            Message::insert(array_map(function ($uid) use ($row) {
+                return [
+                    'user_id' => $uid,
+                    'type' => Message::TYPE_SYSTEM,
+                    'category' => 'announcement',
+                    'title' => '新公告：'.mb_substr($row->title, 0, 60),
+                    'content' => $this->summary($row->content),
+                    'payload' => json_encode([
+                        'entity_type' => 'notice',
+                        'entity_id' => $row->id,
+                        'path' => '/business/notice',
+                    ], JSON_UNESCAPED_UNICODE),
+                    'is_read' => false,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }, $userIds));
+        } catch (\Throwable $e) {
+            // 通知失败不影响公告发布本身
+            Log::warning('公告发布通知发送失败', ['notice_id' => $row->id, 'error' => $e->getMessage()]);
+        }
     }
 
     public function show(int $notice): JsonResponse
@@ -149,6 +235,7 @@ class NoticeController extends Controller
             'scope_ids' => 'nullable|array',
             'scope_ids.*' => 'integer',
             'attachments' => 'nullable|array',
+            'status' => 'nullable|in:draft,published',
         ]);
 
         DB::table('notices')->where('id', $notice)->update([
@@ -161,6 +248,21 @@ class NoticeController extends Controller
             'attachments' => json_encode($validated['attachments'] ?? [], JSON_UNESCAPED_UNICODE),
             'updated_at' => now(),
         ]);
+
+        // 编辑时可从草稿转发布（前端「发布」按钮走此路径时传 status=published）
+        if ($this->hasStatusColumn() && isset($validated['status'])) {
+            $wasDraft = ($row->status ?? 'published') === 'draft';
+            DB::table('notices')->where('id', $notice)->update([
+                'status' => $validated['status'],
+                'published_at' => $validated['status'] === 'published'
+                    ? (DB::table('notices')->where('id', $notice)->value('published_at') ?? now())
+                    : null,
+                'updated_at' => now(),
+            ]);
+            if ($wasDraft && $validated['status'] === 'published') {
+                $this->notifyAll($row);
+            }
+        }
 
         return $this->success(['id' => $notice], '公告已更新');
     }
@@ -198,6 +300,18 @@ class NoticeController extends Controller
         $query->orWhere(function ($q) use ($userId) {
             $q->where('scope', 'user')->whereJsonContains('scope_ids', $userId);
         });
+    }
+
+    /**
+     * notices 表是否已有 status 列。
+     *
+     * 公告草稿/发布态由 2026_10_15 迁移添加。本方法用 Schema::hasColumn 做软探测，
+     * 让「迁移未跑（存量库）」和「已跑（新库）」两种环境下 store/update/index 都不崩——
+     * 存量库走旧的「存即发布」语义，新库才启用草稿。避免部署顺序问题把线上打挂。
+     */
+    private function hasStatusColumn(): bool
+    {
+        return Schema::hasColumn('notices', 'status');
     }
 
     private function canEdit(object $notice, int $userId): bool

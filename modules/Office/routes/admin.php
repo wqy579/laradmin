@@ -2,18 +2,29 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Office\Http\Controllers\MailController;
+use Modules\Office\Http\Controllers\MessageController;
 use Modules\Office\Http\Controllers\NoticeController;
 
 // =============================================================================
 // 办公模块（Office）路由
 //
-// 领域边界：内部邮件（收/发/草稿/回收站）+ 公司公告
+// 领域边界：内部邮件（收/发/草稿/回收站）+ 公司公告 + 站内消息（铃铛/消息中心）
 //
 // 信封由 bootstrap/app.php 统一施加，本文件只声明 Office 自己的路由。
 // URL 前缀沿用 business/*：菜单 path 早已按此注册（office.mail / office.notice）。
 // =============================================================================
 
 Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
+    // 站内消息（消息通知中心）
+    // 静态路由（unread-count / read-all）必须先于 {message}，否则会被当成 id 吞掉
+    Route::prefix('messages')->group(function () {
+        Route::get('unread-count', [MessageController::class, 'unreadCount']);
+        Route::post('read-all', [MessageController::class, 'markAllAsRead']);
+        Route::get('/', [MessageController::class, 'index']);
+        Route::post('{message}/read', [MessageController::class, 'markAsRead']);
+        Route::delete('{message}', [MessageController::class, 'destroy']);
+    });
+
     // 内部邮件
     Route::prefix('business/mail')->group(function () {
         // 静态路由必须先于 {mail}，否则会被当成 id 吞掉
@@ -38,6 +49,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/', [NoticeController::class, 'store']);
         Route::get('{notice}', [NoticeController::class, 'show']);
         Route::put('{notice}', [NoticeController::class, 'update']);
+        Route::post('{notice}/publish', [NoticeController::class, 'publish']);
         Route::delete('{notice}', [NoticeController::class, 'destroy']);
     });
 });
