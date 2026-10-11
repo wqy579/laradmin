@@ -1,15 +1,16 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useFullscreen } from '@vueuse/core'
 import { useAppStore } from '../../stores/app'
 import { useUserStore } from '../../stores/modules/user'
-import { useNotificationStore } from '../../stores/modules/notification'
+import businessApi from '../../api/business'
 import { useWebSocket } from '../../hooks/useWebSocket'
 import SearchModal from './search.vue'
 import MessageDrawer from './message.vue'
+import MessagePanel from './message-panel.vue'
 
 const props = defineProps({
 	mobile: { type: Boolean, default: false },
@@ -22,11 +23,36 @@ const userStore = useUserStore()
 
 const searchVisible = ref(false)
 const messageVisible = ref(false)
+const messagePanelVisible = ref(false)
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
-const notificationStore = useNotificationStore()
 const { status: wsStatus } = useWebSocket()
 
-const messageCount = computed(() => (messageVisible.value ? 0 : notificationStore.unreadCount))
+// 未读消息数：来自新的 messages 系统（businessApi.messages），30s 轮询刷新。
+const unreadMsgCount = ref(0)
+
+const messageCount = computed(() => {
+	if (messageVisible.value || messagePanelVisible.value) return 0
+	return unreadMsgCount.value
+})
+
+async function fetchMessageCount() {
+	try {
+		const res = await businessApi.messages.unreadCount.get()
+		if (res.code === 200) unreadMsgCount.value = res.data?.count ?? 0
+	} catch (e) {
+		console.error('获取未读消息数失败:', e)
+	}
+}
+
+function handlePanelCountChange(count) {
+	unreadMsgCount.value = count || 0
+}
+
+let messagePollTimer = null
+function startMessagePolling() {
+	fetchMessageCount()
+	messagePollTimer = setInterval(fetchMessageCount, 30000)
+}
 
 const userName = computed(() => {
 	const info = userStore.userInfo || {}
@@ -89,6 +115,17 @@ function handleLogout() {
 		})
 		.catch(() => {})
 }
+
+onMounted(() => {
+	startMessagePolling()
+})
+
+onBeforeUnmount(() => {
+	if (messagePollTimer) {
+		clearInterval(messagePollTimer)
+		messagePollTimer = null
+	}
+})
 </script>
 
 <template>
@@ -100,13 +137,26 @@ function handleLogout() {
 				</el-tooltip>
 			</div>
 
-			<div class="panel-item" @click="messageVisible = true">
-				<el-tooltip :content="t('header.message')" placement="bottom" :show-after="300">
-					<el-badge :value="messageCount" :max="99" :hidden="messageCount === 0">
-						<el-icon :size="16"><ElIconBell /></el-icon>
-					</el-badge>
-				</el-tooltip>
-			</div>
+			<el-popover
+				v-model:visible="messagePanelVisible"
+				:width="360"
+				placement="bottom-end"
+				trigger="click"
+				popper-class="message-popover"
+			>
+				<template #reference>
+					<div class="panel-item">
+						<el-badge :value="messageCount" :max="99" :hidden="messageCount === 0">
+							<el-icon :size="16"><ElIconBell /></el-icon>
+						</el-badge>
+					</div>
+				</template>
+				<MessagePanel
+					:visible="messagePanelVisible"
+					@navigate="messagePanelVisible = false"
+					@count-change="handlePanelCountChange"
+				/>
+			</el-popover>
 
 			<el-dropdown trigger="click" @command="switchLocale">
 				<div class="panel-item panel-item--lang">
@@ -223,8 +273,17 @@ function handleLogout() {
 }
 
 .panel-item :deep(.el-badge__content) {
-	top: 2px;
-	right: calc(1px + var(--el-badge-size) / 2);
+	top: -5px;
+	right: -5px;
+	min-width: 18px;
+	height: 18px;
+	padding: 0 5px;
+	line-height: 18px;
+	border-radius: 10px;
+	background-color: #F56C6C;
+	color: #fff;
+	font-size: 12px;
+	border: 1px solid #fff;
 }
 
 .user-info {
@@ -293,5 +352,18 @@ function handleLogout() {
 <style scoped>
 .user-bar--mobile .panel-item {
 	padding: 0 8px;
+}
+</style>
+
+<style>
+/* 铃铛下拉面板：去掉 el-popover 默认的 padding/圆角/阴影，让 message-panel 自己的样式接管 */
+.el-popover.message-popover {
+	padding: 0;
+	border-radius: 4px;
+	box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+}
+.el-popover.message-popover .el-popper__arrow::before,
+.el-popover.message-popover .el-popper__arrow::after {
+	display: none;
 }
 </style>

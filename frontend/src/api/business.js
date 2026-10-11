@@ -714,6 +714,40 @@ const businessApi = {
 		brandProportion: { get: (params) => request.get('dashboard/brand-proportion', { params }) },
 		brandTop10: { get: (params) => request.get('dashboard/brand-top10', { params }) },
 	},
+
+	// ============ 消息中心 ============
+	messages: {
+		unreadCount: { get: () => request.get('messages/unread-count') },
+		list: { get: (params) => request.get('messages', { params }) },
+		read: { post: (id) => request.post(`messages/${id}/read`) },
+		readAll: { post: () => request.post('messages/read-all') },
+		delete: { delete: (id) => request.delete(`messages/${id}`) },
+	},
+
+	// 公司公告（Office 模块）
+	notice: {
+		list: { get: (params) => request.get('business/notice', { params }) },
+		detail: { get: (id) => request.get(`business/notice/${id}`) },
+		create: { post: (params) => request.post('business/notice', params) },
+		update: { put: (id, params) => request.put(`business/notice/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/notice/${id}`) },
+		publish: { post: (id) => request.post(`business/notice/${id}/publish`) },
+	},
+
+	// 内部邮件（Office 模块）
+	mail: {
+		list: { get: (params) => request.get('business/mail', { params }) },
+		detail: { get: (id) => request.get(`business/mail/${id}`) },
+		unreadCount: { get: () => request.get('business/mail/unread-count') },
+		contacts: { get: () => request.get('business/mail/contacts') },
+		send: { post: (params) => request.post('business/mail', params) },
+		delete: { delete: (id) => request.delete(`business/mail/${id}`) },
+		read: { post: (id) => request.post(`business/mail/${id}/read`) },
+		unread: { post: (id) => request.post(`business/mail/${id}/unread`) },
+		batchRead: { post: (params) => request.post('business/mail/batch-read', params) },
+		batchUnread: { post: (params) => request.post('business/mail/batch-unread', params) },
+		batchDelete: { post: (params) => request.post('business/mail/batch-delete', params) },
+	},
 }
 
 export default businessApi

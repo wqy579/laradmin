@@ -3,6 +3,7 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Support\Inbox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -1131,7 +1132,41 @@ class SalesOrderController extends Controller
             \Log::warning('logOperation failed: '.$e->getMessage());
         }
 
+        // 订单审核通过（pending → 配货中）通知配货员去配货。
+        // 在事务外、logOperation 之后发：通知失败不影响状态流转，也不阻断日志。
+        if ($target === '配货中') {
+            $this->notifyPickers($salesOrder);
+        }
+
         return $this->success($salesOrder->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '状态已更新为'.$target);
+    }
+
+    /**
+     * 订单进入「配货中」时通知配货员。
+     *
+     * 配货员 = 持有 delivery.pick（拣货）或 order.dispatch（配货/调度）权限的用户——
+     * 本系统无独立岗位字段，岗位靠角色权限体现，故按权限码反查（见 Inbox）。
+     * 通知写入自身容错，失败只记日志、不影响审批主流程。
+     */
+    private function notifyPickers(SalesOrder $order): void
+    {
+        try {
+            $userIds = Inbox::userIdsByPermissions(['delivery.pick', 'order.dispatch']);
+            Inbox::sendToUsers(
+                $userIds,
+                "订单 {$order->order_no} 待配货",
+                '订单 '.$order->order_no.'（'.($order->customer?->name ?? '').'）已审核通过，请前往配货',
+                Inbox::TYPE_APPROVAL,
+                'order',
+                [
+                    'entity_type' => 'sales_order',
+                    'entity_id' => $order->id,
+                    'path' => '/business/sales-order',
+                ]
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('订单配货通知发送失败: '.$e->getMessage());
+        }
     }
 
     /**

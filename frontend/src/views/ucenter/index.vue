@@ -36,6 +36,10 @@
 							<el-icon><ElIconBell /></el-icon>
 							<span>消息通知</span>
 						</el-menu-item>
+						<el-menu-item index="my-messages">
+							<el-icon><ElIconBell /></el-icon>
+							<span>我的消息</span>
+						</el-menu-item>
 					</el-menu-item-group>
 				</el-menu>
 			</el-aside>
@@ -65,7 +69,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
+import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../../stores/modules/user'
 import api from '../../api/auth'
@@ -75,16 +80,24 @@ const BasicInfo = defineAsyncComponent(() => import('./components/basic-info.vue
 const Password = defineAsyncComponent(() => import('./components/password.vue'))
 const Security = defineAsyncComponent(() => import('./components/security.vue'))
 const NotificationSettings = defineAsyncComponent(() => import('./components/notification-settings.vue'))
+const MyMessages = defineAsyncComponent(() => import('./components/my-messages.vue'))
 
 const userStore = useUserStore()
+const route = useRoute()
 
 const userInfo = ref({})
-const activeMenu = ref('basic')
+const activeMenu = ref(route.query.menu || 'basic')
 const showAvatarModal = ref(false)
 const avatarUrl = ref('')
 const uploadLoading = ref(false)
 
-const componentMap = { basic: BasicInfo, password: Password, security: Security, notification: NotificationSettings }
+const componentMap = {
+	basic: BasicInfo,
+	password: Password,
+	security: Security,
+	notification: NotificationSettings,
+	'my-messages': MyMessages,
+}
 const currentComponent = computed(() => componentMap[activeMenu.value] || BasicInfo)
 
 const displayRoles = computed(() => {
@@ -112,6 +125,14 @@ const initUserInfo = async () => {
 const handleMenuSelect = (index) => {
 	activeMenu.value = index
 }
+
+// 支持从其他地方通过 ?menu=xxx 跳转（例如铃铛面板的"查看全部"）
+watch(
+	() => route.query.menu,
+	(val) => {
+		if (val && componentMap[val]) activeMenu.value = val
+	}
+)
 
 const handleUpdateUserInfo = (data) => {
 	Object.assign(userInfo.value, data)

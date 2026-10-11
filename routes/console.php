@@ -21,3 +21,9 @@ Schedule::command('queue:work --redis --tries=3 --timeout=60 --sleep=3')
 Schedule::command('notifications:retry-unsent --limit=100')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+
+// 库存预警：每天 8:00 查询低于安全库存的商品，汇总通知库管与采购
+// （时区见 config/app.php timezone；消息标题带日期前缀保证同日只发一次）
+Schedule::command('stock:warning')
+    ->dailyAt('08:00')
+    ->withoutOverlapping();

@@ -5,12 +5,14 @@ namespace Modules\Stock\Providers;
 use Illuminate\Support\ServiceProvider;
 use Modules\Stock\Console\Commands\BackfillBrandCategory;
 use Modules\Stock\Console\Commands\StockSnapshot;
+use Modules\Stock\Console\Commands\StockWarning;
 
 class StockServiceProvider extends ServiceProvider
 {
     protected array $commands = [
         StockSnapshot::class,
         BackfillBrandCategory::class,
+        StockWarning::class,
     ];
 
     public function register(): void

@@ -3,6 +3,7 @@
 namespace Modules\Stock\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Support\Inbox;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -366,7 +367,36 @@ class StocktakingController extends Controller
             return $this->error('审核失败：'.$e->getMessage().'，请核对实盘数量后重试', 422);
         }
 
+        // 盘点审核通过 → 通知库管。事务已提交，通知失败不阻断主流程。
+        $this->notifyStockers($check);
+
         return $this->success($check->load('items', 'warehouse'), '审核通过，库存与财务凭证已生成');
+    }
+
+    /**
+     * 盘点单审核通过后通知库管。
+     *
+     * 库管 = 持有 inventory.stock-check（库存盘点）权限的用户。
+     */
+    private function notifyStockers(StockCheck $check): void
+    {
+        try {
+            $userIds = Inbox::userIdsByPermissions(['inventory.stock-check']);
+            Inbox::sendToUsers(
+                $userIds,
+                "盘点单 {$check->check_no} 已审核",
+                '盘点单 '.$check->check_no.' 已审核通过，库存与财务凭证已生成',
+                Inbox::TYPE_APPROVAL,
+                'stock_check',
+                [
+                    'entity_type' => 'stock_check',
+                    'entity_id' => $check->id,
+                    'path' => '/business/stock-check',
+                ]
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('盘点审核通知发送失败: '.$e->getMessage());
+        }
     }
 
     /**

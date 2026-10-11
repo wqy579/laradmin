@@ -3,6 +3,7 @@
 namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Support\Inbox;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -375,7 +376,36 @@ class ReceiveController extends Controller
 
         $receive = $this->service->approve($receive);
 
+        // 收款审核通过 → 通知出纳。审核事务已提交后才发，通知失败不阻断主流程。
+        $this->notifyCashier($receive);
+
         return $this->success($receive);
+    }
+
+    /**
+     * 收款单审核通过后通知出纳。
+     *
+     * 出纳 = 持有 finance.payment 权限的用户（本系统无岗位字段，岗位靠权限体现）。
+     */
+    private function notifyCashier($receive): void
+    {
+        try {
+            $userIds = Inbox::userIdsByPermissions(['finance.payment']);
+            Inbox::sendToUsers(
+                $userIds,
+                "收款单 {$receive->receive_no} 已审核",
+                '收款单 '.$receive->receive_no.'（'.($receive->customer?->name ?? '').'）已审核通过，请核对到账',
+                Inbox::TYPE_APPROVAL,
+                'receive',
+                [
+                    'entity_type' => 'receive',
+                    'entity_id' => $receive->id,
+                    'path' => '/business/receive',
+                ]
+            );
+        } catch (\Throwable $e) {
+            \Log::warning('收款审核通知发送失败: '.$e->getMessage());
+        }
     }
 
     /** 红冲收款单 */
