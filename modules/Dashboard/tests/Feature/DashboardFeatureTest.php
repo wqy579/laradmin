@@ -5,6 +5,7 @@ namespace Tests\Dashboard\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Modules\Order\Models\Customer;
+use Modules\Stock\Models\Brand;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Warehouse;
 use Tests\TestCase;
@@ -45,6 +46,51 @@ class DashboardFeatureTest extends TestCase
         $this->getJson('/admin/dashboard/region-sales')->assertOk();
         $this->getJson('/admin/dashboard/delivery-status')->assertOk();
         $this->getJson('/admin/dashboard/finance-overview')->assertOk();
+        $this->getJson('/admin/dashboard/brand-proportion')->assertOk();
+        $this->getJson('/admin/dashboard/brand-top10')->assertOk();
+    }
+
+    /**
+     * 品牌销售占比 / TOP10 必须真实按品牌汇总，而不是返回空或演示数据。
+     *
+     * 前端仪表盘在数据为空时会回退到硬编码演示值（电子产品/服装…），
+     * 后端这两个端点必须保证：有销售数据时返回真实品牌金额，断言内容而非只断言 200。
+     */
+    public function test_brand_proportion_and_top10_aggregate_by_brand(): void
+    {
+        $this->actingAsAdmin();
+
+        $warehouse = Warehouse::create(['code' => 'WH1', 'name' => '主仓库', 'type' => 'normal', 'is_active' => true]);
+        $customer = Customer::create(['code' => 'C1', 'name' => '客户', 'is_active' => true]);
+
+        $brandA = Brand::create(['name' => '品牌A', 'code' => 'BR0001', 'is_active' => true]);
+        $brandB = Brand::create(['name' => '品牌B', 'code' => 'BR0002', 'is_active' => true]);
+
+        $pA = Product::create(['name' => '可乐', 'code' => 'PA', 'price_small' => 10, 'price_unit_small' => '瓶', 'is_active' => true, 'brand_id' => $brandA->id]);
+        $pB = Product::create(['name' => '雪碧', 'code' => 'PB', 'price_small' => 10, 'price_unit_small' => '瓶', 'is_active' => true, 'brand_id' => $brandB->id]);
+
+        $orderId = DB::table('sales_orders')->insertGetId([
+            'order_no' => 'XS1', 'customer_id' => $customer->id, 'warehouse_id' => $warehouse->id,
+            'order_date' => now()->toDateString(), 'total_qty' => 20, 'total_amount' => 300, 'status' => '已收款',
+        ]);
+        DB::table('sales_order_items')->insert([
+            ['sales_order_id' => $orderId, 'product_id' => $pA->id, 'quantity' => 10, 'price' => 10, 'amount' => 100],
+            ['sales_order_id' => $orderId, 'product_id' => $pB->id, 'quantity' => 20, 'price' => 10, 'amount' => 200],
+        ]);
+
+        $prop = $this->getJson('/admin/dashboard/brand-proportion')->assertOk();
+        $this->assertSame(300.0, (float) $prop->json('data.total'), '品牌占比总额应为三个金额之和');
+        $names = collect($prop->json('data.list'))->pluck('name');
+        $this->assertContains('品牌A', $names->all());
+        $this->assertContains('品牌B', $names->all());
+
+        $top = $this->getJson('/admin/dashboard/brand-top10')->assertOk();
+        $topList = $top->json('data.list');
+        $this->assertCount(2, $topList, '只有两个品牌有销售，TOP10 应返回 2 条');
+        // TOP10 按金额降序，品牌B(200) 应在品牌A(100) 前
+        $this->assertSame('品牌B', $topList[0]['category']);
+        $this->assertSame(200.0, (float) $topList[0]['value']);
+        $this->assertSame('品牌A', $topList[1]['category']);
     }
 
     /**

@@ -33,6 +33,12 @@ class StockService
             $query->where('product_id', $request->product_id);
         }
 
+        if ($request->filled('brand_id')) {
+            $query->whereHas('product', function ($q) use ($request) {
+                $q->where('brand_id', (int) $request->brand_id);
+            });
+        }
+
         if ($request->filled('warehouse_id')) {
             $query->where('warehouse_id', $request->warehouse_id);
         }

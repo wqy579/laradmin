@@ -24,5 +24,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/region-sales', [DashboardController::class, 'regionSales']);
         Route::get('/delivery-status', [DashboardController::class, 'deliveryStatus']);
         Route::get('/finance-overview', [DashboardController::class, 'financeOverview']);
+        Route::get('/brand-proportion', [DashboardController::class, 'brandProportion']);
+        Route::get('/brand-top10', [DashboardController::class, 'brandTop10']);
     });
 });

@@ -921,6 +921,90 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/brand",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\BrandController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/brand",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\BrandController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/brand/batch-status",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\BrandController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/brand/options",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\BrandController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/brand/{brand}",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\BrandController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/brand/{brand}",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\BrandController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/brand/{brand}",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\BrandController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/cash-flow",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\CashFlowController@index",
@@ -6672,6 +6756,30 @@
         "uri": "admin/business/warehouse/{warehouse}",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\WarehouseController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/brand-proportion",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@brandProportion",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/brand-top10",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@brandTop10",
         "middleware": [
             "api",
             "stock.snapshot",

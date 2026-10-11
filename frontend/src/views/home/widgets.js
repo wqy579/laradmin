@@ -77,8 +77,17 @@ const WIDGET_REGISTRY = {
 	},
 	'chart-bar': {
 		id: 'chart-bar',
-		title: '销售统计',
+		title: '品牌销售占比',
 		icon: 'ElIconHistogram',
+		defaultW: 6,
+		defaultH: 4,
+		component: markRaw(ChartBar),
+		props: {},
+	},
+	'chart-brand-top10': {
+		id: 'chart-brand-top10',
+		title: '品牌销售TOP10',
+		icon: 'ElIconTrophy',
 		defaultW: 6,
 		defaultH: 4,
 		component: markRaw(ChartBar),

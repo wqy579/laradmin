@@ -1,6 +1,11 @@
 <template>
 	<sPageSplit side-title="库存管理">
 		<div class="toolbar">
+			<div class="left-panel">
+				<el-select v-model="searchForm.brand_id" clearable filterable placeholder="品牌" style="width:160px" @change="search">
+					<el-option v-for="b in brandOptions" :key="b.id" :label="`${b.name}（${b.product_count || 0}）`" :value="b.id" />
+				</el-select>
+			</div>
 			<div class="right-panel">
 				<el-button type="primary" @click="handleStockIn">入库</el-button>
 				<el-button type="warning" @click="handleStockOut">出库</el-button>
@@ -55,12 +60,20 @@ const searchForm = ref({
 	keyword: '',
 	product_id: null,
 	warehouse_id: null,
+	brand_id: null,
 })
 
 const { tableRef, data, total, loading, paginationProps, refresh, search, handlePageChange, handlePageSizeChange } = useTable({
 	apiObj: { get: (params) => businessApi.stock.list.get(params) },
 	searchForm: searchForm.value,
 })
+
+// 品牌筛选：复用品牌 options 接口（启用品牌 + 商品数）
+const brandOptions = ref([])
+const loadBrandOptions = async () => {
+	const res = await businessApi.brand.options.get()
+	brandOptions.value = res.data?.list || []
+}
 
 const columns = [
 	{ prop: 'id', title: 'ID', width: 70, align: 'center' },
@@ -77,11 +90,12 @@ const columns = [
 const formatMoney = (val) => val ? '¥' + Number(val).toFixed(2) : '-'
 
 onMounted(() => {
+	loadBrandOptions()
 	refresh()
 })
 </script>
 
 <style scoped>
-.toolbar { margin-bottom: 12px; display: flex; justify-content: flex-end; }
+.toolbar { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 .text-danger { color: var(--el-color-danger); }
 </style>
