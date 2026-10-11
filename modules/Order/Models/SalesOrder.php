@@ -23,6 +23,9 @@ class SalesOrder extends Model
         'remark', 'print_count', 'print_type', 'sort_type',
         'stocker_id', 'stocker_name', 'reconcile_date',
         'red_flush_reason', 'red_flush_by', 'red_flush_at', 'red_flush_order_id', 'original_order_id', 'payment_status',
+        // 会员管理模块：会员身份快照 + 储值/积分抵扣 + 结算幂等标记
+        // 由 Modules\Member 的迁移 2026_10_14_000002 添加列
+        'member_id', 'use_balance', 'use_points', 'points_settled',
     ];
 
     protected $casts = [
@@ -32,6 +35,10 @@ class SalesOrder extends Model
         'approved_at' => 'datetime',
         'dispatched_at' => 'datetime',
         'reconcile_date' => 'date',
+        'member_id' => 'integer',
+        'use_balance' => 'decimal:2',
+        'use_points' => 'integer',
+        'points_settled' => 'boolean',
     ];
 
     public function customer(): BelongsTo

@@ -62,6 +62,12 @@ class ArchitectureTest extends TestCase
         'Exchange->Order',  // 换货单客户快照引用 Order 的 Customer 主数据表
         'Dashboard->Stock',  // 大屏聚合读 Stock 的库存/商品/品牌主数据（含测试夹具构造商品/仓库）
         'Dashboard->Order',  // 大屏聚合读 Order 的销售单/客户主数据（含测试夹具构造客户）
+        'Member->Order',  // 会员档案绑定客户（members.customer_id 1:0..1），引用 Order 的
+        // Customer 主数据表；销售订单也落 member_id 快照，同库同事务，抽契约收益低
+        'Member->Auth',   // 储值/兑换单据记录审核人，引用 Auth 的用户表（与 Order->Auth 同理）
+        'Member->Stock',  // 积分兑换商品审核扣减商品库存，测试夹具构造 Stock 商品（与 Dashboard->Stock 同理）
+        'Order->Member',  // 销售订单审核/红冲调 MemberService 结算储值与积分（settleOrder/refundOrder），
+        // 与 Member->Order 互为双向：同一会员-订单关系的两端操作，改走内核契约需先抽 Customer/Member 契约
     ];
 
     /**

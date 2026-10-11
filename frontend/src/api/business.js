@@ -606,6 +606,81 @@ const businessApi = {
 		customerDetail: { get: (params) => request.get('business/exchange-summary/customer-detail', { params }) },
 	},
 
+	// ============ 会员管理 ============
+	// 会员档案
+	member: {
+		list: { get: (params) => request.get('business/member', { params }) },
+		detail: { get: (id) => request.get(`business/member/${id}`) },
+		add: { post: (params) => request.post('business/member', params) },
+		edit: { put: (id, params) => request.put(`business/member/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/member/${id}`) },
+		freeze: { post: (id) => request.post(`business/member/${id}/freeze`) },
+		unfreeze: { post: (id) => request.post(`business/member/${id}/unfreeze`) },
+		batchStatus: { post: (params) => request.post('business/member/batch-status', params) },
+		search: { get: (params) => request.get('business/member/search', { params }) },
+		byCustomer: { get: (params) => request.get('business/member/by-customer', { params }) },
+		logs: { get: (id, params) => request.get(`business/member/${id}/logs`, { params }) },
+		statistics: { get: () => request.get('business/member/statistics') },
+		export: (params) => request.get('business/member/export', { params, responseType: 'blob' }),
+	},
+	// 会员等级
+	memberLevel: {
+		list: { get: (params) => request.get('business/member-level', { params }) },
+		add: { post: (params) => request.post('business/member-level', params) },
+		edit: { put: (id, params) => request.put(`business/member-level/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/member-level/${id}`) },
+		enable: { post: (id) => request.post(`business/member-level/${id}/enable`) },
+		disable: { post: (id) => request.post(`business/member-level/${id}/disable`) },
+	},
+	// 积分规则
+	pointRule: {
+		list: { get: () => request.get('business/point-rule') },
+		detail: { get: (key) => request.get(`business/point-rule/${key}`) },
+		save: { put: (params) => request.put('business/point-rule', params) },
+		reset: { post: () => request.post('business/point-rule/reset') },
+	},
+	// 储值充值
+	memberRecharge: {
+		list: { get: (params) => request.get('business/member-recharge', { params }) },
+		detail: { get: (id) => request.get(`business/member-recharge/${id}`) },
+		add: { post: (params) => request.post('business/member-recharge', params) },
+		edit: { put: (id, params) => request.put(`business/member-recharge/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/member-recharge/${id}`) },
+		approve: { post: (id) => request.post(`business/member-recharge/${id}/approve`) },
+		reject: { post: (id, params) => request.post(`business/member-recharge/${id}/reject`, params) },
+		cancel: { post: (id) => request.post(`business/member-recharge/${id}/cancel`) },
+		statistics: { get: (params) => request.get('business/member-recharge/statistics', { params }) },
+	},
+	// 积分兑换商品
+	pointProduct: {
+		list: { get: (params) => request.get('business/point-product', { params }) },
+		onShelf: { get: (params) => request.get('business/point-product/on-shelf', { params }) },
+		detail: { get: (id) => request.get(`business/point-product/${id}`) },
+		add: { post: (params) => request.post('business/point-product', params) },
+		edit: { put: (id, params) => request.put(`business/point-product/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/point-product/${id}`) },
+		turnOn: { post: (id) => request.post(`business/point-product/${id}/on-shelf`) },
+		turnOff: { post: (id) => request.post(`business/point-product/${id}/off-shelf`) },
+	},
+	// 积分兑换订单
+	pointOrder: {
+		list: { get: (params) => request.get('business/point-order', { params }) },
+		detail: { get: (id) => request.get(`business/point-order/${id}`) },
+		add: { post: (params) => request.post('business/point-order', params) },
+		approve: { post: (id) => request.post(`business/point-order/${id}/approve`) },
+		reject: { post: (id, params) => request.post(`business/point-order/${id}/reject`, params) },
+		cancel: { post: (id, params) => request.post(`business/point-order/${id}/cancel`, params) },
+		ship: { post: (id, params) => request.post(`business/point-order/${id}/ship`, params) },
+		complete: { post: (id) => request.post(`business/point-order/${id}/complete`) },
+		statistics: { get: (params) => request.get('business/point-order/statistics', { params }) },
+	},
+	// 会员消费记录
+	memberConsumeLog: {
+		list: { get: (params) => request.get('business/member-consume-log', { params }) },
+		detail: { get: (id) => request.get(`business/member-consume-log/${id}`) },
+		statistics: { get: (params) => request.get('business/member-consume-log/statistics', { params }) },
+	},
+
 	// ============ 智慧大屏 ============
 	dashboard: {
 		metrics: { get: (params) => request.get('dashboard/metrics', { params }) },

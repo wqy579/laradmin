@@ -26,11 +26,12 @@ class CashFlowController extends Controller
         };
 
         // 收款（全部状态）
-        // related_type=StockAdjust 的收款/费用来自库存调整单，类型显示更具体：
-        // 溢余记「库存溢余」、损耗记「库存损耗」，便于财务区分正常收付款与库存调整凭证。
+        // related_type 细分来源，便于财务区分不同类型收款凭证：
+        // StockAdjust=库存溢余（调整单产生的溢余入库回款）
+        // MemberRecharge=会员储值（会员充值到账，不是销售收款，避免与应收核销混淆）
         $receives = DB::table('cash_flows')
             ->where('flow_type', 'receive')
-            ->select('flow_date as date', DB::raw("CASE WHEN related_type = 'StockAdjust' THEN '库存溢余' ELSE '收款' END as type"), 'remark as description', 'amount');
+            ->select('flow_date as date', DB::raw("CASE related_type WHEN 'StockAdjust' THEN '库存溢余' WHEN 'MemberRecharge' THEN '会员储值' ELSE '收款' END as type"), 'remark as description', 'amount');
         $dateFn($receives);
 
         // 付款（负，全部状态）

@@ -115,6 +115,39 @@ class BusinessSeeder extends Seeder
             }
         }
 
+        // 会员管理：顶级分组菜单。AuthSeeder 会 truncate auth_permission，
+        // 迁移阶段注册的 member 菜单会被清掉，这里负责全新安装路径的重建。
+        // 分组菜单 component 空串 + path 指向第一个子路由（对齐借还货分组的硬约定）。
+        Permission::firstOrCreate(['name' => 'member'], [
+            'title' => '会员管理',
+            'type' => 'menu',
+            'parent_id' => 0,
+            'path' => '/business/member',
+            'component' => '',
+            'sort' => 13,
+            'status' => 1,
+            'meta' => ['icon' => 'ElIconUser'],
+        ]);
+        $memberTopId = Permission::where('name', 'member')->value('id');
+        foreach ([
+            ['name' => 'member.list', 'title' => '会员档案', 'path' => '/business/member', 'component' => 'business/member/index', 'sort' => 1],
+            ['name' => 'member.level', 'title' => '会员等级', 'path' => '/business/member-level', 'component' => 'business/member-level/index', 'sort' => 2],
+            ['name' => 'member.point-rule', 'title' => '积分规则', 'path' => '/business/point-rule', 'component' => 'business/point-rule/index', 'sort' => 3],
+            ['name' => 'member.recharge', 'title' => '储值充值', 'path' => '/business/member-recharge', 'component' => 'business/member-recharge/index', 'sort' => 4],
+            ['name' => 'member.exchange', 'title' => '积分兑换', 'path' => '/business/point-exchange', 'component' => 'business/point-exchange/index', 'sort' => 5],
+            ['name' => 'member.consume-log', 'title' => '消费记录', 'path' => '/business/member-consume-log', 'component' => 'business/member-consume-log/index', 'sort' => 6],
+        ] as $menu) {
+            Permission::firstOrCreate(['name' => $menu['name']], [
+                'title' => $menu['title'],
+                'type' => 'menu',
+                'parent_id' => $memberTopId,
+                'path' => $menu['path'],
+                'component' => $menu['component'],
+                'sort' => $menu['sort'],
+                'status' => 1,
+            ]);
+        }
+
         // 资料管理子菜单
         $dataMenus = [
             ['name' => 'data.product', 'title' => '商品档案', 'parent' => 'data', 'path' => '/business/product', 'component' => 'business/product/index', 'sort' => 1],

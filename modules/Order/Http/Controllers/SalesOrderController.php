@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Auth\Models\User as AdminUser;
+use Modules\Member\Models\Member;
+use Modules\Member\Services\MemberService;
 use Modules\Order\Models\Customer;
 use Modules\Order\Models\SalesOrder;
 use Modules\Order\Services\PromotionService;
@@ -520,6 +522,11 @@ class SalesOrderController extends Controller
                 'order_no' => $orderNo,
                 'order_type' => $validated['order_type'] ?? 'normal',
                 'customer_id' => $validated['customer_id'],
+                // 会员身份快照：下单时绑定，后续会员变动不影响历史订单。
+                // 这里只记录「申请」的储值/积分抵扣金额，真正扣减在结算时（流转到「已收款/待收款」）才发生。
+                'member_id' => $validated['member_id'] ?? null,
+                'use_balance' => round((float) ($validated['use_balance'] ?? 0), 2),
+                'use_points' => (int) ($validated['use_points'] ?? 0),
                 'warehouse_id' => $validated['warehouse_id'],
                 'order_date' => $validated['order_date'],
                 'delivery_date' => $validated['delivery_date'] ?? null,
@@ -712,6 +719,10 @@ class SalesOrderController extends Controller
             $salesOrder->update([
                 'order_type' => $validated['order_type'] ?? 'normal',
                 'customer_id' => $validated['customer_id'],
+                // 只有「待配货」单可编辑，此时尚未结算，改会员/抵扣不会破坏 points_settled 幂等。
+                'member_id' => $validated['member_id'] ?? null,
+                'use_balance' => round((float) ($validated['use_balance'] ?? 0), 2),
+                'use_points' => (int) ($validated['use_points'] ?? 0),
                 'warehouse_id' => $validated['warehouse_id'],
                 'order_date' => $validated['order_date'],
                 'delivery_date' => $validated['delivery_date'] ?? null,
@@ -775,6 +786,11 @@ class SalesOrderController extends Controller
             'sort_type' => 'nullable|string|max:20|in:code,name,entry',
             'freeze_stock' => 'nullable|boolean',
             'order_type' => 'nullable|string|max:20|in:normal,process,exchange,give_back',
+            // 会员管理模块：会员身份 + 储值/积分抵扣。
+            // 必须在这里声明，否则 validate() 只返回规则里的键，字段会被静默丢弃。
+            'member_id' => 'nullable|exists:members,id',
+            'use_balance' => 'nullable|numeric|min:0',
+            'use_points' => 'nullable|integer|min:0',
             'remark' => 'nullable|string|max:1000',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -1035,6 +1051,11 @@ class SalesOrderController extends Controller
         if (! in_array($target, $allowed[$current] ?? [], true)) {
             return $this->error('不能从 '.$current.' 流转到 '.$target, 422);
         }
+        // 整个流转包在一个事务里：状态更新、应收款写入、会员结算必须原子。
+        // 若会员结算失败（余额/积分不足等），状态更新与应收款写入一并回滚，
+        // 避免「订单状态未推进、但应收款已生成」或重试时重复生成应收款。
+        DB::beginTransaction();
+
         try {
             $updateData = ['status' => $target];
             // 待调度→待配送：调度时保存配送员和车辆
@@ -1058,33 +1079,161 @@ class SalesOrderController extends Controller
             }
             $salesOrder->update($updateData);
 
+            // 配送中→已收款/待收款：先做会员储值/积分结算，再按扣除后的净额生成应收款。
+            // 顺序不能反：应收款金额必须减去会员已抵扣的储值+积分，否则会多收钱。
+            // settleMemberPoints 抛异常时由外层 catch 统一回滚（含上面的状态更新）。
+            // points_settled 幂等标记：避免 approve 重复触发导致重复扣分/重复加分。
+            if (in_array($target, ['已收款', '待收款'], true) && ! $salesOrder->points_settled) {
+                $this->settleMemberPoints($salesOrder);
+            }
+
             // 配送中→已收款/待收款：自动生成应收款记录（订单与财务联动）
+            // 金额 = 订单总额 - 已收款 - 会员储值抵扣 - 会员积分抵扣
             if (in_array($target, ['已收款', '待收款'], true) && $current === '配送中') {
-                \DB::table('receives')->insert([
-                    'receive_no' => 'AR'.$date('YmdHis').strtoupper(\Str::random(4)),
-                    'receive_type' => 1,
-                    'customer_id' => $salesOrder->customer_id,
-                    'sales_order_id' => $salesOrder->id,
-                    'amount' => (float) $salesOrder->total_amount - (float) $salesOrder->paid_amount,
-                    'receive_date' => now()->toDateString(),
-                    'payment_method' => '应收',
-                    'status' => 0, // 待确认
-                    'remark' => '订单发货自动生成应收款：'.$salesOrder->order_no,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                $receiveAmount = round(
+                    (float) $salesOrder->total_amount
+                    - (float) $salesOrder->paid_amount
+                    - (float) $salesOrder->use_balance
+                    - MemberService::pointsToAmount(
+                        (int) $salesOrder->use_points,
+                        ['amount' => (float) $salesOrder->total_amount]
+                    ),
+                    2
+                );
+
+                if ($receiveAmount > 0) {
+                    \DB::table('receives')->insert([
+                        'receive_no' => 'AR'.date('YmdHis').strtoupper(\Str::random(4)),
+                        'receive_type' => 1,
+                        'customer_id' => $salesOrder->customer_id,
+                        'sales_order_id' => $salesOrder->id,
+                        'amount' => $receiveAmount,
+                        'receive_date' => now()->toDateString(),
+                        'payment_method' => '应收',
+                        'status' => 0, // 待确认
+                        'remark' => '订单发货自动生成应收款：'.$salesOrder->order_no,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
             }
 
-            try {
-                $this->logOperation($salesOrder, '状态流转', $current.' → '.$target, $current, $target);
-            } catch (\Throwable $e) {
-                \Log::warning('logOperation failed: '.$e->getMessage());
-            }
-
-            return $this->success($salesOrder->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '状态已更新为'.$target);
+            DB::commit();
         } catch (\Exception $e) {
-            return $this->error('状态流转失败: '.$e->getMessage(), 500);
+            DB::rollBack();
+
+            return $this->error('状态流转失败：'.$e->getMessage(), 422);
         }
+
+        try {
+            $this->logOperation($salesOrder, '状态流转', $current.' → '.$target, $current, $target);
+        } catch (\Throwable $e) {
+            \Log::warning('logOperation failed: '.$e->getMessage());
+        }
+
+        return $this->success($salesOrder->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '状态已更新为'.$target);
+    }
+
+    /**
+     * 会员储值/积分结算（订单流转到「已收款/待收款」时调用）。
+     *
+     * 成功时一定把 orders.points_settled 置 true（包括无会员/无抵扣的情况），
+     * 让 approve() 的 `! points_settled` 成为干净的幂等标记，不会反复调用。
+     * 失败一律抛出异常，由 approve() 外层事务统一回滚状态更新与应收款写入。
+     * settleOrder 内部自带事务（嵌套事务用 savepoint），结算失败时会员侧变动自动回滚。
+     */
+    private function settleMemberPoints(SalesOrder $salesOrder): void
+    {
+        $useBalance = round((float) $salesOrder->use_balance, 2);
+        $usePoints = (int) $salesOrder->use_points;
+
+        // 无会员：仅落幂等标记，不做任何资金/积分变动
+        if (! $salesOrder->member_id) {
+            $salesOrder->forceFill(['points_settled' => true])->save();
+
+            return;
+        }
+
+        $member = Member::find($salesOrder->member_id);
+        if (! $member) {
+            $salesOrder->forceFill(['points_settled' => true])->save();
+
+            return;
+        }
+
+        // 结算口径用订单总额（total_amount），不用 total_amount - paid_amount：
+        // paid_amount 是「已收现金」，与会员结算无关。若用它抵扣，会让 total_consume
+        // 少记已收现金那部分，导致累计消费偏小、会员等级升级门槛达不到。
+        $orderAmount = round(max((float) $salesOrder->total_amount, 0), 2);
+        $admin = auth('admin')->user();
+
+        $result = app(MemberService::class)->settleOrder(
+            $member,
+            $salesOrder->order_no,
+            $orderAmount,
+            $useBalance,
+            $usePoints,
+            $admin ? ['id' => $admin->id, 'name' => $admin->real_name ?? $admin->username ?? null] : null
+        );
+
+        $salesOrder->forceFill(['points_settled' => true])->save();
+
+        \Log::info('会员结算成功', [
+            'order_no' => $salesOrder->order_no,
+            'member_id' => $member->id,
+            'settle' => $result,
+        ]);
+    }
+
+    /**
+     * 红冲退款：把结算时扣掉的储值/积分退回，并回滚累计消费与订单数。
+     *
+     * 只处理 points_settled=true 的订单，避免对从未结算的单子做错误冲正。
+     * 抛错向上传播，交由外层事务回滚，保证红冲与会员冲正原子性。
+     */
+    private function refundMemberPoints(SalesOrder $order, string $reason): void
+    {
+        if (! $order->member_id || ! $order->points_settled) {
+            return;
+        }
+
+        $useBalance = round((float) $order->use_balance, 2);
+        $usePoints = (int) $order->use_points;
+        if ($useBalance <= 0 && $usePoints <= 0) {
+            return;
+        }
+
+        $member = Member::find($order->member_id);
+        if (! $member) {
+            return;
+        }
+
+        $grossAmount = round(max((float) $order->total_amount - (float) $order->paid_amount, 0), 2);
+        // 与 settleOrder 口径一致：累计消费按「实付净额」记账，红冲时也只回滚净额
+        $pointsAmount = MemberService::pointsToAmount($usePoints, ['amount' => $grossAmount]);
+        $netAmount = round(max($grossAmount - $useBalance - $pointsAmount, 0), 2);
+        // settle 时按净实付发积分；红冲时必须一并扣回，否则会员凭空多出这些积分
+        $earnPoints = MemberService::earnPointsForAmount($netAmount);
+
+        $admin = auth('admin')->user();
+
+        app(MemberService::class)->refundOrder(
+            $member,
+            $order->order_no,
+            $useBalance,
+            $usePoints,
+            $netAmount,
+            $admin ? ['id' => $admin->id, 'name' => $admin->real_name ?? $admin->username ?? null] : null,
+            '，原因：'.$reason,
+            $earnPoints
+        );
+
+        \Log::info('会员红冲退款', [
+            'order_no' => $order->order_no,
+            'member_id' => $member->id,
+            'use_balance' => $useBalance,
+            'use_points' => $usePoints,
+        ]);
     }
 
     public function cancel(SalesOrder $salesOrder)
@@ -1187,6 +1336,9 @@ class SalesOrderController extends Controller
                         }
                     }
                 }
+
+                // 红冲会员联动：退回已扣的储值/积分，回滚累计消费与订单数（撤单 + 改单都需要）
+                $this->refundMemberPoints($order, $validated['reason']);
 
                 $newOrderId = null;
                 // 改单：复制原订单生成新草稿

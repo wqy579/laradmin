@@ -2385,6 +2385,378 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/member",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member-consume-log",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberConsumeLogController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member-consume-log/statistics",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberConsumeLogController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member-consume-log/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberConsumeLogController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member-level",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberLevelController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member-level",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberLevelController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/member-level/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberLevelController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/member-level/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberLevelController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member-level/{id}/disable",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberLevelController@disable",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member-level/{id}/enable",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberLevelController@enable",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member-recharge",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member-recharge",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member-recharge/statistics",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/member-recharge/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member-recharge/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/member-recharge/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member-recharge/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member-recharge/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member-recharge/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberRechargeController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member/batch-status",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@batchStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member/by-customer",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@byCustomer",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member/export",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member/search",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@search",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member/statistics",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/member/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/member/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member/{id}/freeze",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@freeze",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/member/{id}/logs",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@memberLogs",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/member/{id}/unfreeze",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberController@unfreeze",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/mini-program-settings",
         "name": "admin.",
         "action": "Modules\\Miniapp\\Http\\Controllers\\MiniappSettingController@index",
@@ -2568,6 +2940,258 @@
         "uri": "admin/business/pay/{id}/approve",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/point-order",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-order",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/point-order/statistics",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/point-order/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-order/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-order/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-order/{id}/complete",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@complete",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-order/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-order/{id}/ship",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointOrderController@ship",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/point-product",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointProductController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-product",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointProductController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/point-product/on-shelf",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointProductController@onShelf",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/point-product/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointProductController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/point-product/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointProductController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/point-product/{id}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointProductController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-product/{id}/off-shelf",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointProductController@offShelfAction",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-product/{id}/on-shelf",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointProductController@onShelfAction",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/point-rule",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointRuleController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/point-rule",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointRuleController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/point-rule/reset",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointRuleController@reset",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/point-rule/{key}",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\PointRuleController@show",
         "middleware": [
             "api",
             "stock.snapshot",
