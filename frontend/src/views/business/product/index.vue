@@ -134,7 +134,7 @@
 					<el-button
 						type="primary" size="small"
 						:disabled="!canAddProduct"
-						:title="canAddProduct ? '' : '请先选择主分类和副分类'"
+						:title="canAddProduct ? '' : '请先选择主分类'"
 						@click="handleAdd"
 					>
 						<el-icon><Plus /></el-icon>新增产品
@@ -312,7 +312,7 @@ const currentMainCat = computed(() =>
 const activeMainName = computed(() => currentMainCat.value?.name || '')
 const currentSubs = computed(() => currentMainCat.value?.children || [])
 
-const canAddProduct = computed(() => !!activeMainId.value && !!activeSubId.value)
+const canAddProduct = computed(() => !!activeMainId.value)
 
 // ---- 状态快捷筛选 ----
 const statusFilters = ref([

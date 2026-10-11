@@ -1,5 +1,5 @@
 <template>
-	<el-dialog model-value="modelValue" title="库存台账" width="960px" top="6vh" @close="$emit('update:modelValue', false)" destroy-on-close>
+	<el-dialog :model-value="modelValue" title="库存台账" width="960px" top="6vh" @close="$emit('update:modelValue', false)" destroy-on-close>
 		<div class="filters">
 			<el-select
 				v-model="productId"

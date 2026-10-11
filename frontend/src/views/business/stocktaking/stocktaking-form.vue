@@ -1,6 +1,6 @@
 <template>
 	<el-dialog
-		model-value="visible"
+		:model-value="visible"
 		:title="editRow ? '继续盘点' : '新增盘点单'"
 		width="1100px"
 		top="5vh"

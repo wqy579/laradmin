@@ -453,8 +453,15 @@ class BorrowReturnOrderController extends Controller
                         'borrow_unfreeze',
                         '还货解冻'
                     );
-                    // 破损部分不再归还：解冻后实际出库，随后生成报损单
+                    // 破损部分不再归还：解冻后实际出库，随后生成报损单。
+                    // 必须在 stockOut 之前快照 beforeQty，否则 createLossOrder 读到的
+                    // quantity 已是扣减后的值，after_qty 会再减一次造成二次扣减。
                     if ((int) $item->bad_qty > 0) {
+                        $beforeQtySnapshot = (int) DB::table('stocks')
+                            ->where('product_id', (int) $item->product_id)
+                            ->where('warehouse_id', $whId)
+                            ->lockForUpdate()
+                            ->value('quantity');
                         $this->stockService->stockOut(
                             (int) $item->product_id,
                             $whId,
@@ -463,6 +470,8 @@ class BorrowReturnOrderController extends Controller
                             'BorrowReturnOrder',
                             '还货破损出库'
                         );
+                        // 把扣减前的快照挂到 item 上，供 createLossOrder 使用
+                        $item->before_qty_snapshot = $beforeQtySnapshot;
                     }
                     // 减客户借货余额（按总还货数量）
                     $this->decreaseBorrowBalance($customerId, (int) $item->product_id, $returnQty);
@@ -558,8 +567,12 @@ class BorrowReturnOrderController extends Controller
 
         $adjustItems = [];
         foreach ($badItems as $item) {
-            $beforeQty = (int) DB::table('stocks')->where('warehouse_id', $order->warehouse_id)
-                ->where('product_id', $item->product_id)->value('quantity');
+            // beforeQty 必须用 approve 流程中 stockOut 之前快照的值，
+            // 否则此时 stocks.quantity 已被 stockOut 扣减，after_qty 会再减一次。
+            $beforeQty = isset($item->before_qty_snapshot)
+                ? (int) $item->before_qty_snapshot
+                : (int) DB::table('stocks')->where('warehouse_id', $order->warehouse_id)
+                    ->where('product_id', $item->product_id)->value('quantity');
             $badQty = (int) $item->bad_qty;
             $adjustItems[] = [
                 'adjust_id' => $adjust->id,

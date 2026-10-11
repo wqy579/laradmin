@@ -25,11 +25,28 @@ export default defineConfig({
 	},
 	server: {
 		allowedHosts: ['.monkeycode-ai.online'],
+		// dev 下前端 base('/admin/') 与后端 API 前缀(/admin) 整段重合：
+		// 若把 /admin 整段代理出去，会一并吞掉 Vite 自身的 /admin/src、
+		// /admin/@vite、/admin/@fs、/admin/node_modules 与 public 静态文件，
+		// 导致 dev server 形同虚设——浏览器只能拿到代理目标的构建产物，
+		// 本地源码改动完全无法在 5173 生效（此前 6 项修复"不生效"即此因）。
+		// 故 target 指向本地 Octane(8000)，并用 bypass 把 dev 自身资源交还 Vite。
 		proxy: {
 			'/admin': {
-				target: 'https://laravel.qjwykj.com',
+				target: 'http://localhost:8000',
 				changeOrigin: true,
 				secure: false,
+				bypass(req) {
+					// bypass 返回 string → 不代理，按该 url 继续走 Vite 中间件链；
+					// 返回 false → 直接 404（Vite http-proxy 的语义，不是"交给 Vite"）。
+					// 故需交还 Vite 的请求统一返回 req.url（字符串）。
+					// SPA 入口（hash 路由下浏览器只请求 /admin/ 与静态文件）
+					if (req.url === '/admin/' || req.url === '/admin' || req.url === '/admin/index.html' || req.url === '/') return req.url
+					// Vite dev 自身路径：@id（plugin-vue export-helper 等）、@vite(HMR)、@fs、@react-refresh、src、node_modules
+					if (/^\/admin\/(@vite|@fs|@id|@react-refresh|src|node_modules)\b/.test(req.url)) return req.url
+					// 带文件后缀的静态资源（含 public/config.js）
+					if (/\.(js|css|scss|vue|ts|json|svg|png|jpe?g|ico|woff2?|ttf|map)(\?|$)/.test(req.url)) return req.url
+				},
 			},
 		},
 	},
