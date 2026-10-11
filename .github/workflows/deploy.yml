@@ -78,6 +78,44 @@ jobs:
             set -e
             cd /www/wwwroot/laradmin
 
+            # 0.4 nginx 代理白名单自愈：宝塔站点的 /admin 走「正则代理 + try_files 兜底」，
+            #     只有显式列进正则分支的模块前缀才会被 proxy_pass 到 laravels(127.0.0.1:8000)，
+            #     其余落到 try_files $uri $uri/ /admin/index.html —— 也就是 SPA 入口 index.html。
+            #
+            # 2026-10 事故：新增 Dashboard 模块用独立前缀 /admin/dashboard/*（其余模块都挂在
+            # business/ 下），但 nginx 正则分支没加 dashboard，结果线上 /admin/dashboard/*
+            # 全部返回 SPA index.html（Content-Type text/html，字节数 517，与 /admin/ 完全一致），
+            # 前端 axios 拿到 HTML 解析失败 → Promise.allSettled 全部 rejected → 回退 widgets.js
+            # 硬编码演示值。表象是「仪表盘全是假数据」，根因是 nginx 白名单漏了一个前缀。
+            # 旧健康检查只打 /admin/auth/login，auth 在白名单里永远绿，这个断点因此逃逸上线。
+            #
+            # 本仓库不持有 nginx 配置（宝塔面板托管），故此处幂等自愈而非直接提交配置文件：
+            # 缺则插入、有则不动，nginx -t 不过则中止部署（带着坏配置上线比中止更糟）。
+            # 注意 sed 的定界符用 # 避开 location 里的 /；幂等性靠「已含 dashboard 就不匹配」保证。
+            ensure_nginx_proxy() {
+              local cfg="/www/server/panel/vhost/nginx/laravel.qjwykj.com.conf"
+              if [ ! -f "$cfg" ]; then echo "nginx 站点配置不存在，跳过白名单校验"; return 0; fi
+              if grep -qE 'location ~ \^/admin/\(auth\|dashboard\|' "$cfg"; then
+                echo "nginx 代理白名单已含 dashboard"
+                return 0
+              fi
+              echo "nginx 代理白名单缺 dashboard，插入并重载"
+              sed -i 's#location ~ \^/admin/(auth|permissions#location ~ ^/admin/(auth|dashboard|permissions#' "$cfg"
+              # sed 未命中（配置被宝塔重新生成为其他格式）时必须失败，不能静默成功
+              # 留一个坏白名单：下方步骤 6.5 虽会兜住，但这里直接说清更省排查时间
+              grep -qE 'location ~ \^/admin/\(auth\|dashboard\|' "$cfg" || {
+                echo "sed 未命中，nginx 白名单格式与预期不符，需人工处理"; exit 1; }
+              grep -nE 'location ~ \^/admin' "$cfg"
+              # 注意：不能把 nginx -t 放进管道（... | tail）——管道的退出码是 tail 的，
+              # set -e 不会因 nginx -t 失败而中止，坏配置会被带着上线
+              if ! nginx -t > /tmp/nginx-t.out 2>&1; then
+                echo "nginx -t 失败："; cat /tmp/nginx-t.out; exit 1
+              fi
+              tail -n 2 /tmp/nginx-t.out
+              nginx -s reload
+            }
+            ensure_nginx_proxy
+
             # 0.5 生产环境变量强制校验（放在所有 artisan 命令之前：config:clear 只清
             #     缓存，config:cache 会把当时的 .env 固化进 bootstrap/cache）
             #
@@ -219,6 +257,34 @@ jobs:
               echo "--- swoole log（worker fatal 写在这里）---"
               tail -n 40 "storage/logs/swoole-$(date +%Y-%m).log" 2>/dev/null || true
               echo "health: FAILED — 回滚前端产物并重启服务"
+              rm -rf public/admin
+              if [ -d storage/admin.prev ]; then mv storage/admin.prev public/admin; fi
+              php8.5 bin/laravels reload || systemctl restart laravels || true
+              exit 1
+            fi
+
+            # 6.5 模块路由可达性检查：上面只验了 auth/login，那它在 nginx 白名单里、永远绿，
+            #     于是 /admin/dashboard/* 被 try_files 兜成 SPA index.html 的事故一路标绿上线。
+            #     此步用「不带 token 打业务接口、只看 Content-Type」做无凭据探测：
+            #     正确代理 → Laravel 返回 401 application/json（路由存在）；
+            #     被 try_files 兜底 → 200 text/html（index.html），即模块前缀漏配。
+            #     返回 JSON 即算健康，不关心具体状态码（401=未登录属正常）。
+            route_ok=0
+            for i in 1 2 3; do
+              ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \
+                "https://laravel.qjwykj.com/admin/dashboard/core-metrics" \
+                -H "Accept: application/json" || echo error)
+              if echo "$ct" | grep -q "json"; then
+                echo "route: ok (dashboard → $ct)"; route_ok=1; break
+              fi
+              echo "route: retry $i (dashboard → $ct)"; sleep 5
+            done
+
+            if [ "$route_ok" != "1" ]; then
+              echo "route: FAILED — /admin/dashboard/* 未代理到 Laravel（疑 nginx 白名单漏配）"
+              echo "--- 当前 nginx 代理白名单 ---"
+              grep -nE 'location ~ \^/admin' /www/server/panel/vhost/nginx/laravel.qjwykj.com.conf 2>/dev/null || true
+              echo "route: FAILED — 回滚前端产物并重启服务"
               rm -rf public/admin
               if [ -d storage/admin.prev ]; then mv storage/admin.prev public/admin; fi
               php8.5 bin/laravels reload || systemctl restart laravels || true
