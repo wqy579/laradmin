@@ -262,7 +262,9 @@ class FlowDemoSeeder extends Seeder
         }
         $id = $this->insertSafe('sales_orders', [
             'order_no' => $no,
-            'order_type' => 'normal',
+            // 生产库 order_type 是 enum('wholesale','retail')，dev 是 varchar；
+            // 取 'wholesale' 兼容两种 schema。
+            'order_type' => 'wholesale',
             'customer_id' => $customer->id,
             'warehouse_id' => $whId,
             'order_date' => $date,
@@ -270,7 +272,8 @@ class FlowDemoSeeder extends Seeder
             'total_qty' => $totalQty,
             'paid_amount' => $status === 'approved' ? round($totalAmount, 2) : 0,
             'status' => $status,
-            'transferred_to' => null,
+            // 生产库 transferred_to 是 NOT NULL DEFAULT 0，不能传 null。
+            'transferred_to' => 0,
             'salesman_id' => $adminId,
             'salesman_name' => '超级管理员',
             'created_by' => $adminId,
@@ -1112,26 +1115,43 @@ class FlowDemoSeeder extends Seeder
 
     /**
      * 生产库 schema 可能落后于 dev（历史演进），直接 insert 会因缺列/缺表报错。
-     * 这两个辅助让 seeder 对任何 schema 版本都健壮：缺表整段跳过，缺列自动剔除。
+     * cols() 过滤两类隐患：
+     *   1) 目标表不存在的列 —— 自动剔除
+     *   2) NOT NULL 且无默认值的列却传了 null —— 剔除该列，让 DB 用默认值，
+     *      避免 'Integrity constraint violation: NOT NULL'（如生产库
+     *      transferred_to NOT NULL DEFAULT 0）。有默认值的列同理省略更安全。
+     * insertSafe/insertRow 缺表则整段跳过。这让 seeder 对任何 schema 版本健壮。
      */
     private function cols(string $table, array $row): array
     {
-        // 过滤掉目标表不存在的列；缓存列名避免重复 PRAGMA/query
         static $cache = [];
         if (! isset($cache[$table])) {
             $cache[$table] = \Illuminate\Support\Facades\Schema::hasTable($table)
-                ? array_column(\Illuminate\Support\Facades\Schema::getColumns($table), 'name')
+                ? \Illuminate\Support\Facades\Schema::getColumns($table)
                 : [];
         }
         if (empty($cache[$table])) {
             return [];
         }
+        $byName = [];
+        foreach ($cache[$table] as $c) {
+            $byName[$c['name']] = $c;
+        }
 
-        return array_filter(
-            $row,
-            fn ($k) => in_array($k, $cache[$table], true),
-            ARRAY_FILTER_USE_KEY
-        );
+        $out = [];
+        foreach ($row as $k => $v) {
+            if (! isset($byName[$k])) {
+                continue; // 列不存在，剔除
+            }
+            $col = $byName[$k];
+            // 传 null 给 NOT NULL（无默认）列会报约束错；省略让 DB 兜底默认值
+            if ($v === null && ! ($col['nullable'] ?? true) && ($col['default'] === null)) {
+                continue;
+            }
+            $out[$k] = $v;
+        }
+
+        return $out;
     }
 
     /** 插入并返回 id；目标表不存在或过滤后无列则返回 0（调用方应跳过后续） */
