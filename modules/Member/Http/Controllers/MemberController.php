@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Modules\Member\Models\Member;
 use Modules\Member\Models\MemberConsumeLog;
-use Modules\Member\Models\MemberLevel;
 use Modules\Member\Services\MemberService;
 use Modules\Order\Models\Customer;
 
@@ -279,7 +278,7 @@ class MemberController extends Controller
 
         if ($keyword !== '') {
             $like = '%'.str_replace('%', '\%', $keyword).'%';
-            $query->where(function ($q) use ($like, $keyword) {
+            $query->where(function ($q) use ($like) {
                 $q->where('member_no', 'like', $like)
                     ->orWhere('name', 'like', $like)
                     ->orWhere('phone', 'like', $like)
