@@ -37,16 +37,13 @@ const loadData = async (params = {}) => {
     // 后端 TransferController::index 用 per_page 分页
     const query = { ...searchForm.value, page: currentPage.value, per_page: pageSize.value, ...params }
     const res = await api.transfer.list.get(query)
-    // 后端 TransferController::index 返回 { data: paginator, warehouses }，paginator 自带 data/total
-    const pager = res.data?.data ?? res.data ?? {}
+    // 后端 TransferController::index 返回裸 Laravel paginator：{ data: [items], total, current_page, ... }
+    // （无 code/message 信封，顶层即 paginator；warehouses 也在顶层）
+    const pager = res.data || {}
+    // paginator 的 items 在 data 键下；兼容标准 paginated() 的 list 键
     data.value = pager.data || pager.list || []
     total.value = pager.total || 0
-    // 仓库列表需单独获取
-    if (!warehouses.value.length) {
-      // 仓库列表接口走标准 paginated()，参数名为 page_size
-      const w = await api.warehouse.list.get({ type: 'normal', page_size: 9999 })
-      warehouses.value = w.data?.list || []
-    }
+    if (!warehouses.value.length) warehouses.value = res.warehouses || []
   } catch (e) {
     ElMessage.error('加载失败')
   } finally {

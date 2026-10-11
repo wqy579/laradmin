@@ -40,8 +40,9 @@ const loadData = async () => {
       page: currentPage.value,
       per_page: pageSize.value,
     })
-    // 后端 ReturnController::index 返回 { data: paginator, customers, warehouses }，paginator 自带 data/total
-    const pager = res.data?.data ?? res.data ?? {}
+    // 后端 ReturnController::index 返回裸 Laravel paginator：{ data: [items], total, current_page, ... }
+    // （无 code/message 信封，顶层即 paginator；customers/warehouses 也在顶层）
+    const pager = res.data || {}
     data.value = pager.data || pager.list || []
     total.value = pager.total || 0
     if (!suppliers.value.length) suppliers.value = res.customers || []
