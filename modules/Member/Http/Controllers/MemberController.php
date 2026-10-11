@@ -81,6 +81,21 @@ class MemberController extends Controller
             'remark' => 'nullable|string|max:1000',
         ]);
 
+        // 设计约束（资金安全）：创建时不接受 balance / points。
+        // 储值只能经充值审核到账（写现金流水 + 台账），积分只能经消费获得或注册赠送，
+        // 直接写值会绕过台账与资金对账。前端误传时给出明确 422，而非静默吞掉。
+        if ($request->hasAny(['balance', 'points'])) {
+            $extra = [];
+            if ($request->has('balance')) {
+                $extra[] = 'balance（储值请走充值单审核）';
+            }
+            if ($request->has('points')) {
+                $extra[] = 'points（积分只能通过消费获得或注册赠送）';
+            }
+
+            return $this->error('创建会员时不允许设置 '.implode('、', $extra), 422);
+        }
+
         // customer_id 唯一：已存在会员则返回已有记录，保证 1:0..1
         if ($validated['customer_id'] ?? null) {
             $existing = Member::where('customer_id', $validated['customer_id'])->first();
@@ -144,13 +159,19 @@ class MemberController extends Controller
             'remark' => 'nullable|string|max:1000',
         ]);
 
-        if (isset($validated['customer_id']) && $validated['customer_id']) {
-            $customer = Customer::find($validated['customer_id']);
-            $validated['customer_name'] = $customer?->name;
-        } elseif ($validated['customer_id'] === null) {
-            $validated['customer_name'] = null;
-        } else {
-            unset($validated['customer_id']);
+        // customer_id 三态处理：
+        //   未传字段 → 保持原值（不放入 $validated）
+        //   显式传 null → 解绑客户（清空 customer_id 与快照）
+        //   传了客户ID → 回填 customer_name 快照
+        // 之前直接访问 $validated['customer_id'] 在「未传该字段」时
+        // 触发 Undefined array key（生产 ErrorException → 500，本地 SQLite 不抛故漏网）。
+        if (array_key_exists('customer_id', $validated)) {
+            if ($validated['customer_id']) {
+                $customer = Customer::find($validated['customer_id']);
+                $validated['customer_name'] = $customer?->name;
+            } else {
+                $validated['customer_name'] = null;
+            }
         }
 
         $member->update($validated);

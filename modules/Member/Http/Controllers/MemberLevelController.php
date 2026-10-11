@@ -121,11 +121,13 @@ class MemberLevelController extends Controller
 
     private function validateLevel(Request $request, ?int $id = null): array
     {
-        // level_no 唯一性：编辑时排除自身（字符串拼接优先级高于 ?:，须显式加括号）
+        // level_no 唯一性：编辑时排除自身。unique 规则必须是字符串，不能包进数组——
+        // 嵌套成 [['unique:...']] 会被 Validator 当作 [object, 'validateUnique:...'] 回调，
+        // 进而报 BadMethodCallException: validateUnique:memberLevels,levelNo。
         $levelNoUnique = static function (?int $ignoreId) {
             return $ignoreId
-                ? ['unique:member_levels,level_no,'.$ignoreId]
-                : ['unique:member_levels,level_no'];
+                ? 'unique:member_levels,level_no,'.$ignoreId
+                : 'unique:member_levels,level_no';
         };
 
         $rules = [
