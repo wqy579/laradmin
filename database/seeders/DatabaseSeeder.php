@@ -22,6 +22,11 @@ use Modules\System\Seeders\SystemSeeder;
 |   BusinessSeeder     —— 只写权限菜单，依赖 AuthSeeder 已建好 permissions 表数据
 |   BusinessDataSeeder —— 商品 / 分类 / 仓库等主数据，依赖上面全部
 |
+| FlowDemoSeeder（端到端业务流程演示数据：销售→配送→车销→借还→换货→库存→收付款→退货）
+| 不在默认链路里——MigrationSmokeTest 基线要求默认种子不产生任何业务单据和库存行。
+| 需要 QA 演示数据时显式执行：
+|   php artisan db:seed --class="Modules\\Business\\Seeders\\FlowDemoSeeder"
+| 它依赖 BusinessDataSeeder 的主数据（用户/客户/仓库/商品/供应商/车辆），须先跑默认种子。
 */
 class DatabaseSeeder extends Seeder
 {
