@@ -321,6 +321,10 @@ const businessApi = {
 		list: { get: (params) => request.get('business/transfer', { params }) },
 		detail: { get: (id) => request.get(`business/transfer/${id}`) },
 		add: { post: (params) => request.post('business/transfer', params) },
+		update: { put: (id, params) => request.put(`business/transfer/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/transfer/${id}`) },
+		approve: { post: (id) => request.post(`business/transfer/${id}/approve`) },
+		execute: { post: (id) => request.post(`business/transfer/${id}/execute`) },
 	},
 
 	// 拜访

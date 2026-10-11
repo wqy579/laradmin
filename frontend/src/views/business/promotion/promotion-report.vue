@@ -1,5 +1,5 @@
 <template>
-	<el-dialog :model-value="modelValue" title="促销效果报表" width="1000px" top="6vh" @close="$emit('update:modelValue', false)" @open="load">
+	<el-dialog :model-value="modelValue" title="促销效果报表" width="1000px" top="6vh" @close="$emit('update:modelValue', false)">
 		<div class="cards">
 			<div class="card c1"><div class="cl">促销活动数</div><div class="cv">{{ summary.promotion_count || 0 }}</div></div>
 			<div class="card c2"><div class="cl">参与订单数</div><div class="cv">{{ summary.order_count || 0 }}</div></div>
@@ -22,7 +22,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import businessApi from '@/api/business'
 defineProps({ modelValue: Boolean })
 defineEmits(['update:modelValue'])
@@ -34,6 +34,7 @@ async function load(){
 	const res = await businessApi.promotion.report.get({})
 	list.value = res.data?.list || []; summary.value = res.data?.summary || {}
 }
+onMounted(load)
 </script>
 
 <style scoped>

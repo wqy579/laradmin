@@ -312,7 +312,7 @@ const currentMainCat = computed(() =>
 const activeMainName = computed(() => currentMainCat.value?.name || '')
 const currentSubs = computed(() => currentMainCat.value?.children || [])
 
-const canAddProduct = computed(() => !!activeMainId.value && !!activeSubId.value)
+const canAddProduct = computed(() => !!activeMainId.value)
 
 // ---- 状态快捷筛选 ----
 const statusFilters = ref([

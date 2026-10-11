@@ -234,8 +234,8 @@ const load = async () => {
 	loading.value = true;
 	try {
 		const res = await api.purchaseReturn.list.get(query);
-		list.value = res.data.data.data || [];
-		total.value = res.data.data.total || 0;
+		list.value = res.data?.list || [];
+		total.value = res.data?.total || 0;
 	} finally { loading.value = false; }
 };
 
@@ -251,7 +251,7 @@ const openForm = (row) => {
 const loadStockInProducts = async () => {
 	if (!form.value.stock_in_id) return ElMessage.warning('请填原入库单ID');
 	const res = await api.purchaseReturn.stockInProducts.get({ stock_in_id: form.value.stock_in_id });
-	form.value.items = (res.data.data.items || []).map((x) => ({
+	form.value.items = (res.data?.items || []).map((x) => ({
 		product_id: x.product_id, product_code: x.product_code, product_name: x.product_name,
 		unit: x.unit, original_qty: x.original_qty, returned_qty: x.returned_qty,
 		return_qty: 1, return_price: x.price,
@@ -304,7 +304,7 @@ const onAudit = async () => {
 
 const openDetail = async (row) => {
 	const res = await api.purchaseReturn.detail.get(row.id);
-	detail.value = res.data.data;
+	detail.value = res.data;
 	detailVisible.value = true;
 };
 

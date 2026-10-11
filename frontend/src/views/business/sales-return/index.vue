@@ -381,6 +381,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
 import sPageSplit from '@/components/sPageSplit/index.vue'
 import businessApi from '@/api/business'
+import config from '@/config'
 
 // ==================== 列表 ====================
 const loading = ref(false)
@@ -692,9 +693,11 @@ const handleExport = async () => {
     start_date: filters.start_date || '',
     end_date: filters.end_date || '',
   })
-  const token = localStorage.getItem('token')
-  const res = await fetch(`/admin/business/sales-return/export?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
+  const token = localStorage.getItem('laradmin_token') || ''
+  // 用统一 config 的 baseURL 拼成绝对 URL，避免 SPA 下相对路径解析到前端端口
+  const exportUrl = `${config.API_URL}business/sales-return/export?${params}`
+  const res = await fetch(exportUrl, {
+    headers: { [config.TOKEN_NAME]: config.TOKEN_PREFIX + token },
   })
   if (res.ok) {
     const blob = await res.blob()

@@ -17,7 +17,7 @@
 			<el-table-column label="换出商品" min-width="170">
 				<template #default="{ row }"><el-select v-model="row.product_id_out" placeholder="选择" filterable size="small" style="width:100%" @change="(v) => onOutChange(row, v)"><el-option v-for="p in outOptions" :key="p.id" :label="p.name + ' / ' + (p.spec || '')" :value="p.id" /></el-select></template>
 			</el-table-column>
-			<el-table-column label="数量" width="100" align="center"><template #default="{ row }"><el-input-number v-model="row.qty" :min="0" size="small" controls-position="right" style="width:90px" @input="calcRow(row)" /></template></el-table-column>
+			<el-table-column label="数量" width="100" align="center"><template #default="{ row }"><el-input-number v-model="row.qty" :min="1" :step="1" :precision="0" size="small" controls-position="right" style="width:90px" @input="calcRow(row)" /></template></el-table-column>
 			<el-table-column label="换出单价" width="110" align="right"><template #default="{ row }"><el-input-number v-model="row.unit_price_out" :min="0" :precision="2" size="small" controls-position="right" style="width:100px" @input="calcRow(row)" /></template></el-table-column>
 			<el-table-column label="换出金额" width="100" align="right"><template #default="{ row }"><span class="amt">¥{{ (row.amount_out || 0).toFixed(2) }}</span></template></el-table-column>
 			<el-table-column label="换入商品" min-width="170">
@@ -101,10 +101,13 @@ const onSave = async () => {
 	if (!form.value.customer_id) return ElMessage.warning('请选择客户');
 	if (!form.value.warehouse_id) return ElMessage.warning('请选择仓库');
 	if (!form.value.exchange_reason || !form.value.exchange_reason.trim()) return ElMessage.warning('请填写换货原因');
-	if (!form.value.items.length) return ElMessage.warning('请添加换货明细');
-	const validItems = form.value.items.filter(i => i.product_id_out && i.product_id_in && (Number(i.qty) || 0) > 0);
-	if (!validItems.length) return ElMessage.warning('请录入有效换货明细（换入/换出商品均须选择）');
-	const payload = { customer_id: form.value.customer_id, warehouse_id: form.value.warehouse_id, sales_order_id: form.value.sales_order_id || null, sales_order_no: form.value.sales_order_no || '', exchange_date: form.value.exchange_date, exchange_reason: form.value.exchange_reason, items: validItems.map(i => ({ product_id_out: i.product_id_out, product_id_in: i.product_id_in, qty: i.qty, unit_price_out: i.unit_price_out, unit_price_in: i.unit_price_in })) };
+	if (!form.value.items || form.value.items.length === 0) return ElMessage.warning('请至少添加一条换货明细');
+	// 逐行校验：与后端 items.*.qty => min:1 对齐，数量为 0 时必须明确提示而非静默过滤
+	for (const item of form.value.items) {
+		if (!item.product_id_out || !item.product_id_in) return ElMessage.warning('换入/换出商品均须选择');
+		if (!item.qty || Number(item.qty) <= 0) return ElMessage.warning('商品数量必须大于0');
+	}
+	const payload = { customer_id: form.value.customer_id, warehouse_id: form.value.warehouse_id, sales_order_id: form.value.sales_order_id || null, sales_order_no: form.value.sales_order_no || '', exchange_date: form.value.exchange_date, exchange_reason: form.value.exchange_reason, items: form.value.items.map(i => ({ product_id_out: i.product_id_out, product_id_in: i.product_id_in, qty: i.qty, unit_price_out: i.unit_price_out, unit_price_in: i.unit_price_in })) };
 	saving.value = true;
 	try { if (form.value.id) { await api.exchangeOrder.update.put(form.value.id, payload); } else { await api.exchangeOrder.create.post(payload); } ElMessage.success('草稿已保存'); visible.value = false; emit('saved'); }
 	catch (e) { ElMessage.error(e.response?.data?.message || '保存失败'); } finally { saving.value = false; }

@@ -70,7 +70,7 @@ const form = ref({});
 
 const load = async () => {
 	const res = await api.priceSystem.levelList.get();
-	list.value = res.data.data.list || [];
+	list.value = res.data?.list || [];
 };
 
 const openForm = (row) => {

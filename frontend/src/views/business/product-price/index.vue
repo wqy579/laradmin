@@ -96,9 +96,9 @@ const load = async () => {
 	loading.value = true;
 	try {
 		const res = await api.priceSystem.productList.get(query);
-		list.value = res.data.data.list || [];
-		levels.value = res.data.data.levels || [];
-		total.value = res.data.data.total || 0;
+		list.value = res.data?.list || [];
+		levels.value = res.data?.levels || [];
+		total.value = res.data?.total || 0;
 	} finally { loading.value = false; }
 };
 
@@ -155,7 +155,7 @@ const onEditSave = async () => {
 
 const openHistory = async (row) => {
 	const res = await api.priceSystem.history.get({ product_id: row.id });
-	histList.value = res.data.data.list || [];
+	histList.value = res.data?.list || [];
 	historyVisible.value = true;
 };
 

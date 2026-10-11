@@ -1,5 +1,5 @@
 <template>
-	<el-dialog model-value="visible" title="盘点单审核" width="900px" top="6vh" @close="$emit('close')" destroy-on-close>
+	<el-dialog :model-value="visible" title="盘点单审核" width="900px" top="6vh" @close="$emit('close')" destroy-on-close>
 		<div v-loading="loading">
 			<!-- 基本信息 -->
 			<div class="base">

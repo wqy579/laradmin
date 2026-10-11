@@ -1,5 +1,5 @@
 <template>
-	<el-dialog model-value="visible" :title="row?.id ? '编辑促销单' : '新增促销单'" width="1100px" top="4vh" @close="$emit('close')" destroy-on-close>
+	<el-dialog :model-value="visible" :title="row?.id ? '编辑促销单' : '新增促销单'" width="1100px" top="4vh" @close="$emit('close')" destroy-on-close>
 		<div class="form-body" v-loading="loading">
 			<!-- 基本信息 -->
 			<div class="sec-title">基本信息</div>
@@ -112,13 +112,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import ProductTable from './promotion-product-table.vue'
 
 const props = defineProps({ visible: Boolean, row: { type: Object, default: null } })
 const emit = defineEmits(['close', 'saved'])
+
+// 复制模式：传入了 row 但 id 为空（copyRow 设置 id: undefined，并通过 copy_from 带原单 id 用于加载详情）
+const isCopy = computed(() => !!props.row && !props.row.id)
 
 const types = [
 	{ value: 'discount', label: '限时折扣', desc: '指定商品限时打折' },
@@ -139,24 +142,45 @@ const loading = ref(false)
 
 const pickerVisible = ref(false), productOptions = ref([]), kw = ref(''), selected = ref([])
 
+function applyRowData(d) {
+	Object.assign(form, {
+		name: d.name, type: d.type, start_time: (d.start_time||'').replace('T',' ').slice(0,16),
+		end_time: (d.end_time||'').replace('T',' ').slice(0,16), customer_scope: d.customer_scope,
+		customer_levels: d.customer_levels||[], customer_ids: d.customer_ids||[],
+		priority: d.priority, allow_stack: !!d.allow_stack, remark: d.remark||'',
+	})
+	items.value = (d.items||[]).map(i => ({...i}))
+	tiers.value = (d.tiers&&d.tiers.length) ? d.tiers.map(t=>({threshold_amount:Number(t.threshold_amount),discount_amount:Number(t.discount_amount)})) : [{threshold_amount:0,discount_amount:0}]
+	const buy = items.value.find(i=>i.buy_qty)
+	if (buy) { buyBuyQty.value = buy.buy_qty; buyGiftQty.value = buy.gift_qty }
+}
+
 onMounted(async () => {
 	if (props.row?.id) {
+		// 编辑模式：根据 id 加载详情
 		loading.value = true
 		try {
 			const res = await businessApi.promotion.detail.get(props.row.id)
-			const d = res.data
-			Object.assign(form, {
-				name: d.name, type: d.type, start_time: (d.start_time||'').replace('T',' ').slice(0,16),
-				end_time: (d.end_time||'').replace('T',' ').slice(0,16), customer_scope: d.customer_scope,
-				customer_levels: d.customer_levels||[], customer_ids: d.customer_ids||[],
-				priority: d.priority, allow_stack: !!d.allow_stack, remark: d.remark||'',
-			})
-			items.value = (d.items||[]).map(i => ({...i}))
-			tiers.value = (d.tiers&&d.tiers.length) ? d.tiers.map(t=>({threshold_amount:Number(t.threshold_amount),discount_amount:Number(t.discount_amount)})) : [{threshold_amount:0,discount_amount:0}]
-			const buy = items.value.find(i=>i.buy_qty)
-			if (buy) { buyBuyQty.value = buy.buy_qty; buyGiftQty.value = buy.gift_qty }
+			applyRowData(res.data)
 		} catch(e){ ElMessage.error('加载失败') }
 		finally { loading.value = false }
+	} else if (isCopy.value) {
+		// 复制模式：列表行不含 items/tiers 等明细，需用原单 id 加载完整详情，
+		// 加载后保持 id 为空（保存时走 create 生成新单）
+		const copyFromId = props.row?.copy_from
+		if (copyFromId) {
+			loading.value = true
+			try {
+				// 加载原单完整详情预填表单（含 items/tiers 等明细）
+				// 保存判断依据 props.row.id，复制时为 undefined，必然走 create 生成新单
+				const res = await businessApi.promotion.detail.get(copyFromId)
+				applyRowData(res.data)
+			} catch(e){ ElMessage.error('加载失败') }
+			finally { loading.value = false }
+		} else {
+			// 没有原单 id 时退化为用 props.row 预填已知字段
+			applyRowData(props.row)
+		}
 	}
 })
 

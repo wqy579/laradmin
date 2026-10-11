@@ -2,12 +2,18 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import sTable from '@/components/sTable/index.vue'
+import api from '@/api/business.js'
 
 const tableRef = ref(null)
 const loading = ref(false)
 const searchForm = ref({ keyword: '', status: '', supplier_id: '' })
 const suppliers = ref([])
 const warehouses = ref([])
+
+const data = ref([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(20)
 
 const columns = [
   { field: 'order_no', title: '退货单号', width: 180 },
@@ -17,7 +23,7 @@ const columns = [
   { field: 'total_qty', title: '总数量', width: 100 },
   { field: 'total_amount', title: '总金额', width: 120 },
   { field: 'status', title: '状态', width: 100 },
-  { title: '操作', width: 200, fixed: 'right' }
+  { field: 'op', title: '操作', width: 200, fixed: 'right' }
 ]
 
 const statusMap = {
@@ -26,21 +32,20 @@ const statusMap = {
   completed: { label: '已完成', type: 'primary' }
 }
 
-const loadData = async (params = {}) => {
+const loadData = async () => {
   loading.value = true
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch('/admin/business/return', {
-      headers: { 'Authorization': `Bearer ${token}` }
+    const res = await api.returnOrder.list.get({
+      ...searchForm.value,
+      page: currentPage.value,
+      per_page: pageSize.value,
     })
-    const data = await res.json()
-    if (data.code === 200) {
-      tableRef.value?.reload(data.data)
-      if (suppliers.value.length === 0) {
-        suppliers.value = data.suppliers || []
-        warehouses.value = data.warehouses || []
-      }
-    }
+    // 后端 ReturnController::index 返回 { data: paginator, customers, warehouses }，paginator 自带 data/total
+    const pager = res.data?.data ?? res.data ?? {}
+    data.value = pager.data || pager.list || []
+    total.value = pager.total || 0
+    if (!suppliers.value.length) suppliers.value = res.customers || []
+    if (!warehouses.value.length) warehouses.value = res.warehouses || []
   } catch (e) {
     ElMessage.error('加载失败')
   } finally {
@@ -49,13 +54,28 @@ const loadData = async (params = {}) => {
 }
 
 const handleSearch = () => {
-  loadData(searchForm.value)
+  currentPage.value = 1
+  loadData()
 }
 
 const handleReset = () => {
   searchForm.value = { keyword: '', status: '', supplier_id: '' }
+  currentPage.value = 1
   loadData()
 }
+
+const handleProcess = async (row) => {
+  try {
+    await api.returnOrder.process.post(row.id)
+    ElMessage.success('已处理')
+    loadData()
+  } catch (e) {
+    ElMessage.error('操作失败')
+  }
+}
+
+const onPageChange = (p) => { currentPage.value = p; loadData() }
+const onPageSizeChange = (s) => { pageSize.value = s; currentPage.value = 1; loadData() }
 
 onMounted(() => {
   loadData()
@@ -66,19 +86,27 @@ onMounted(() => {
   <div class="biz-page">
     <sTable
       ref="tableRef"
+      tableName="sales-return-list"
+      :data="data"
       :columns="columns"
-      :load-data="loadData"
       :loading="loading"
-      :search-form="searchForm"
-      @search="handleSearch"
-      @reset="handleReset"
+      :total="total"
+      :currentPage="currentPage"
+      :pageSize="pageSize"
+      :pageSizes="[10, 20, 50, 100]"
+      height="100%"
+      stripe
+      show-pagination
+      emptyText="暂无退货单"
+      @pageChange="onPageChange"
+      @pageSizeChange="onPageSizeChange"
     >
       <template #status="{ row }">
         <el-tag :type="statusMap[row.status]?.type || 'info'">
           {{ statusMap[row.status]?.label || row.status }}
         </el-tag>
       </template>
-      <template #operation="{ row }">
+      <template #op="{ row }">
         <el-button
           v-if="row.status === 'draft'"
           type="primary"

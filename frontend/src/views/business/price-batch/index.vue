@@ -64,8 +64,8 @@ const load = async () => {
 	loading.value = true;
 	try {
 		const res = await api.priceSystem.productList.get({ keyword: query.keyword, page: 1, page_size: 50 });
-		list.value = res.data.data.list || [];
-		levels.value = res.data.data.levels || [];
+		list.value = res.data?.list || [];
+		levels.value = res.data?.levels || [];
 	} finally { loading.value = false; }
 };
 const onSel = (rows) => { selected.value = rows; };

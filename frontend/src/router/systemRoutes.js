@@ -215,7 +215,7 @@ const systemRoutes = [
 				path: '/business/transfer',
 				name: 'Transfer',
 				component: () => import('../views/business/transfer/index.vue'),
-				meta: { title: 'transfer' },
+				meta: { title: '调拨录单' },
 			},
 			{
 				path: '/business/delivery',

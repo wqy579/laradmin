@@ -126,7 +126,7 @@ async function disable(row) {
 	try { await businessApi.promotion.disable.post(row.id); ElMessage.success('已停用'); fetchData() }
 	catch (e) { ElMessage.error(e?.response?.data?.message || '操作失败') }
 }
-function copyRow(row) { editingRow.value = { ...row, id: undefined }; formVisible.value = true }
+function copyRow(row) { editingRow.value = { ...row, id: undefined, copy_from: row.id }; formVisible.value = true }
 
 onMounted(fetchData)
 </script>
