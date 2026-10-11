@@ -4,6 +4,7 @@ namespace Modules\Business\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Modules\Order\Models\Customer;
 use Modules\Order\Models\Supplier;
 use Modules\Stock\Models\Product;
@@ -96,7 +97,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 进货单（同时通过 StockService 真实入库，使库存查询页有数据） =====
     private function seedStockIn(int $whId, $supplier, array $products, int $adminId, string $date, $now, StockService $stockService): void
     {
-        $no = 'RK' . str_replace('-', '', $date) . '001';
+        $no = 'RK'.str_replace('-', '', $date).'001';
         if (DB::table('stock_ins')->where('order_no', $no)->exists()) {
             $id = (int) DB::table('stock_ins')->where('order_no', $no)->value('id');
         } else {
@@ -141,7 +142,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 出库单 =====
     private function seedStockOut(int $whId, $customer, array $products, int $adminId, string $date, $now, StockService $stockService): void
     {
-        $no = 'CK' . str_replace('-', '', $date) . '001';
+        $no = 'CK'.str_replace('-', '', $date).'001';
         if (! DB::table('stock_outs')->where('order_no', $no)->exists()) {
             $total = 0;
             $id = $this->insertSafe('stock_outs', [
@@ -182,7 +183,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 库存调整（报溢，已审核） =====
     private function seedStockAdjust(int $whId, $product, int $adminId, string $date, $now, StockService $stockService): void
     {
-        $no = 'KT' . str_replace('-', '', $date) . '001';
+        $no = 'KT'.str_replace('-', '', $date).'001';
         if (DB::table('stock_adjusts')->where('adjust_no', $no)->exists()) {
             return;
         }
@@ -229,7 +230,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 销售订单 =====
     private function seedSalesOrder($customer, int $whId, array $products, int $qty, int $adminId, string $date, $now, string $status): int
     {
-        $no = 'SO' . str_replace('-', '', $date) . str_pad((string) $customer->id, 4, '0', STR_PAD_LEFT);
+        $no = 'SO'.str_replace('-', '', $date).str_pad((string) $customer->id, 4, '0', STR_PAD_LEFT);
         if (DB::table('sales_orders')->where('order_no', $no)->exists()) {
             return (int) DB::table('sales_orders')->where('order_no', $no)->value('id');
         }
@@ -300,7 +301,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 收款单 =====
     private function seedReceive($customer, int $soId, int $adminId, string $date, $now): void
     {
-        $no = 'SK' . str_replace('-', '', $date) . '001';
+        $no = 'SK'.str_replace('-', '', $date).'001';
         if (DB::table('receives')->where('receive_no', $no)->exists()) {
             return;
         }
@@ -334,7 +335,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 付款单 =====
     private function seedPay($supplier, int $adminId, string $date, $now): void
     {
-        $no = 'FK' . str_replace('-', '', $date) . '001';
+        $no = 'FK'.str_replace('-', '', $date).'001';
         if (DB::table('pays')->where('pay_no', $no)->exists()) {
             return;
         }
@@ -357,7 +358,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 现金流水 =====
     private function seedCashFlow($customer, int $soId, string $date, $now, int $adminId): void
     {
-        $no = 'CF' . str_replace('-', '', $date) . '001';
+        $no = 'CF'.str_replace('-', '', $date).'001';
         if (DB::table('cash_flows')->where('flow_no', $no)->exists()) {
             return;
         }
@@ -382,7 +383,7 @@ class FlowDemoSeeder extends Seeder
     private function seedDeliveryPicking(int $soId, $customer, int $whId, $product, int $qty, int $adminId, string $date, $now): array
     {
         $orderNo = (string) DB::table('sales_orders')->where('id', $soId)->value('order_no');
-        $pickingNo = 'PICK' . str_replace('-', '', $date) . str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
+        $pickingNo = 'PICK'.str_replace('-', '', $date).str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
 
         $pickingId = DB::table('delivery_picking')->where('picking_no', $pickingNo)->exists()
             ? (int) DB::table('delivery_picking')->where('picking_no', $pickingNo)->value('id')
@@ -439,8 +440,8 @@ class FlowDemoSeeder extends Seeder
     {
         $orderNo = (string) DB::table('sales_orders')->where('id', $soId)->value('order_no');
         [$pickingId, $pickingNo] = $this->seedDeliveryPicking($soId, $customer, $whId, $product, 10, $adminId, $date, $now);
-        $pickNo = 'PJ' . str_replace('-', '', $date) . str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
-        $checkNo = 'YH' . str_replace('-', '', $date) . str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
+        $pickNo = 'PJ'.str_replace('-', '', $date).str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
+        $checkNo = 'YH'.str_replace('-', '', $date).str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
 
         $pickId = DB::table('delivery_pick')->where('pick_no', $pickNo)->exists()
             ? (int) DB::table('delivery_pick')->where('pick_no', $pickNo)->value('id')
@@ -532,7 +533,7 @@ class FlowDemoSeeder extends Seeder
     {
         $orderNo = (string) DB::table('sales_orders')->where('id', $soId)->value('order_no');
         $checkNo = (string) DB::table('delivery_check')->where('id', $checkId)->value('check_no');
-        $loadNo = 'ZC' . str_replace('-', '', $date) . str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
+        $loadNo = 'ZC'.str_replace('-', '', $date).str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
 
         if (DB::table('delivery_load')->where('load_no', $loadNo)->exists()) {
             return (int) DB::table('delivery_load')->where('load_no', $loadNo)->value('id');
@@ -594,7 +595,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 配送任务 =====
     private function seedDeliveryTask(int $soId, $customer, int $checkId, int $loadId, $vehicle, int $adminId, string $date, $now): void
     {
-        $taskNo = 'PS' . str_replace('-', '', $date) . str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
+        $taskNo = 'PS'.str_replace('-', '', $date).str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
         if (DB::table('delivery_task')->where('task_no', $taskNo)->exists()) {
             return;
         }
@@ -641,10 +642,10 @@ class FlowDemoSeeder extends Seeder
     // ===== 配送收款 =====
     private function seedDeliveryCollection(int $soId, $customer, int $adminId, string $date, $now): void
     {
-        $taskNo = 'PS' . str_replace('-', '', $date) . str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
+        $taskNo = 'PS'.str_replace('-', '', $date).str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
         $taskId = (int) DB::table('delivery_task')->where('task_no', $taskNo)->value('id');
         $so = DB::table('sales_orders')->where('id', $soId)->first();
-        $colNo = 'SK2' . str_replace('-', '', $date) . str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
+        $colNo = 'SK2'.str_replace('-', '', $date).str_pad((string) $soId, 4, '0', STR_PAD_LEFT);
         if (DB::table('delivery_collection')->where('collection_no', $colNo)->exists()) {
             return;
         }
@@ -673,7 +674,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 上交货款 =====
     private function seedDeliveryRemit($customer, int $adminId, string $date, $now): void
     {
-        $remitNo = 'SJ' . str_replace('-', '', $date) . '001';
+        $remitNo = 'SJ'.str_replace('-', '', $date).'001';
         if (DB::table('delivery_remit')->where('remit_no', $remitNo)->exists()) {
             return;
         }
@@ -712,7 +713,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 车销单 =====
     private function seedVanSale($customer, $vehicle, int $whId, array $products, int $adminId, string $date, $now): void
     {
-        $no = 'CX' . str_replace('-', '', $date) . '001';
+        $no = 'CX'.str_replace('-', '', $date).'001';
         if (DB::table('van_sale_orders')->where('order_no', $no)->exists()) {
             return;
         }
@@ -771,7 +772,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 借货单 + 借还货单 =====
     private function seedBorrow($customer, int $whId, array $products, int $adminId, string $date, $now): void
     {
-        $borrowNo = 'JH' . str_replace('-', '', $date) . '001';
+        $borrowNo = 'JH'.str_replace('-', '', $date).'001';
         if (DB::table('borrow_orders')->where('borrow_no', $borrowNo)->exists()) {
             return;
         }
@@ -810,7 +811,7 @@ class FlowDemoSeeder extends Seeder
             'salesman_id' => $adminId,
             'salesman_name' => '超级管理员',
             'borrow_date' => $date,
-            'due_date' => date('Y-m-d', strtotime($date . ' +7 days')),
+            'due_date' => date('Y-m-d', strtotime($date.' +7 days')),
             'borrow_reason' => '活动借货（演示）',
             'total_kinds' => count($products),
             'total_qty' => $totalQty,
@@ -833,7 +834,7 @@ class FlowDemoSeeder extends Seeder
         }
 
         // 借还货单：归还一半
-        $returnNo = 'JH' . str_replace('-', '', $date) . 'R01';
+        $returnNo = 'JH'.str_replace('-', '', $date).'R01';
         if (DB::table('borrow_return_orders')->where('return_no', $returnNo)->exists()) {
             return;
         }
@@ -890,7 +891,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 换货单 =====
     private function seedExchange($customer, int $whId, $productOut, $productIn, int $adminId, string $date, $now): void
     {
-        $no = 'HH' . str_replace('-', '', $date) . '001';
+        $no = 'HH'.str_replace('-', '', $date).'001';
         if (DB::table('exchange_orders')->where('exchange_no', $no)->exists()) {
             return;
         }
@@ -952,7 +953,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 销售退货 =====
     private function seedSalesReturn(int $soId, $customer, int $whId, $product, int $adminId, string $date, $now): void
     {
-        $no = 'XT' . str_replace('-', '', $date) . '001';
+        $no = 'XT'.str_replace('-', '', $date).'001';
         if (DB::table('sales_returns')->where('return_no', $no)->exists()) {
             return;
         }
@@ -1002,7 +1003,7 @@ class FlowDemoSeeder extends Seeder
     // ===== 采购退货 =====
     private function seedPurchaseReturn($supplier, int $whId, $product, int $adminId, string $date, $now): void
     {
-        $no = 'CT' . str_replace('-', '', $date) . '001';
+        $no = 'CT'.str_replace('-', '', $date).'001';
         if (DB::table('purchase_returns')->where('return_no', $no)->exists()) {
             return;
         }
@@ -1053,10 +1054,10 @@ class FlowDemoSeeder extends Seeder
     {
         // 往来对账通常是报表视图（应收/应付汇总），无独立表——若存在 customer_reconciliations 表则写入，
         // 否则由 sales_orders + receives + cash_flows 的数据自然呈现。insertRow 自带缺表/缺列跳过。
-        if (! \Illuminate\Support\Facades\Schema::hasTable('customer_reconciliations')) {
+        if (! Schema::hasTable('customer_reconciliations')) {
             return;
         }
-        $no = 'DZ' . str_replace('-', '', $date) . '001';
+        $no = 'DZ'.str_replace('-', '', $date).'001';
         if (DB::table('customer_reconciliations')->where('reconciliation_no', $no)->exists()) {
             return;
         }
@@ -1079,10 +1080,10 @@ class FlowDemoSeeder extends Seeder
     // ===== 价格表 =====
     private function seedPriceList($customer, $product, int $adminId, string $date, $now): void
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable('price_lists')) {
+        if (! Schema::hasTable('price_lists')) {
             return;
         }
-        $no = 'JG' . str_replace('-', '', $date) . '001';
+        $no = 'JG'.str_replace('-', '', $date).'001';
         if (DB::table('price_lists')->where('price_no', $no)->exists()) {
             return;
         }
@@ -1126,8 +1127,8 @@ class FlowDemoSeeder extends Seeder
     {
         static $cache = [];
         if (! isset($cache[$table])) {
-            $cache[$table] = \Illuminate\Support\Facades\Schema::hasTable($table)
-                ? \Illuminate\Support\Facades\Schema::getColumns($table)
+            $cache[$table] = Schema::hasTable($table)
+                ? Schema::getColumns($table)
                 : [];
         }
         if (empty($cache[$table])) {
@@ -1157,7 +1158,7 @@ class FlowDemoSeeder extends Seeder
     /** 插入并返回 id；目标表不存在或过滤后无列则返回 0（调用方应跳过后续） */
     private function insertSafe(string $table, array $row): int
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable($table)) {
+        if (! Schema::hasTable($table)) {
             return 0;
         }
         $row = $this->cols($table, $row);
@@ -1171,7 +1172,7 @@ class FlowDemoSeeder extends Seeder
     /** 无返回值的插入（用于明细行）；目标表/列缺失则静默跳过 */
     private function insertRow(string $table, array $row): void
     {
-        if (! \Illuminate\Support\Facades\Schema::hasTable($table)) {
+        if (! Schema::hasTable($table)) {
             return;
         }
         $row = $this->cols($table, $row);

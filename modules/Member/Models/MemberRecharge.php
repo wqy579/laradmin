@@ -28,14 +28,21 @@ class MemberRecharge extends Model
     ];
 
     const STATUS_PENDING = 0;
+
     const STATUS_APPROVED = 1;
+
     const STATUS_REJECTED = 2;
+
     const STATUS_CANCELLED = 3;
 
     const PAY_CASH = 'cash';
+
     const PAY_WECHAT = 'wechat';
+
     const PAY_ALIPAY = 'alipay';
+
     const PAY_BANK = 'bank';
+
     const PAY_OTHER = 'other';
 
     public function member(): BelongsTo

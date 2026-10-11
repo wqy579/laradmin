@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Member\Http\Controllers\MemberController;
 use Modules\Member\Http\Controllers\MemberConsumeLogController;
+use Modules\Member\Http\Controllers\MemberController;
 use Modules\Member\Http\Controllers\MemberLevelController;
 use Modules\Member\Http\Controllers\MemberRechargeController;
 use Modules\Member\Http\Controllers\PointOrderController;

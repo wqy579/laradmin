@@ -35,12 +35,17 @@ class MemberConsumeLog extends Model
     ];
 
     const TYPE_ORDER = 'order';
+
     const TYPE_RECHARGE = 'recharge';
+
     const TYPE_POINTS_DEDUCT = 'points_deduct';
+
     const TYPE_ORDER_REFUND = 'order_refund';
+
     const TYPE_RECHARGE_REFUND = 'recharge_refund';
 
     const DIRECTION_IN = 'in';
+
     const DIRECTION_OUT = 'out';
 
     public function member(): BelongsTo

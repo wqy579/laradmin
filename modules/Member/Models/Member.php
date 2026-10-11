@@ -39,6 +39,7 @@ class Member extends Model
     ];
 
     const STATUS_ACTIVE = 1;
+
     const STATUS_FROZEN = 0;
 
     public function customer(): BelongsTo

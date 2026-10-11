@@ -46,7 +46,7 @@ class MemberService
      * 查询当日已存在单据号的最大值 +1，再 str_pad 到 6 位。
      * 对齐 ReceiveService::generateNo / PurchaseApplicationController::generateNo 模式。
      */
-    public static function generateNo(string $prefixKey, string $table, string $column, string $date = null): string
+    public static function generateNo(string $prefixKey, string $table, string $column, ?string $date = null): string
     {
         $prefix = self::NO_PREFIX[$prefixKey] ?? $prefixKey;
         $dateStr = $date ?? now()->format('Ymd');
@@ -100,7 +100,7 @@ class MemberService
     /**
      * 积分抵扣规则：N 积分抵 M 元。
      */
-    public static function pointsToAmount(int $points, array $orderTotal = null): float
+    public static function pointsToAmount(int $points, ?array $orderTotal = null): float
     {
         if ($points <= 0) {
             return 0.0;
@@ -162,9 +162,9 @@ class MemberService
      *
      * 幂等：已结算的订单重复调用会抛出异常，防止 approve 多次触发重复加分。
      *
-     * @param float $orderAmount 订单应付总额（total_amount - discount_amount）
-     * @param float $useBalance  本单使用储值支付金额（元）
-     * @param int   $usePoints   本单使用积分数量
+     * @param  float  $orderAmount  订单应付总额（total_amount - discount_amount）
+     * @param  float  $useBalance  本单使用储值支付金额（元）
+     * @param  int  $usePoints  本单使用积分数量
      * @return array{use_balance: float, use_points: int, use_points_amount: float,
      *               earn_points: int, net_amount: float, upgraded: bool}
      */

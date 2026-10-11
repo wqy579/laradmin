@@ -4,6 +4,7 @@ namespace Modules\Member\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Auth\Models\User;
 
 /**
  * 积分兑换订单。
@@ -39,10 +40,15 @@ class PointOrder extends Model
     ];
 
     const STATUS_PENDING = 0;
+
     const STATUS_APPROVED = 1;
+
     const STATUS_SHIPPED = 2;
+
     const STATUS_COMPLETED = 3;
+
     const STATUS_REJECTED = 4;
+
     const STATUS_CANCELLED = 5;
 
     /** 已终态，不可再流转 */
@@ -65,7 +71,7 @@ class PointOrder extends Model
 
     public function auditor(): BelongsTo
     {
-        return $this->belongsTo(\Modules\Auth\Models\User::class, 'auditor_id');
+        return $this->belongsTo(User::class, 'auditor_id');
     }
 
     public static function statusLabel(int $status): string

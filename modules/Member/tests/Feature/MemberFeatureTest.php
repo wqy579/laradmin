@@ -4,10 +4,10 @@ namespace Tests\Member\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Modules\Member\Models\Member;
 use Modules\Member\Models\MemberConsumeLog;
 use Modules\Member\Models\MemberLevel;
-use Modules\Member\Models\MemberRecharge;
 use Modules\Member\Models\PointProduct;
 use Modules\Member\Services\MemberService;
 use Modules\Stock\Models\Stock;
@@ -121,7 +121,7 @@ class MemberFeatureTest extends TestCase
     {
         foreach (['member_id', 'use_balance', 'use_points', 'points_settled'] as $col) {
             $this->assertTrue(
-                \Illuminate\Support\Facades\Schema::hasColumn('sales_orders', $col),
+                Schema::hasColumn('sales_orders', $col),
                 "sales_orders 缺少 {$col}"
             );
         }
