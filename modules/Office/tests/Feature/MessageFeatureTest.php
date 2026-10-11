@@ -38,10 +38,10 @@ class MessageFeatureTest extends TestCase
         Inbox::sendToUsers([$bob], '只给 bob', '内容三', Inbox::TYPE_STOCK_WARNING, 'inventory', []);
 
         $this->loginAs($alice);
-        $this->assertSame(2, $this->getJson('admin/messages/unread-count')->json('data.count'));
+        $this->assertSame(2, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
 
         $this->loginAs($bob);
-        $this->assertSame(1, $this->getJson('admin/messages/unread-count')->json('data.count'));
+        $this->assertSame(1, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
     }
 
     public function test_list_filters_by_status_and_marks_read(): void
@@ -54,27 +54,27 @@ class MessageFeatureTest extends TestCase
         $this->loginAs($alice);
 
         // 默认 all，两条都在
-        $all = $this->getJson('admin/messages');
+        $all = $this->getJson('admin/business/messages');
         $all->assertOk();
         $this->assertSame(2, $all->json('data.total'));
 
         // unread 只有未读
-        $this->assertSame(2, $this->getJson('admin/messages?status=unread')->json('data.total'));
-        $this->assertSame(0, $this->getJson('admin/messages?status=read')->json('data.total'));
+        $this->assertSame(2, $this->getJson('admin/business/messages?status=unread')->json('data.total'));
+        $this->assertSame(0, $this->getJson('admin/business/messages?status=read')->json('data.total'));
 
         $firstId = $all->json('data.list.0.id');
 
         // 标记单条已读：回传最新未读数，且 read 计数 +1
-        $read = $this->postJson("admin/messages/{$firstId}/read");
+        $read = $this->postJson("admin/business/messages/{$firstId}/read");
         $read->assertOk();
         $this->assertSame(1, $read->json('data.unread_count'));
-        $this->assertSame(1, $this->getJson('admin/messages?status=read')->json('data.total'));
-        $this->assertSame(1, $this->getJson('admin/messages?status=unread')->json('data.total'));
+        $this->assertSame(1, $this->getJson('admin/business/messages?status=read')->json('data.total'));
+        $this->assertSame(1, $this->getJson('admin/business/messages?status=unread')->json('data.total'));
 
         // 全部已读
-        $this->postJson('admin/messages/read-all')->assertOk();
-        $this->assertSame(0, $this->getJson('admin/messages/unread-count')->json('data.count'));
-        $this->assertSame(2, $this->getJson('admin/messages?status=read')->json('data.total'));
+        $this->postJson('admin/business/messages/read-all')->assertOk();
+        $this->assertSame(0, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
+        $this->assertSame(2, $this->getJson('admin/business/messages?status=read')->json('data.total'));
     }
 
     public function test_delete_is_scoped_to_owner(): void
@@ -89,19 +89,19 @@ class MessageFeatureTest extends TestCase
 
         // bob 不能删 alice 的消息（按 id 越权）
         $this->loginAs($bob);
-        $this->deleteJson("admin/messages/{$aliceId}")->assertStatus(404);
-        $this->deleteJson("admin/messages/{$bobId}")->assertOk();
+        $this->deleteJson("admin/business/messages/{$aliceId}")->assertStatus(404);
+        $this->deleteJson("admin/business/messages/{$bobId}")->assertOk();
 
         // alice 的消息仍在
         $this->loginAs($alice);
-        $this->assertSame(1, $this->getJson('admin/messages')->json('data.total'));
-        $this->assertSame(1, $this->getJson('admin/messages/unread-count')->json('data.count'));
+        $this->assertSame(1, $this->getJson('admin/business/messages')->json('data.total'));
+        $this->assertSame(1, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
 
         // alice 自己能删，且能标已读自己的
-        $this->postJson("admin/messages/{$aliceId}/read")->assertOk();
-        $this->assertSame(0, $this->getJson('admin/messages/unread-count')->json('data.count'));
-        $this->deleteJson("admin/messages/{$aliceId}")->assertOk();
-        $this->assertSame(0, $this->getJson('admin/messages')->json('data.total'));
+        $this->postJson("admin/business/messages/{$aliceId}/read")->assertOk();
+        $this->assertSame(0, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
+        $this->deleteJson("admin/business/messages/{$aliceId}")->assertOk();
+        $this->assertSame(0, $this->getJson('admin/business/messages')->json('data.total'));
     }
 
     public function test_send_to_users_drops_invalid_recipients(): void
@@ -111,11 +111,11 @@ class MessageFeatureTest extends TestCase
         // 含一个不存在的用户 ID + alice：只给 alice 写入一行
         $written = Inbox::sendToUsers([$alice, 999999], '有效收件人', '内容', Inbox::TYPE_APPROVAL, 'order', ['path' => '/business/sales-order']);
         $this->assertSame(1, $written);
-        $this->assertSame(1, $this->getJson('admin/messages/unread-count')->json('data.count'));
+        $this->assertSame(1, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
 
         // 全是不存在的人：不写入任何行
         $this->assertSame(0, Inbox::sendToUsers([999998, 999999], '无效', '内容'));
-        $this->assertSame(1, $this->getJson('admin/messages/unread-count')->json('data.count'));
+        $this->assertSame(1, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
     }
 
     public function test_notice_publish_creates_system_message(): void
@@ -143,8 +143,8 @@ class MessageFeatureTest extends TestCase
 
         $this->loginAs($bob);
         $this->assertSame(1, $this->getJson('admin/business/notice')->json('data.total'));
-        $this->assertSame(1, $this->getJson('admin/messages/unread-count')->json('data.count'));
-        $message = $this->getJson('admin/messages')->json('data.list.0');
+        $this->assertSame(1, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
+        $message = $this->getJson('admin/business/messages')->json('data.list.0');
         $this->assertSame('system', $message['type']);
         $this->assertStringContainsString('全员大会通知', $message['title']);
         $this->assertSame('/business/notice', $message['payload']['path']);
@@ -153,8 +153,8 @@ class MessageFeatureTest extends TestCase
     public function test_message_endpoints_require_auth(): void
     {
         $this->withToken('');
-        $this->getJson('admin/messages')->assertStatus(401);
-        $this->getJson('admin/messages/unread-count')->assertStatus(401);
+        $this->getJson('admin/business/messages')->assertStatus(401);
+        $this->getJson('admin/business/messages/unread-count')->assertStatus(401);
     }
 
     /** 切身份：走真实 JWT 链路（actingAs 会绕过中间件，验不到鉴权） */

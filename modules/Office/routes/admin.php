@@ -16,8 +16,16 @@ use Modules\Office\Http\Controllers\NoticeController;
 
 Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 站内消息（消息通知中心）
+    //
+    // 前缀用 business/messages 而不是顶层 messages：线上 nginx 用「正则代理 +
+    // try_files 兜底」，只有显式列进白名单的前缀（auth/system/business/dashboard
+    // /permissions）才会 proxy_pass 到 laravel-s，其余落到 /admin/index.html（SPA
+    // 入口）。2026-10 已因此出过一次事故（dashboard 用新顶层前缀，被兜成 517 字节的
+    // HTML，接口全线失效而部署仍标绿）。本模块的邮件/公告都挂在 business/ 下，消息
+    // 跟着它们走同一前缀，既符合约定，又天然在白名单内。
+    //
     // 静态路由（unread-count / read-all）必须先于 {message}，否则会被当成 id 吞掉
-    Route::prefix('messages')->group(function () {
+    Route::prefix('business/messages')->group(function () {
         Route::get('unread-count', [MessageController::class, 'unreadCount']);
         Route::post('read-all', [MessageController::class, 'markAllAsRead']);
         Route::get('/', [MessageController::class, 'index']);

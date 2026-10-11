@@ -717,11 +717,14 @@ const businessApi = {
 
 	// ============ 消息中心 ============
 	messages: {
-		unreadCount: { get: () => request.get('messages/unread-count') },
-		list: { get: (params) => request.get('messages', { params }) },
-		read: { post: (id) => request.post(`messages/${id}/read`) },
-		readAll: { post: () => request.post('messages/read-all') },
-		delete: { delete: (id) => request.delete(`messages/${id}`) },
+		// 路径带 business/ 前缀而非顶层 messages：线上 nginx 白名单只代理
+		// auth/system/business/dashboard/permissions，新顶层前缀会被兜成 SPA 的
+		// index.html（见 modules/Office/routes/admin.php 的说明）。
+		unreadCount: { get: () => request.get('business/messages/unread-count') },
+		list: { get: (params) => request.get('business/messages', { params }) },
+		read: { post: (id) => request.post(`business/messages/${id}/read`) },
+		readAll: { post: () => request.post('business/messages/read-all') },
+		delete: { delete: (id) => request.delete(`business/messages/${id}`) },
 	},
 
 	// 公司公告（Office 模块）

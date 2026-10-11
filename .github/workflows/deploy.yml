@@ -269,19 +269,29 @@ jobs:
             #     正确代理 → Laravel 返回 401 application/json（路由存在）；
             #     被 try_files 兜底 → 200 text/html（index.html），即模块前缀漏配。
             #     返回 JSON 即算健康，不关心具体状态码（401=未登录属正常）。
-            route_ok=0
-            for i in 1 2 3; do
-              ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \
-                "https://laravel.qjwykj.com/admin/dashboard/core-metrics" \
-                -H "Accept: application/json" || echo error)
-              if echo "$ct" | grep -q "json"; then
-                echo "route: ok (dashboard → $ct)"; route_ok=1; break
+            # 探测两个前缀：dashboard 是 2026-10 事故的元凶（新顶层前缀漏配），
+            # business 覆盖 office 模块的 mail/notice/messages（messages 于 2026-10-15
+            # 从顶层改挂 business/ 以进白名单）。任一被 try_files 兜成 HTML 即判失败——
+            # 否则整个模块静默失效而部署标绿。
+            route_ok=1
+            for path in dashboard/core-metrics business/notice; do
+              ok=0 ct=''
+              for i in 1 2 3; do
+                ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \
+                  "https://laravel.qjwykj.com/admin/$path" \
+                  -H "Accept: application/json" || echo error)
+                if echo "$ct" | grep -q "json"; then ok=1; break; fi
+                echo "route: retry $i (/admin/$path → $ct)"; sleep 5
+              done
+              if [ "$ok" = "1" ]; then
+                echo "route: ok (/admin/$path → $ct)"
+              else
+                echo "route: FAILED — /admin/$path 未代理到 Laravel（疑 nginx 白名单漏配）"
+                route_ok=0
               fi
-              echo "route: retry $i (dashboard → $ct)"; sleep 5
             done
 
             if [ "$route_ok" != "1" ]; then
-              echo "route: FAILED — /admin/dashboard/* 未代理到 Laravel（疑 nginx 白名单漏配）"
               echo "--- 当前 nginx 代理白名单 ---"
               grep -nE 'location ~ \^/admin' /www/server/panel/vhost/nginx/laravel.qjwykj.com.conf 2>/dev/null || true
               echo "route: FAILED — 回滚前端产物并重启服务"
