@@ -308,11 +308,12 @@ class MemberController extends Controller
         $trendQuery = DB::table('member_consume_logs')
             ->where('consume_type', MemberConsumeLog::TYPE_ORDER)
             ->where('created_at', '>=', now()->subDays(30)->startOfDay())
-            ->select('DATE(created_at) as date', DB::raw('COALESCE(SUM(consume_amount), 0) as amount'))
+            ->selectRaw('DATE(created_at) as date, COALESCE(SUM(consume_amount), 0) as amount')
             ->groupBy('DATE(created_at)');
 
-        // SQLite 与 MySQL 的 DATE() 函数行为一致，但 selectRaw 兼容性更好
-        $trend = $trendQuery->orderBy('date')->get();
+        // SQLite 与 MySQL 的 DATE() 函数行为一致；用 selectRaw 避免字符串被当列名
+        // 加反引号导致 MySQL 报 Unknown column 'DATE(created_at)'（生产 500 根因）。
+        $trend = $trendQuery->orderBy(DB::raw('date'))->get();
         $stats['consume_trend'] = $trend;
 
         // 等级分布

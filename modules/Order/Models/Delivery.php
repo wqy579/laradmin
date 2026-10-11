@@ -5,6 +5,7 @@ namespace Modules\Order\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Business\Models\Employee;
 use Modules\Stock\Models\Warehouse;
 
 class Delivery extends Model
