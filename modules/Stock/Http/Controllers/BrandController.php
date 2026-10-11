@@ -191,6 +191,7 @@ class BrandController extends Controller
         if (empty($code)) {
             return false;
         }
+
         return Brand::where('code', $code)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists();
     }
 }

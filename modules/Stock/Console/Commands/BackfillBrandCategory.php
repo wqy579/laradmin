@@ -3,7 +3,6 @@
 namespace Modules\Stock\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Modules\Stock\Models\Brand;
 use Modules\Stock\Models\ProductCategory;
 
@@ -33,11 +32,13 @@ class BackfillBrandCategory extends Command
         foreach ($brands as $brand) {
             if (! preg_match('/^BR0*(\d+)$/', (string) $brand->code, $m)) {
                 $skipped++;
+
                 continue;
             }
             $category = ProductCategory::find((int) $m[1]);
             if (! $category) {
                 $skipped++;
+
                 continue;
             }
             $matched++;
