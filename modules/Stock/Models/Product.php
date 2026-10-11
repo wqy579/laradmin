@@ -12,9 +12,12 @@ class Product extends Model
 
     protected $appends = ['spec_display', 'conversion_display'];
 
+    protected $with = ['brand'];
+
     protected $fillable = [
-        'main_category_id', 'sub_category_id',
+        'main_category_id', 'sub_category_id', 'brand_id',
         'name', 'spec', 'code', 'image',
+        'is_new', 'is_key',
         'barcode_large', 'barcode_medium', 'barcode_small',
         'barcode_medium_unit', 'unit_conversion', 'unit_conversion_medium',
         'price_large', 'price_small', 'price_medium',
@@ -28,6 +31,8 @@ class Product extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_online' => 'boolean',
+        'is_new' => 'boolean',
+        'is_key' => 'boolean',
         'price_large' => 'decimal:2',
         'price_small' => 'decimal:2',
         'price_medium' => 'decimal:2',
@@ -42,6 +47,11 @@ class Product extends Model
     public function subCategory(): BelongsTo
     {
         return $this->belongsTo(ProductCategory::class, 'sub_category_id');
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class, 'brand_id');
     }
 
     public function stocks(): HasMany

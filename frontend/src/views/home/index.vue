@@ -14,7 +14,8 @@ const showPanel = ref(false)
 // 拉取失败/无数据时 computeWidgetProps 回退到 widgets.js 默认 props 兜底。
 const coreMetrics = ref(null)
 const salesTrendList = ref([])
-const categoryProportionList = ref([])
+const brandProportionList = ref([])
+const brandTop10List = ref([])
 
 const fmt = (n, prefix = '') => {
   if (n === null || n === undefined || isNaN(n)) return prefix + '0'
@@ -23,14 +24,16 @@ const fmt = (n, prefix = '') => {
 
 onMounted(async () => {
   try {
-    const [coreRes, trendRes, catRes] = await Promise.all([
+    const [coreRes, trendRes, brandRes, topRes] = await Promise.all([
       businessApi.dashboard.coreMetrics.get(),
       businessApi.dashboard.salesTrend.get(),
-      businessApi.dashboard.categoryProportion.get(),
+      businessApi.dashboard.brandProportion.get(),
+      businessApi.dashboard.brandTop10.get(),
     ])
     if (coreRes?.data) coreMetrics.value = coreRes.data
     if (trendRes?.data?.list) salesTrendList.value = trendRes.data.list
-    if (catRes?.data?.list) categoryProportionList.value = catRes.data.list
+    if (brandRes?.data?.list) brandProportionList.value = brandRes.data.list
+    if (topRes?.data?.list) brandTop10List.value = topRes.data.list
   } catch (e) {
     // 保留 widgets.js 硬编码默认值兜底，不让仪表盘白屏
   }
@@ -61,8 +64,12 @@ function computeWidgetProps(widgetId, defaultProps) {
         ? { ...defaultProps, title: '销售趋势', data: salesTrendList.value.map((d) => ({ month: d.label, value: d.amount })) }
         : defaultProps
     case 'chart-bar':
-      return categoryProportionList.value.length
-        ? { ...defaultProps, data: categoryProportionList.value.map((d) => ({ category: d.name, value: d.value })) }
+      return brandProportionList.value.length
+        ? { ...defaultProps, title: '品牌销售占比', data: brandProportionList.value.map((d) => ({ category: d.name, value: d.value })) }
+        : defaultProps
+    case 'chart-brand-top10':
+      return brandTop10List.value.length
+        ? { ...defaultProps, title: '品牌销售TOP10', data: brandTop10List.value }
         : defaultProps
     default:
       return defaultProps

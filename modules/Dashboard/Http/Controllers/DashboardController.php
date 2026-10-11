@@ -119,8 +119,8 @@ class DashboardController extends Controller
             ->join('products as p', 'p.id', '=', 'soi.product_id')
             ->leftJoin('brands as b', 'b.id', '=', 'p.brand_id')
             ->whereIn('so.status', self::SALES_STATUS)
-            ->select(DB::raw('COALESCE(b.name, "其他") as category'), DB::raw('SUM(soi.amount) as amount'))
-            ->groupBy(DB::raw('COALESCE(b.name, "其他")'))
+            ->select(DB::raw("COALESCE(b.name, '其他') as category"), DB::raw('SUM(soi.amount) as amount'))
+            ->groupBy(DB::raw("COALESCE(b.name, '其他')"))
             ->orderByDesc('amount')
             ->get();
 
@@ -136,6 +136,69 @@ class DashboardController extends Controller
         });
 
         return $this->success(['list' => $list, 'total' => round($total, 2)]);
+    }
+
+    /**
+     * 品牌销售占比（饼图）。
+     *
+     * 与 categoryProportion 同源，但只统计挂了品牌的商品——无品牌的不计入，
+     * 避免「其他」一条柱吃掉大盘。前 10 名具名，其余合并为「其他」。
+     */
+    public function brandProportion(Request $request)
+    {
+        $rows = DB::table('sales_order_items as soi')
+            ->join('sales_orders as so', 'so.id', '=', 'soi.sales_order_id')
+            ->join('products as p', 'p.id', '=', 'soi.product_id')
+            ->join('brands as b', 'b.id', '=', 'p.brand_id')
+            ->whereIn('so.status', self::SALES_STATUS)
+            ->selectRaw('b.id, b.name, SUM(soi.amount) as amount')
+            ->groupBy('b.id', 'b.name')
+            ->orderByDesc('amount')
+            ->get();
+
+        $total = (float) $rows->sum('amount');
+        $top = $rows->take(10);
+        $restAmount = (float) $rows->slice(10)->sum('amount');
+
+        $list = $top->map(function ($r) use ($total) {
+            return [
+                'name' => $r->name,
+                'value' => round((float) $r->amount, 2),
+                'percent' => $total > 0 ? round((float) $r->amount / $total * 100, 1) : 0,
+            ];
+        })->all();
+
+        if ($restAmount > 0) {
+            $list[] = [
+                'name' => '其他',
+                'value' => round($restAmount, 2),
+                'percent' => $total > 0 ? round($restAmount / $total * 100, 1) : 0,
+            ];
+        }
+
+        return $this->success(['list' => $list, 'total' => round($total, 2)]);
+    }
+
+    /** 品牌销售 TOP10（横向柱状图） */
+    public function brandTop10(Request $request)
+    {
+        $rows = DB::table('sales_order_items as soi')
+            ->join('sales_orders as so', 'so.id', '=', 'soi.sales_order_id')
+            ->join('products as p', 'p.id', '=', 'soi.product_id')
+            ->join('brands as b', 'b.id', '=', 'p.brand_id')
+            ->whereIn('so.status', self::SALES_STATUS)
+            ->selectRaw('b.name, SUM(soi.amount) as amount')
+            ->groupBy('b.name')
+            ->orderByDesc('amount')
+            ->limit(10)
+            ->get();
+
+        $list = $rows->map(fn ($r) => [
+            'category' => $r->name,
+            'value' => round((float) $r->amount, 2),
+        ])->all();
+
+        return $this->success(['list' => $list]);
     }
 
     /** 近 7 天销售趋势 */

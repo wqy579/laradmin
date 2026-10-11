@@ -26,6 +26,17 @@ const businessApi = {
 		},
 	},
 
+	// 品牌
+	brand: {
+		list: { get: (params) => request.get('business/brand', { params }) },
+		options: { get: (params) => request.get('business/brand/options', { params }) },
+		detail: { get: (id) => request.get(`business/brand/${id}`) },
+		add: { post: (params) => request.post('business/brand', params) },
+		edit: { put: (id, params) => request.put(`business/brand/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/brand/${id}`) },
+		batchUpdateStatus: { post: (params) => request.post('business/brand/batch-status', params) },
+	},
+
 	// 客户
 	customer: {
 		list: { get: (params) => request.get('business/customers', { params }) },
@@ -700,6 +711,8 @@ const businessApi = {
 		regionSales: { get: (params) => request.get('dashboard/region-sales', { params }) },
 		deliveryStatus: { get: (params) => request.get('dashboard/delivery-status', { params }) },
 		financeOverview: { get: (params) => request.get('dashboard/finance-overview', { params }) },
+		brandProportion: { get: (params) => request.get('dashboard/brand-proportion', { params }) },
+		brandTop10: { get: (params) => request.get('dashboard/brand-top10', { params }) },
 	},
 }
 

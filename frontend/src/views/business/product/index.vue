@@ -126,6 +126,17 @@
 						>
 							<el-option v-for="s in currentSubs" :key="s.id" :label="`${s.name}（${s.product_count || 0}）`" :value="s.id" />
 						</el-select>
+						<el-select
+							v-model="searchForm.brand_id"
+							clearable
+							filterable
+							size="small"
+							placeholder="品牌"
+							style="width:150px"
+							@change="search"
+						>
+							<el-option v-for="b in brandOptions" :key="b.id" :label="`${b.name}（${b.product_count || 0}）`" :value="b.id" />
+						</el-select>
 						<el-form-item label="搜索" class="search-box">
 						<el-input v-model="searchForm.query" placeholder="ID/条码/名称/规格" clearable @clear="search" @keyup.enter="search" />
 					</el-form-item>
@@ -175,6 +186,10 @@
 					<span v-if="row.barcode_small">{{ row.barcode_small }}</span>
 					<span v-else class="text-muted">-</span>
 				</template>
+			<template #brand="{ row }">
+				<el-button v-if="row.brand" link type="primary" size="small" @click="filterByBrand(row.brand_id)">{{ row.brand.name }}</el-button>
+				<span v-else class="text-muted">-</span>
+			</template>
 			<template #prices="{ row }">
 				<div v-if="row.price_large" class="price-block">
 					<div class="price-main">{{ formatMoney(row.price_large) }}/{{ row.price_unit || '件' }}</div>
@@ -275,6 +290,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
 	Folder, FolderOpened, ArrowDown, ArrowLeft, Plus, Filter,
@@ -305,6 +321,19 @@ const mainCategories = ref([])
 const activeMainId = ref(null)
 const activeSubId = ref(null)
 const activeStatusFilter = ref('')
+
+// ---- 品牌 ----
+const route = useRoute()
+const brandOptions = ref([])
+// 点击品牌名/品牌档案页跳转过来时，按品牌筛选
+const filterByBrand = (brandId) => {
+	searchForm.brand_id = brandId
+	search()
+}
+const loadBrandOptions = async () => {
+	const res = await businessApi.brand.options.get()
+	brandOptions.value = res.data?.list || []
+}
 
 const currentMainCat = computed(() =>
 	mainCategories.value.find(c => c.id === activeMainId.value) || null
@@ -445,6 +474,7 @@ const columns = [
 	{ prop: 'name', title: '名称', width: 180, showOverflowTooltip: true, slots: { default: 'name' } },
 	{ prop: 'spec_display', title: '规格', width: 100, showOverflowTooltip: true },
 	{ prop: 'conversion_display', title: '整零转换', width: 160, showOverflowTooltip: true },
+	{ prop: 'brand', title: '品牌', width: 120, slots: { default: 'brand' } },
 	{ prop: 'barcode_small', title: '条码', width: 110, slots: { default: 'barcode_small' } },
 	{ prop: 'prices', title: '标准价', width: 90, slots: { default: 'prices' } },
 	{ prop: 'shelf_life_days', title: '保质', width: 48 },
@@ -694,6 +724,11 @@ const formatUnitConversion = (row) => {
 onMounted(() => {
 	loadCategories()
 	loadStatusCounts()
+	loadBrandOptions()
+	// 品牌档案页跳转过来时带 brand_id，自动套用筛选
+	if (route.query.brand_id) {
+		searchForm.brand_id = Number(route.query.brand_id)
+	}
 	refresh()
 })
 </script>

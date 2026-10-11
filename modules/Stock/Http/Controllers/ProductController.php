@@ -56,6 +56,9 @@ class ProductController extends Controller
         if ($request->sub_category_id !== null && $request->sub_category_id !== '' && $request->sub_category_id !== 'null') {
             $query->where('sub_category_id', (int) $request->sub_category_id);
         }
+        if ($request->brand_id !== null && $request->brand_id !== '' && $request->brand_id !== 'null') {
+            $query->where('brand_id', (int) $request->brand_id);
+        }
         if ($request->is_online !== null && $request->is_online !== '' && $request->is_online !== 'null') {
             $query->where('is_online', (bool) $request->is_online);
         }

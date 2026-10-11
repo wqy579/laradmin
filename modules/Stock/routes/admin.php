@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Stock\Http\Controllers\BrandController;
 use Modules\Stock\Http\Controllers\CostPriceController;
 use Modules\Stock\Http\Controllers\CustomerLevelController;
 use Modules\Stock\Http\Controllers\ProductController;
@@ -46,6 +47,17 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/categories', [ProductController::class, 'storeCategory']);
         Route::put('/categories/{category}', [ProductController::class, 'updateCategory']);
         Route::delete('/categories/{category}', [ProductController::class, 'destroyCategory']);
+    });
+    // 品牌档案
+    // 静态路由（options/batch-status）必须先于 {brand}，否则会被路由参数吞掉。
+    Route::prefix('business/brand')->group(function () {
+        Route::get('/options', [BrandController::class, 'options']);
+        Route::get('/', [BrandController::class, 'index']);
+        Route::post('/', [BrandController::class, 'store']);
+        Route::post('/batch-status', [BrandController::class, 'batchUpdateStatus']);
+        Route::get('/{brand}', [BrandController::class, 'show']);
+        Route::put('/{brand}', [BrandController::class, 'update']);
+        Route::delete('/{brand}', [BrandController::class, 'destroy']);
     });
     // 仓库
     Route::prefix('business/warehouse')->group(function () {
