@@ -2,10 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Report\Http\Controllers\CombinedReportController;
+use Modules\Report\Http\Controllers\DailySalesReportController;
+use Modules\Report\Http\Controllers\MonthlySalesReportController;
 use Modules\Report\Http\Controllers\RecentPriceController;
 use Modules\Report\Http\Controllers\ReportOptionController;
 use Modules\Report\Http\Controllers\ReportTemplateController;
 use Modules\Report\Http\Controllers\SalesmanReportController;
+use Modules\Report\Http\Controllers\SalesProfitReportController;
 use Modules\Report\Http\Controllers\SalesReportController;
 use Modules\Report\Http\Controllers\StockReportController;
 
@@ -64,5 +67,19 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
             Route::get('/', [CombinedReportController::class, 'index']);
             Route::get('/export', [CombinedReportController::class, 'export']);
         });
+
+        // 连凯对标四核心报表（报表中心首页入口 /business/report）
+        // 销售日报：单日快照，固定列 + 4 张汇总卡
+        Route::get('daily', [DailySalesReportController::class, 'index']);
+        Route::get('daily/export', [DailySalesReportController::class, 'export']);
+
+        // 销售月报：整月逐日趋势 + 环比增长
+        Route::get('monthly', [MonthlySalesReportController::class, 'index']);
+        Route::get('monthly/export', [MonthlySalesReportController::class, 'export']);
+
+        // 销售利润报表：净毛利 = 销售额 − 成本 − 退货金额（挂在报表中心下，
+        // 与财务「月度利润」的收入/成本口径报表区分，后者走 business/profit）
+        Route::get('profit', [SalesProfitReportController::class, 'index']);
+        Route::get('profit/export', [SalesProfitReportController::class, 'export']);
     });
 });

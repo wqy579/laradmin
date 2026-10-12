@@ -4209,9 +4209,81 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/report/daily",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\DailySalesReportController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/daily/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\DailySalesReportController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/monthly",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\MonthlySalesReportController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/monthly/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\MonthlySalesReportController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/report/options",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\ReportOptionController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/profit",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\SalesProfitReportController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/profit/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\SalesProfitReportController@export",
         "middleware": [
             "api",
             "stock.snapshot",

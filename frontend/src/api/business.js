@@ -788,6 +788,24 @@ const businessApi = {
 			get: (params) => request.get('business/report/combined', { params }),
 			export: { get: (params) => request.get('business/report/combined/export', { params, responseType: 'blob' }) },
 		},
+
+		// 连凯对标四核心报表（报表中心入口）
+		// daily/monthly 是固定版式单日/整月报表；profit 是销售利润（净毛利 = 销售额-成本-退货），
+		// 与业务层 profit.list（财务「月度利润」的收入/成本口径，走 business/profit）不是一回事。
+		daily: {
+			get: (params) => request.get('business/report/daily', { params }),
+			export: { get: (params) => request.get('business/report/daily/export', { params, responseType: 'blob' }) },
+		},
+
+		monthly: {
+			get: (params) => request.get('business/report/monthly', { params }),
+			export: { get: (params) => request.get('business/report/monthly/export', { params, responseType: 'blob' }) },
+		},
+
+		profit: {
+			get: (params) => request.get('business/report/profit', { params }),
+			export: { get: (params) => request.get('business/report/profit/export', { params, responseType: 'blob' }) },
+		},
 	},
 }
 

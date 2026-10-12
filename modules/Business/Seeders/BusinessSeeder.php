@@ -22,7 +22,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'inventory', 'title' => '库存管理', 'parent_id' => 0, 'path' => '/business/stock-check', 'sort' => 4, 'status' => 1, 'meta' => ['icon' => 'ElIconBox']],
             ['name' => 'order', 'title' => '订单管理', 'parent_id' => 0, 'path' => '/business/sales-order', 'sort' => 5, 'status' => 1, 'meta' => ['icon' => 'ElIconDocument']],
             ['name' => 'finance', 'title' => '财务管理', 'parent_id' => 0, 'path' => '/business/payment', 'sort' => 6, 'status' => 1, 'meta' => ['icon' => 'ElIconWallet']],
-            ['name' => 'report', 'title' => '报表管理', 'parent_id' => 0, 'path' => '/business/report/sales', 'sort' => 7, 'status' => 1, 'meta' => ['icon' => 'ElIconDataBoard']],
+            ['name' => 'report', 'title' => '报表管理', 'parent_id' => 0, 'path' => '/business/report', 'sort' => 7, 'status' => 1, 'meta' => ['icon' => 'ElIconDataBoard']],
             ['name' => 'office', 'title' => '办公管理', 'parent_id' => 0, 'path' => '/business/mail', 'sort' => 8, 'status' => 1, 'meta' => ['icon' => 'ElIconMemo']],
             ['name' => 'visit', 'title' => '拜访管理', 'parent_id' => 0, 'path' => '/business/route', 'sort' => 9, 'status' => 1, 'meta' => ['icon' => 'ElIconLocation']],
             ['name' => 'miniapp', 'title' => '小程序管理', 'parent_id' => 0, 'path' => '/mp-icons', 'sort' => 10, 'status' => 1, 'meta' => ['icon' => 'ElIconPlatform']],
@@ -341,12 +341,21 @@ class BusinessSeeder extends Seeder
         }
 
         // 报表管理子菜单
+        //
+        // component 必须写在这里：AuthSeeder 会 Permission::truncate()，只靠迁移补
+        // component 的菜单在 db:seed / 换库 / 从备份恢复后 component 会归 NULL，页面白屏。
+        // 历史上 report.sales / stock / salesman / combined 一直没写 component，全靠
+        // 2026_10_09 迁移补——同一族菜单在 db:seed 后静默白屏。这里一次性补齐。
         $reportMenus = [
-            ['name' => 'report.sales', 'title' => '销售报表', 'parent' => 'report', 'path' => '/business/report/sales', 'sort' => 1],
-            ['name' => 'report.stock', 'title' => '库存报表', 'parent' => 'report', 'path' => '/business/report/stock', 'sort' => 2],
-            ['name' => 'report.salesman', 'title' => '业务员报表', 'parent' => 'report', 'path' => '/business/report/salesman', 'sort' => 3],
-            ['name' => 'report.combined', 'title' => '综合报表', 'parent' => 'report', 'path' => '/business/report/combined', 'sort' => 4],
-            ['name' => 'report.history', 'title' => '经营历程', 'parent' => 'report', 'path' => '/business/history', 'component' => 'business/history/index', 'sort' => 5],
+            ['name' => 'report.center', 'title' => '报表中心', 'parent' => 'report', 'path' => '/business/report/center', 'component' => 'business/report/index', 'sort' => 0],
+            ['name' => 'report.daily', 'title' => '销售日报', 'parent' => 'report', 'path' => '/business/report/daily', 'component' => 'business/report/daily/index', 'sort' => 1],
+            ['name' => 'report.monthly', 'title' => '销售月报', 'parent' => 'report', 'path' => '/business/report/monthly', 'component' => 'business/report/monthly/index', 'sort' => 2],
+            ['name' => 'report.stock', 'title' => '库存报表', 'parent' => 'report', 'path' => '/business/report/stock', 'component' => 'business/report/stock/index', 'sort' => 3],
+            ['name' => 'report.profit', 'title' => '利润报表', 'parent' => 'report', 'path' => '/business/report/profit', 'component' => 'business/report/profit/index', 'sort' => 4],
+            ['name' => 'report.sales', 'title' => '销售报表', 'parent' => 'report', 'path' => '/business/report/sales', 'component' => 'business/report/sales/index', 'sort' => 5],
+            ['name' => 'report.salesman', 'title' => '业务员报表', 'parent' => 'report', 'path' => '/business/report/salesman', 'component' => 'business/report/salesman/index', 'sort' => 6],
+            ['name' => 'report.combined', 'title' => '综合报表', 'parent' => 'report', 'path' => '/business/report/combined', 'component' => 'business/report/combined/index', 'sort' => 7],
+            ['name' => 'report.history', 'title' => '经营历程', 'parent' => 'report', 'path' => '/business/history', 'component' => 'business/history/index', 'sort' => 8],
         ];
 
         foreach ($reportMenus as $menu) {
@@ -356,6 +365,7 @@ class BusinessSeeder extends Seeder
                 'type' => 'menu',
                 'parent_id' => $parentId,
                 'path' => $menu['path'],
+                'component' => $menu['component'],
                 'sort' => $menu['sort'],
                 'status' => 1,
             ]);
