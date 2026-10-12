@@ -11,6 +11,7 @@ use Modules\Member\Providers\MemberServiceProvider;
 use Modules\Miniapp\Providers\MiniappServiceProvider;
 use Modules\Office\Providers\OfficeServiceProvider;
 use Modules\Order\Providers\OrderServiceProvider;
+use Modules\Performance\Providers\PerformanceServiceProvider;
 use Modules\Report\Providers\ReportServiceProvider;
 use Modules\Stock\Providers\StockServiceProvider;
 use Modules\System\Providers\SystemServiceProvider;
@@ -32,4 +33,5 @@ return [
     ExchangeServiceProvider::class,
     MemberServiceProvider::class,
     DashboardServiceProvider::class,
+    PerformanceServiceProvider::class,
 ];

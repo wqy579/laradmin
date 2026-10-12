@@ -439,6 +439,61 @@ const systemRoutes = [
 		component: () => import('../views/business/delivery/remit/index.vue'),
 		meta: { title: '上交货款' },
 	},
+	// 绩效分析（机器 C，双保险静态路由，菜单来自后端 auth_permission）
+	{
+		path: '/perf/commission-rule',
+		name: 'PerfCommissionRule',
+		component: () => import('../views/perf/commission-rule/index.vue'),
+		meta: { title: '提成方案' },
+	},
+	{
+		path: '/perf/commission-calc',
+		name: 'PerfCommissionCalc',
+		component: () => import('../views/perf/commission-calc/index.vue'),
+		meta: { title: '提成计算' },
+	},
+	{
+		path: '/perf/commission-report',
+		name: 'PerfCommissionReport',
+		component: () => import('../views/perf/commission-report/index.vue'),
+		meta: { title: '提成报表' },
+	},
+	{
+		path: '/perf/profit',
+		name: 'PerfProfit',
+		component: () => import('../views/perf/profit/index.vue'),
+		meta: { title: '利润查询' },
+	},
+	{
+		path: '/perf/ar-aging',
+		name: 'PerfArAging',
+		component: () => import('../views/perf/ar-aging/index.vue'),
+		meta: { title: '应收账龄分析' },
+	},
+	{
+		path: '/perf/delivery-uncollected',
+		name: 'PerfDeliveryUncollected',
+		component: () => import('../views/perf/delivery-uncollected/index.vue'),
+		meta: { title: '发货未收款' },
+	},
+	{
+		path: '/perf/stock-warning',
+		name: 'PerfStockWarning',
+		component: () => import('../views/perf/stock-warning/index.vue'),
+		meta: { title: '库存预警中心' },
+	},
+	{
+		path: '/perf/dashboard',
+		name: 'PerfDashboard',
+		component: () => import('../views/perf/dashboard/index.vue'),
+		meta: { title: '销售分析看板' },
+	},
+	{
+		path: '/perf/analysis',
+		name: 'PerfAnalysis',
+		component: () => import('../views/perf/analysis/index.vue'),
+		meta: { title: '商品与客户分析' },
+	},
 ]
 
 export default systemRoutes

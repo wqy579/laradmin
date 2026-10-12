@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Modules\Auth\Seeders\AuthSeeder;
 use Modules\Business\Seeders\BusinessDataSeeder;
 use Modules\Business\Seeders\BusinessSeeder;
+use Modules\Performance\Seeders\PerformanceMenuSeeder;
 use Modules\System\Seeders\SystemSeeder;
 
 /*
@@ -37,6 +38,7 @@ class DatabaseSeeder extends Seeder
             AuthSeeder::class,
             BusinessSeeder::class,
             BusinessDataSeeder::class,
+            PerformanceMenuSeeder::class,
         ]);
     }
 }
