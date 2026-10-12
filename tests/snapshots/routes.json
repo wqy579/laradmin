@@ -957,6 +957,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/brand/export",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\BrandController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/brand/options",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\BrandController@options",
@@ -2841,6 +2853,66 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/messages",
+        "name": "admin.",
+        "action": "Modules\\Office\\Http\\Controllers\\MessageController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/messages/read-all",
+        "name": "admin.",
+        "action": "Modules\\Office\\Http\\Controllers\\MessageController@markAllAsRead",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/messages/unread-count",
+        "name": "admin.",
+        "action": "Modules\\Office\\Http\\Controllers\\MessageController@unreadCount",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/messages/{message}",
+        "name": "admin.",
+        "action": "Modules\\Office\\Http\\Controllers\\MessageController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/messages/{message}/read",
+        "name": "admin.",
+        "action": "Modules\\Office\\Http\\Controllers\\MessageController@markAsRead",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/mini-program-settings",
         "name": "admin.",
         "action": "Modules\\Miniapp\\Http\\Controllers\\MiniappSettingController@index",
@@ -2928,6 +3000,18 @@
         "uri": "admin/business/notice/{notice}",
         "name": "admin.",
         "action": "Modules\\Office\\Http\\Controllers\\NoticeController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/notice/{notice}/publish",
+        "name": "admin.",
+        "action": "Modules\\Office\\Http\\Controllers\\NoticeController@publish",
         "middleware": [
             "api",
             "stock.snapshot",

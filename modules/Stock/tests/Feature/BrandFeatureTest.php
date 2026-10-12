@@ -119,6 +119,24 @@ class BrandFeatureTest extends TestCase
         $this->assertSame('新品牌名', $category->fresh()->name);
     }
 
+    /**
+     * sync_category=false：用户明确拒绝同步时，品牌改名不应连带改分类名。
+     * 分类改名会影响该分类下所有商品的展示，影响面比品牌大，故给用户选择权。
+     */
+    public function test_update_can_decline_category_sync(): void
+    {
+        $category = ProductCategory::create(['name' => '原分类名', 'is_main' => true, 'is_active' => true]);
+        $brand = Brand::create(['name' => '品牌A', 'category_id' => $category->id]);
+
+        $this->putJson('/admin/business/brand/'.$brand->id, [
+            'name' => '新品牌名',
+            'sync_category' => false,
+        ])->assertOk();
+
+        $this->assertSame('新品牌名', $brand->fresh()->name, '品牌名本身应更新');
+        $this->assertSame('原分类名', $category->fresh()->name, '拒绝同步时分类名应保持不变');
+    }
+
     public function test_list_filters_by_keyword_and_status(): void
     {
         Brand::create(['name' => '农夫山泉', 'is_active' => true]);
@@ -127,6 +145,122 @@ class BrandFeatureTest extends TestCase
         $this->assertSame(1, $this->getJson('/admin/business/brand?keyword=农夫')->json('data.total'));
         $this->assertSame(1, $this->getJson('/admin/business/brand?is_active=1')->json('data.total'));
         $this->assertSame(1, $this->getJson('/admin/business/brand?is_active=0')->json('data.total'));
+    }
+
+    /**
+     * 查询区两个独立输入框走 name / code 参数（旧 keyword 参数仍兼容）。
+     * 两个字段同时填是 OR 语义：填 A 品牌的名称 + B 品牌的编码，两者都能搜到。
+     */
+    public function test_list_filters_by_name_and_code_separately(): void
+    {
+        Brand::create(['name' => '农夫山泉', 'code' => 'BR0001']);
+        Brand::create(['name' => '康师傅', 'code' => 'BR0002']);
+        Brand::create(['name' => '统一', 'code' => 'BR0003']);
+
+        $this->assertSame(1, $this->getJson('/admin/business/brand?name=农夫')->json('data.total'));
+        $this->assertSame(1, $this->getJson('/admin/business/brand?code=BR0002')->json('data.total'));
+
+        // name + code 同时填 = OR，两个品牌都命中
+        $res = $this->getJson('/admin/business/brand?name=农夫&code=BR0002');
+        $this->assertSame(2, $res->json('data.total'));
+
+        // 无匹配
+        $this->assertSame(0, $this->getJson('/admin/business/brand?name=不存在的品牌')->json('data.total'));
+    }
+
+    /**
+     * 编码格式校验：必须是 BR + 恰好 4 位数字。
+     * 过短、过长、非数字、小写、缺前缀一律 422——格式是报表对账的锚点，不能含糊。
+     */
+    public function test_code_must_match_br_plus_four_digits(): void
+    {
+        foreach (['BR12', 'BR123', 'BR12345', 'BR123A', 'br0001', 'R0001', 'BR-0001'] as $bad) {
+            $this->postJson('/admin/business/brand', ['name' => '坏编码'.$bad, 'code' => $bad])
+                ->assertStatus(422);
+        }
+
+        $this->postJson('/admin/business/brand', ['name' => '好编码', 'code' => 'BR0001'])->assertOk();
+    }
+
+    /**
+     * 新增时不填编码 → 按关联分类自动生成 BR+4位分类ID。
+     *
+     * 数字是分类 ID 而非品牌 ID：BackfillBrandCategory 按 ^BR0*(\d+)$ 反解回填
+     * category_id，若填成品牌自增 ID 会把品牌错链到另一个分类。这条测试守住约定。
+     */
+    public function test_code_auto_generated_from_linked_category_id(): void
+    {
+        $cat = ProductCategory::create(['name' => '饮料', 'is_main' => true, 'is_active' => true]);
+
+        $res = $this->postJson('/admin/business/brand', ['name' => '自动生成编码'])->assertOk();
+        // 未关联分类：编码留空，不硬造一个数字
+        $this->assertNull($res->json('data.code'));
+
+        // 关联分类后重新生成，数字必须是分类 ID 而非品牌自增 ID
+        $res = $this->postJson('/admin/business/brand', [
+            'name' => '关联分类',
+            'category_id' => $cat->id,
+        ])->assertOk();
+        $expected = 'BR'.str_pad((string) $cat->id, 4, '0', STR_PAD_LEFT);
+        $this->assertSame($expected, $res->json('data.code'));
+        $this->assertNotEquals('BR'.str_pad((string) Brand::where('name', '关联分类')->first()->id, 4, '0', STR_PAD_LEFT), $res->json('data.code'), '编码里的数字不应是品牌 ID');
+    }
+
+    /**
+     * 编辑时不提交编码：保留原值，不触发自动生成。
+     *
+     * 前端改单个字段时通常只带变更项，若后端把「没带」当成「要生成」，
+     * 用户手填的编码会被静默覆盖。
+     */
+    public function test_update_without_code_keeps_existing_code(): void
+    {
+        $this->postJson('/admin/business/brand', ['name' => '原品牌', 'code' => 'BR9999'])->assertOk();
+        $brand = Brand::where('code', 'BR9999')->first();
+
+        // 只改名称和排序，不带 code
+        $this->putJson('/admin/business/brand/'.$brand->id, ['name' => '新名称', 'sort' => 5])->assertOk();
+        $this->assertSame('BR9999', $brand->fresh()->code, '未提交编码时应保留原编码');
+        $this->assertSame(5, $brand->fresh()->sort);
+    }
+
+    /**
+     * 品牌 ↔ 一级分类按设计一对一：分类已关联其他品牌时拒绝。
+     * 编辑自身所属分类不算冲突（自己改自己不该报错）。
+     */
+    public function test_category_cannot_be_linked_to_two_brands(): void
+    {
+        $cat = ProductCategory::create(['name' => '饮料', 'is_main' => true, 'is_active' => true]);
+        $this->postJson('/admin/business/brand', ['name' => '品牌甲', 'category_id' => $cat->id])->assertOk();
+
+        $res = $this->postJson('/admin/business/brand', ['name' => '品牌乙', 'category_id' => $cat->id]);
+        $res->assertStatus(422);
+        $this->assertStringContainsString('已关联', $res->json('message'));
+
+        // 编辑品牌甲、保持它自己的分类：不算冲突
+        $brand = Brand::where('category_id', $cat->id)->first();
+        $this->putJson('/admin/business/brand/'.$brand->id, ['name' => '品牌甲改名', 'category_id' => $cat->id])->assertOk();
+    }
+
+    /**
+     * 导出 CSV：带 BOM、含表头与中文标题行，列数与页面列一致。
+     * 走 blob 不受 JSON 拦截器影响，故直接用 json() 之外的断言方式。
+     */
+    public function test_export_returns_csv_with_bom(): void
+    {
+        $cat = ProductCategory::create(['name' => '饮料', 'is_main' => true, 'is_active' => true]);
+        $brand = Brand::create(['name' => '导出品牌', 'code' => 'BR0001', 'category_id' => $cat->id, 'sort' => 3]);
+        Product::create(['name' => '可乐', 'code' => 'P1', 'price_small' => 3, 'is_active' => true, 'brand_id' => $brand->id]);
+
+        $res = $this->getJson('/admin/business/brand/export');
+        $res->assertOk();
+
+        $this->assertStringContainsString('attachment; filename="brands.csv"', $res->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('text/csv', $res->headers->get('Content-Type'));
+
+        $body = $res->getContent();
+        $this->assertStringStartsWith("\u{FEFF}", $body, '必须以 UTF-8 BOM 开头，否则 Excel 打开乱码');
+        $this->assertStringContainsString('品牌编码,品牌名称,关联分类,商品数量,排序,状态,创建时间', $body);
+        $this->assertStringContainsString('BR0001,导出品牌,饮料,1,3,启用', $body);
     }
 
     /**
