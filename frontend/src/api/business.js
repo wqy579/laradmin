@@ -732,6 +732,8 @@ const businessApi = {
 	// 公司公告（Office 模块）
 	notice: {
 		list: { get: (params) => request.get('business/notice', { params }) },
+		// 登录弹窗：取当前用户最新一条未读的弹窗公告（is_popup + 已发布 + 对我可见）
+		popupPending: { get: () => request.get('business/notice/popup-pending') },
 		detail: { get: (id) => request.get(`business/notice/${id}`) },
 		create: { post: (params) => request.post('business/notice', params) },
 		update: { put: (id, params) => request.put(`business/notice/${id}`, params) },

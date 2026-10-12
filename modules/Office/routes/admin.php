@@ -53,6 +53,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
 
     // 公司公告
     Route::prefix('business/notice')->group(function () {
+        // 静态路由必须先于 {notice}，否则会被当成 id 吞掉
+        Route::get('popup-pending', [NoticeController::class, 'popupPending']);
         Route::get('/', [NoticeController::class, 'index']);
         Route::post('/', [NoticeController::class, 'store']);
         Route::get('{notice}', [NoticeController::class, 'show']);
