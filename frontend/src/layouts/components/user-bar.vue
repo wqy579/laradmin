@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -36,11 +36,23 @@ const messageCount = computed(() => {
 })
 
 async function fetchMessageCount() {
+	// 无 token 时直接不发：未登录态轮询只会刷一堆 401，且拦截器会反复尝试
+	// logout + router.push('/login')，在应用过渡期可能撞 Object.create(undefined)
+	// 的渲染崩溃。角标在未登录时本就无意义。
+	if (!userStore.token) {
+		unreadMsgCount.value = 0
+		return
+	}
 	try {
 		const res = await businessApi.messages.unreadCount.get()
-		if (res.code === 200) unreadMsgCount.value = res.data?.count ?? 0
+		// 拦截器 reject 时 res 为 undefined，直接 res.code 会二次抛错；只在拿到
+		// 合法响应对象时取数，否则静默跳过
+		if (res && typeof res === 'object' && res.code === 200) {
+			unreadMsgCount.value = res.data?.count ?? 0
+		}
 	} catch (e) {
-		console.error('获取未读消息数失败:', e)
+		// 静默：401 已由拦截器统一处理（logout + 跳登录），这里再 console.error
+		// 会被 Vue errorHandler 捕获进渲染链，在 appContext 过渡期触发崩溃
 	}
 }
 
@@ -52,6 +64,13 @@ let messagePollTimer = null
 function startMessagePolling() {
 	fetchMessageCount()
 	messagePollTimer = setInterval(fetchMessageCount, 30000)
+}
+
+function stopMessagePolling() {
+	if (messagePollTimer) {
+		clearInterval(messagePollTimer)
+		messagePollTimer = null
+	}
 }
 
 const userName = computed(() => {
@@ -120,11 +139,16 @@ onMounted(() => {
 	startMessagePolling()
 })
 
-onBeforeUnmount(() => {
-	if (messagePollTimer) {
-		clearInterval(messagePollTimer)
-		messagePollTimer = null
+// token 失效（被拦截器 logout 清空）时立即停止轮询，避免持续打 401
+watch(
+	() => userStore.token,
+	(token) => {
+		if (!token) stopMessagePolling()
 	}
+)
+
+onBeforeUnmount(() => {
+	stopMessagePolling()
 })
 </script>
 

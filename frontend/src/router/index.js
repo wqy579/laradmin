@@ -172,6 +172,12 @@ const ROUTE_ALIASES = {
 	'/business/return': '/business/return-order',
 	'/business/exchange-order-list': '/business/exchange-order',
 	'/dashboard-big': '/big-screen',
+	// 消息中心直达入口。实际页面在 /ucenter?menu=my-messages（home.profile 权限 →
+	// ucenter/index 组件 → componentMap['my-messages'] 激活 my-messages.vue）。
+	// /profile/messages 是早期测试地址、/message-center 是直觉式入口，都重定向过去，
+	// 避免直接访问时落到 404。
+	'/profile/messages': '/ucenter?menu=my-messages',
+	'/message-center': '/ucenter?menu=my-messages',
 	'/bigscreen': '/big-screen',
 	'/screen': '/big-screen',
 	'/large-screen': '/big-screen',
@@ -179,11 +185,23 @@ const ROUTE_ALIASES = {
 
 function addAliasRoutes() {
 	Object.entries(ROUTE_ALIASES).forEach(([from, to]) => {
-		router.addRoute('Layout', {
-			path: from,
-			redirect: to,
-			meta: { title: to, hidden: true },
-		})
+		// to 含 query（如 /ucenter?menu=my-messages）时，字符串 redirect 会丢 query，
+		// 必须用函数式 redirect 返回完整路径对象，才能保住 ?menu=xxx。
+		const routeDef =
+			typeof to === 'string' && to.includes('?')
+				? {
+						path: from,
+						redirect: () => {
+							const [path, query] = to.split('?')
+							const params = new URLSearchParams(query)
+							const queryObj = {}
+							params.forEach((v, k) => (queryObj[k] = v))
+							return { path, query: queryObj }
+						},
+						meta: { title: to, hidden: true },
+					}
+				: { path: from, redirect: to, meta: { title: to, hidden: true } }
+		router.addRoute('Layout', routeDef)
 	})
 }
 
