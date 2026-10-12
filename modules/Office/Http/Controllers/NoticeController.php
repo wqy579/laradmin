@@ -74,6 +74,8 @@ class NoticeController extends Controller
             $notice->summary = $this->summary($notice->content);
             $notice->attachment_count = $this->attachmentCount($notice->attachments);
             $notice->can_edit = $this->canEdit($notice, $userId);
+            // is_popup 是「要不要弹窗」的静态意图，缺列时兜底 false（存量库未跑迁移）
+            $notice->is_popup = $this->hasIsPopupColumn() ? (bool) $notice->is_popup : false;
             // 编辑表单要回填可见范围，JSON 串在前端会变成一个无法匹配的字符串。
             // 这里统一解成数组，前端 el-select multiple 直接吃。
             $notice->scope_ids = $this->jsonToArray($notice->scope_ids);
@@ -101,6 +103,7 @@ class NoticeController extends Controller
             'type' => 'nullable|in:notice,rule,activity,other',
             'content' => 'nullable|string',
             'is_top' => 'nullable|boolean',
+            'is_popup' => 'nullable|boolean',
             'scope' => 'nullable|in:all,department,user',
             'scope_ids' => 'nullable|array',
             'scope_ids.*' => 'integer',
@@ -111,7 +114,7 @@ class NoticeController extends Controller
         $userId = (int) auth('admin')->id();
         $userName = DB::table('auth_user')->where('id', $userId)->value('real_name');
 
-        $id = DB::table('notices')->insertGetId([
+        $attributes = [
             'title' => $validated['title'],
             'type' => $validated['type'] ?? 'notice',
             'content' => $validated['content'] ?? '',
@@ -124,7 +127,15 @@ class NoticeController extends Controller
             'view_count' => 0,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        // is_popup 列由 2026_10_16 迁移添加；存量库未跑时不能带这列，否则整条 insert 报
+        // 「Unknown column」把发布公告整个打挂。列存在时才写入。
+        if ($this->hasIsPopupColumn()) {
+            $attributes['is_popup'] = (bool) ($validated['is_popup'] ?? false);
+        }
+
+        $id = DB::table('notices')->insertGetId($attributes);
 
         // 新公告默认存草稿，避免「保存即全员可见」。存量库无 status 列时跳过
         // （迁移尚未执行），此时维持旧的「存即发布」行为不报错。
@@ -223,6 +234,64 @@ class NoticeController extends Controller
         return $this->success($row);
     }
 
+    /**
+     * 登录弹窗公告：返回当前用户「最新一条未读的弹窗公告」。
+     *
+     * 触发链路：发布公告时若勾选 is_popup，notifyAll 会给全员各写一条
+     * system/announcement 消息（messages 表，is_read=false）。本端点把该用户
+     * 最新的未读公告消息解析回公告本体，只有公告勾选了 is_popup 且已发布、且
+     * 对本用户可见才回传。未读态由 messages.is_read 承担——前端点「知道了」把
+     * 对应消息标已读后，本端点即返回空，弹窗不会再弹。
+     *
+     * 回传 notice + message_id：前端关闭弹窗时据此标记已读，形成闭环。
+     */
+    public function popupPending(): JsonResponse
+    {
+        $userId = (int) auth('admin')->id();
+
+        $message = Message::where('user_id', $userId)
+            ->where('type', Message::TYPE_SYSTEM)
+            ->where('category', 'announcement')
+            ->where('is_read', false)
+            ->orderByDesc('created_at')
+            ->first();
+
+        if (! $message) {
+            return $this->success(['notice' => null]);
+        }
+
+        $noticeId = (int) (($message->payload ?? [])['entity_id'] ?? 0);
+        if ($noticeId <= 0) {
+            return $this->success(['notice' => null]);
+        }
+
+        $row = DB::table('notices')
+            ->where('id', $noticeId)
+            ->when($this->hasStatusColumn(), fn ($q) => $q->where('status', 'published'))
+            ->where(function ($q) use ($userId) {
+                $this->scopeFilter($q, $userId);
+            })
+            ->first();
+
+        if (! $row || ! ($this->hasIsPopupColumn() && (bool) $row->is_popup)) {
+            return $this->success(['notice' => null]);
+        }
+
+        return $this->success([
+            'message_id' => $message->id,
+            'notice' => [
+                'id' => $row->id,
+                'title' => $row->title,
+                'type' => $row->type,
+                'content' => $row->content,
+                'is_top' => (bool) $row->is_top,
+                'is_popup' => true,
+                'author_name' => $row->author_name,
+                'created_at' => $row->created_at,
+            ],
+        ]);
+    }
+
     public function update(Request $request, int $notice): JsonResponse
     {
         $userId = (int) auth('admin')->id();
@@ -240,6 +309,7 @@ class NoticeController extends Controller
             'type' => 'nullable|in:notice,rule,activity,other',
             'content' => 'nullable|string',
             'is_top' => 'nullable|boolean',
+            'is_popup' => 'nullable|boolean',
             'scope' => 'nullable|in:all,department,user',
             'scope_ids' => 'nullable|array',
             'scope_ids.*' => 'integer',
@@ -247,7 +317,7 @@ class NoticeController extends Controller
             'status' => 'nullable|in:draft,published',
         ]);
 
-        DB::table('notices')->where('id', $notice)->update([
+        $updates = [
             'title' => $validated['title'],
             'type' => $validated['type'] ?? 'notice',
             'content' => $validated['content'] ?? '',
@@ -256,7 +326,14 @@ class NoticeController extends Controller
             'scope_ids' => json_encode($validated['scope_ids'] ?? [], JSON_UNESCAPED_UNICODE),
             'attachments' => json_encode($validated['attachments'] ?? [], JSON_UNESCAPED_UNICODE),
             'updated_at' => now(),
-        ]);
+        ];
+
+        // 列存在时才更新，存量库未跑 2026_10_16 迁移时不能带这列
+        if ($this->hasIsPopupColumn()) {
+            $updates['is_popup'] = (bool) ($validated['is_popup'] ?? false);
+        }
+
+        DB::table('notices')->where('id', $notice)->update($updates);
 
         // 编辑时可从草稿转发布（前端「发布」按钮走此路径时传 status=published）
         if ($this->hasStatusColumn() && isset($validated['status'])) {
@@ -327,6 +404,12 @@ class NoticeController extends Controller
     private function hasStatusColumn(): bool
     {
         return Schema::hasColumn('notices', 'status');
+    }
+
+    /** notices 表是否已有 is_popup 列（2026_10_16 迁移添加，用于登录弹窗公告） */
+    private function hasIsPopupColumn(): bool
+    {
+        return Schema::hasColumn('notices', 'is_popup');
     }
 
     private function canEdit(object $notice, int $userId): bool

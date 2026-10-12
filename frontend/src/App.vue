@@ -1,6 +1,8 @@
 <template>
 	<el-config-provider :locale="elementLocale">
 		<RouterView />
+		<!-- 登录弹窗公告：登录成功后若有未读的弹窗公告自动弹出 -->
+		<AnnouncementPopup />
 	</el-config-provider>
 </template>
 
@@ -11,6 +13,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn.mjs'
 import en from 'element-plus/es/locale/lang/en.mjs'
 import { useUserStore } from './stores/modules/user'
 import { useWebSocket } from './hooks/useWebSocket'
+import AnnouncementPopup from './components/announcement-popup/index.vue'
 
 const { locale } = useI18n()
 const userStore = useUserStore()

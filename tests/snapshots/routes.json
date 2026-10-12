@@ -2972,6 +2972,18 @@
         ]
     },
     {
+        "method": "GET",
+        "uri": "admin/business/notice/popup-pending",
+        "name": "admin.",
+        "action": "Modules\\Office\\Http\\Controllers\\NoticeController@popupPending",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "DELETE",
         "uri": "admin/business/notice/{notice}",
         "name": "admin.",
