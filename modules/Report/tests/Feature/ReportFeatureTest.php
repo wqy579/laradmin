@@ -129,6 +129,62 @@ class ReportFeatureTest extends TestCase
         $this->assertEquals(190, round((float) $row['profit'], 2));
     }
 
+    /**
+     * 生产事故回归：业务员报表在有退货数据时全维度 500
+     * Undefined property: stdClass::$total_amount。
+     *
+     * 根因在 returnAmounts() 的 pluck(DB::raw('SUM(sr.total_amount)'))：
+     * Builder::stripTableForPluck 取「最后一个 . 之后」作为行属性名，
+     * SUM(sr.total_amount) 含一个 . 会被切成 total_amount)（带右括号），
+     * 在结果行上取该属性直接抛 Undefined property。
+     *
+     * 它此前逃过所有测试，两个原因叠加：
+     *   1. 本用例之前从未造过退货数据，pluck 返回空 Collection 直接短路返回，
+     *      取值键根本不会被访问——测试库「没有退货单」时 bug 完全不可见；
+     *   2. summary() 对**所有**维度无条件调用 returnAmounts()，
+     *      所以不是只有「按业务员」维度炸，而是 5 个维度一起 500，
+     *      与 dimension 参数无关。
+     *
+     * 断言同时校验「能跑」和「数值对」：只断 assertOk 挡不住取值键错位
+     * 但返回 0 这类静默错值，必须校验 net_amount 真的扣掉了退货金额。
+     */
+    public function test_salesman_report_runs_when_returns_exist(): void
+    {
+        // 指派业务员并出单：售价 100 × 3 = 300，成本 5 × 3 = 15
+        $user = $this->makeAdmin();
+        $orderId = $this->makeOrder('2026-10-05', [['product_id' => $this->ids['product'], 'price' => 100, 'qty' => 3]]);
+        DB::table('sales_orders')->where('id', $orderId)->update(['salesman_id' => $user->id]);
+
+        // 真实退货：退回 1 件，退货金额 100，状态为「真实退货」（非 cancelled/auto_return）
+        DB::table('sales_returns')->insert([
+            'return_no' => 'TH'.str_replace('-', '', '2026-10-06').'0001',
+            'order_id' => $orderId,
+            'customer_id' => $this->ids['customer'],
+            'warehouse_id' => $this->ids['warehouse'],
+            'return_date' => '2026-10-06',
+            'return_type' => 'quality',
+            'status' => 'approved',
+            'total_qty' => 1,
+            'total_amount' => 100,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // 5 个维度必须都能跑通（bug 与 dimension 无关，summary() 全维度都会查退货）
+        foreach (['salesman', 'salesman_customer', 'salesman_product', 'salesman_customer_product', 'salesman_brand_product'] as $dimension) {
+            $res = $this->getJson("admin/business/report/salesman?dimension={$dimension}");
+            $res->assertOk("维度 {$dimension} 有退货数据时 500");
+        }
+
+        // 数值校验：销售 300 - 退货 100 = 净销售 200，合计行必须真的扣掉退货
+        $res = $this->getJson('admin/business/report/salesman?dimension=salesman');
+        $summary = $res->json('data.summary');
+
+        $this->assertEquals(300, round((float) $summary['amount'], 2));
+        $this->assertEquals(100, round((float) $summary['return_amount'], 2), '退货金额未归集到业务员名下');
+        $this->assertEquals(200, round((float) $summary['net_amount'], 2), '净销售未扣减退货金额');
+    }
+
     public function test_combined_report_returns_overview_cards(): void
     {
         $res = $this->getJson('admin/business/report/combined?dimension=sales');

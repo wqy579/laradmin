@@ -195,7 +195,11 @@ class SalesmanReportController extends Controller
             // （货未交付、无财务影响），都不应算作业务员名下退货金额
             ->whereNotIn('sr.status', ['cancelled', 'auto_return'])
             ->groupBy('so.salesman_id')
-            ->pluck(DB::raw('SUM(sr.total_amount)'), 'so.salesman_id')
+            // 聚合列必须显式起别名：Builder::stripTableForPluck 用「最后一个 . 之后」
+            // 取属性名，SUM(sr.total_amount) 含一个 . 会被切成 total_amount)（带右括号），
+            // 在 stdClass 行上取该属性直接抛 Undefined property。MySQL 会按别名/去前缀给列名，
+            // SQLite 给全文 SUM(sr.total_amount)，两种驱动下无别名的取值键都对不上。
+            ->pluck(DB::raw('SUM(sr.total_amount) as total_amount'), 'so.salesman_id')
             ->all();
     }
 

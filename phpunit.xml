@@ -41,6 +41,9 @@
         <testsuite name="Dashboard">
             <directory>modules/Dashboard/tests</directory>
         </testsuite>
+        <testsuite name="Report">
+            <directory>modules/Report/tests</directory>
+        </testsuite>
         <testsuite name="Member">
             <directory>modules/Member/tests</directory>
         </testsuite>
