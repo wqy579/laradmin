@@ -28,7 +28,7 @@ class CommissionController extends Controller
             'employee_ids.*' => 'integer',
         ]);
 
-        $calc = new CommissionCalculator();
+        $calc = new CommissionCalculator;
         $result = $calc->preview($data['period'], $data['employee_ids'] ?? []);
 
         return $this->success($result);
@@ -43,7 +43,7 @@ class CommissionController extends Controller
             'employee_ids.*' => 'integer',
         ]);
 
-        $calc = new CommissionCalculator();
+        $calc = new CommissionCalculator;
         $result = $calc->preview($data['period'], $data['employee_ids'] ?? []);
 
         if (empty($result['groups'])) {

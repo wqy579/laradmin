@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Modules\Report\Support\ReportFilter;
 
 /**
  * 库存预警中心（绩效分析 → 库存预警中心）。

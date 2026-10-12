@@ -179,7 +179,7 @@ class AnalysisController extends Controller
     public function growthReturn(Request $request): JsonResponse
     {
         $sm = ReportFilter::toArray($request->input('salesman_ids'));
-        $dashboard = new DashboardController();
+        $dashboard = new DashboardController;
 
         return app()->call([$dashboard, 'salesOverview'], ['request' => $request]);
     }

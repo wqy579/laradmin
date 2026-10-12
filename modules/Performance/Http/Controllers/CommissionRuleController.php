@@ -6,8 +6,9 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Modules\Performance\Models\CommissionRule;
+use Modules\Performance\Support\CommissionCalculator;
 
 /**
  * 提成方案管理（绩效分析 → 提成方案）。
@@ -103,7 +104,7 @@ class CommissionRuleController extends Controller
 
         // 复用引擎的 applyRule，构造一条假聚合做预估
         $fakeRule = new CommissionRule($data);
-        $calc = new \Modules\Performance\Support\CommissionCalculator();
+        $calc = new CommissionCalculator;
         $ref = new \ReflectionMethod($calc, 'applyRule');
         $ref->setAccessible(true);
         [$base, $amount] = $ref->invoke($calc, $fakeRule, [(object) [
@@ -164,7 +165,7 @@ class CommissionRuleController extends Controller
             $min = (float) ($t['min'] ?? 0);
             $max = isset($t['max']) ? (float) $t['max'] : null;
             if ($prevMax !== null && abs($min - $prevMax) > 0.01) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
+                throw ValidationException::withMessages([
                     'tier_data' => '阶梯区间必须连续不重叠：上一段上限 '.$prevMax.' 与下一段下限 '.$min.' 不衔接',
                 ]);
             }
