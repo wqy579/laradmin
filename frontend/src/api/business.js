@@ -751,6 +751,42 @@ const businessApi = {
 		batchUnread: { post: (params) => request.post('business/mail/batch-unread', params) },
 		batchDelete: { post: (params) => request.post('business/mail/batch-delete', params) },
 	},
+
+	// ============ 报表管理 ============
+	// 后端路由前缀 business/report/*（见 modules/Report/routes/admin.php），
+	// 与促销报表 promotion.report 无关，勿混淆。export 是 { get } 对象而非裸函数——
+	// 四个报表视图调的是 report.sales.export.get(...)，必须带 .get 层。
+	report: {
+		// 筛选项下拉数据源：商品/客户大表只在传 keyword 时模糊匹配，字典级小表整表返回
+		options: { get: (params) => request.get('business/report/options', { params }) },
+
+		// 查询模版：存一套查询条件供复用，按 report 类型隔离
+		templates: {
+			list: { get: (params) => request.get('business/report/templates', { params }) },
+			save: { post: (params) => request.post('business/report/templates', params) },
+			delete: { delete: (id) => request.delete(`business/report/templates/${id}`) },
+		},
+
+		sales: {
+			get: (params) => request.get('business/report/sales', { params }),
+			export: { get: (params) => request.get('business/report/sales/export', { params, responseType: 'blob' }) },
+		},
+
+		stock: {
+			get: (params) => request.get('business/report/stock', { params }),
+			export: { get: (params) => request.get('business/report/stock/export', { params, responseType: 'blob' }) },
+		},
+
+		salesman: {
+			get: (params) => request.get('business/report/salesman', { params }),
+			export: { get: (params) => request.get('business/report/salesman/export', { params, responseType: 'blob' }) },
+		},
+
+		combined: {
+			get: (params) => request.get('business/report/combined', { params }),
+			export: { get: (params) => request.get('business/report/combined/export', { params, responseType: 'blob' }) },
+		},
+	},
 }
 
 export default businessApi
