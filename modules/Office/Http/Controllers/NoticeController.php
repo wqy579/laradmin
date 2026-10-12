@@ -128,12 +128,21 @@ class NoticeController extends Controller
 
         // 新公告默认存草稿，避免「保存即全员可见」。存量库无 status 列时跳过
         // （迁移尚未执行），此时维持旧的「存即发布」行为不报错。
+        // 直接以 published 创建时也补发全员通知，与 publish() 端点行为一致——
+        // 否则「新增弹窗点发布」这条路径会比「先存草稿再发布」少一次推送。
         if ($this->hasStatusColumn()) {
+            $status = $validated['status'] ?? 'draft';
             DB::table('notices')->where('id', $id)->update([
-                'status' => $validated['status'] ?? 'draft',
-                'published_at' => ($validated['status'] ?? 'draft') === 'published' ? now() : null,
+                'status' => $status,
+                'published_at' => $status === 'published' ? now() : null,
                 'updated_at' => now(),
             ]);
+            if ($status === 'published') {
+                $created = DB::table('notices')->where('id', $id)->first();
+                if ($created) {
+                    $this->notifyAll($created);
+                }
+            }
         }
 
         return $this->created(['id' => $id], '公告已保存');
@@ -260,7 +269,13 @@ class NoticeController extends Controller
                 'updated_at' => now(),
             ]);
             if ($wasDraft && $validated['status'] === 'published') {
-                $this->notifyAll($row);
+                // $row 是取在正文更新之前（第 229 行）的快照，直接拿去推通知会让
+                // 全员收到旧摘要——「编辑草稿正文后点发布」这条最常走的路径就是如此。
+                // 重新回读一次，与 store() 插入后回读的写法保持一致。
+                $fresh = DB::table('notices')->where('id', $notice)->first();
+                if ($fresh) {
+                    $this->notifyAll($fresh);
+                }
             }
         }
 
