@@ -14,6 +14,10 @@
 			<el-select v-model="typeFilter" placeholder="全部类型" size="small" style="width: 120px" clearable @change="onSearch">
 				<el-option v-for="t in types" :key="t.value" :label="t.label" :value="t.value" />
 			</el-select>
+			<el-select v-model="statusFilter" placeholder="状态" size="small" style="width: 110px" @change="onSearch">
+				<el-option label="已发布" value="published" />
+				<el-option label="草稿" value="draft" />
+			</el-select>
 			<span class="rp-spacer"></span>
 			<el-button size="small" type="primary" @click="openCreate">发布公告</el-button>
 			<el-button size="small" circle title="刷新" @click="fetchList">
@@ -34,8 +38,10 @@
 					<div class="notice-card-head">
 						<el-tag v-if="n.is_top" size="small" type="danger" effect="dark">置顶</el-tag>
 						<el-tag size="small" :type="typeTag(n.type)" effect="plain">{{ typeLabel(n.type) }}</el-tag>
+						<el-tag size="small" :type="statusTag(n.status)" effect="dark">{{ statusLabel(n.status) }}</el-tag>
 						<span class="notice-card-title">{{ n.title }}</span>
 						<span class="notice-card-actions" @click.stop>
+							<el-button v-if="n.can_edit && n.status !== 'published'" link size="small" type="primary" :loading="saving" @click="publishFromList(n)">发布</el-button>
 							<el-button v-if="n.can_edit" link size="small" @click="openEdit(n)">编辑</el-button>
 							<el-button v-if="n.can_edit" link size="small" type="danger" @click="remove(n)">删除</el-button>
 						</span>
@@ -71,6 +77,7 @@
 				<div class="notice-detail-meta">
 					<el-tag v-if="current.is_top" size="small" type="danger" effect="dark">置顶</el-tag>
 					<el-tag size="small" :type="typeTag(current.type)" effect="plain">{{ typeLabel(current.type) }}</el-tag>
+					<el-tag size="small" :type="statusTag(current.status)" effect="dark">{{ statusLabel(current.status) }}</el-tag>
 					<span>{{ current.author_name }}</span>
 					<span>{{ current.created_at }}</span>
 					<span>阅读 {{ current.view_count || 0 }}</span>
@@ -125,7 +132,8 @@
 			</el-form>
 			<template #footer>
 				<el-button size="small" @click="editVisible = false">取消</el-button>
-				<el-button size="small" class="rp-btn-primary" :loading="saving" @click="save">保存</el-button>
+				<el-button size="small" :loading="saving" @click="saveDraft">保存草稿</el-button>
+				<el-button size="small" class="rp-btn-primary" :loading="saving" @click="publishNow">发布</el-button>
 			</template>
 		</el-dialog>
 	</div>
@@ -148,6 +156,9 @@ const pageSize = ref(20)
 const loading = ref(false)
 const keyword = ref('')
 const typeFilter = ref('')
+// 后端默认只回已发布；要看草稿必须显式传 status=draft，
+// 否则刚存的草稿在列表里凭空消失、无从反馈。
+const statusFilter = ref('published')
 
 const detailVisible = ref(false)
 const detailLoading = ref(false)
@@ -168,12 +179,17 @@ const scopeOptions = computed(() =>
 const typeLabel = (v) => types.value.find((t) => t.value === v)?.label || v || '其他'
 const typeTag = (v) => TYPE_COLORS[v] || 'info'
 
+/** 发布状态：草稿灰 / 已发布绿。列表与详情共用 */
+const statusLabel = (v) => (v === 'draft' ? '草稿' : '已发布')
+const statusTag = (v) => (v === 'draft' ? 'info' : 'success')
+
 async function fetchList() {
 	loading.value = true
 	try {
 		const res = await businessApi.notice.list.get({
 			keyword: keyword.value,
 			type: typeFilter.value,
+			status: statusFilter.value,
 			page: page.value,
 			page_size: pageSize.value,
 		})
@@ -222,35 +238,101 @@ function openCreate() {
 	blankForm()
 	editVisible.value = true
 }
-function openEdit(row) {
-	editing.value = row
-	Object.assign(form, {
-		title: row.title || '',
-		type: row.type || 'notice',
-		content: row.content || '',
-		is_top: !!row.is_top,
-		scope: row.scope || 'all',
-		scope_ids: row.scope_ids || [],
-		attachments: row.attachments || [],
-	})
+async function openEdit(row) {
 	editVisible.value = true
-}
-
-async function save() {
-	if (!form.title.trim()) return ElMessage.warning('请填写公告标题')
+	// 列表接口只回 summary、不下发正文，直接拿 row 回填会让正文变空，
+	// 一旦保存就把整篇公告正文覆盖成 ''。所以跟 publishFromList 一样先拉详情。
 	saving.value = true
 	try {
-		const payload = { ...form }
-		const res = editing.value.id
-			? await businessApi.notice.update.put(editing.value.id, payload)
-			: await businessApi.notice.create.post(payload)
+		const res = await businessApi.notice.detail.get(row.id)
+		if (res.code !== 200 || !res.data) return ElMessage.error('加载公告失败')
+		const detail = res.data
+		editing.value = detail
+		Object.assign(form, {
+			title: detail.title || '',
+			type: detail.type || 'notice',
+			content: detail.content || '',
+			is_top: !!detail.is_top,
+			scope: detail.scope || 'all',
+			scope_ids: detail.scope_ids || [],
+			attachments: detail.attachments || [],
+		})
+	} catch {
+		ElMessage.error('加载公告失败')
+		editVisible.value = false
+	} finally {
+		saving.value = false
+	}
+}
+
+/**
+ * 落库公共逻辑。status=draft 保存草稿（不对他人可见、不推送），
+ * status=published 发布（全员可见 + 后端推一条系统公告消息）。
+ * 草稿转已发布时后端会重置 published_at；已发布改回草稿则清空。
+ * 新建、编辑两条弹窗路径都走这里——统一走 create/update + status，
+ * 保证「发布即通知全员」这条语义只有一处实现。
+ */
+async function persist(status, successMsg) {
+	// 标题是唯一硬校验：草稿允许正文留空（占位），但不能连标题都没有。
+	if (!form.title.trim()) return ElMessage.warning('请填写公告标题')
+
+	// saving 先置位：草稿/发布共用一个请求在途标志，同时挡住两个按钮的重复点击
+	// 与列表「发布」的并发写，避免两次 update 互相覆盖。
+	saving.value = true
+	try {
+		const id = editing.value.id
+		const res = id
+			? await businessApi.notice.update.put(id, { ...form, status })
+			: await businessApi.notice.create.post({ ...form, status })
 		if (res.code === 200 || res.code === 201) {
-			ElMessage.success('已保存')
+			ElMessage.success(successMsg)
 			editVisible.value = false
 			fetchList()
 		}
 	} catch {
-		ElMessage.error('保存失败')
+		ElMessage.error('操作失败')
+	} finally {
+		saving.value = false
+	}
+}
+
+function saveDraft() {
+	return persist('draft', '草稿已保存')
+}
+
+function publishNow() {
+	return persist('published', '已发布并通知全员')
+}
+
+/**
+ * 列表卡片上的「发布」：把草稿直接转已发布。
+ * 列表接口不下发正文（只回 summary），所以先拉详情拿全字段再发 update，
+ * 否则用残缺行数据 PUT 会把正文覆盖成空。
+ * saving 在拉详情之前就置位：整个「取详情 + 提交」都在途，
+ * 否则这段空窗里卡片按钮可被连点，两个 update 互相覆盖。
+ */
+async function publishFromList(row) {
+	saving.value = true
+	try {
+		const res = await businessApi.notice.detail.get(row.id)
+		if (res.code !== 200 || !res.data) return ElMessage.error('加载公告失败')
+		const detail = res.data
+		const put = await businessApi.notice.update.put(detail.id, {
+			title: detail.title,
+			type: detail.type,
+			content: detail.content,
+			is_top: !!detail.is_top,
+			scope: detail.scope,
+			scope_ids: detail.scope_ids || [],
+			attachments: detail.attachments || [],
+			status: 'published',
+		})
+		if (put.code === 200 || put.code === 201) {
+			ElMessage.success('已发布并通知全员')
+			fetchList()
+		}
+	} catch {
+		ElMessage.error('发布失败')
 	} finally {
 		saving.value = false
 	}

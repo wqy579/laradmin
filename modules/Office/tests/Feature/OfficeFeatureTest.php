@@ -145,6 +145,41 @@ class OfficeFeatureTest extends TestCase
         $this->putJson("admin/business/notice/{$id}", ['title' => '篡改'])->assertStatus(403);
     }
 
+    public function test_publishing_edited_draft_notifies_with_fresh_content(): void
+    {
+        // 回归：update() 里 $row 取在正文改写之前。若不回读就推通知，
+        // 「改正文后点发布」会让全员收到旧摘要。
+        $id = DB::table('notices')->insertGetId([
+            'title' => '草稿公告', 'type' => 'notice', 'content' => '旧正文草稿',
+            'is_top' => 0, 'scope' => 'all', 'scope_ids' => '[]', 'attachments' => '[]',
+            'author_id' => $this->ids['sender'], 'author_name' => '张三', 'view_count' => 0,
+            'status' => 'draft', 'published_at' => null,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        DB::table('messages')->where('user_id', $this->ids['recipient'])->delete();
+
+        $this->putJson("admin/business/notice/{$id}", [
+            'title' => '草稿公告',
+            'type' => 'notice',
+            'content' => '已修订的正式正文内容',
+            'is_top' => 0,
+            'scope' => 'all',
+            'scope_ids' => [],
+            'attachments' => [],
+            'status' => 'published',
+        ])->assertOk();
+
+        $this->assertSame('published', DB::table('notices')->where('id', $id)->value('status'));
+        $this->assertNotNull(DB::table('notices')->where('id', $id)->value('published_at'));
+
+        // 通知必须带修订后的正文，而不是草稿旧值
+        $notified = DB::table('messages')->where('user_id', $this->ids['recipient'])->get();
+        $this->assertNotEmpty($notified);
+        $this->assertStringContainsString('已修订的正式正文内容', (string) $notified[0]->content);
+        $this->assertStringNotContainsString('旧正文草稿', (string) $notified[0]->content);
+    }
+
     public function test_office_endpoints_require_auth(): void
     {
         $this->withToken('');
