@@ -40,7 +40,8 @@ async function fetchList() {
 	loading.value = true
 	try {
 		const res = await businessApi.messages.list.get({ page: 1, page_size: 10 })
-		if (res.code === 200) {
+		// 拦截器 reject 时 res 为 undefined，直接 res.code 会二次抛错
+		if (res && typeof res === 'object' && res.code === 200) {
 			list.value = res.data?.list || []
 			totalCount.value = res.data?.total || 0
 		}
@@ -48,7 +49,8 @@ async function fetchList() {
 		// 且只取第 1 页 10 条，无法据此推算未读数。
 		await fetchUnreadCount()
 	} catch (e) {
-		console.error('获取消息列表失败:', e)
+		// 静默：401 已由拦截器统一处理，这里 console.error 会被 Vue errorHandler
+		// 捕获进渲染链，在 appContext 过渡期触发 Object.create(undefined) 崩溃
 	} finally {
 		loading.value = false
 	}
@@ -58,9 +60,11 @@ async function fetchList() {
 async function fetchUnreadCount() {
 	try {
 		const res = await businessApi.messages.unreadCount.get()
-		if (res.code === 200) emit('count-change', res.data?.count ?? 0)
+		if (res && typeof res === 'object' && res.code === 200) {
+			emit('count-change', res.data?.count ?? 0)
+		}
 	} catch (e) {
-		console.error('获取未读数失败:', e)
+		// 同 fetchList：静默降级，不外抛
 	}
 }
 
@@ -84,7 +88,7 @@ async function handleItemClick(item) {
 			emit('count-change', typeof res?.data?.unread_count === 'number' ? res.data.unread_count : 0)
 			if (!Number.isInteger(res?.data?.unread_count)) await fetchUnreadCount()
 		} catch (e) {
-			console.error('标记已读失败:', e)
+			// 静默：401 已由拦截器处理
 		}
 	}
 	const path = resolvePath(item)
@@ -93,7 +97,7 @@ async function handleItemClick(item) {
 		try {
 			await router.push(path)
 		} catch (e) {
-			console.error('跳转失败:', e)
+			// 路由跳转失败不影响已读标记
 		}
 	}
 }

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import businessApi from '../../api/business'
 import { useUserStore } from '../../stores/modules/user'
 
@@ -14,27 +14,33 @@ let fetching = false
 /**
  * 取「登录弹窗公告」。
  *
- * 触发时机：登录成功后（token + userInfo 就绪）由 App.vue 的 watcher 调一次。
- * 后端只回「当前用户最新一条未读的弹窗公告」——即发布公告时勾了 is_popup 且
- * 已发布、且对本用户可见的公告，对应的消息仍未读。没有就返回 notice: null，
- * 此时静默不弹，不打扰用户。
+ * 触发时机：登录成功后（token + userInfo 就绪）拉一次。后端只回「当前用户最新
+ * 一条未读的弹窗公告」——即发布公告时勾了 is_popup 且已发布、且对本用户可见
+ * 的公告，对应的消息仍未读。没有就返回 notice: null，此时静默不弹，不打扰用户。
  *
- * 关闭时把对应消息标记已读，形成闭环：本条弹窗不会再弹，铃铛/消息中心的
- * 未读数也同步减少——未读态完全复用 messages 表，不引入第二套状态。
+ * 401 / 网络异常时静默降级，绝不抛错——弹窗是增强体验，不能因接口失败打断主流程。
+ * 关键防御：res 可能是 undefined（拦截器在某些异常态返回 undefined）、res.data 可能
+ * 为 null，三者任一为空都不进入赋值/渲染，避免把 undefined 传给后续 el-dialog 渲染。
+ *
+ * 关闭时把对应消息标记已读，形成闭环：本条弹窗不会再弹，铃铛/消息中心的未读数也
+ * 同步减少——未读态完全复用 messages 表，不引入第二套状态。
  */
 async function fetchPending() {
 	if (fetching) return
 	fetching = true
 	try {
 		const res = await businessApi.notice.popupPending.get()
-		if (res.code === 200 && res.data?.notice) {
+		// res 必须是对象且有 code 字段才算合法响应；拦截器 reject 时 res 为 undefined，
+		// 直接 res.code 会二次抛错。data 为 null（无弹窗公告）时也不弹。
+		if (res && typeof res === 'object' && res.code === 200 && res.data && res.data.notice) {
 			notice.value = res.data.notice
 			messageId.value = res.data.message_id
 			visible.value = true
 		}
 	} catch (e) {
-		// 弹窗取不到不应阻断任何操作，静默降级
-		console.error('获取登录弹窗公告失败:', e)
+		// 静默降级：401/网络异常都不打断主流程，也不把 e 往外抛
+		// （外抛会被 Vue 的 async error handling 捕获，在 appContext 过渡期触发
+		// Object.create(undefined) 渲染崩溃）
 	} finally {
 		fetching = false
 	}
@@ -58,25 +64,36 @@ async function handleAcknowledge() {
 	try {
 		await businessApi.messages.read.post(id)
 	} catch (e) {
-		// 标记失败不影响用户继续操作，下次登录会再弹一次
-		console.error('标记公告已读失败:', e)
+		// 标记失败不影响用户继续操作，下次登录会再弹一次；同理不外抛
 	}
 }
 
 // 登录成功（token 与用户信息就绪）时拉一次弹窗公告；登出时复位状态。
-// 与 App.vue 里初始化 WebSocket 的触发条件保持一致，登录瞬间一起执行。
+//
+// 不用 immediate: true——immediate 会在组件 setup 阶段同步触发请求，此时应用
+// 尚未完成挂载、router 未就绪；若此时 token 失效触发 401 → 拦截器 logout →
+// router.push('/login')，根组件正处于挂载过渡期，appContext.provides 可能不完整，
+// 正在渲染的组件会撞 Object.create(undefined) 崩溃。改用 onMounted 首次拉取，
+// 此时应用上下文已就绪，401 跳转安全。
+onMounted(() => {
+	if (userStore.token && userStore.userInfo?.id) {
+		fetchPending()
+	}
+})
+
+// 登录/登出切换时（用户在已挂载的应用里登录或退出）再触发
 watch(
 	() => [userStore.token, userStore.userInfo?.id],
-	([token, userId]) => {
-		if (token && userId) {
+	([token, userId], [prevToken]) => {
+		// 仅在「从未登录 → 已登录」的上升沿拉取；登出时复位状态即可
+		if (token && userId && (!prevToken || !prevToken)) {
 			fetchPending()
-		} else {
+		} else if (!token) {
 			visible.value = false
 			notice.value = null
 			messageId.value = null
 		}
-	},
-	{ immediate: true }
+	}
 )
 </script>
 

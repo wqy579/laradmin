@@ -71,9 +71,17 @@ service.interceptors.response.use(
 			}
 		}
 
-		// grouping: true 让拦截器这里与调用方 catch 里弹出的同一句合并成一条（带次数角标），
-		// 否则每次失败都会看到两条一模一样的提示。
-		ElMessage.error(message, { grouping: true })
+		// 401 + 已有 token = 会话过期，这是系统级跳转，不走 toast：
+		// 此时若应用处于路由过渡期（logout 触发 router.push），appContext.provides 可能不完整，
+		// ElMessage 内部创建实例会撞 Object.create(undefined) 渲染崩溃。登出登录用专门的
+		// 提示组件处理，这里只 logout + 跳登录，不弹 toast。
+		const isSessionExpired = response?.status === 401 && userStore.token
+
+		if (!isSessionExpired) {
+			// grouping: true 让拦截器这里与调用方 catch 里弹出的同一句合并成一条（带次数角标），
+			// 否则每次失败都会看到两条一模一样的提示。
+			ElMessage.error(message, { grouping: true })
+		}
 
 		if (response?.status === 401) {
 			// 避免在 logout 过程中重复触发
