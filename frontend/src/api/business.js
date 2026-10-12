@@ -35,6 +35,8 @@ const businessApi = {
 		edit: { put: (id, params) => request.put(`business/brand/${id}`, params) },
 		delete: { delete: (id) => request.delete(`business/brand/${id}`) },
 		batchUpdateStatus: { post: (params) => request.post('business/brand/batch-status', params) },
+		// CSV 下载走 blob；响应头 content-disposition 带文件名，downloadApiResponse 优先用它
+		export: (params) => request.get('business/brand/export', { params, responseType: 'blob' }),
 	},
 
 	// 客户

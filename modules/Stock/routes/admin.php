@@ -52,6 +52,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 静态路由（options/batch-status）必须先于 {brand}，否则会被路由参数吞掉。
     Route::prefix('business/brand')->group(function () {
         Route::get('/options', [BrandController::class, 'options']);
+        Route::get('/export', [BrandController::class, 'export']);
         Route::get('/', [BrandController::class, 'index']);
         Route::post('/', [BrandController::class, 'store']);
         Route::post('/batch-status', [BrandController::class, 'batchUpdateStatus']);
