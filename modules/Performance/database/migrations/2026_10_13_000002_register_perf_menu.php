@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * 注册「绩效分析」顶级菜单及其九个子菜单（已部署环境增量）。
+ * 注册「绩效分析」顶级菜单、九个子菜单及按钮权限（已部署环境增量）。
  *
  * 幂等：按 name 判重再插入；已拥有同类业务权限的角色自动补授权。
  *
@@ -37,6 +37,16 @@ return new class extends Migration
         ['name' => 'perf.stock-warning', 'title' => '库存预警中心', 'path' => '/perf/stock-warning', 'component' => 'perf/stock-warning/index', 'sort' => 7],
         ['name' => 'perf.dashboard', 'title' => '销售分析看板', 'path' => '/perf/dashboard', 'component' => 'perf/dashboard/index', 'sort' => 8],
         ['name' => 'perf.analysis', 'title' => '商品与客户分析', 'path' => '/perf/analysis', 'component' => 'perf/analysis/index', 'sort' => 9],
+    ];
+
+    /** 按钮权限节点（与 PerformanceMenuSeeder::BUTTONS 同构）：name / title / parent */
+    private const BUTTONS = [
+        ['name' => 'perf.export', 'title' => '导出绩效数据', 'parent' => 'perf'],
+        ['name' => 'perf.audit', 'title' => '审核提成单', 'parent' => 'perf'],
+        ['name' => 'perf.query', 'title' => '查询', 'parent' => 'perf'],
+        ['name' => 'perf.create', 'title' => '新增', 'parent' => 'perf'],
+        ['name' => 'perf.edit', 'title' => '编辑', 'parent' => 'perf'],
+        ['name' => 'perf.delete', 'title' => '删除', 'parent' => 'perf'],
     ];
 
     public function up(): void
@@ -75,8 +85,29 @@ return new class extends Migration
             }
         }
 
+        foreach (self::BUTTONS as $btn) {
+            if (! DB::table('auth_permission')->where('name', $btn['name'])->exists()) {
+                DB::table('auth_permission')->insert([
+                    'title' => $btn['title'],
+                    'name' => $btn['name'],
+                    'type' => 'button',
+                    'parent_id' => DB::table('auth_permission')->where('name', $btn['parent'])->value('id') ?? 0,
+                    'path' => null,
+                    'component' => null,
+                    'sort' => 99,
+                    'status' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
         // 给超级管理员角色补授权（超管虽走 isSuperAdmin，但 admin/manager 角色靠关联表）
-        $menuNames = array_merge([self::PARENT['name']], array_column(self::CHILDREN, 'name'));
+        $menuNames = array_merge(
+            [self::PARENT['name']],
+            array_column(self::CHILDREN, 'name'),
+            array_column(self::BUTTONS, 'name')
+        );
         $menuIds = DB::table('auth_permission')->whereIn('name', $menuNames)->pluck('id');
         if ($menuIds->isEmpty()) {
             return;
@@ -99,7 +130,11 @@ return new class extends Migration
 
     public function down(): void
     {
-        $names = array_merge([self::PARENT['name']], array_column(self::CHILDREN, 'name'));
+        $names = array_merge(
+            [self::PARENT['name']],
+            array_column(self::CHILDREN, 'name'),
+            array_column(self::BUTTONS, 'name')
+        );
         $ids = DB::table('auth_permission')->whereIn('name', $names)->pluck('id');
         if ($ids->isNotEmpty()) {
             DB::table('auth_role_permission')->whereIn('permission_id', $ids)->delete();

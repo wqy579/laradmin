@@ -6,31 +6,33 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * 提成方案。
+ * 提成方案（任务书 §八）。
  *
- * 五种 calc_type 共用一张表，未启用的方式对应字段留空：
- *   sale_rate / profit_rate → rate（百分比）
- *   fixed_per_unit          → unit_base + unit_amount
- *   tiered                  → tier_data（JSON 阶梯）
- *   product_specific        → product_rules（JSON 单品规则）
- * 落库前由控制器把比例/阶梯等结构化数据收敛进对应字段。
+ * type 五种：sales 销售额 / profit 毛利 / piece 固定件数 / ladder 阶梯 / single 单品专属。
+ * rule JSON 存比例规则；scope=all|specified + employee_ids 圈定适用业务员。
+ * 平铺旧列（calc_type/rate/unit_amount/tier_data/product_rules/三个开关）继续作为
+ * 计算器的数据源，控制器读写时与 type/rule/scope/employee_ids 双向同步。
  */
 class CommissionRule extends Model
 {
     protected $table = 'perf_commission_rules';
 
     protected $fillable = [
-        'code', 'name', 'calc_type',
+        'name', 'type', 'rule', 'scope', 'employee_ids',
+        'start_date', 'end_date', 'status', 'remark',
+        // 兼容平铺列（计算器直接读）
+        'code', 'calc_type',
         'apply_employees', 'apply_customer_levels',
         'product_scope_type', 'product_scope_ids',
         'rate', 'unit_base', 'unit_amount',
         'tier_data', 'product_rules',
         'base_on_payment', 'deduct_return', 'exclude_baddebt',
         'cap_amount', 'floor_amount', 'allow_stack',
-        'start_date', 'end_date', 'status', 'remark',
     ];
 
     protected $casts = [
+        'rule' => 'array',
+        'employee_ids' => 'array',
         'apply_employees' => 'array',
         'apply_customer_levels' => 'array',
         'product_scope_ids' => 'array',

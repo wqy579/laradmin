@@ -68,6 +68,11 @@ class ArchitectureTest extends TestCase
         'Member->Stock',  // 积分兑换商品审核扣减商品库存，测试夹具构造 Stock 商品（与 Dashboard->Stock 同理）
         'Order->Member',  // 销售订单审核/红冲调 MemberService 结算储值与积分（settleOrder/refundOrder），
         // 与 Member->Order 互为双向：同一会员-订单关系的两端操作，改走内核契约需先抽 Customer/Member 契约
+        'Performance->Report', // 提成/利润/账龄导出复用 Report 的 ReportFilter::csv（BOM/表头/编码统一，
+        //   与 Report 自己各报表控制器同一套）；app/Contracts 无导出内核契约，该类是无状态字符串工具，
+        //   同库只读、抽契约收益低于耦合成本
+        'Performance->Auth',    // 绩效菜单 Seeder 写 Auth 的 Permission 与角色授权（与 Business->Auth、
+        //   System->Auth 完全同因：菜单数据本就落在 Auth 的权限表上）
     ];
 
     /**

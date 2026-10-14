@@ -13,7 +13,8 @@ use Modules\Auth\Models\Permission;
  * migration 里注册的菜单都会在 db:seed 时被清掉——所以菜单定义必须同时落在
  * 这里（见 InventoryMenuTest 的教训）。本 seeder 幂等：firstOrCreate 按名判重。
  *
- * 权限节点：九个子菜单（menu 类型）+ 各页面导出（button 类型）。
+ * 权限节点：九个子菜单（menu 类型）+ 按钮权限（button 类型：
+ * 导出/审核/查询/新增/编辑/删除）。
  */
 class PerformanceMenuSeeder extends Seeder
 {
@@ -42,6 +43,10 @@ class PerformanceMenuSeeder extends Seeder
     private const BUTTONS = [
         ['name' => 'perf.export', 'title' => '导出绩效数据', 'parent' => 'perf'],
         ['name' => 'perf.audit', 'title' => '审核提成单', 'parent' => 'perf'],
+        ['name' => 'perf.query', 'title' => '查询', 'parent' => 'perf'],
+        ['name' => 'perf.create', 'title' => '新增', 'parent' => 'perf'],
+        ['name' => 'perf.edit', 'title' => '编辑', 'parent' => 'perf'],
+        ['name' => 'perf.delete', 'title' => '删除', 'parent' => 'perf'],
     ];
 
     public function run(): void

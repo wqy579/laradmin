@@ -13,7 +13,7 @@
 |---|---|
 | `perf_commission_rules` | 提成方案表（五种 calc_type 共用） |
 | `perf_commission_orders` | 提成单主表（pending/audited/paid/rejected 状态机） |
-| `perf_commission_order_items` | 提成明细表 |
+| `perf_commission_items` | 提成明细表（初版曾命名 perf_commission_order_items，对齐迁移已改名） |
 | `perf_sales_targets` | 销售目标表（可选，用于达成率） |
 
 迁移文件：`modules/Performance/database/migrations/2026_10_13_000001_create_perf_tables.php`

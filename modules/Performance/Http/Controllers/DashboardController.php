@@ -10,44 +10,53 @@ use Modules\Report\Support\ReportFilter;
 
 /**
  * 销售分析看板（绩效分析 → 销售分析看板）。
- * 顶部六指标卡 + 12 个月双折线 + 构成环形图 + 排行条形图 + 增长退货率组合图。
+ * 顶部六指标卡（value/yoy/mom/text 涨红跌绿）+ 趋势 + 构成环形图 + 排行条形图 + 增长退货率组合图。
  */
 class DashboardController extends Controller
 {
+    /** 涨红跌绿（中国股市惯例），看板专用 */
+    private const COLOR_UP = '#F56C6C';
+    private const COLOR_DOWN = '#67C23A';
+    private const COLOR_FLAT = '#909399';
+
     public function salesOverview(Request $request): JsonResponse
     {
         $now = now();
-        $monthStart = $now->copy()->startOfMonth()->toDateString();
-        $monthEnd = $now->copy()->endOfMonth()->toDateString();
-        $lastMonthStart = $now->copy()->subMonth()->startOfMonth()->toDateString();
-        $lastMonthEnd = $now->copy()->subMonth()->endOfMonth()->toDateString();
         $salesmanIds = ReportFilter::toArray($request->input('salesman_ids'));
 
-        $monthSale = $this->saleAmount($monthStart, $monthEnd, $salesmanIds);
-        $lastSale = $this->saleAmount($lastMonthStart, $lastMonthEnd, $salesmanIds);
-        $monthPayment = $this->paymentAmount($monthStart, $monthEnd, $salesmanIds);
-        $lastPayment = $this->paymentAmount($lastMonthStart, $lastMonthEnd, $salesmanIds);
-        $monthCost = $this->costAmount($monthStart, $monthEnd, $salesmanIds);
-        $lastReturn = $this->returnAmount($lastMonthStart, $lastMonthEnd);
-        $monthReturn = $this->returnAmount($monthStart, $monthEnd);
-        $monthOrders = $this->orderCount($monthStart, $monthEnd, $salesmanIds);
+        // 本期（本月）/ 上月（环比基期）/ 去年同月（同比基期）
+        $periods = [
+            'cur' => [$now->copy()->startOfMonth()->toDateString(), $now->copy()->endOfMonth()->toDateString()],
+            'mom' => [$now->copy()->subMonth()->startOfMonth()->toDateString(), $now->copy()->subMonth()->endOfMonth()->toDateString()],
+            'yoy' => [$now->copy()->subYear()->startOfMonth()->toDateString(), $now->copy()->subYear()->endOfMonth()->toDateString()],
+        ];
+        $m = [];
+        foreach ($periods as $key => [$start, $end]) {
+            $sale = $this->saleAmount($start, $end, $salesmanIds);
+            $cost = $this->costAmount($start, $end, $salesmanIds);
+            $ret = $this->returnAmount($start, $end);
+            $pay = $this->paymentAmount($start, $end, $salesmanIds);
+            $orders = $this->orderCount($start, $end, $salesmanIds);
+            $m[$key] = [
+                'sale' => ReportFilter::num($sale),
+                'payment' => ReportFilter::num($pay),
+                'profit' => ReportFilter::num($sale - $cost - $ret),
+                'return_rate' => $sale > 0 ? round($ret / $sale * 100, 2) : 0.0,
+                'orders' => $orders,
+                'avg' => $orders > 0 ? ReportFilter::num($sale / $orders) : 0.0,
+            ];
+        }
 
-        $grossProfit = $monthSale - $monthCost - $monthReturn;
-        $grossRate = $monthSale > 0 ? round($grossProfit / $monthSale * 100, 2) : 0;
-        $avgPrice = $monthOrders > 0 ? round($monthSale / $monthOrders, 2) : 0;
+        // 趋势：range=12m（默认）| 30d；空数据返回空数组不报错
+        $range = $request->input('range', '12m');
+        $trend = $this->monthlyTrend($salesmanIds, is_string($range) ? $range : '12m');
 
-        // 环比
-        $saleMoM = $lastSale > 0 ? round(($monthSale - $lastSale) / $lastSale * 100, 2) : 0;
-        $payMoM = $lastPayment > 0 ? round(($monthPayment - $lastPayment) / $lastPayment * 100, 2) : 0;
-
-        // 12 个月销售回款
-        $trend = $this->monthlyTrend($salesmanIds);
-
-        // 构成（按品牌）
+        // 构成（按品牌，本月）
+        [$monthStart, $monthEnd] = $periods['cur'];
         $composition = $this->composition($monthStart, $monthEnd, 'brand');
 
-        // 排行
-        $topProducts = $this->rank('product', $monthStart, $monthEnd, 20);
+        // 排行：商品 TOP10、客户/业务员 TOP10
+        $topProducts = $this->rank('product', $monthStart, $monthEnd, 10);
         $topCustomers = $this->rank('customer', $monthStart, $monthEnd, 10);
         $topEmployees = $this->rank('employee', $monthStart, $monthEnd, 10);
 
@@ -56,13 +65,14 @@ class DashboardController extends Controller
 
         return $this->success([
             'cards' => [
-                ['key' => 'sale', 'label' => '本月销售额', 'value' => ReportFilter::num($monthSale), 'mom' => $saleMoM, 'unit' => '¥'],
-                ['key' => 'payment', 'label' => '本月回款', 'value' => ReportFilter::num($monthPayment), 'mom' => $payMoM, 'unit' => '¥'],
-                ['key' => 'profit', 'label' => '本月毛利', 'value' => ReportFilter::num($grossProfit), 'mom' => 0, 'unit' => '¥'],
-                ['key' => 'rate', 'label' => '毛利率', 'value' => $grossRate, 'mom' => 0, 'unit' => '%'],
-                ['key' => 'orders', 'label' => '订单数', 'value' => $monthOrders, 'mom' => 0, 'unit' => ''],
-                ['key' => 'avg', 'label' => '客单价', 'value' => ReportFilter::num($avgPrice), 'mom' => 0, 'unit' => '¥'],
+                $this->card('sale', '本月销售额', '¥', $m['cur']['sale'], $m['cur']['sale'], $m['mom']['sale'], $m['yoy']['sale']),
+                $this->card('payment', '本月回款', '¥', $m['cur']['payment'], $m['cur']['payment'], $m['mom']['payment'], $m['yoy']['payment']),
+                $this->card('profit', '本月毛利', '¥', $m['cur']['profit'], $m['cur']['profit'], $m['mom']['profit'], $m['yoy']['profit']),
+                $this->card('return_rate', '本月退货率', '%', $m['cur']['return_rate'], $m['cur']['return_rate'], $m['mom']['return_rate'], $m['yoy']['return_rate']),
+                $this->card('orders', '本月订单数', '', $m['cur']['orders'], (float) $m['cur']['orders'], (float) $m['mom']['orders'], (float) $m['yoy']['orders']),
+                $this->card('avg', '客单价', '¥', $m['cur']['avg'], $m['cur']['avg'], $m['mom']['avg'], $m['yoy']['avg']),
             ],
+            'range' => in_array($range, ['12m', '30d'], true) ? $range : '12m',
             'trend_12m' => $trend,
             'composition' => $composition,
             'rank' => [
@@ -70,8 +80,44 @@ class DashboardController extends Controller
                 'customer' => $topCustomers,
                 'employee' => $topEmployees,
             ],
+            'top_products' => $topProducts,
             'growth_return' => $growthReturn,
         ]);
+    }
+
+    /**
+     * 指标卡：value + yoy（同比）+ mom（环比）+ text 颜色提示（涨红跌绿）。
+     * 同比/环比分母为 0 或基期缺失时返回 null，不返回 0/INF。
+     */
+    private function card(string $key, string $label, string $unit, float $value, float $cur, ?float $momBase, ?float $yoyBase): array
+    {
+        $mom = $this->pct($cur, $momBase);
+        $yoy = $this->pct($cur, $yoyBase);
+        $delta = $mom ?? $yoy;
+        $text = ($delta === null || $delta == 0.0)
+            ? self::COLOR_FLAT
+            : ($delta > 0 ? self::COLOR_UP : self::COLOR_DOWN);
+
+        return [
+            'key' => $key,
+            'label' => $label,
+            'value' => $value,
+            'yoy' => $yoy,
+            'mom' => $mom,
+            'text' => $text,
+            'color' => $text,
+            'unit' => $unit,
+        ];
+    }
+
+    /** 同比/环比：基期为 null 或 0 时返回 null（避免 0 分母 / INF） */
+    private function pct(?float $cur, ?float $base): ?float
+    {
+        if ($base === null || $base == 0.0) {
+            return null;
+        }
+
+        return round(($cur - $base) / $base * 100, 2);
     }
 
     private function saleAmount(string $start, string $end, array $sm): float
@@ -125,17 +171,27 @@ class DashboardController extends Controller
             ->count();
     }
 
-    private function monthlyTrend(array $sm): array
+    /** 趋势：range=12m 按月桶 / 30d 按日桶；查询无任何数据时返回空数组 */
+    private function monthlyTrend(array $sm, string $range): array
     {
-        $start = now()->subMonths(11)->startOfMonth()->toDateString();
-        $end = now()->endOfMonth()->toDateString();
-        $rows = DB::table('sales_orders as so')
+        if ($range === '30d') {
+            $start = now()->subDays(29)->toDateString();
+            $end = now()->toDateString();
+            $fmt = '%Y-%m-%d';
+        } else {
+            $start = now()->subMonths(11)->startOfMonth()->toDateString();
+            $end = now()->endOfMonth()->toDateString();
+            $fmt = '%Y-%m';
+            $range = '12m';
+        }
+
+        $sales = DB::table('sales_orders as so')
             ->join('sales_order_items as soi', 'soi.sales_order_id', '=', 'so.id')
             ->where('so.status', 'approved')->whereNull('so.original_order_id')
             ->whereBetween('so.order_date', [$start, $end])
             ->when($sm, fn ($q) => $q->whereIn('so.salesman_id', $sm))
             ->select(
-                DB::raw("DATE_FORMAT(so.order_date, '%Y-%m') as ym"),
+                DB::raw("DATE_FORMAT(so.order_date, '{$fmt}') as ym"),
                 DB::raw('SUM(CASE WHEN soi.amount > 0 THEN soi.amount ELSE soi.quantity * (CASE WHEN soi.price > 0 THEN soi.price ELSE soi.price_small END) END) as sale')
             )
             ->groupBy('ym')->get()->keyBy('ym');
@@ -144,16 +200,24 @@ class DashboardController extends Controller
             ->where('r.status', 1)
             ->whereBetween('r.receive_date', [$start, $end])
             ->when($sm, fn ($q) => $q->whereIn('so.salesman_id', $sm))
-            ->select(DB::raw("DATE_FORMAT(r.receive_date, '%Y-%m') as ym"), DB::raw('SUM(r.amount) as paid'))
+            ->select(DB::raw("DATE_FORMAT(r.receive_date, '{$fmt}') as ym"), DB::raw('SUM(r.amount) as paid'))
             ->groupBy('ym')->get()->keyBy('ym');
 
+        // 空数据返回空数组，不报错
+        if ($sales->isEmpty() && $payments->isEmpty()) {
+            return [];
+        }
+
         $out = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $m = now()->copy()->subMonths($i)->format('Y-m');
+        $steps = $range === '30d' ? 29 : 11;
+        for ($i = $steps; $i >= 0; $i--) {
+            $key = $range === '30d'
+                ? now()->copy()->subDays($i)->toDateString()
+                : now()->copy()->subMonths($i)->format('Y-m');
             $out[] = [
-                'month' => $m,
-                'sale' => ReportFilter::num((float) ($rows[$m]->sale ?? 0)),
-                'payment' => ReportFilter::num((float) ($payments[$m]->paid ?? 0)),
+                'month' => $key,
+                'sale' => ReportFilter::num((float) ($sales[$key]->sale ?? 0)),
+                'payment' => ReportFilter::num((float) ($payments[$key]->paid ?? 0)),
             ];
         }
 

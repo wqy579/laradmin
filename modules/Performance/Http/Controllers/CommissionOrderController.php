@@ -54,7 +54,7 @@ class CommissionOrderController extends Controller
         if ($order->status !== 'pending') {
             return $this->error('只有待审核状态可审核', 400);
         }
-        $user = $request->attributes->get('auth_user');
+        $user = auth('admin')->user();
         $order->update([
             'status' => 'audited',
             'auditor_id' => $user?->id,
@@ -68,8 +68,9 @@ class CommissionOrderController extends Controller
     public function reject(Request $request, int $id): JsonResponse
     {
         $order = CommissionOrder::findOrFail($id);
-        if (! in_array($order->status, ['pending', 'audited'])) {
-            return $this->error('当前状态不可驳回', 400);
+        // 任务书状态机：仅待审核可驳回；已审核只能标记发放
+        if ($order->status !== 'pending') {
+            return $this->error('只有待审核状态可驳回', 400);
         }
         $order->update(['status' => 'rejected']);
 
@@ -98,22 +99,26 @@ class CommissionOrderController extends Controller
     {
         $order = CommissionOrder::with('items')->findOrFail($id);
 
+        // 金额口径（任务书 §八）：sales/received/return/profit 业务口径，
+        // commission_amount=应发，deduction=扣减，actual_amount=实发
         $headers = ['项目', '金额(¥)'];
         $rows = [
             ['提成单号', $order->bill_no],
             ['所属月份', $order->period],
             ['业务员', $order->employee_name],
             ['部门', $order->department_name ?: '-'],
-            ['销售额', number_format((float) $order->sale_amount, 2)],
-            ['回款额', number_format((float) $order->payment_amount, 2)],
+            ['销售额', number_format((float) $order->sales_amount, 2)],
+            ['回款额', number_format((float) $order->received_amount, 2)],
             ['退货金额', number_format((float) $order->return_amount, 2)],
-            ['毛利', number_format((float) $order->gross_profit, 2)],
-            ['应发提成', number_format((float) $order->commission_gross, 2)],
-            ['扣减', number_format((float) $order->commission_deduct, 2)],
-            ['实发提成', number_format((float) $order->commission_amount, 2)],
+            ['毛利', number_format((float) $order->profit_amount, 2)],
+            ['计提基数', number_format((float) $order->base_amount, 2)],
+            ['应发提成', number_format((float) $order->commission_amount, 2)],
+            ['扣减', number_format((float) $order->deduction, 2)],
+            ['实发提成', number_format((float) $order->actual_amount, 2)],
         ];
         foreach ($order->items as $item) {
-            $rows[] = ['明细：'.$item->source_no, number_format((float) $item->amount, 2)];
+            $label = trim(($item->product_name ?: '').' '.($item->source_no ?: '')) ?: $item->source_no;
+            $rows[] = ['明细：'.$label, number_format((float) $item->amount, 2)];
         }
         $rows[] = ['制单人', $order->maker_name ?: '-'];
         $rows[] = ['审核人', $order->auditor_name ?: '-'];

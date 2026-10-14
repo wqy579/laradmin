@@ -97,15 +97,16 @@ class CommissionCalculator
             'rcv', 'rcv.sales_order_id', '=', 'so.id'
         );
 
-        // 退货（已审核销售退货，按原订单汇总）
-        $query->leftJoinSub(
-            DB::table('sales_returns as sr')
-                ->leftJoin('sales_return_items as sri', 'sri.return_id', '=', 'sr.id')
-                ->select('sr.order_id', DB::raw('SUM(sri.return_amount) as ret_amt'))
-                ->where('sr.status', 'approved')
-                ->groupBy('sr.order_id'),
-            'ret', 'ret.order_id', '=', 'so.id'
-        );
+        // 退货按订单单独取：sales_return_items 是退货单自己的明细，
+        // join 到销售明细行会把同一订单的退货金额按行数放大（订单1两行 → 退货4变8），
+        // 所以先按 order_id 聚成一张 map，再在 PHP 侧按订单贴回每行。
+        $returns = DB::table('sales_returns as sr')
+            ->leftJoin('sales_return_items as sri', 'sri.return_id', '=', 'sr.id')
+            ->where('sr.status', 'approved')
+            ->whereNotNull('sr.order_id')
+            ->groupBy('sr.order_id')
+            ->select('sr.order_id', DB::raw('SUM(sri.return_amount) as ret_amt'))
+            ->pluck('ret_amt', 'order_id');
 
         return $query->orderBy('so.salesman_id')
             ->orderBy('so.id')
@@ -127,13 +128,17 @@ class CommissionCalculator
                 DB::raw('CASE WHEN soi.amount > 0 THEN soi.amount ELSE soi.quantity * (CASE WHEN soi.price > 0 THEN soi.price ELSE soi.price_small END) END as amount'),
                 DB::raw('soi.quantity * COALESCE(p.cost_price, 0) as cost_amount'),
                 DB::raw('COALESCE(rcv.paid, 0) as paid_amount'),
-                DB::raw('COALESCE(ret.ret_amt, 0) as return_amount'),
                 DB::raw('COALESCE(sm.real_name, sm.username, "未指派") as salesman_name'),
                 DB::raw('COALESCE(e.code, sm.username, "—") as salesman_code'),
                 DB::raw('COALESCE(e.department, "") as department_name'),
             ])
             ->get()
-            ->map(fn ($r) => (object) (array) $r)
+            ->map(function ($r) use ($returns) {
+                $r = (object) (array) $r;
+                $r->return_amount = (float) ($returns[$r->order_id] ?? 0);
+
+                return $r;
+            })
             ->all();
     }
 
@@ -146,13 +151,15 @@ class CommissionCalculator
 
         $saleAmount = array_sum(array_map(fn ($l) => (float) $l->amount, $lines));
         $costAmount = array_sum(array_map(fn ($l) => (float) $l->cost_amount, $lines));
-        $returnAmount = array_sum(array_map(fn ($l) => (float) $l->return_amount, $lines));
-        // 回款按订单去重汇总（一条 order 行有 paid_amount，但同一订单多行会重复）
+        // 回款/退货都是订单级金额，同一订单多行只取一次（否则会按行数放大）
         $paidByOrder = [];
+        $returnByOrder = [];
         foreach ($lines as $l) {
             $paidByOrder[$l->order_id] = (float) $l->paid_amount;
+            $returnByOrder[$l->order_id] = (float) $l->return_amount;
         }
         $paymentAmount = array_sum($paidByOrder);
+        $returnAmount = array_sum($returnByOrder);
         $grossProfit = $saleAmount - $costAmount - $returnAmount;
 
         // 命中方案
@@ -164,68 +171,120 @@ class CommissionCalculator
         $detailLines = [];
         $commissionGross = 0.0;
         $commissionBase = 0.0;
+        $commissionDeduct = 0.0;
+        $commissionNet = 0.0;
         $appliedRule = null;
+        $appliedNames = [];
 
+        // 聚合键双写：旧名（内部/兼容）+ 任务书 §八 新名（对外）
+        $aggs = [
+            'sale_amount' => $saleAmount,
+            'payment_amount' => $paymentAmount,
+            'return_amount' => $returnAmount,
+            'gross_profit' => $grossProfit,
+            'sales_amount' => $saleAmount,
+            'received_amount' => $paymentAmount,
+            'profit_amount' => $grossProfit,
+        ];
+
+        // 每个方案独立按其方式计算（含方案的商品/客户等级范围过滤）
+        $calculated = [];
         foreach ($matched as $rule) {
-            // 每个方案独立按其方式计算
-            [$ruleBase, $ruleAmount, $ruleLines] = $this->applyRule($rule, $lines, [
-                'sale_amount' => $saleAmount,
-                'payment_amount' => $paymentAmount,
-                'return_amount' => $returnAmount,
-                'gross_profit' => $grossProfit,
-            ]);
-
+            [$ruleBase, $ruleAmount, $ruleLines, $scoped] = $this->applyRule($rule, $lines, $aggs);
             if ($ruleAmount <= 0) {
                 continue;
             }
 
-            // 非叠加模式：只保留提成最高的方案
-            if (! $rule->allow_stack && $appliedRule !== null && $ruleAmount <= $commissionGross) {
-                continue;
+            // 扣减：退货按比例扣减（deduct_return）
+            $deduct = 0.0;
+            if ($rule->deduct_return && $scoped['return_amount'] > 0 && $scoped['sale_amount'] > 0) {
+                $deduct = round($ruleAmount * ($scoped['return_amount'] / $scoped['sale_amount']), 2);
+            }
+            $net = max(0.0, $ruleAmount - $deduct);
+
+            // 封顶 / 保底（按方案各自的 cap/floor）
+            if ($rule->cap_amount > 0 && $net > (float) $rule->cap_amount) {
+                $net = (float) $rule->cap_amount;
+            }
+            if ($rule->floor_amount > 0 && $net < (float) $rule->floor_amount) {
+                $net = (float) $rule->floor_amount;
             }
 
-            $commissionBase = $ruleBase;
-            $commissionGross = $ruleAmount;
-            $appliedRule = $rule;
-            $detailLines = $ruleLines;
+            $calculated[] = compact('rule', 'ruleBase', 'ruleAmount', 'ruleLines', 'deduct', 'net');
         }
 
-        if ($appliedRule === null) {
+        if (empty($calculated)) {
             return null;
         }
 
-        // 扣减：退货按比例扣减（deduct_return）、未回款不计提已在 applyRule 内按 base_on_payment 处理
-        $deduct = 0.0;
-        if ($appliedRule->deduct_return && $returnAmount > 0 && $saleAmount > 0) {
-            $deduct = round($commissionGross * ($returnAmount / $saleAmount), 2);
+        // allow_stack=true（任一命中方案允许叠加）→ 求和；默认取净额最高不重复计
+        $stack = false;
+        foreach ($calculated as $c) {
+            if ($c['rule']->allow_stack) {
+                $stack = true;
+                break;
+            }
         }
 
-        $commissionAmount = max(0, $commissionGross - $deduct);
-
-        // 封顶 / 保底
-        if ($appliedRule->cap_amount > 0 && $commissionAmount > (float) $appliedRule->cap_amount) {
-            $commissionAmount = (float) $appliedRule->cap_amount;
+        if ($stack) {
+            foreach ($calculated as $c) {
+                $commissionBase += $c['ruleBase'];
+                $commissionGross += $c['ruleAmount'];
+                $commissionDeduct += $c['deduct'];
+                $commissionNet += $c['net'];
+                $appliedNames[] = $c['rule']->name;
+                $detailLines = array_merge($detailLines, $c['ruleLines']);
+            }
+            // 主方案取贡献最大的一条（明细/单据展示用）
+            $primary = $calculated[0];
+            foreach ($calculated as $c) {
+                if ($c['net'] > $primary['net']) {
+                    $primary = $c;
+                }
+            }
+            $appliedRule = $primary['rule'];
+            $appliedRuleName = implode(' + ', $appliedNames);
+        } else {
+            $primary = $calculated[0];
+            foreach ($calculated as $c) {
+                if ($c['net'] > $primary['net']) {
+                    $primary = $c;
+                }
+            }
+            $appliedRule = $primary['rule'];
+            $appliedRuleName = $primary['rule']->name;
+            $commissionBase = $primary['ruleBase'];
+            $commissionGross = $primary['ruleAmount'];
+            $commissionDeduct = $primary['deduct'];
+            $commissionNet = $primary['net'];
+            $detailLines = $primary['ruleLines'];
         }
-        if ($appliedRule->floor_amount > 0 && $commissionAmount < (float) $appliedRule->floor_amount) {
-            $commissionAmount = (float) $appliedRule->floor_amount;
-        }
 
+        // 任务书 §八 口径：sales_amount 销售额 / received_amount 回款 / return_amount 退货 /
+        // profit_amount 毛利 / base_amount 计提基数 / commission_amount 应发 / deduction 扣减 /
+        // actual_amount 实发。旧键同包双写，兼容仍在读旧名的调用方。
         return [
             'employee_id' => $empId,
             'employee_name' => $empName,
             'employee_code' => $empCode,
             'department_name' => $dept,
             'period' => $period,
+            'sales_amount' => round($saleAmount, 2),
+            'received_amount' => round($paymentAmount, 2),
+            'return_amount' => round($returnAmount, 2),
+            'profit_amount' => round($grossProfit, 2),
+            'base_amount' => round($commissionBase, 2),
+            'commission_amount' => round($commissionGross, 2),
+            'deduction' => round($commissionDeduct, 2),
+            'actual_amount' => round($commissionNet, 2),
             'sale_amount' => round($saleAmount, 2),
             'payment_amount' => round($paymentAmount, 2),
-            'return_amount' => round($returnAmount, 2),
             'gross_profit' => round($grossProfit, 2),
             'commission_base' => round($commissionBase, 2),
             'commission_gross' => round($commissionGross, 2),
-            'commission_deduct' => round($deduct, 2),
-            'commission_amount' => round($commissionAmount, 2),
+            'commission_deduct' => round($commissionDeduct, 2),
             'rule_id' => $appliedRule->id,
-            'rule_name' => $appliedRule->name,
+            'rule_name' => $appliedRuleName,
             'calc_type' => $appliedRule->calc_type,
             'detail_lines' => $detailLines,
         ];
@@ -246,17 +305,78 @@ class CommissionCalculator
      * 按方案方式计算提成基数与金额。
      *
      * base_on_payment=true 时提成基数用回款额而非销售额（快消行业惯例）。
-     * exclude_baddebt=true 时未回款部分不计入基数。
+     * exclude_baddebt=true 时未回款部分不计入基数（与 base_on_payment 独立：
+     * 比例类按"已回款销售额"、固定件类按"有回款订单的销量"）。
+     * product_scope_type/apply_customer_limits 先按行过滤，只对范围内行计酬。
+     *
+     * 返回 [base, amount, detailLines, scopedAggs]。
+     * scopedAggs 供 calcEmployee 计算退货扣减（扣减只对命中范围的销售/退货生效）。
      */
     private function applyRule(CommissionRule $rule, array $lines, array $agg): array
     {
+        // 1) 商品范围过滤（all/category/brand/product）
+        $scopedLines = $this->filterProductScope($rule, $lines);
+
+        // 2) 客户等级过滤（apply_customer_limits 空=全部）
+        $levels = $rule->apply_customer_levels;
+        if (! empty($levels)) {
+            $levelSet = array_map('intval', (array) $levels);
+            $scopedLines = array_values(array_filter(
+                $scopedLines,
+                fn ($l) => in_array((int) ($l->customer_level_id ?? 0), $levelSet, true)
+            ));
+        }
+
+        if (empty($scopedLines)) {
+            return [0.0, 0.0, [], $this->scopedAgg($agg, 0, 0, 0, 0)];
+        }
+
+        // 范围内聚合（回款/退货按订单去重，与 calcEmployee 同口径）
+        $sale = 0.0;
+        $cost = 0.0;
+        $qty = 0.0;
+        $paidByOrder = [];
+        $retByOrder = [];
+        foreach ($scopedLines as $l) {
+            $sale += (float) $l->amount;
+            $cost += (float) $l->cost_amount;
+            $qty += (float) $l->quantity;
+            $paidByOrder[$l->order_id] = (float) $l->paid_amount;
+            $retByOrder[$l->order_id] = (float) $l->return_amount;
+        }
+        $paid = array_sum($paidByOrder);
+        $ret = array_sum($retByOrder);
+        $gross = $sale - $cost - $ret;
+        $scopedAgg = [
+            'sale_amount' => $sale,
+            'payment_amount' => $paid,
+            'return_amount' => $ret,
+            'gross_profit' => $gross,
+            'sales_amount' => $sale,
+            'received_amount' => $paid,
+            'profit_amount' => $gross,
+        ];
+
+        // 3) exclude_baddebt：未回款不计入基数（比例类把销售基数压到已回款部分）
+        $useSale = $sale;
+        if ($rule->exclude_baddebt && $sale > 0) {
+            $ratio = $sale > 0 ? min(1.0, max(0.0, $paid / $sale)) : 0.0;
+            $useSale = $sale * $ratio;
+        }
+
         $base = match ($rule->calc_type) {
-            'sale_rate' => $rule->base_on_payment ? $agg['payment_amount'] : $agg['sale_amount'],
+            'sale_rate' => $rule->base_on_payment
+                ? $paid
+                : ($rule->exclude_baddebt ? $useSale : $sale),
             'profit_rate' => $rule->base_on_payment
-                ? ($agg['payment_amount'] - ($agg['sale_amount'] > 0 ? $agg['payment_amount'] / $agg['sale_amount'] * $agg['gross_profit'] : 0))
-                : $agg['gross_profit'],
-            'fixed_per_unit' => array_sum(array_map(fn ($l) => (float) $l->quantity, $lines)),
-            'tiered' => $rule->base_on_payment ? $agg['payment_amount'] : $agg['sale_amount'],
+                ? ($paid - ($sale > 0 ? $paid / $sale * $gross : 0))
+                : ($rule->exclude_baddebt ? ($sale > 0 ? $useSale / $sale : 0) * $gross : $gross),
+            'fixed_per_unit' => $rule->exclude_baddebt
+                ? $this->paidQty($scopedLines)
+                : $qty,
+            'tiered' => $rule->base_on_payment
+                ? $paid
+                : ($rule->exclude_baddebt ? $useSale : $sale),
             'product_specific' => 0, // 逐行算
             default => 0,
         };
@@ -272,6 +392,10 @@ class CommissionCalculator
                 $detail = [[
                     'source_type' => 'order',
                     'source_no' => '汇总',
+                    'sales_amount' => round($sale, 2),
+                    'cost_amount' => round(max(0, $sale - $gross), 2),
+                    'profit_amount' => round($gross, 2),
+                    'quantity' => $qty,
                     'base_amount' => round($base, 2),
                     'rule_name' => $rule->name,
                     'calc_type' => $rule->calc_type,
@@ -285,6 +409,10 @@ class CommissionCalculator
                 $detail = [[
                     'source_type' => 'order',
                     'source_no' => '汇总',
+                    'sales_amount' => round($sale, 2),
+                    'cost_amount' => round(max(0, $sale - $gross), 2),
+                    'profit_amount' => round($gross, 2),
+                    'quantity' => $qty,
                     'base_amount' => round($base, 3),
                     'rule_name' => $rule->name,
                     'calc_type' => $rule->calc_type,
@@ -298,6 +426,10 @@ class CommissionCalculator
                 $detail = [[
                     'source_type' => 'order',
                     'source_no' => '汇总',
+                    'sales_amount' => round($sale, 2),
+                    'cost_amount' => round(max(0, $sale - $gross), 2),
+                    'profit_amount' => round($gross, 2),
+                    'quantity' => $qty,
                     'base_amount' => round($base, 2),
                     'rule_name' => $rule->name,
                     'calc_type' => 'tiered',
@@ -307,32 +439,65 @@ class CommissionCalculator
                 break;
 
             case 'product_specific':
+                // 回款基数：回款是订单级金额，按订单内各商品行销售额比例分摊到行
+                $orderAmount = [];
+                $orderPaid = [];
+                foreach ($scopedLines as $l) {
+                    $orderAmount[$l->order_id] = ($orderAmount[$l->order_id] ?? 0) + (float) $l->amount;
+                    $orderPaid[$l->order_id] = (float) $l->paid_amount;
+                }
+
                 foreach ($rule->product_rules ?? [] as $pr) {
                     $pid = (int) ($pr['product_id'] ?? 0);
                     if (! $pid) {
                         continue;
                     }
-                    $hit = array_filter($lines, fn ($l) => (int) $l->product_id === $pid);
+                    $hit = array_values(array_filter($scopedLines, fn ($l) => (int) $l->product_id === $pid));
                     if (empty($hit)) {
                         continue;
                     }
-                    $qty = array_sum(array_map(fn ($l) => (float) $l->quantity, $hit));
-                    $lineBase = $rule->base_on_payment
-                        ? array_sum(array_map(fn ($l) => (float) $l->paid_amount, $hit))
-                        : array_sum(array_map(fn ($l) => (float) $l->amount, $hit));
+                    $qtyHit = array_sum(array_map(fn ($l) => (float) $l->quantity, $hit));
+                    $saleHit = array_sum(array_map(fn ($l) => (float) $l->amount, $hit));
+                    $paidHit = 0.0;
+                    $paidTouched = [];
+                    foreach ($hit as $l) {
+                        if (isset($paidTouched[$l->order_id])) {
+                            continue;
+                        }
+                        $paidTouched[$l->order_id] = true;
+                        $orderAmt = (float) ($orderAmount[$l->order_id] ?? 0);
+                        $share = $orderAmt > 0 ? $saleHit / $orderAmt : 0.0;
+                        $paidHit += (float) ($orderPaid[$l->order_id] ?? 0) * $share;
+                    }
+                    $lineBase = ($rule->base_on_payment || $rule->exclude_baddebt)
+                        ? $paidHit
+                        : $saleHit;
+                    if ($rule->exclude_baddebt && $rule->base_on_payment) {
+                        // 两个开关都开时基数同为已回款部分，无需再压
+                        $lineBase = $paidHit;
+                    } elseif ($rule->exclude_baddebt && ! $rule->base_on_payment) {
+                        $lineBase = $saleHit > 0 ? min($saleHit, $paidHit) : 0;
+                    }
 
-                    if (isset($pr['rate'])) {
+                    if (array_key_exists('rate', $pr) && $pr['rate'] !== null && $pr['rate'] !== '') {
                         $lineAmount = round($lineBase * ((float) $pr['rate'] / 100), 2);
                         $rateStr = $pr['rate'].'%';
                     } else {
-                        $lineAmount = round($qty * (float) ($pr['amount'] ?? 0), 2);
+                        $useQty = $rule->exclude_baddebt ? $this->paidQty(array_values(array_filter($hit, fn ($l) => (float) $l->paid_amount > 0))) : $qtyHit;
+                        $lineAmount = round($useQty * (float) ($pr['amount'] ?? 0), 2);
                         $rateStr = '¥'.($pr['amount'] ?? 0).'/件';
                     }
                     $amount += $lineAmount;
+                    $hitCost = array_sum(array_map(fn ($l) => (float) ($l->cost_amount ?? 0), $hit));
+                    $hitProfit = $saleHit - $hitCost;
                     $detail[] = [
                         'source_type' => 'product_line',
                         'source_no' => $pr['product_name'] ?? ('商品#'.$pid),
                         'product_id' => $pid,
+                        'quantity' => $qtyHit,
+                        'sales_amount' => round($saleHit, 2),
+                        'cost_amount' => round($hitCost, 2),
+                        'profit_amount' => round($hitProfit, 2),
                         'base_amount' => round($lineBase, 2),
                         'rule_name' => $rule->name,
                         'calc_type' => 'product_specific',
@@ -343,7 +508,70 @@ class CommissionCalculator
                 break;
         }
 
-        return [round($base, 2), $amount, $detail];
+        return [round($base, 2), $amount, $detail, $scopedAgg];
+    }
+
+    /** applyRule 返回值里的范围聚合（用于退货扣减按命中范围计算） */
+    private function scopedAgg(array $agg, float $sale, float $paid, float $ret, float $gross): array
+    {
+        return [
+            'sale_amount' => $sale,
+            'payment_amount' => $paid,
+            'return_amount' => $ret,
+            'gross_profit' => $gross,
+            'sales_amount' => $sale,
+            'received_amount' => $paid,
+            'profit_amount' => $gross,
+            '_full' => $agg,
+        ];
+    }
+
+    /** 已回款订单上的销量（订单有任一回款即整单销量计入——未回款不计提按订单粒度） */
+    private function paidQty(array $lines): float
+    {
+        $seen = [];
+        $qty = 0.0;
+        foreach ($lines as $l) {
+            if (isset($seen[$l->order_id])) {
+                continue;
+            }
+            $seen[$l->order_id] = true;
+            if ((float) $l->paid_amount <= 0) {
+                continue;
+            }
+            // 该订单所有行的销量
+            foreach ($lines as $x) {
+                if ($x->order_id === $l->order_id) {
+                    $qty += (float) $x->quantity;
+                }
+            }
+        }
+
+        return $qty;
+    }
+
+    /** 按方案 product_scope_type/ids 过滤订单行；scope=all 时原样返回 */
+    private function filterProductScope(CommissionRule $rule, array $lines): array
+    {
+        $type = (string) ($rule->product_scope_type ?? 'all');
+        if ($type === 'all' || $type === '' || $type === null) {
+            return $lines;
+        }
+        $ids = array_map('intval', (array) ($rule->product_scope_ids ?? []));
+        if (empty($ids)) {
+            return $lines; // 选了范围但没选具体项 → 视作全部（前端必填校验兜底）
+        }
+
+        return array_values(array_filter($lines, function ($l) use ($type, $ids) {
+            $key = match ($type) {
+                'category' => (int) ($l->main_category_id ?? 0),
+                'brand' => (int) ($l->brand_id ?? 0),
+                'product' => (int) ($l->product_id ?? 0),
+                default => 0,
+            };
+
+            return in_array($key, $ids, true);
+        }));
     }
 
     /** 阶梯提成：区间内分段计 */
@@ -372,13 +600,22 @@ class CommissionCalculator
         return round($total, 2);
     }
 
+    /** totals 汇总键（任务书新名 + 旧名双写；commission_amount=应发、actual_amount=实发） */
+    private const TOTAL_KEYS = [
+        'sales_amount', 'received_amount', 'return_amount', 'profit_amount',
+        'base_amount', 'commission_amount', 'deduction', 'actual_amount',
+        'sale_amount', 'payment_amount', 'gross_profit',
+        'commission_base', 'commission_gross', 'commission_deduct',
+    ];
+
     private function sumGroups(array $groups): array
     {
-        $keys = ['sale_amount', 'payment_amount', 'return_amount', 'gross_profit', 'commission_base', 'commission_gross', 'commission_deduct', 'commission_amount'];
-        $t = array_fill_keys($keys, 0);
+        $t = array_fill_keys(self::TOTAL_KEYS, 0);
         foreach ($groups as $g) {
-            foreach ($keys as $k) {
-                $t[$k] += $g[$k];
+            foreach (self::TOTAL_KEYS as $k) {
+                if (isset($g[$k])) {
+                    $t[$k] += $g[$k];
+                }
             }
         }
 
@@ -387,6 +624,6 @@ class CommissionCalculator
 
     private function emptyTotals(): array
     {
-        return array_fill_keys(['sale_amount', 'payment_amount', 'return_amount', 'gross_profit', 'commission_base', 'commission_gross', 'commission_deduct', 'commission_amount'], 0);
+        return array_fill_keys(self::TOTAL_KEYS, 0);
     }
 }
