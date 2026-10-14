@@ -50,6 +50,9 @@
         <testsuite name="Office">
             <directory>modules/Office/tests</directory>
         </testsuite>
+        <testsuite name="Ledger">
+            <directory>modules/Ledger/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

@@ -7041,6 +7041,462 @@
     },
     {
         "method": "GET",
+        "uri": "admin/ledger/balance",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\BalanceController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/balance/export",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\BalanceController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/opening-balances",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\OpeningBalanceController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/opening-balances",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\OpeningBalanceController@save",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/opening-balances/balance-check",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\OpeningBalanceController@balanceCheck",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/periods",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\PeriodController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/periods/{period}/carry-forward",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\PeriodController@carryForward",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/periods/{period}/check",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\PeriodController@check",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/periods/{period}/close",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\PeriodController@close",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/periods/{period}/reopen",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\PeriodController@reopen",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/reports/balance-sheet",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\ReportController@balanceSheet",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/reports/export",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\ReportController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/reports/income-statement",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\ReportController@incomeStatement",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/reports/journal",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\ReportController@journal",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/reports/subject-balance",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\ReportController@subjectBalance",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/subjects",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/subjects",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/subjects/export",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/subjects/options",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/subjects/tree",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@tree",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/ledger/subjects/{id}",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/subjects/{id}",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/ledger/subjects/{id}",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/ledger/subjects/{id}/status",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\SubjectController@toggleStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/vouchers",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/batch-audit",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@batchAudit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/batch-reverse",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@batchReverse",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/vouchers/export",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/vouchers/subject-ledger",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@subjectLedger",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/vouchers/templates",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@templates",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/templates",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@saveTemplate",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/ledger/vouchers/{id}",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/vouchers/{id}",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/ledger/vouchers/{id}",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/{id}/audit",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@audit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/{id}/reverse",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@reverse",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/{id}/reverse-audit",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@reverseAudit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/perf/analysis/customers",
         "name": "admin.",
         "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@customers",

@@ -48,7 +48,8 @@
             "Tests\\BorrowReturn\\": "modules/BorrowReturn/tests/",
             "Tests\\Exchange\\": "modules/Exchange/tests/",
             "Tests\\Dashboard\\": "modules/Dashboard/tests/",
-            "Tests\\Member\\": "modules/Member/tests/"
+            "Tests\\Member\\": "modules/Member/tests/",
+            "Tests\\Ledger\\": "modules/Ledger/tests/"
         }
     },
   "scripts": {

@@ -7,6 +7,7 @@ use Modules\Business\Providers\BusinessServiceProvider;
 use Modules\Dashboard\Providers\DashboardServiceProvider;
 use Modules\Delivery\Providers\DeliveryServiceProvider;
 use Modules\Exchange\Providers\ExchangeServiceProvider;
+use Modules\Ledger\Providers\LedgerServiceProvider;
 use Modules\Member\Providers\MemberServiceProvider;
 use Modules\Miniapp\Providers\MiniappServiceProvider;
 use Modules\Office\Providers\OfficeServiceProvider;
@@ -31,6 +32,7 @@ return [
     VanSalesServiceProvider::class,
     BorrowReturnServiceProvider::class,
     ExchangeServiceProvider::class,
+    LedgerServiceProvider::class,
     MemberServiceProvider::class,
     DashboardServiceProvider::class,
     PerformanceServiceProvider::class,

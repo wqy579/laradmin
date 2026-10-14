@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Modules\Auth\Seeders\AuthSeeder;
 use Modules\Business\Seeders\BusinessDataSeeder;
 use Modules\Business\Seeders\BusinessSeeder;
+use Modules\Ledger\Seeders\LedgerSeeder;
 use Modules\Performance\Seeders\PerformanceMenuSeeder;
 use Modules\System\Seeders\SystemSeeder;
 
@@ -21,6 +22,7 @@ use Modules\System\Seeders\SystemSeeder;
 |   SystemSeeder       —— 配置、字典（其余模块的种子都不依赖它，放最前只为稳定）
 |   AuthSeeder         —— 用户 / 角色 / 权限
 |   BusinessSeeder     —— 只写权限菜单，依赖 AuthSeeder 已建好 permissions 表数据
+|   LedgerSeeder       —— 总账菜单/权限节点/预置科目，依赖 AuthSeeder 已建好 permissions
 |   BusinessDataSeeder —— 商品 / 分类 / 仓库等主数据，依赖上面全部
 |
 | FlowDemoSeeder（端到端业务流程演示数据：销售→配送→车销→借还→换货→库存→收付款→退货）
@@ -37,6 +39,7 @@ class DatabaseSeeder extends Seeder
             SystemSeeder::class,
             AuthSeeder::class,
             BusinessSeeder::class,
+            LedgerSeeder::class,
             BusinessDataSeeder::class,
             PerformanceMenuSeeder::class,
         ]);
