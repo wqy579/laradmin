@@ -71,6 +71,11 @@ class ArchitectureTest extends TestCase
         'Ledger->Auth',   // 凭证/模板的制单人、审核人落 maker_id/auditor_id，belongsTo Auth 的
         // 用户表（与 Order->Auth、Member->Auth 同理）；总账自身不维护人员主数据，
         // 内核亦无 User 契约，抽契约只会把一次外键回显变成跨模块调用
+        'Performance->Report', // 提成/利润/账龄导出复用 Report 的 ReportFilter::csv（BOM/表头/编码统一，
+        //   与 Report 自己各报表控制器同一套）；app/Contracts 无导出内核契约，该类是无状态字符串工具，
+        //   同库只读、抽契约收益低于耦合成本
+        'Performance->Auth',    // 绩效菜单 Seeder 写 Auth 的 Permission 与角色授权（与 Business->Auth、
+        //   System->Auth 完全同因：菜单数据本就落在 Auth 的权限表上）
     ];
 
     /**

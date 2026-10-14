@@ -37,6 +37,7 @@
 				>
 					<div class="notice-card-head">
 						<el-tag v-if="n.is_top" size="small" type="danger" effect="dark">置顶</el-tag>
+						<el-tag v-if="n.is_popup" size="small" type="warning" effect="plain">登录弹窗</el-tag>
 						<el-tag size="small" :type="typeTag(n.type)" effect="plain">{{ typeLabel(n.type) }}</el-tag>
 						<el-tag size="small" :type="statusTag(n.status)" effect="dark">{{ statusLabel(n.status) }}</el-tag>
 						<span class="notice-card-title">{{ n.title }}</span>
@@ -103,6 +104,9 @@
 				<el-form-item label="置顶">
 					<el-switch v-model="form.is_top" />
 				</el-form-item>
+				<el-form-item label="登录弹窗">
+					<el-switch v-model="form.is_popup" />
+				</el-form-item>
 				<el-form-item label="可见范围">
 					<el-radio-group v-model="form.scope">
 						<el-radio value="all">所有人</el-radio>
@@ -166,7 +170,7 @@ const current = ref({})
 const editVisible = ref(false)
 const saving = ref(false)
 const editing = ref({})
-const form = reactive({ title: '', type: 'notice', content: '', is_top: false, scope: 'all', scope_ids: [], attachments: [] })
+const form = reactive({ title: '', type: 'notice', content: '', is_top: false, is_popup: false, scope: 'all', scope_ids: [], attachments: [] })
 
 /** 可见范围下拉：部门 / 人员共用 mail 的通讯录接口，避免再造一个用户字典接口 */
 const contacts = ref({ departments: [], users: [] })
@@ -228,6 +232,7 @@ function blankForm() {
 	form.type = 'notice'
 	form.content = ''
 	form.is_top = false
+	form.is_popup = false
 	form.scope = 'all'
 	form.scope_ids = []
 	form.attachments = []
@@ -253,6 +258,7 @@ async function openEdit(row) {
 			type: detail.type || 'notice',
 			content: detail.content || '',
 			is_top: !!detail.is_top,
+			is_popup: !!detail.is_popup,
 			scope: detail.scope || 'all',
 			scope_ids: detail.scope_ids || [],
 			attachments: detail.attachments || [],
@@ -322,6 +328,7 @@ async function publishFromList(row) {
 			type: detail.type,
 			content: detail.content,
 			is_top: !!detail.is_top,
+			is_popup: !!detail.is_popup,
 			scope: detail.scope,
 			scope_ids: detail.scope_ids || [],
 			attachments: detail.attachments || [],

@@ -50,9 +50,13 @@ const isAllSelected = computed(() => list.value.length > 0 && selectedIds.value.
 async function fetchUnreadTotal() {
 	try {
 		const res = await businessApi.messages.unreadCount.get()
-		if (res.code === 200) unreadTotal.value = res.data?.count || 0
+		// 拦截器 reject 时 res 为 undefined，直接 res.code 会二次抛错
+		if (res && typeof res === 'object' && res.code === 200) {
+			unreadTotal.value = res.data?.count || 0
+		}
 	} catch (e) {
-		console.error('获取未读总数失败:', e)
+		// 静默：401 已由拦截器统一处理（logout + 跳登录），这里再 console.error
+		// 会被 Vue errorHandler 捕获进渲染链，在 appContext 过渡期触发崩溃
 	}
 }
 
@@ -62,12 +66,13 @@ async function fetchList() {
 	try {
 		const params = { page: page.value, page_size: pageSize.value, status: activeTab.value }
 		const res = await businessApi.messages.list.get(params)
-		if (res.code === 200) {
+		if (res && typeof res === 'object' && res.code === 200) {
 			list.value = res.data?.list || []
 			total.value = res.data?.total || 0
 		}
 	} catch (e) {
-		console.error('获取消息列表失败:', e)
+		// ElMessage.error 走 element-plus 的 message 组件，传纯字符串不会触发
+		// Object.create(undefined)；保留用户可见反馈，但不再 console.error
 		ElMessage.error('加载消息失败')
 	} finally {
 		loading.value = false

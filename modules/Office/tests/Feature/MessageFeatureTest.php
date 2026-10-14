@@ -150,11 +150,158 @@ class MessageFeatureTest extends TestCase
         $this->assertSame('/business/notice', $message['payload']['path']);
     }
 
+    public function test_popup_pending_returns_null_without_popup_notice(): void
+    {
+        $this->loginAs($this->ids['bob']);
+        $res = $this->getJson('admin/business/notice/popup-pending');
+        $res->assertOk();
+        $this->assertNull($res->json('data.notice'));
+    }
+
+    public function test_popup_pending_returns_notice_after_publishing_popup_announcement(): void
+    {
+        $author = $this->ids['alice'];
+        $bob = $this->ids['bob'];
+
+        $this->loginAs($author);
+        $create = $this->postJson('admin/business/notice', [
+            'title' => '弹窗公告：系统升级通知',
+            'type' => 'notice',
+            'content' => '系统将于本周六凌晨升级，届时暂停服务两小时。',
+            'scope' => 'all',
+            'is_popup' => true,
+            'status' => 'published',
+        ]);
+        $create->assertOk();
+
+        // 弹窗公告对 bob 可见且消息未读 → popup-pending 回传公告本体 + 消息 id
+        $this->loginAs($bob);
+        $res = $this->getJson('admin/business/notice/popup-pending');
+        $res->assertOk();
+        $this->assertNotNull($res->json('data.notice'));
+        $this->assertSame('弹窗公告：系统升级通知', $res->json('data.notice.title'));
+        $this->assertTrue((bool) $res->json('data.notice.is_popup'));
+        $this->assertSame($create->json('data.id'), $res->json('data.notice.id'));
+        $this->assertIsInt($res->json('data.message_id'));
+    }
+
+    public function test_popup_pending_excludes_non_popup_notices(): void
+    {
+        $author = $this->ids['alice'];
+        $bob = $this->ids['bob'];
+
+        // 普通公告（未勾登录弹窗）即使已发布、消息未读，也不该弹窗
+        $this->loginAs($author);
+        $create = $this->postJson('admin/business/notice', [
+            'title' => '普通公告不弹窗',
+            'type' => 'notice',
+            'content' => '正文',
+            'scope' => 'all',
+            'is_popup' => false,
+            'status' => 'published',
+        ]);
+        $create->assertOk();
+
+        $this->loginAs($bob);
+        // 消息照常下发（铃铛看得到），但弹窗不弹
+        $this->assertSame(1, $this->getJson('admin/business/messages/unread-count')->json('data.count'));
+        $res = $this->getJson('admin/business/notice/popup-pending');
+        $res->assertOk();
+        $this->assertNull($res->json('data.notice'));
+    }
+
+    public function test_popup_pending_honors_visibility_scope(): void
+    {
+        $author = $this->ids['alice'];
+        $bob = $this->ids['bob'];
+
+        // 只发给 alice 本人的弹窗公告：bob 收到了消息，但公告对他不可见 → 不弹
+        $this->loginAs($author);
+        $create = $this->postJson('admin/business/notice', [
+            'title' => '只给本人看的弹窗公告',
+            'type' => 'notice',
+            'content' => '正文',
+            'scope' => 'user',
+            'scope_ids' => [$author],
+            'is_popup' => true,
+            'status' => 'published',
+        ]);
+        $create->assertOk();
+
+        $this->loginAs($bob);
+        $this->assertNull($this->getJson('admin/business/notice/popup-pending')->json('data.notice'));
+
+        // alice 本人在范围内 → 正常弹窗
+        $this->loginAs($author);
+        $res = $this->getJson('admin/business/notice/popup-pending');
+        $res->assertOk();
+        $this->assertSame($create->json('data.id'), $res->json('data.notice.id'));
+    }
+
+    public function test_popup_pending_returns_null_after_message_read(): void
+    {
+        $author = $this->ids['alice'];
+        $bob = $this->ids['bob'];
+
+        $this->loginAs($author);
+        $create = $this->postJson('admin/business/notice', [
+            'title' => '弹窗公告',
+            'type' => 'notice',
+            'content' => '正文',
+            'scope' => 'all',
+            'is_popup' => true,
+            'status' => 'published',
+        ]);
+        $create->assertOk();
+
+        $this->loginAs($bob);
+        $messageId = $this->getJson('admin/business/notice/popup-pending')->json('data.message_id');
+
+        // 标记已读后弹窗不再弹——未读态是弹窗的唯一开关
+        $this->postJson("admin/business/messages/{$messageId}/read")->assertOk();
+        $this->assertNull($this->getJson('admin/business/notice/popup-pending')->json('data.notice'));
+    }
+
+    public function test_notice_list_and_detail_return_is_popup(): void
+    {
+        $author = $this->ids['alice'];
+
+        $this->loginAs($author);
+        $create = $this->postJson('admin/business/notice', [
+            'title' => '弹窗公告',
+            'type' => 'notice',
+            'content' => '正文',
+            'scope' => 'all',
+            'is_popup' => true,
+            'status' => 'published',
+        ]);
+        $create->assertOk();
+        $id = $create->json('data.id');
+
+        $this->assertTrue((bool) $this->getJson('admin/business/notice')->json('data.list.0.is_popup'));
+        $this->assertTrue((bool) $this->getJson("admin/business/notice/{$id}")->json('data.is_popup'));
+
+        // 关掉弹窗标志后不再回传 true
+        $this->putJson("admin/business/notice/{$id}", [
+            'title' => '弹窗公告',
+            'type' => 'notice',
+            'content' => '正文',
+            'is_top' => false,
+            'is_popup' => false,
+            'scope' => 'all',
+            'scope_ids' => [],
+            'attachments' => [],
+            'status' => 'published',
+        ])->assertOk();
+        $this->assertFalse((bool) $this->getJson("admin/business/notice/{$id}")->json('data.is_popup'));
+    }
+
     public function test_message_endpoints_require_auth(): void
     {
         $this->withToken('');
         $this->getJson('admin/business/messages')->assertStatus(401);
         $this->getJson('admin/business/messages/unread-count')->assertStatus(401);
+        $this->getJson('admin/business/notice/popup-pending')->assertStatus(401);
     }
 
     /** 切身份：走真实 JWT 链路（actingAs 会绕过中间件，验不到鉴权） */
