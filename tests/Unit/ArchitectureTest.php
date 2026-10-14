@@ -68,6 +68,9 @@ class ArchitectureTest extends TestCase
         'Member->Stock',  // 积分兑换商品审核扣减商品库存，测试夹具构造 Stock 商品（与 Dashboard->Stock 同理）
         'Order->Member',  // 销售订单审核/红冲调 MemberService 结算储值与积分（settleOrder/refundOrder），
         // 与 Member->Order 互为双向：同一会员-订单关系的两端操作，改走内核契约需先抽 Customer/Member 契约
+        'Ledger->Auth',   // 凭证/模板的制单人、审核人落 maker_id/auditor_id，belongsTo Auth 的
+        // 用户表（与 Order->Auth、Member->Auth 同理）；总账自身不维护人员主数据，
+        // 内核亦无 User 契约，抽契约只会把一次外键回显变成跨模块调用
     ];
 
     /**

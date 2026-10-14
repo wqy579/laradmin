@@ -60,6 +60,9 @@ class MigrationSmokeTest extends TestCase
             'stock_ins', 'stock_in_items', 'stock_outs', 'stock_out_items',
             'transfers', 'transfer_items', 'returns', 'return_items', 'deliveries', 'delivery_items',
             'receives', 'pays', 'expenses',
+            // 总账管理
+            'ledger_subjects', 'ledger_opening_balances', 'ledger_vouchers', 'ledger_voucher_entries',
+            'ledger_periods', 'ledger_voucher_templates',
         ];
         foreach ($expectedTables as $table) {
             $this->assertTrue(Schema::hasTable($table), "缺少数据表 {$table}");
