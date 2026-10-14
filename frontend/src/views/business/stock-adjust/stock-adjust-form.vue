@@ -104,14 +104,14 @@
 		<el-dialog v-model="productSelectorVisible" title="选择商品" width="900px" top="5vh">
 			<div class="product-search">
 				<el-input v-model="productKeyword" placeholder="搜索商品名称/编码" clearable style="width:300px" :prefix-icon="Search" />
-				<el-button type="primary" @click="searchProducts" style="margin-left:10px">搜索</el-button>
+				<el-button type="primary" @click="loadWarehouseProducts" style="margin-left:10px">搜索</el-button>
 			</div>
-			<el-table :data="productList" height="400" @selection-change="handleSelectionChange" border>
+			<el-table :data="filteredProductList" height="400" v-loading="loadingProducts" @selection-change="handleSelectionChange" border>
 				<el-table-column type="selection" width="50" />
-				<el-table-column prop="code" label="编码" width="100" />
-				<el-table-column prop="name" label="名称" min-width="180" show-overflow-tooltip />
+				<el-table-column prop="product_code" label="编码" width="100" />
+				<el-table-column prop="product_name" label="名称" min-width="180" show-overflow-tooltip />
 				<el-table-column prop="spec" label="规格" width="100" />
-				<el-table-column prop="price_unit_small" label="单位" width="60" align="center" />
+				<el-table-column prop="unit" label="单位" width="60" align="center" />
 				<el-table-column prop="stock_qty" label="当前库存" width="100" align="right" />
 				<el-table-column prop="cost_price" label="成本价" width="100" align="right">
 					<template #default="{ row }">¥{{ fmtMoney(row.cost_price) }}</template>
@@ -153,6 +153,7 @@ const loadingItems = ref(false)
 const productSelectorVisible = ref(false)
 const productKeyword = ref('')
 const productList = ref([])
+const loadingProducts = ref(false)
 const selectedProducts = ref([])
 
 onMounted(async () => {
@@ -193,15 +194,30 @@ function openProductSelector() {
 	productKeyword.value = ''
 	productList.value = []
 	selectedProducts.value = []
-	searchProducts()
+	loadWarehouseProducts()
 }
 
-async function searchProducts() {
+// 按当前仓库加载全部商品（含 0 库存），与库存盘点一致；搜索在已加载列表内过滤
+const filteredProductList = computed(() => {
+	const kw = productKeyword.value.trim()
+	if (!kw) return productList.value
+	return productList.value.filter((p) => p.product_code.includes(kw) || p.product_name.includes(kw))
+})
+
+async function loadWarehouseProducts() {
+	const warehouseId = form.warehouse_id
+	if (!warehouseId) {
+		ElMessage.warning('请先选择仓库')
+		return
+	}
+	loadingProducts.value = true
 	try {
-		const res = await businessApi.product.list.get({ keyword: productKeyword.value, page_size: 100 })
+		const res = await businessApi.stockAdjust.warehouseProducts.get({ warehouse_id: warehouseId })
 		productList.value = res.data?.list || []
 	} catch (e) {
-		ElMessage.error('加载商品失败')
+		ElMessage.error(e?.response?.data?.message || '加载商品库存失败')
+	} finally {
+		loadingProducts.value = false
 	}
 }
 
@@ -221,16 +237,16 @@ function confirmProducts() {
 	}
 
 	selectedProducts.value.forEach((p) => {
-		const existing = items.value.find((item) => item.product_id === p.id)
+		const existing = items.value.find((item) => item.product_id === p.product_id)
 		if (existing) {
 			return
 		}
 		items.value.push({
-			product_id: p.id,
-			product_code: p.code,
-			product_name: p.name,
+			product_id: p.product_id,
+			product_code: p.product_code,
+			product_name: p.product_name,
 			spec: p.spec,
-			unit: p.price_unit_small,
+			unit: p.unit,
 			before_qty: p.stock_qty || 0,
 			adjust_qty: 0,
 			after_qty: p.stock_qty || 0,
