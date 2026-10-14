@@ -47,27 +47,76 @@ class AnalysisController extends Controller
         return $this->listWithTotals($page, $this->customersTotals($start, $end));
     }
 
-    /** 业务员销售分析（含成交率、目标达成率） */
+    /** 业务员销售分析（含成交率、目标达成率、销售额走势、访店达成率） */
     public function employees(Request $request): JsonResponse
     {
+        $params = ReportFilter::parse($request);
         [$start, $end] = $this->range($request);
+        $dimension = (string) ($params['dimension'] ?: 'salesman');
+        $granularity = in_array($request->input('granularity'), ['year', 'month'], true) ? $request->input('granularity') : 'month';
         $activeBase = $this->activeCustomerBase();
 
-        $page = $this->queryPage($this->employeesQuery($start, $end)->orderByDesc('sale_amount'), $request);
+        $query = $this->employeesQuery($start, $end, $dimension, $params);
+        $page = $this->queryPage($query->orderByDesc('sale_amount'), $request);
+
+        // 访店达成率：真实 visit_logs（实际拜访 / 路线计划），按当前页业务员/客户一次批量取
+        $visit = $this->visitStats($start, $end, $params, $page->getCollection());
+
         $page->setCollection($page->getCollection()
-            ->map(fn ($r) => $this->mapEmployee($r, $start, $end, $activeBase))
+            ->map(fn ($r) => $this->mapEmployee($r, $start, $end, $activeBase, $params, $visit))
             ->values());
 
-        return $this->listWithTotals($page, $this->employeesTotals($start, $end));
+        $response = $this->listWithTotals($page, $this->employeesTotals($start, $end, $params));
+        $payload = $response->getData(true);
+        // 任务 P1 #8/#4：销售额走势（按业务员分组，granularity=year|month）+ 访店达成（按业务员/客户 + 走势）
+        $payload['data']['dimension'] = $dimension;
+        $payload['data']['granularity'] = $granularity;
+        $payload['data']['sales_trend'] = $this->salesTrend($start, $end, $params, $granularity, $page->getCollection());
+        $payload['data']['visit_achievement'] = [
+            'by_salesman' => $visit['by_salesman'],
+            'by_customer' => $visit['by_customer'],
+            'trend_by_salesman' => $visit['trend_by_salesman'],
+            'trend_by_customer' => $visit['trend_by_customer'],
+            'plan_source' => $visit['plan_source'],
+            'granularity' => $visit['granularity'],
+        ];
+
+        return response()->json($payload);
     }
 
-    /** 日月增长与退货率（独立计算，不转发看板 overview；支持 start/end 日期筛选） */
+    /**
+     * 日月增长与退货率（不转发看板 overview；支持 start/end 日期筛选）。
+     * 任务 P1 #2：一次回 4 组序列（日/月增长率对比 + 日/月退货率对比），每组含 growth_rate。
+     */
     public function growthReturn(Request $request): JsonResponse
     {
         [$start, $end] = $this->range($request);
-        $series = $this->growthReturnSeries($start, $end, ReportFilter::toArray($request->input('salesman_ids')));
+        $sm = ReportFilter::toArray($request->input('salesman_ids'));
+        $day = $this->growthReturnSeries($start, $end, $sm, 'day');
+        $month = $this->growthReturnSeries($start, $end, $sm, 'month');
+        // 兼容旧消费方：区间 ≤62 天给日粒度，否则月粒度
+        $auto = $day;
+        if ($start && $end && (strtotime($end) - strtotime($start)) / 86400 > 62) {
+            $auto = $month;
+        } elseif (! $start || ! $end) {
+            $auto = $month;
+        }
 
-        return $this->success(['list' => $series, 'total' => count($series), 'growth_return' => $series]);
+        return $this->success([
+            'list' => $auto,
+            'total' => count($auto),
+            'growth_return' => $auto,
+            'day_growth' => $day,
+            'month_growth' => $month,
+            'day_return_rate' => $day,
+            'month_return_rate' => $month,
+            'series' => [
+                'day_growth' => $day,
+                'month_growth' => $month,
+                'day_return_rate' => $day,
+                'month_return_rate' => $month,
+            ],
+        ]);
     }
 
     /** 各分析表 CSV 导出：复用与列表相同的查询和筛选，返回全量行 */
@@ -285,28 +334,71 @@ class AnalysisController extends Controller
         ];
     }
 
-    private function employeesQuery(?string $start, ?string $end): Builder
+    private function employeesQuery(?string $start, ?string $end, string $dimension, array $params): Builder
     {
-        return DB::table('sales_orders as so')
+        $query = DB::table('sales_orders as so')
             ->join('sales_order_items as soi', 'soi.sales_order_id', '=', 'so.id')
             ->leftJoin('auth_user as sm', 'sm.id', '=', 'so.salesman_id')
             ->leftJoin('employees as e', 'e.user_id', '=', 'so.salesman_id')
             ->leftJoin('products as p', 'p.id', '=', 'soi.product_id')
-            ->where('so.status', 'approved')->whereNull('so.original_order_id')
-            ->when($start && $end, fn ($q) => $q->whereBetween('so.order_date', [$start, $end]))
-            ->select(
-                'so.salesman_id',
-                DB::raw('COALESCE(sm.real_name, sm.username, "未指派") as salesman_name'),
-                'e.department',
-                DB::raw('COUNT(DISTINCT so.customer_id) as visit_count'),
-                DB::raw('COUNT(DISTINCT so.id) as order_count'),
-                DB::raw('SUM(CASE WHEN soi.amount > 0 THEN soi.amount ELSE soi.quantity * (CASE WHEN soi.price > 0 THEN soi.price ELSE soi.price_small END) END) as sale_amount'),
-                DB::raw('SUM(soi.quantity * COALESCE(p.cost_price, 0)) as cost_amount')
-            )
-            ->groupBy('so.salesman_id', 'sm.username', 'sm.real_name', 'e.department');
+            ->leftJoin('customers as c', 'c.id', '=', 'so.customer_id')
+            ->leftJoin('brands as b', 'b.id', '=', 'p.brand_id')
+            ->where('so.status', 'approved');
+
+        ReportFilter::applyDateRange($query, $params);
+        ReportFilter::applyDimensions($query, $params);
+        ReportFilter::applyOrderFilters($query, $params);
+
+        $select = [
+            'so.salesman_id',
+            DB::raw('COALESCE(sm.real_name, sm.username, "未指派") as salesman_name'),
+            'e.department',
+            DB::raw('COUNT(DISTINCT so.customer_id) as visit_count'),
+            DB::raw('COUNT(DISTINCT so.id) as order_count'),
+            DB::raw('SUM(CASE WHEN soi.amount > 0 THEN soi.amount ELSE soi.quantity * (CASE WHEN soi.price > 0 THEN soi.price ELSE soi.price_small END) END) as sale_amount'),
+            DB::raw('SUM(soi.quantity * COALESCE(p.cost_price, 0)) as cost_amount'),
+        ];
+        $group = ['so.salesman_id', 'sm.username', 'sm.real_name', 'e.department'];
+
+        switch ($dimension) {
+            case 'salesman_customer':
+                $select[] = 'c.id as customer_id';
+                $select[] = 'c.name as customer_name';
+                $group[] = 'c.id';
+                $group[] = 'c.name';
+                break;
+            case 'salesman_product':
+                $select[] = 'p.id as product_id';
+                $select[] = 'p.name as product_name';
+                $group[] = 'p.id';
+                $group[] = 'p.name';
+                break;
+            case 'salesman_customer_product':
+                $select[] = 'c.id as customer_id';
+                $select[] = 'c.name as customer_name';
+                $select[] = 'p.id as product_id';
+                $select[] = 'p.name as product_name';
+                $group[] = 'c.id';
+                $group[] = 'c.name';
+                $group[] = 'p.id';
+                $group[] = 'p.name';
+                break;
+            case 'salesman_brand_product':
+                $select[] = 'b.id as brand_id';
+                $select[] = 'b.name as brand_name';
+                $select[] = 'p.id as product_id';
+                $select[] = 'p.name as product_name';
+                $group[] = 'b.id';
+                $group[] = 'b.name';
+                $group[] = 'p.id';
+                $group[] = 'p.name';
+                break;
+        }
+
+        return $query->select($select)->groupBy($group);
     }
 
-    private function mapEmployee(object $r, ?string $start, ?string $end, int $activeBase): array
+    private function mapEmployee(object $r, ?string $start, ?string $end, int $activeBase, array $params): array
     {
         $empId = (int) $r->salesman_id;
         $payment = $this->empPayment($empId, $start, $end);
@@ -320,7 +412,7 @@ class AnalysisController extends Controller
         $dealCount = (int) $r->visit_count;
         $dealRate = $activeBase > 0 ? round($dealCount / $activeBase * 100, 2) : null;
 
-        return [
+        $res = [
             'salesman_id' => $empId,
             'salesman_name' => $r->salesman_name,
             'department' => $r->department ?: '-',
@@ -336,11 +428,17 @@ class AnalysisController extends Controller
             'target' => ReportFilter::num($target),
             'achieve_rate' => $target > 0 ? round($sale / $target * 100, 2) : 0,
         ];
+
+        if (isset($r->customer_name)) $res['customer_name'] = $r->customer_name;
+        if (isset($r->product_name)) $res['product_name'] = $r->product_name;
+        if (isset($r->brand_name)) $res['brand_name'] = $r->brand_name;
+
+        return $res;
     }
 
-    private function employeesTotals(?string $start, ?string $end): array
+    private function employeesTotals(?string $start, ?string $end, array $params = []): array
     {
-        $row = $this->employeesAgg($start, $end);
+        $row = $this->employeesAgg($start, $end, $params);
         $ret = $this->allReturnAmount($start, $end);
         $sale = (float) ($row->sale_amount ?? 0);
         $cost = (float) ($row->cost_amount ?? 0);
@@ -364,13 +462,19 @@ class AnalysisController extends Controller
         ];
     }
 
-    private function employeesAgg(?string $start, ?string $end): object
+    private function employeesAgg(?string $start, ?string $end, array $params = []): object
     {
-        return DB::table('sales_orders as so')
+        $query = DB::table('sales_orders as so')
             ->join('sales_order_items as soi', 'soi.sales_order_id', '=', 'so.id')
             ->leftJoin('products as p', 'p.id', '=', 'soi.product_id')
-            ->where('so.status', 'approved')->whereNull('so.original_order_id')
-            ->when($start && $end, fn ($q) => $q->whereBetween('so.order_date', [$start, $end]))
+            ->leftJoin('customers as c', 'c.id', '=', 'so.customer_id')
+            ->where('so.status', 'approved');
+
+        ReportFilter::applyDateRange($query, $params);
+        ReportFilter::applyDimensions($query, $params);
+        ReportFilter::applyOrderFilters($query, $params);
+
+        return $query
             ->selectRaw('COALESCE(SUM(CASE WHEN soi.amount > 0 THEN soi.amount ELSE soi.quantity * (CASE WHEN soi.price > 0 THEN soi.price ELSE soi.price_small END) END),0) as sale_amount,
                 COALESCE(SUM(soi.quantity * COALESCE(p.cost_price,0)),0) as cost_amount,
                 COUNT(DISTINCT so.id) as order_count')
@@ -581,15 +685,27 @@ class AnalysisController extends Controller
 
     private function exportEmployees(?string $start, ?string $end, Request $request): array
     {
+        $params = ReportFilter::parse($request);
+        $dimension = $request->input('dimension', 'salesman');
         $activeBase = $this->activeCustomerBase();
-        $rows = $this->employeesQuery($start, $end)->orderByDesc('sale_amount')->get()
-            ->map(function ($r) use ($start, $end, $activeBase) {
-                $m = $this->mapEmployee($r, $start, $end, $activeBase);
+        $rows = $this->employeesQuery($start, $end, $dimension, $params)->orderByDesc('sale_amount')->get()
+            ->map(function ($r) use ($start, $end, $activeBase, $params) {
+                $m = $this->mapEmployee($r, $start, $end, $activeBase, $params);
 
-                return [$m['salesman_name'], $m['department'], $m['visit_count'], $m['deal_count'], $m['deal_rate'] ?? '', $m['order_count'], $m['sale_amount'], $m['payment_amount'], $m['gross_profit'], $m['commission'], $m['return_rate'], $m['target'], $m['achieve_rate']];
+                $row = [$m['salesman_name'], $m['department'], $m['visit_count'], $m['deal_count'], $m['deal_rate'] ?? '', $m['order_count'], $m['sale_amount'], $m['payment_amount'], $m['gross_profit'], $m['commission'], $m['return_rate'], $m['target'], $m['achieve_rate']];
+                if (isset($m['customer_name'])) $row[] = $m['customer_name'];
+                if (isset($m['product_name'])) $row[] = $m['product_name'];
+                if (isset($m['brand_name'])) $row[] = $m['brand_name'];
+                return $row;
             })->values()->all();
 
-        return ['业务员销售分析', ['业务员', '部门', '拜访客户数', '成交客户数', '成交率(%)', '订单数', '销售额', '回款额', '毛利', '提成', '退货率(%)', '目标', '达成率(%)'], $rows];
+        $headers = ['业务员', '部门', '拜访客户数', '成交客户数', '成交率(%)', '订单数', '销售额', '回款额', '毛利', '提成', '退货率(%)', '目标', '达成率(%)'];
+        if ($dimension === 'salesman_customer') $headers[] = '客户';
+        if ($dimension === 'salesman_product') $headers[] = '商品';
+        if ($dimension === 'salesman_customer_product') { $headers[] = '客户'; $headers[] = '商品'; }
+        if ($dimension === 'salesman_brand_product') { $headers[] = '品牌'; $headers[] = '商品'; }
+
+        return ['业务员销售分析', $headers, $rows];
     }
 
     private function exportGrowthReturn(?string $start, ?string $end, Request $request): array
