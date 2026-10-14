@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Modules\Report\Support\ReportFilter;
 
 /**
@@ -91,7 +91,7 @@ class ArAgingController extends Controller
         $rows = $this->aggregate($request, $asOf)->get();
 
         $headers = ['客户编号', '客户名称', '业务员', '应收合计', '未到期', '1~30天', '31~60天', '61~90天', '91~180天', '180天以上', '最长逾期', '状态'];
-        $csvRows = $rows->map(function ($o) use ($asOf) {
+        $csvRows = $rows->map(function ($o) {
             $r = $this->mapCustomerRow($o);
 
             return [

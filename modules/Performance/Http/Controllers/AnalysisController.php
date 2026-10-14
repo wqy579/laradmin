@@ -122,7 +122,7 @@ class AnalysisController extends Controller
             $sql .= ' AND sr.return_date BETWEEN ? AND ?';
         }
 
-        return $sql."), 0)";
+        return $sql.'), 0)';
     }
 
     private function subBindings(?string $start, ?string $end): array

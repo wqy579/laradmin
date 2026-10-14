@@ -16,7 +16,9 @@ class DashboardController extends Controller
 {
     /** 涨红跌绿（中国股市惯例），看板专用 */
     private const COLOR_UP = '#F56C6C';
+
     private const COLOR_DOWN = '#67C23A';
+
     private const COLOR_FLAT = '#909399';
 
     public function salesOverview(Request $request): JsonResponse

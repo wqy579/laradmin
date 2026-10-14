@@ -29,7 +29,7 @@ class DeliveryUncollectedController extends Controller
 
         // totals + 卡片：clone 换成聚合列。MySQL 同一 SELECT 内不能引用 select 别名，
         // 故把未收/天数表达式原样内联（与 query() 的 select 完全一致）。
-        $age = "TIMESTAMPDIFF(DAY, dg.first_delivery_date, CURDATE())";
+        $age = 'TIMESTAMPDIFF(DAY, dg.first_delivery_date, CURDATE())';
         $unc = 'GREATEST(dg.delivery_amount - COALESCE(so.paid_amount, 0), 0)';
 
         $t = $base->cloneWithout(['columns', 'orders', 'limit', 'offset'])
@@ -136,7 +136,7 @@ class DeliveryUncollectedController extends Controller
      */
     private function query(array $f): Builder
     {
-        $age = "TIMESTAMPDIFF(DAY, dg.first_delivery_date, CURDATE())";
+        $age = 'TIMESTAMPDIFF(DAY, dg.first_delivery_date, CURDATE())';
 
         return DB::table(DB::raw('(
             SELECT d.order_id, MIN(d.delivery_date) as first_delivery_date, SUM(d.total_amount) as delivery_amount
