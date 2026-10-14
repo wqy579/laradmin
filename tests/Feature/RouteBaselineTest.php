@@ -188,13 +188,13 @@ class RouteBaselineTest extends TestCase
             $key = $method.'|'.$uri;
 
             if (! isset($registered[$key])) {
-                $missing[] = "$method $uri（来自 $origin）";
+                $missing[] = "$method {$uri}（来自 {$origin}）";
 
                 continue;
             }
 
             if (! in_array('auth.check:admin', $registered[$key], true) && ! in_array($key, $anonymousAllowed, true)) {
-                $unauthenticated[] = "$method $uri（缺少 auth.check:admin，来自 $origin）";
+                $unauthenticated[] = "$method {$uri}（缺少 auth.check:admin，来自 {$origin}）";
             }
         }
 

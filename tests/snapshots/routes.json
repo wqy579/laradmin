@@ -7040,6 +7040,582 @@
         ]
     },
     {
+        "method": "GET",
+        "uri": "admin/perf/analysis/customers",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@customers",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/analysis/customers/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/analysis/employees",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@employees",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/analysis/employees/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/analysis/growth-return",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@growthReturn",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/analysis/growth-return/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/analysis/products",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@products",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/analysis/products/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\AnalysisController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/ar/aging",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ArAgingController@aging",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/ar/aging/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ArAgingController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/ar/aging/{customerId}/details",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ArAgingController@details",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/commission-orders",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/commission-orders/{id}",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/commission-orders/{id}/audit",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionOrderController@audit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/commission-orders/{id}/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionOrderController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/commission-orders/{id}/pay",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionOrderController@pay",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/commission-orders/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionOrderController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/commission-rules",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionRuleController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/commission-rules",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionRuleController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/commission-rules/estimate",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionRuleController@estimate",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/commission-rules/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionRuleController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/perf/commission-rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionRuleController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/commission-rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionRuleController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/perf/commission-rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionRuleController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/commission-rules/{id}/copy",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionRuleController@copy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/commission/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/commission/generate",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionController@generate",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/commission/preview",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\CommissionController@preview",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/dashboard/sales-overview",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\DashboardController@salesOverview",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/delivery/uncollected",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\DeliveryUncollectedController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/delivery/uncollected/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\DeliveryUncollectedController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/profit",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/profit/brands",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@byDimension",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/profit/customers",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@byDimension",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/profit/employees",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@byDimension",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/profit/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/profit/orders",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@byDimension",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/profit/products",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@byDimension",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/profit/trend",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@trend",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/sales-targets",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesTargetController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/sales-targets",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesTargetController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/warning",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\StockWarningController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/warning/expiry",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\StockWarningController@byType",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/warning/overview",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\StockWarningController@overview",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/warning/safety-stock",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\StockWarningController@byType",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/perf/warning/safety-stock/purchase-draft",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\StockWarningController@purchaseDraft",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/warning/sellable-days",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\StockWarningController@byType",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/warning/stock-exception",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\StockWarningController@byType",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "POST",
         "uri": "admin/remote/migrate",
         "name": "admin.",
