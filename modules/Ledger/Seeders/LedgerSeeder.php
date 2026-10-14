@@ -42,7 +42,12 @@ class LedgerSeeder extends Seeder
         $idMap = [];
         foreach ($menus as $menu) {
             $pid = $menu['parent_name'] === null ? 0 : ($idMap[$menu['parent_name']] ?? 0);
-            $meta = $menu['icon'] !== null ? ['icon' => $menu['icon']] : ['hidden' => false, 'hiddenBreadcrumb' => false];
+            // meta 合并而不是二选一：icon 与 hidden 两组键都要在，否则带图标的顶级菜单
+            // 会丢掉 hidden:false（2026-10 验收缺陷②——菜单父节点被过滤）
+            $meta = array_merge(
+                ['hidden' => false, 'hiddenBreadcrumb' => false],
+                $menu['icon'] !== null ? ['icon' => $menu['icon']] : []
+            );
             $perm = DB::table('auth_permission')->where('name', $menu['name'])->first();
             $fields = [
                 'title' => $menu['title'],

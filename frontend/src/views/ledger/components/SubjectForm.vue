@@ -101,6 +101,7 @@ const open = async (row, parent) => {
 	}
 	visible.value = true
 }
+defineExpose({ open })
 
 const loadParentOptions = async () => {
 	const res = await ledgerApi.subject.tree.get()

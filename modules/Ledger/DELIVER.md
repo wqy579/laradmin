@@ -158,3 +158,7 @@ Playwright 驱动本地构建（`127.0.0.1:8001`，`DB_CONNECTION=sqlite`）跑�
 4. **凭证金额栏逐位输入**：任务书提到「从个位起逐位向左填写的凭证金额栏样式更佳」，本期用普通两位小数数字框，后续可升级。
 5. **结账检查③业务单据是否都已生成凭证**：本期只提示性检查（显示黄色警告），待第四阶段自动凭证打通后可实打实统计。
 6. ~~菜单截图、建单到审核全链路截图~~ → **已完成**：sqlite 截图服务（`php -S 127.0.0.1:8001` + 自定义 router + Playwright）跑通，18 个 PNG + 1 个 CSV 已落在 `modules/Ledger/docs/screenshots/`，清单见第五节；复跑命令 `python3 /tmp/ledger-shots/capture_flow.py`（先清登录限流缓存 `storage/framework/cache/data`，避免 429）。
+7. ~~2026-10-14 验收三条缺陷~~ → **已修复**（见提交 `fix(ledger)`）：
+   - ① 新增科目弹窗打不开 → `SubjectForm.vue` 补 `defineExpose({ open })`（父组件 `openForm` 调 `formRef.open`，缺 expose 时 `TypeError: s.open is not a function`）。
+   - ② 登录后侧边栏看不到「总账管理」→ `LedgerSeeder` / `000006` 的 meta 三元在「有 icon」分支只写 `{icon}`，丢掉 `hidden:false`；改为 icon 与 hidden 合并写入，并加迁移 `2026_10_14_000008` 回填已部署库（生产只跑 `migrate` 不跑 `db:seed`）+ 预置科目播种；回归钉子 `tests/Feature/LedgerMenuMetaTest.php`。
+   - ③ `/admin/ledger/*` 线上 GET 返 HTML、POST 405 误判「后端零实现」→ 真因是宝塔 nginx 白名单漏 `ledger` 前缀（接口本身 401 JSON 正常）。`deploy.yml` 的 `ensure_nginx_proxy` 改为逐 token 幂等补 `dashboard`/`ledger`，步骤 6.5 探测加 `ledger/subjects`（content-type 非 JSON 即判部署失败）。

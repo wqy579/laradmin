@@ -38,7 +38,11 @@ return new class extends Migration
         foreach ($menus as $menu) {
             $exists = DB::table('auth_permission')->where('name', $menu['name'])->exists();
             $pid = $menu['parent_name'] === null ? 0 : ($idMap[$menu['parent_name']] ?? 0);
-            $meta = $menu['icon'] !== null ? ['icon' => $menu['icon']] : ['hidden' => false, 'hiddenBreadcrumb' => false];
+            // 与 LedgerSeeder 同步：icon 与 hidden 合并写入，不能二选一丢键
+            $meta = array_merge(
+                ['hidden' => false, 'hiddenBreadcrumb' => false],
+                $menu['icon'] !== null ? ['icon' => $menu['icon']] : []
+            );
 
             if (! $exists) {
                 $id = DB::table('auth_permission')->insertGetId([

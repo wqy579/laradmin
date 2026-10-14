@@ -90,21 +90,28 @@ jobs:
             # 旧健康检查只打 /admin/auth/login，auth 在白名单里永远绿，这个断点因此逃逸上线。
             #
             # 本仓库不持有 nginx 配置（宝塔面板托管），故此处幂等自愈而非直接提交配置文件：
-            # 缺则插入、有则不动，nginx -t 不过则中止部署（带着坏配置上线比中止更糟）。
-            # 注意 sed 的定界符用 # 避开 location 里的 /；幂等性靠「已含 dashboard 就不匹配」保证。
+            # 逐个补缺则插入、有则不动，nginx -t 不过则中止部署（带着坏配置上线比中止更糟）。
+            # 注意 sed 的定界符用 # 避开 location 里的 /；幂等性靠「该 token 已在分组里就跳过」保证。
+            # 2026-10-14：ledger 同型事故——/admin/ledger/* GET 被 try_files 兜成 SPA index.html
+            # （200 text/html），POST 由 nginx 直接 405，验收误判「后端零实现」。
             ensure_nginx_proxy() {
               local cfg="/www/server/panel/vhost/nginx/laravel.qjwykj.com.conf"
               if [ ! -f "$cfg" ]; then echo "nginx 站点配置不存在，跳过白名单校验"; return 0; fi
-              if grep -qE 'location ~ \^/admin/\(auth\|dashboard\|' "$cfg"; then
-                echo "nginx 代理白名单已含 dashboard"
-                return 0
-              fi
-              echo "nginx 代理白名单缺 dashboard，插入并重载"
-              sed -i 's#location ~ \^/admin/(auth|permissions#location ~ ^/admin/(auth|dashboard|permissions#' "$cfg"
-              # sed 未命中（配置被宝塔重新生成为其他格式）时必须失败，不能静默成功
-              # 留一个坏白名单：下方步骤 6.5 虽会兜住，但这里直接说清更省排查时间
-              grep -qE 'location ~ \^/admin/\(auth\|dashboard\|' "$cfg" || {
-                echo "sed 未命中，nginx 白名单格式与预期不符，需人工处理"; exit 1; }
+              local changed=0 token
+              for token in dashboard ledger; do
+                if grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg"; then
+                  echo "nginx 代理白名单已含 $token"
+                  continue
+                fi
+                echo "nginx 代理白名单缺 $token，插入"
+                # 插到分组开头：^/admin/(auth|... → ^/admin/($token|auth|...
+                sed -i "s#location ~ \\^/admin/(#location ~ ^/admin/(${token}|#" "$cfg"
+                # sed 未命中（配置被宝塔重新生成为其他格式）时必须失败，不能静默成功
+                grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg" || {
+                  echo "sed 未命中，nginx 白名单格式与预期不符，需人工处理"; exit 1; }
+                changed=1
+              done
+              if [ "$changed" != "1" ]; then return 0; fi
               grep -nE 'location ~ \^/admin' "$cfg"
               # 注意：不能把 nginx -t 放进管道（... | tail）——管道的退出码是 tail 的，
               # set -e 不会因 nginx -t 失败而中止，坏配置会被带着上线
@@ -269,12 +276,14 @@ jobs:
             #     正确代理 → Laravel 返回 401 application/json（路由存在）；
             #     被 try_files 兜底 → 200 text/html（index.html），即模块前缀漏配。
             #     返回 JSON 即算健康，不关心具体状态码（401=未登录属正常）。
-            # 探测两个前缀：dashboard 是 2026-10 事故的元凶（新顶层前缀漏配），
+            # 探测三个前缀：dashboard 是 2026-10 事故的元凶（新顶层前缀漏配），
             # business 覆盖 office 模块的 mail/notice/messages（messages 于 2026-10-15
-            # 从顶层改挂 business/ 以进白名单）。任一被 try_files 兜成 HTML 即判失败——
-            # 否则整个模块静默失效而部署标绿。
+            # 从顶层改挂 business/ 以进白名单）；ledger 是总账模块顶层前缀
+            # （2026-10-14 漏配导致 /admin/ledger/* 全部被 try_files 兜成 HTML，
+            # 验收误判「后端零实现」——content-type 探测就是给这类事故上的保险）。
+            # 任一被 try_files 兜成 HTML 即判失败——否则整个模块静默失效而部署标绿。
             route_ok=1
-            for path in dashboard/core-metrics business/notice; do
+            for path in dashboard/core-metrics business/notice ledger/subjects; do
               ok=0 ct=''
               for i in 1 2 3; do
                 ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \
