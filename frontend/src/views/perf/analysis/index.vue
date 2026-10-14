@@ -200,8 +200,8 @@ const pagedList = computed(() => {
 const totalSale = computed(() => list.value.reduce((s, r) => s + Math.abs(Number(r.sale_amount || 0)), 0))
 const sharePct = (row) => {
 	const t = totalSale.value
-	if (!t) return '0.0'
-	return ((Math.abs(Number(row.sale_amount || 0)) / t) * 100).toFixed(1)
+	if (!t) return '0.00'
+	return ((Math.abs(Number(row.sale_amount || 0)) / t) * 100).toFixed(2)
 }
 const hasCol = (key) => list.value.some((r) => r[key] !== undefined && r[key] !== null && r[key] !== '')
 const hasAnyCol = (keys) => keys.some(hasCol)
