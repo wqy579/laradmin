@@ -1483,9 +1483,9 @@ onMounted(async () => {
       businessApi.employee.list
         .get({ is_active: 1, page_size: 9999 })
         .then((r) => r.code === 200 && (salesmen.value = r.data?.list || [])),
-      businessApi.customer.list
-        .get({ page_size: 9999 })
-        .then((r) => r.code === 200 && (customers.value = r.data?.list || [])),
+      // 缺陷 #19：这里原先一次性拉全部在售客户（3564 条 / 3.3MB），
+      // 订单页首屏 3.9MB 里有 85% 是它，页面因此半天渲染不出来。
+      // 客户下拉已改成弹窗内远程搜索（按需取 50 条），首屏不再需要这份数据。
       businessApi.supplier.list
         .get({ page_size: 9999 })
         .then((r) => r.code === 200 && (suppliers.value = r.data?.list || [])),
