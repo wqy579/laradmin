@@ -24,10 +24,7 @@
 			</div>
 		</div>
 		<!-- 表头：客户 / 仓库 / 业务员 / 日期 / 备注 -->
-		<div class="head-card">
-		<el-form ref="formRef" :model="form" :rules="rules" label-width="78px" size="small" class="head-form">
-			<div class="head-block">
-				<div class="block-title"><i class="bt-dot"></i>基本信息</div>
+		<el-form ref="formRef" :model="form" :rules="rules" label-width="70px" size="small">
 			<el-row :gutter="12">
 				<el-col :span="5">
 					<el-form-item label="客户" prop="customer_id">
@@ -63,7 +60,7 @@
 						</el-select>
 					</el-form-item>
 				</el-col>
-				<el-col :span="4">
+				<el-col :span="3">
 					<el-form-item prop="order_date">
 						<template #label>
 							<span :class="{ 'date-hist': isHistoryDate }">下单日期<span v-if="isHistoryDate" class="date-hist-tag">历史</span></span>
@@ -76,20 +73,17 @@
 						</span>
 					</el-form-item>
 				</el-col>
-				<el-col :span="4">
+				<el-col :span="3">
 					<el-form-item label="送货日期">
 						<span class="date-cell" @keydown.esc.capture="onDateEsc($event, form, 'delivery_date')">
 							<el-date-picker v-model="form.delivery_date" type="date" value-format="YYYY-MM-DD" placeholder="送货日期" style="width:100%" />
 						</span>
 					</el-form-item>
 				</el-col>
-		</el-row>
-		</div>
-		<div class="head-block">
-			<div class="block-title"><i class="bt-dot alt"></i>扩展信息</div>
-		<el-row :gutter="12">
-			<el-col :span="3">
-				<el-form-item label="配送车辆">
+			</el-row>
+			<el-row :gutter="12">
+				<el-col :span="3">
+					<el-form-item label="配送车辆">
 						<el-select v-model="form.vehicle_id" placeholder="选择车辆" filterable clearable style="width:100%">
 							<el-option v-for="v in vehicles" :key="v.id" :label="`${v.plate_no} (${v.driver_name || '暂无司机'})`" :value="v.id" />
 						</el-select>
@@ -126,9 +120,7 @@
 					</el-form-item>
 				</el-col>
 			</el-row>
-			</div>
 		</el-form>
-		</div>
 
 		<!-- 三栏：主分类 / 子分类 / 商品表格，行内远程搜索选择 -->
 		<div class="cat-picker">
@@ -1485,158 +1477,14 @@ const onDialogKeydown = (e) => {
 /* 缺陷 #18：下单日期不是今天时，标签变警示色，避免补录历史单后误当成当天的单 */
 .date-hist { color: var(--el-color-warning); font-weight: 700; }
 .date-hist-tag {
-	margin-left: 4px;
-	padding: 0 5px;
-	border-radius: 3px;
+	margin-left: 2px;
+	padding: 0 3px;
+	border-radius: 2px;
 	background: var(--el-color-warning);
 	color: #fff;
 	font-size: 10px;
-	font-weight: 700;
-	line-height: 15px;
-	vertical-align: middle;
+	line-height: 14px;
 }
-
-/* ===== 对话框容器：去默认内边距，内容分区留白 ===== */
-.so-dialog :deep(.sales-order-dialog) {
-	margin-bottom: 2vh;
-}
-.so-dialog :deep(.el-dialog) {
-	border-radius: 12px;
-	overflow: hidden;
-	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
-}
-.so-dialog :deep(.el-dialog__header) {
-	margin: 0;
-	padding: 14px 18px;
-	background: linear-gradient(135deg, var(--el-color-primary) 0%, var(--el-color-primary-light-3) 100%);
-}
-.so-dialog :deep(.el-dialog__title) {
-	color: #fff;
-	font-size: 15px;
-	font-weight: 700;
-	letter-spacing: 0.5px;
-}
-.so-dialog :deep(.el-dialog__headerbtn .el-dialog__close) { color: rgba(255, 255, 255, 0.85); font-size: 18px; }
-.so-dialog :deep(.el-dialog__headerbtn:hover .el-dialog__close) { color: #fff; }
-.so-dialog :deep(.el-dialog__body) {
-	padding: 14px 16px;
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-
-/* ===== 工具条 ===== */
-.dialog-toolbar {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: 12px;
-	padding-bottom: 10px;
-	border-bottom: 1px solid var(--el-border-color-lighter);
-}
-.dialog-toolbar .type-tabs { flex: none; }
-.dialog-toolbar .type-tabs :deep(.el-tabs__header) { margin: 0; }
-.dialog-toolbar .type-tabs :deep(.el-tabs__nav-wrap::after) { display: none; }
-.dialog-toolbar .type-tabs :deep(.el-tabs__item) { font-size: 13px; height: 30px; line-height: 30px; }
-.dialog-toolbar .type-tabs :deep(.el-tabs__item.is-active) { font-weight: 700; color: var(--el-color-primary); }
-.toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.toolbar-right :deep(.el-checkbox.is-bordered) { margin-right: 0; height: 28px; border-radius: 6px; }
-
-/* ===== 表头分区卡片 ===== */
-.head-card {
-	background: var(--el-fill-color-blank);
-	border: 1px solid var(--el-border-color-lighter);
-	border-radius: 10px;
-	padding: 2px 16px 12px;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-.head-form :deep(.el-form-item) { margin-bottom: 12px; }
-.head-form :deep(.el-form-item__label) { color: var(--el-text-color-secondary); font-weight: 500; white-space: nowrap; }
-.block-title {
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	margin: 12px 0 10px;
-	padding-bottom: 7px;
-	font-size: 13px;
-	font-weight: 700;
-	color: var(--el-text-color-primary);
-	border-bottom: 1px dashed var(--el-border-color-lighter);
-}
-.bt-dot {
-	width: 9px;
-	height: 9px;
-	border-radius: 3px;
-	background: var(--el-color-primary);
-	flex-shrink: 0;
-}
-.bt-dot.alt { background: var(--el-color-success); }
-
-/* ===== 三栏：主分类 / 子分类 / 商品表格 ===== */
-.cat-picker {
-	height: 580px;
-	min-height: 0;
-	display: flex;
-	gap: 1px;
-	background: var(--el-border-color-lighter);
-	border: 1px solid var(--el-border-color-lighter);
-	border-radius: 10px;
-	overflow: hidden;
-	margin-bottom: 0;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-.cat-col {
-	flex: 0 0 120px;
-	min-width: 0;
-	min-height: 0;
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-	background: var(--el-fill-color-blank);
-	overflow: hidden;
-}
-.cat-col-title {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 9px 12px;
-	font-size: 12px;
-	font-weight: 700;
-	color: var(--el-text-color-primary);
-	background: var(--el-fill-color-light);
-	border-bottom: 1px solid var(--el-border-color-lighter);
-	flex-shrink: 0;
-}
-.cat-col-sub { font-size: 11px; font-weight: 400; color: var(--el-text-color-secondary); margin-left: 4px; }
-.cat-col-body { flex: 1; overflow-y: auto; padding: 4px 0; }
-.cat-col-body :deep(.el-empty) { padding: 18px 6px; }
-.cat-col-body :deep(.el-empty__image) { width: 34px; height: 34px; }
-.cat-col-body :deep(.el-empty__description) { margin-top: 6px; }
-.cat-col-body :deep(.el-empty__description p) { font-size: 11px; }
-.cat-col-body::-webkit-scrollbar { width: 4px; }
-.cat-col-body::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 2px; }
-.cat-item {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 6px 12px;
-	font-size: 12px;
-	cursor: pointer;
-	color: var(--el-text-color-regular);
-	border-left: 3px solid transparent;
-	transition: background 0.12s, border-color 0.12s;
-}
-.cat-item:hover { background: var(--el-fill-color-light); }
-.cat-item.active {
-	background: var(--el-color-primary-light-9);
-	color: var(--el-color-primary);
-	font-weight: 600;
-	border-left-color: var(--el-color-primary);
-}
-.cat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cat-count { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
-
-/* ===== 商品表格 ===== */
 .items-wrap {
 	flex: 1 1 0;
 	min-width: 0;
@@ -1644,127 +1492,153 @@ const onDialogKeydown = (e) => {
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
+	border: none;
+	border-radius: 0;
+	margin: 0;
 	background: var(--el-bg-color);
 }
 .items-table-scroll {
 	flex: 1 1 0;
 	min-height: 0;
 	overflow: auto;
-	border-radius: 6px;
 }
-.items-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; min-width: 1040px; }
-.items-table th {
-	position: sticky;
-	top: 0;
-	z-index: 2;
-	background: var(--el-color-primary);
-	color: #fff;
-	font-weight: 600;
-	text-align: center;
-	padding: 9px 6px;
-	white-space: nowrap;
-	border-bottom: 1px solid var(--el-color-primary);
-}
-.items-table td {
-	padding: 7px 6px;
-	border-bottom: 1px solid var(--el-border-color-lighter);
-	border-right: 1px solid var(--el-border-color-lighter);
-	vertical-align: middle;
-}
-.item-row:nth-child(even) { background: var(--el-fill-color-lighter); }
-.item-row:hover { background: var(--el-color-primary-light-9); }
-.c-idx { width: 30px; text-align: center; color: var(--el-text-color-secondary); }
-.c-product { width: 188px; }
-.c-spec { width: 72px; text-align: center; color: var(--el-text-color-secondary); }
-.c-mode { width: 96px; }
-.c-stock { width: 76px; text-align: center; white-space: nowrap; }
-.c-qty { width: 208px; }
-.c-price { width: 222px; }
-.c-amount { width: 88px; text-align: right; font-weight: 700; color: var(--el-color-danger); background: var(--el-color-danger-light-9); }
-.c-remark { width: 100px; }
-.c-action { width: 80px; text-align: center; white-space: nowrap; }
-.unit-group { display: flex; align-items: center; gap: 2px; flex-wrap: nowrap; }
-.u-input, .p-input { flex: 1 1 0; min-width: 30px; width: auto; }
-.u-input :deep(.el-input__wrapper), .p-input :deep(.el-input__wrapper) { border-radius: 6px; padding: 1px 6px; }
-.u-name { flex: 0 0 auto; font-size: 10px; color: var(--el-text-color-secondary); background: var(--el-fill-color-light); padding: 1px 3px; border-radius: 3px; white-space: nowrap; }
-.price-source {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	font-size: 10px;
-	color: var(--el-color-warning);
-	margin-top: 3px;
-	padding: 0 5px;
-	border-radius: 3px;
-	background: var(--el-color-warning-light-9);
-}
-.price-restore { color: var(--el-color-primary); cursor: pointer; text-decoration: underline; }
-.price-restore:hover { color: var(--el-color-primary-dark-2); }
-.text-danger { color: var(--el-color-danger); }
-
-/* ===== 商品行内搜索下拉 ===== */
+/* 商品行内搜索下拉（对齐旧系统新增订单）：每行商品格的搜索输入 + 下拉建议，
+   勾选即填行、全选添加一键全铺；下拉锚在 .prod-cell 上，宽度同列、内容截断 */
 .prod-cell { position: relative; width: 100%; }
 .prod-search {
 	width: 100%;
 	box-sizing: border-box;
 	border: 1px solid var(--el-border-color);
-	border-radius: 6px;
-	padding: 4px 8px;
+	border-radius: 3px;
+	padding: 2px 6px;
 	font-size: 12px;
 	line-height: 20px;
 	background: var(--el-bg-color);
-	transition: border-color 0.12s;
 }
 .prod-search[readonly] { background: var(--el-fill-color-lighter); color: var(--el-text-color-primary); font-weight: 500; cursor: default; }
 .prod-search:focus { outline: none; border-color: var(--el-color-primary); }
-.prod-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1; padding: 2px; }
+.prod-clear { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1; padding: 2px; }
 .prod-clear:hover { color: var(--el-color-danger); }
-.prod-suggestions { position: absolute; top: 100%; left: 0; width: 100%; min-width: 240px; max-height: 280px; overflow-y: auto; z-index: 1000; margin-top: 3px; background: var(--el-bg-color); border: 1px solid var(--el-border-color); border-radius: 8px; box-shadow: 0 6px 20px rgba(0,0,0,0.14); }
+.prod-suggestions { position: absolute; top: 100%; left: 0; width: 100%; min-width: 220px; max-height: 260px; overflow-y: auto; z-index: 1000; margin-top: 2px; background: var(--el-bg-color); border: 1px solid var(--el-border-color); border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
 .prod-suggestions::-webkit-scrollbar { width: 6px; }
 .prod-suggestions::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 3px; }
-.prod-sugg-bar { display: flex; justify-content: space-between; align-items: center; padding: 6px 12px; font-size: 11px; color: var(--el-text-color-secondary); background: var(--el-fill-color-lighter); border-bottom: 1px solid var(--el-border-color-lighter); border-radius: 8px 8px 0 0; }
+.prod-sugg-bar { display: flex; justify-content: space-between; align-items: center; padding: 4px 10px; font-size: 11px; color: var(--el-text-color-secondary); background: var(--el-fill-color-lighter); border-bottom: 1px solid var(--el-border-color-lighter); }
 .prod-sugg-all { cursor: pointer; color: var(--el-color-primary); font-weight: 600; }
 .prod-sugg-all:hover { text-decoration: underline; }
-.prod-sugg-row { display: flex; align-items: center; gap: 8px; padding: 7px 12px; cursor: pointer; border-bottom: 1px solid var(--el-border-color-lighter); font-size: 12px; }
+.prod-sugg-row { display: flex; align-items: center; gap: 6px; padding: 5px 10px; cursor: pointer; border-bottom: 1px solid var(--el-border-color-lighter); font-size: 12px; }
 .prod-sugg-row:hover { background: var(--el-fill-color-light); }
 .prod-sugg-row.selected { background: var(--el-color-primary-light-9); }
 .prod-sugg-check { flex: 0 0 auto; margin: 0; cursor: pointer; }
 .prod-sugg-info { flex: 1 1 auto; min-width: 0; }
 .prod-sugg-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prod-sugg-meta { font-size: 11px; color: var(--el-text-color-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.prod-sugg-empty { padding: 12px; text-align: center; color: var(--el-text-color-secondary); font-size: 12px; }
-
-/* ===== 底部信息条 ===== */
-.bottom-info {
-	display: flex;
-	gap: 22px;
-	align-items: center;
-	padding: 9px 14px;
-	background: var(--el-color-warning-light-9);
-	border: 1px solid var(--el-color-warning-light-7);
-	border-radius: 8px;
-	font-size: 12px;
-	color: var(--el-text-color-primary);
+.prod-sugg-empty { padding: 10px; text-align: center; color: var(--el-text-color-secondary); font-size: 12px; }
+/* 表格 10 列各列宽相加 ≈1050px；再压一档 min-width，配合收窄的分类栏，
+   1366 宽的常规屏也能把横向滚动条挤掉 */
+/* 对话框贴顶：默认 --el-dialog-margin-top 是 15vh，把整窗顶到中上部、下方留一大片空白。
+   改成 2vh 顶到最上方 */
+.so-dialog :deep(.sales-order-dialog) {
+	/* 按内容自然撑高，去滚动条：三栏定高 20 行 + 表单 + 合计，整体收敛 */
+	margin-bottom: 2vh;
 }
-.bottom-info .info-item { color: #e6a23c; font-weight: 500; }
-.bottom-info .info-val { color: #f56c6c; font-size: 14px; font-weight: 700; }
-.bottom-info .info-hint { color: var(--el-text-color-secondary); font-size: 11px; margin-left: auto; }
 
-/* ===== 合计区 ===== */
-.summary {
+/* body 按内容撑高即可：三栏定高，整框高度自然收敛 */
+.so-dialog :deep(.el-dialog__body) {
 	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 12px 16px;
-	background: var(--el-fill-color-blank);
-	border: 1px solid var(--el-border-color);
-	border-radius: 10px;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+	flex-direction: column;
 }
-.summary > div:first-child { font-size: 13px; color: var(--el-text-color-regular); }
-.summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 18px; }
+
+.items-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 920px; }
+.items-table th { position: sticky; top: 0; z-index: 2; background: var(--el-color-primary-light-9); color: var(--el-text-color-primary); font-weight: 600; text-align: center; padding: 6px 4px; border-bottom: 1px solid var(--el-border-color); }
+.items-table td { padding: 8px 4px; border: 1px solid var(--el-border-color-lighter); vertical-align: middle; }
+.item-row:nth-child(even) { background: var(--el-fill-color-lighter); }
+.c-idx { width: 26px; text-align: center; }
+.c-product { width: 168px; }
+.c-spec { width: 70px; text-align: center; color: var(--el-text-color-secondary); }
+.c-mode { width: 92px; }
+.c-stock { width: 74px; text-align: center; white-space: nowrap; }
+.c-qty { width: 178px; }
+.c-price { width: 196px; }
+.c-amount { width: 80px; text-align: right; font-weight: 600; }
+.c-remark { width: 96px; }
+.c-action { width: 78px; text-align: center; white-space: nowrap; }
+.unit-group { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; }
+.u-input, .p-input { width: 46px; }
+.u-name { font-size: 10px; color: var(--el-text-color-secondary); }
+.price-source { font-size: 10px; color: var(--el-color-warning); margin-top: 2px; }
+.price-restore { margin-left: 4px; color: var(--el-color-primary); cursor: pointer; text-decoration: underline; }
+.price-restore:hover { color: var(--el-color-primary-dark-2); }
+.text-danger { color: var(--el-color-danger); }
+.summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color); border-radius: 4px; }
+.summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 16px; }
 .summary .promo-line { margin-left: 14px; color: var(--el-color-success); font-weight: 600; font-size: 13px; }
 .summary .promo-tags { margin-top: 4px; }
-.summary-actions { display: flex; gap: 10px; align-items: center; }
-.summary-actions :deep(.el-button--primary) { padding: 9px 26px; font-size: 14px; border-radius: 8px; }
+.summary-actions { display: flex; gap: 8px; align-items: center; }
+.dialog-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; }
+/* 订单类型标签：紧凑行内样式，不与工具条按钮抢高度 */
+.dialog-toolbar .type-tabs { flex: none; }
+.dialog-toolbar .type-tabs :deep(.el-tabs__header) { margin: 0; }
+.dialog-toolbar .type-tabs :deep(.el-tabs__nav-wrap::after) { display: none; }
+.dialog-toolbar .type-tabs :deep(.el-tabs__item) { font-size: 12px; height: 28px; line-height: 28px; }
+.dialog-toolbar .type-tabs :deep(.el-tabs__item.is-active) { font-weight: 600; color: var(--el-color-primary); }
+.toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar-right :deep(.el-checkbox.is-bordered) { margin-right: 0; height: 28px; }
+.bottom-info { display: flex; gap: 20px; align-items: center; padding: 8px 12px; margin-bottom: 8px; background: #fdf6ec; border: 1px solid #faecd8; border-radius: 4px; font-size: 12px; color: var(--el-text-color-primary); }
+.bottom-info .info-item { color: #e6a23c; }
+.bottom-info .info-val { color: #f56c6c; font-size: 13px; }
+.bottom-info .info-hint { color: var(--el-text-color-secondary); font-size: 11px; margin-left: auto; }
+
+/* 三栏：主分类 / 子分类 / 商品表格
+   高度限定为「输入框 20 行」(20 行 * 31px ≈ 620 + 表头 34 + 内边距 ≈ 680px)：
+   之前 flex:1 按剩余空间撑高，分类列无上限、整框被拉得非常高。
+   这里写死定高，三栏同高对齐，对话框随之收敛 */
+.cat-picker {
+	height: 580px;
+	min-height: 0;
+	display: flex;
+	gap: 1px;
+	background: var(--el-border-color-lighter);
+	border: 1px solid var(--el-border-color-lighter);
+	border-radius: 4px;
+	margin-bottom: 10px;
+}
+.cat-col {
+	flex: 0 0 112px;
+	min-width: 0;
+	min-height: 0;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	background: var(--el-bg-color);
+	overflow: hidden;
+}
+.cat-col-title {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 10px;
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--el-text-color-primary);
+	border-bottom: 1px solid var(--el-border-color-lighter);
+	flex-shrink: 0;
+}
+.cat-col-sub { font-size: 11px; font-weight: 400; color: var(--el-text-color-secondary); margin-left: 4px; }
+.cat-col-body { flex: 1; overflow-y: auto; padding: 2px 0; }
+.cat-col-body::-webkit-scrollbar { width: 4px; }
+.cat-col-body::-webkit-scrollbar-thumb { background: var(--el-border-color); border-radius: 2px; }
+.cat-item {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 5px 10px;
+	font-size: 12px;
+	cursor: pointer;
+	color: var(--el-text-color-regular);
+	transition: background 0.1s;
+}
+.cat-item:hover { background: var(--el-fill-color-light); }
+.cat-item.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); font-weight: 500; }
+.cat-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cat-count { font-size: 11px; color: var(--el-text-color-secondary); flex-shrink: 0; }
 </style>
