@@ -454,6 +454,8 @@ const blankRow = () => ({
 	_blurTimer: null,
 	_suggHover: false,
 	_prevOptions: [],
+	_blurred: false,
+	_seq: 0,
 })
 
 /** 把后端/商品列表的商品映射成行内字段（旧系统 applyProduct 的同款取值） */
@@ -734,6 +736,18 @@ const onModeChange = (item) => {
 const searchProducts = (keyword, item) => {
 	item._loading = true
 	item._searchKeyword = keyword
+	// P0-1 根因修复：下拉「是否显示」原先只在 onProdFocus 里置为 true，
+	// 但取数是本函数——onProdInput（输入/扫码）也会独立调用它。
+	// 于是只要 focus 被守卫拦下（客户/仓库未选）或已经失焦，
+	// 请求照发、数据照回（code:200、total:1），却被
+	// v-if="item.showSuggestions && item._options.length" 挡住，
+	// DOM 里 .prod-suggestions 恒为 0，订单录不进去。
+	// 改为：只要发起搜索，就保证下拉处于打开状态。
+	item.showSuggestions = true
+	// 竞态序号：一次搜索 = 一个 seq。响应回来时 seq 已变说明用户又搜了更新的关键字，
+	// 旧响应必须作废，否则慢请求会覆盖快请求的结果（快速扫码时很容易出现）。
+	item._seq = (item._seq || 0) + 1
+	const seq = item._seq
 	// 过滤作废商品（is_active=1）+ 限定当前选中分类（主/子）；未选分类时搜全部在售
 	businessApi.product.list.get({
 		keyword: keyword || '',
@@ -752,6 +766,10 @@ const searchProducts = (keyword, item) => {
 			// 第二次点会被当取消清掉第一行（10件正常+1件赠品丢10件那种）。勾选状态全 false
 			item.checkedProducts = list.map(() => false)
 			item._prevOptions = list.slice()
+			// 失焦竞态保护：请求发出后用户若已失焦（扫码枪输完就失焦、或手快点了别处），
+			// onProdBlur 的 200ms 定时器可能已把下拉关掉——此时不再强行弹回，
+			// 避免"点了别处下拉又自己冒出来"。seq 变了同理，只认最新那次搜索。
+			if (item._seq === seq && !item._blurred) item.showSuggestions = true
 		})
 		.catch(() => { item._options = [] })
 		.finally(() => { item._loading = false })
@@ -841,6 +859,7 @@ const onProdInput = (item, e) => {
 // 聚焦：校验客户/仓库 → 开下拉 → 搜索（对齐旧系统 onFocusProduct；业务员非必填故不校验）
 const onProdFocus = (item) => {
 	if (item._blurTimer) { clearTimeout(item._blurTimer); item._blurTimer = null }
+	item._blurred = false
 	if (!form.customer_id) { ElMessage.error('请先选择客户'); item.showSuggestions = false; return }
 	if (!form.warehouse_id) { ElMessage.error('请先选择仓库'); item.showSuggestions = false; return }
 	// 已填行 focus：保留下拉供继续勾选，但不重新搜索，避免空关键字覆盖原筛选结果（如「大黄米」）
@@ -851,6 +870,7 @@ const onProdFocus = (item) => {
 // 失焦：延迟 200ms 关下拉，悬停在下拉内时不关（对齐旧系统 onBlurProduct）
 const onProdBlur = (item) => {
 	if (item._suggHover) return
+	item._blurred = true
 	if (item._blurTimer) clearTimeout(item._blurTimer)
 	item._blurTimer = setTimeout(() => { item.showSuggestions = false }, 200)
 }

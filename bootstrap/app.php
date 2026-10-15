@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\FlushRequestState;
+use App\Http\Middleware\JwtCookieFallback;
 use App\Http\Middleware\RateLimitMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -75,6 +76,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // 任何中间件读到状态之前先被清空。
         // 这是全局中间件、不进路由栈，所以 route:list 的路由表快照不受影响。
         $middleware->prepend(FlushRequestState::class);
+
+        // 公网发布通道会剥离 Authorization 头，导致 token 到不了后端而全部 401。
+        // 这里追加一条全局中间件：把 token 同时写进 Cookie，并在 Authorization
+        // 缺失/被覆盖时用 Cookie 还原。全局中间件先于路由中间件执行，
+        // 因此 JWT 鉴权读到的一定是还原后的头。
+        $middleware->append(JwtCookieFallback::class);
 
         $middleware->alias([
             'auth.check' => AuthCheckMiddleware::class,
