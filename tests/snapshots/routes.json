@@ -7965,6 +7965,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/perf/reports/return-summary",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ReturnSummaryController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/perf/sales-targets",
         "name": "admin.",
         "action": "Modules\\Performance\\Http\\Controllers\\SalesTargetController@index",

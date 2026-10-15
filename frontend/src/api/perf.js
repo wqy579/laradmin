@@ -77,6 +77,10 @@ const perfApi = {
 		employeesExport: { get: (params) => request.get('perf/analysis/employees/export', { params, responseType: 'blob' }) },
 		growthReturnExport: { get: (params) => request.get('perf/analysis/growth-return/export', { params, responseType: 'blob' }) },
 	},
+	// 报表
+	reports: {
+		returnSummary: { get: (params) => request.get('perf/reports/return-summary', { params }) },
+	},
 	// 销售目标
 	target: {
 		list: { get: (params) => request.get('perf/sales-targets', { params }) },

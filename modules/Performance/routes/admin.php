@@ -9,6 +9,7 @@ use Modules\Performance\Http\Controllers\CommissionRuleController;
 use Modules\Performance\Http\Controllers\DashboardController;
 use Modules\Performance\Http\Controllers\DeliveryUncollectedController;
 use Modules\Performance\Http\Controllers\ProfitController;
+use Modules\Performance\Http\Controllers\ReturnSummaryController;
 use Modules\Performance\Http\Controllers\SalesTargetController;
 use Modules\Performance\Http\Controllers\StockWarningController;
 
@@ -111,5 +112,10 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('perf/sales-targets')->group(function () {
         Route::get('/', [SalesTargetController::class, 'index']);
         Route::post('/', [SalesTargetController::class, 'store']);
+    });
+
+    // ---- 退货汇总单（退货类型×渠道大类小类×仓库×日期）----
+    Route::prefix('perf/reports')->group(function () {
+        Route::get('/return-summary', [ReturnSummaryController::class, 'index']);
     });
 });
