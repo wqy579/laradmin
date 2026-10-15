@@ -11,9 +11,10 @@
 			<table class="vp-table">
 				<thead>
 					<tr>
-						<th style="width:280px">摘要</th>
-						<th style="width:260px">会计科目</th>
-						<th style="width:180px">辅助核算</th>
+						<th style="width:260px">摘要</th>
+						<th style="width:240px">会计科目</th>
+						<th style="width:170px">辅助核算</th>
+						<th style="width:120px">品牌</th>
 						<th style="width:150px">借方金额</th>
 						<th style="width:150px">贷方金额</th>
 					</tr>
@@ -23,13 +24,14 @@
 						<td>{{ e.summary }}</td>
 						<td>{{ e.subject_code }} {{ e.subject_name }}</td>
 						<td>{{ e.aux_name || '—' }}</td>
+							<td>{{ e.brand_name || '—' }}</td>
 						<td class="amt">{{ fmt(e.debit_amount) }}</td>
 						<td class="amt">{{ fmt(e.credit_amount) }}</td>
 					</tr>
 				</tbody>
 				<tfoot>
 					<tr>
-						<td colspan="3" class="vp-chinese">合计：人民币（大写）{{ voucher.amount_chinese }}</td>
+						<td colspan="4" class="vp-chinese">合计：人民币（大写）{{ voucher.amount_chinese }}</td>
 						<td class="amt"><b>借方合计：{{ fmt(voucher.total_debit) }}</b></td>
 						<td class="amt"><b>贷方合计：{{ fmt(voucher.total_credit) }}</b></td>
 					</tr>

@@ -417,6 +417,8 @@ class VoucherService
                 'subject_code' => $e['subject_code'] ?? null,
                 'subject_name' => $e['subject_name'] ?? null,
                 'aux_type' => $e['aux_type'] ?? null,
+                'brand_id' => isset($e['brand_id']) ? (int) $e['brand_id'] : null,
+                'brand_name' => $e['brand_name'] ?? null,
                 'summary' => $e['summary'] ?? null,
                 'debit_amount' => (float) ($e['debit_amount'] ?? 0),
                 'credit_amount' => (float) ($e['credit_amount'] ?? 0),
@@ -453,6 +455,8 @@ class VoucherService
                 'aux_type' => $e['aux_type'] ?? null,
                 'aux_id' => isset($e['aux_id']) ? (int) $e['aux_id'] : null,
                 'aux_name' => $e['aux_name'] ?? null,
+                'brand_id' => isset($e['brand_id']) ? (int) $e['brand_id'] : null,
+                'brand_name' => $e['brand_name'] ?? null,
                 'summary' => $e['summary'] ?? null,
                 'debit_amount' => round($debit, 2),
                 'credit_amount' => round($credit, 2),
@@ -499,6 +503,8 @@ class VoucherService
             $entry->aux_type = $e['aux_type'];
             $entry->aux_id = $e['aux_id'];
             $entry->aux_name = $e['aux_name'];
+            $entry->brand_id = $e['brand_id'];
+            $entry->brand_name = $e['brand_name'];
             $entry->summary = $e['summary'];
             $entry->debit_amount = $e['debit_amount'];
             $entry->credit_amount = $e['credit_amount'];
@@ -542,6 +548,8 @@ class VoucherService
                 'aux_type' => $e->aux_type,
                 'aux_id' => $e->aux_id,
                 'aux_name' => $e->aux_name,
+                'brand_id' => $e->brand_id,
+                'brand_name' => $e->brand_name,
                 'summary' => $e->summary,
                 'debit_amount' => (float) $e->debit_amount,
                 'credit_amount' => (float) $e->credit_amount,
