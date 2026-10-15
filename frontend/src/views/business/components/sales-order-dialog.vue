@@ -1574,7 +1574,7 @@ const onDialogKeydown = (e) => {
 
 /* ===== 三栏：主分类 / 子分类 / 商品表格 ===== */
 .cat-picker {
-	height: 680px;
+	height: 580px;
 	min-height: 0;
 	display: flex;
 	gap: 1px;
