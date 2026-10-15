@@ -17,12 +17,14 @@ class VoucherEntry extends Model
 
     protected $fillable = [
         'voucher_id', 'line_no', 'subject_id', 'subject_code', 'subject_name',
-        'aux_type', 'aux_id', 'aux_name', 'summary',
+        'aux_type', 'aux_id', 'aux_name',
+        'brand_id', 'brand_name', 'summary',
         'debit_amount', 'credit_amount',
     ];
 
     protected $casts = [
         'line_no' => 'integer',
+        'brand_id' => 'integer',
         'debit_amount' => 'decimal:2',
         'credit_amount' => 'decimal:2',
     ];

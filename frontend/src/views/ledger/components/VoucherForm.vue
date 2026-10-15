@@ -22,6 +22,7 @@
 						<th style="width:280px">摘要</th>
 						<th style="width:260px">会计科目</th>
 						<th style="width:180px">辅助核算</th>
+						<th style="width:160px">品牌</th>
 						<th style="width:150px">借方金额</th>
 						<th style="width:150px">贷方金额</th>
 						<th style="width:40px"></th>
@@ -43,6 +44,11 @@
 								<span v-else class="dash">多辅助核算</span>
 							</template>
 							<span v-else class="dash">—</span>
+						</td>
+						<td>
+							<el-select v-model="entry.brand_id" placeholder="选择品牌" clearable filterable size="small" style="width:100%" @change="(v) => onBrandChange(entry, v)">
+								<el-option v-for="b in brandOptions" :key="b.id" :label="b.name" :value="b.id" />
+							</el-select>
 						</td>
 						<td><el-input-number v-model="entry.debit_amount" :precision="2" :controls="false" size="small" class="amt-cell" :disabled="!!entry.credit_amount" @change="onDebitChange(entry)" /></td>
 						<td><el-input-number v-model="entry.credit_amount" :precision="2" :controls="false" size="small" class="amt-cell" :disabled="!!entry.debit_amount" @change="onCreditChange(entry)" /></td>
@@ -85,6 +91,7 @@ const title = ref('新增记账凭证')
 const form = reactive({ id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '' })
 const entries = ref([])
 const subjectOptions = ref([])
+const brandOptions = ref([])
 const auxMap = reactive({}) // type => options
 
 const totalDebit = computed(() => round(entries.value.reduce((s, e) => s + (Number(e.debit_amount) || 0), 0)))
@@ -106,7 +113,7 @@ const open = async (row) => {
 		const v = res.data?.voucher
 		if (v) {
 			Object.assign(form, { id: v.id, voucher_no: v.voucher_no, voucher_date: v.voucher_date, attachments_count: v.attachments_count, remark: v.remark })
-			entries.value = v.entries.map(e => ({ subject_id: e.subject_id, subject_code: e.subject_code, subject_name: e.subject_name, aux_types: subjectOptions.value.find(s => s.id === e.subject_id)?.aux_types || [], aux_type: e.aux_type, aux_id: e.aux_id, aux_name: e.aux_name, summary: e.summary, debit_amount: Number(e.debit_amount), credit_amount: Number(e.credit_amount) }))
+			entries.value = v.entries.map(e => ({ subject_id: e.subject_id, subject_code: e.subject_code, subject_name: e.subject_name, aux_types: subjectOptions.value.find(s => s.id === e.subject_id)?.aux_types || [], aux_type: e.aux_type, aux_id: e.aux_id, aux_name: e.aux_name, brand_id: e.brand_id, brand_name: e.brand_name, summary: e.summary, debit_amount: Number(e.debit_amount), credit_amount: Number(e.credit_amount) }))
 			// 补齐至少 5 行
 			while (entries.value.length < 5) entries.value.push(emptyEntry())
 		}
@@ -121,6 +128,10 @@ defineExpose({ open })
 const loadOptions = async () => {
 	const res = await ledgerApi.subject.options.get()
 	subjectOptions.value = res.data?.options || []
+	try {
+		const b = await import('@/api/business').then(m => m.default.brand.options.get())
+		brandOptions.value = b.data?.list || []
+	} catch { brandOptions.value = [] }
 }
 const loadAuxOptions = async (type) => {
 	if (auxMap[type]) return
@@ -136,7 +147,7 @@ const loadAuxOptions = async (type) => {
 	} catch { auxMap[type] = [] }
 }
 
-const emptyEntry = () => ({ subject_id: null, subject_code: '', subject_name: '', aux_types: [], aux_type: null, aux_id: null, aux_name: '', summary: '', debit_amount: 0, credit_amount: 0 })
+const emptyEntry = () => ({ subject_id: null, subject_code: '', subject_name: '', aux_types: [], aux_type: null, aux_id: null, aux_name: '', brand_id: null, brand_name: '', summary: '', debit_amount: 0, credit_amount: 0 })
 const addEntry = () => entries.value.push(emptyEntry())
 const removeEntry = (idx) => { if (entries.value.length > 1) entries.value.splice(idx, 1) }
 
@@ -156,6 +167,10 @@ const onAuxChange = (entry, auxId) => {
 	const o = auxOptions(entry.aux_type).find(x => x.id === auxId)
 	entry.aux_name = o?.name || ''
 }
+const onBrandChange = (entry, brandId) => {
+	const o = brandOptions.value.find(x => x.id === brandId)
+	entry.brand_name = o?.name || ''
+}
 const onDebitChange = (entry) => { if (entry.debit_amount) entry.credit_amount = 0 }
 const onCreditChange = (entry) => { if (entry.credit_amount) entry.debit_amount = 0 }
 
@@ -165,6 +180,7 @@ const buildPayload = (status) => ({
 	entries: entries.value.filter(e => e.subject_id && ((Number(e.debit_amount) || 0) !== 0 || (Number(e.credit_amount) || 0) !== 0)).map(e => ({
 		subject_id: e.subject_id, subject_code: e.subject_code, subject_name: e.subject_name,
 		aux_type: e.aux_types.length ? e.aux_type : null, aux_id: e.aux_id, aux_name: e.aux_name,
+		brand_id: e.brand_id || null, brand_name: e.brand_name || '',
 		summary: e.summary, debit_amount: Number(e.debit_amount) || 0, credit_amount: Number(e.credit_amount) || 0,
 	})),
 })
