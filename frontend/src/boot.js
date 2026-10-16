@@ -20,6 +20,7 @@ import sUploadFile from './components/sUpload/file.vue'
 
 import './assets/styles/app.css'
 import './assets/styles/report.css'
+import './styles/tokens.css'
 
 // 同步 VxeTable 主题与系统暗色模式
 function syncVxeTheme() {

@@ -1,4 +1,5 @@
 import config from '../config'
+import moduleRoutes from './modules'
 
 const systemRoutes = [
 	{
@@ -501,5 +502,7 @@ const systemRoutes = [
 		meta: { title: '退货汇总单' },
 	},
 ]
+
+systemRoutes.push(...moduleRoutes)
 
 export default systemRoutes
