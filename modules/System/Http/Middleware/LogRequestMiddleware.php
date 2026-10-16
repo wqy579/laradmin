@@ -36,6 +36,21 @@ class LogRequestMiddleware
     /** 单个字符串值超过这个长度就先截断，避免一个巨型字段把整个 JSON 顶爆 */
     private const MAX_VALUE_LEN = 1024;
 
+    /**
+     * 从 params 里整键剔除的字段。
+     *
+     * 事故复盘（2026-10-16，与上面 2.2GB 膨胀是同一个现场）：
+     * 光加长度上限没能解决问题——`auth_user` 是 auth.check 中间件
+     * `$request->merge(['auth_user' => $user])` 挂上来的完整用户模型，
+     * 经 $request->all() 一起被取出。实测一条销售订单列表查询的 params
+     * 共 79,959 字节，其中 auth_user 独占 79,850 字节（99.9%）——
+     * 用户模型几十个字段里还嵌套着角色/权限，逐字段截断到 1KB 根本压不住。
+     *
+     * 而且它压根不该出现在请求参数日志里：那是鉴权上下文，不是调用方传的参数。
+     * 需要审计「谁调的」有 username / user_id 两个独立列，信息不丢。
+     */
+    private const EXCLUDED_PARAM_KEYS = ['auth_user'];
+
     protected $logService;
 
     public function __construct(LogService $logService)
@@ -186,6 +201,13 @@ class LogRequestMiddleware
      */
     protected function sanitizeParams(array $params): array
     {
+        // 先整键剔除鉴权上下文对象。必须在 array_walk_recursive 之前做：
+        // auth_user 是个嵌套几十层的模型数组，递归走一遍再逐字段截断，
+        // 既浪费 CPU（每条日志都要遍历整个用户模型），又压不到 KB 以内。
+        foreach (self::EXCLUDED_PARAM_KEYS as $excluded) {
+            unset($params[$excluded]);
+        }
+
         $sensitiveKeys = ['password', 'password_confirmation', 'token', 'secret', 'key'];
 
         array_walk_recursive($params, function (&$value, $key) use ($sensitiveKeys) {
