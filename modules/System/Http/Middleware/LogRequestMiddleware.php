@@ -12,6 +12,30 @@ use Throwable;
 
 class LogRequestMiddleware
 {
+    /**
+     * 单条日志各字段的体积上限（字符数）。
+     *
+     * 事故背景：这套中间件挂在几乎所有业务路由上，原先 params 原样落库，
+     * 线上跑了一个半月后 system_log 涨到 2.2GB / 3 万行，平均每行约 75KB
+     * （连 GET 列表查询的 params 都有 81KB）。表一大，InnoDB 里并发写大行
+     * 开始互相锁，慢查询日志里出现被阻塞 11~28 分钟的 SELECT，表现为
+     * 「打开新增订单很慢、多人同时点会卡死」。这里给每个自由文本字段设上限，
+     * 让单行日志回到 KB 以内。
+     *
+     * params 用 JSON 表示，留 4KB：足够看清查询条件/提交的关键字段；
+     * 超限时降级成「键名清单 + 总量说明」，保留可排查性又不撑爆行。
+     */
+    private const MAX_PARAMS_LEN = 4096;
+
+    private const MAX_RESULT_LEN = 4096;
+
+    private const MAX_URL_LEN = 2048;
+
+    private const MAX_UA_LEN = 512;
+
+    /** 单个字符串值超过这个长度就先截断，避免一个巨型字段把整个 JSON 顶爆 */
+    private const MAX_VALUE_LEN = 1024;
+
     protected $logService;
 
     public function __construct(LogService $logService)
@@ -56,8 +80,8 @@ class LogRequestMiddleware
             $module = $this->parseModule($request->path());
             $action = $this->parseAction($request->method(), $request->path());
 
-            // 获取请求参数（排除敏感信息）
-            $params = $this->sanitizeParams($request->all());
+            // 获取请求参数（排除敏感信息），并压缩到安全体积内
+            $params = $this->shrinkParams($this->sanitizeParams($request->all()));
 
             // 获取响应数据
             $result = null;
@@ -79,14 +103,14 @@ class LogRequestMiddleware
                 'module' => $module,
                 'action' => $action,
                 'method' => $request->method(),
-                'url' => $request->fullUrl(),
+                'url' => mb_substr($request->fullUrl(), 0, self::MAX_URL_LEN),
                 'ip' => $this->getClientIp($request),
-                'user_agent' => $request->userAgent(),
+                'user_agent' => mb_substr((string) $request->userAgent(), 0, self::MAX_UA_LEN),
                 'params' => $params,
-                'result' => $result,
+                'result' => $result === null ? null : mb_substr($result, 0, self::MAX_RESULT_LEN),
                 'status_code' => $response->getStatusCode(),
                 'status' => $status,
-                'error_message' => $errorMessage,
+                'error_message' => $errorMessage === null ? null : mb_substr($errorMessage, 0, self::MAX_RESULT_LEN),
                 'execution_time' => $executionTime,
             ];
 
@@ -167,10 +191,46 @@ class LogRequestMiddleware
         array_walk_recursive($params, function (&$value, $key) use ($sensitiveKeys) {
             if (in_array(strtolower($key), $sensitiveKeys)) {
                 $value = '******';
+
+                return;
+            }
+            // 单个值也限长：一个 base64 图片或超长文本就能把整行 JSON 撑到几十 KB
+            if (is_string($value) && mb_strlen($value) > self::MAX_VALUE_LEN) {
+                $value = mb_substr($value, 0, self::MAX_VALUE_LEN).'…[截断]';
             }
         });
 
         return $params;
+    }
+
+    /**
+     * 把 params 压到 MAX_PARAMS_LEN 以内。
+     *
+     * 正常请求直接原样返回；超限时不再硬塞，而是换成「每个键的值长度摘要」——
+     * 既能看出请求带了哪些字段、哪个字段异常大，又不会把日志行撑到几十 KB。
+     */
+    protected function shrinkParams(array $params): array
+    {
+        $json = json_encode($params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($json === false || mb_strlen($json) <= self::MAX_PARAMS_LEN) {
+            return $params;
+        }
+
+        $summary = ['_truncated' => true, '_original_bytes' => mb_strlen($json)];
+
+        foreach ($params as $k => $v) {
+            if (is_array($v)) {
+                $summary[$k] = '[array '.count($v).']';
+            } elseif (is_string($v)) {
+                $summary[$k] = mb_strlen($v) > 64
+                    ? mb_substr($v, 0, 64).'…[len='.mb_strlen($v).']'
+                    : $v;
+            } else {
+                $summary[$k] = $v;
+            }
+        }
+
+        return $summary;
     }
 
     /**
