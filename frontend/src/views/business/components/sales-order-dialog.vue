@@ -345,8 +345,9 @@ import businessApi from '@/api/business'
 const SALE_MODES = ['正常销售', '赠品', '陈列费', '试用', '特价销售', '返利']
 // 旧系统 onModeChange 只对这两种模式清零单价并标记 price_source='特殊'
 const CLEAR_PRICE_MODES = ['赠品', '陈列费']
-// 新增一张空表单时预置的行数，沿用旧系统的 20 行
-const EMPTY_ROWS = 20
+// 新增一张空表单时预置的空行数。录入过程中始终保持这么多空行可用：
+// 占用掉几行就自动补几行，不用再手动点每行右侧的「＋」。
+const EMPTY_ROWS = 15
 const DRAFT_KEY = 'sales_order_draft'
 
 const props = defineProps({
@@ -984,13 +985,30 @@ const duplicateItem = (idx) => {
 const removeItem = (idx) => {
 	if (form.items.length <= 1) return
 	form.items.splice(idx, 1)
-	// 始终补齐到 EMPTY_ROWS 行，避免删行后留下空白
-	while (form.items.length < EMPTY_ROWS) form.items.push(blankRow())
+	ensureBlankRows()
 }
 const clearItems = () => {
 	form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
 	if (promo.value.applied && promo.value.applied.length) promo.value = { discount_total: 0, final_total: 0, applied: [] }
 }
+
+// ------------------------------------------------- 自动补行：始终保持 EMPTY_ROWS 个空行
+// 业务反馈：以前默认固定 20 行，录满后要手点每行右侧的「＋」才能继续，很容易录到一半才发现加不了。
+// 现在的规则：列表里始终留有 EMPTY_ROWS 个没占的行，占用掉几个就自动补几个
+// （例如占用 1 个 → 补 1 个，列表变成 N+1 行，其中 15 行是空的）。
+// 补的是空行，不会动已录的数据。
+const occupiedCount = computed(() => form.items.reduce((n, i) => n + (i.product_id ? 1 : 0), 0))
+const ensureBlankRows = () => {
+	let blank = 0
+	for (const i of form.items) if (!i.product_id) blank++
+	const need = EMPTY_ROWS - blank
+	if (need > 0) {
+		for (let k = 0; k < need; k++) form.items.push(blankRow())
+	}
+}
+// 只在「占用行数变化」时触发（填行 / 清行 / 载入草稿或订单），
+// 比 deep watch 便宜得多，也不会被行内的按键编辑吵到
+watch(occupiedCount, ensureBlankRows)
 
 // ---------------------------------------------------------------- 商品行内搜索下拉（对齐旧系统新增订单）
 // 每行商品格 = 搜索输入框 + 下拉建议；每条建议带 checkbox：勾=填下一空行、取消=清该行；
@@ -1380,9 +1398,12 @@ watch(
 			form.salesman_id = props.record.salesman_id || null
 			form.order_date = props.record.order_date
 			form.remark = props.record.remark || ''
-			form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
+			// 每行各建一行再按原顺序追加，不复用pop出的同一行
+			// （原来 form.items.pop() 拿到的是刚 push 回去的那行，每次都在覆盖自己，
+			//  结果一张多商品订单编辑时只剩最后一行）
+			form.items = []
 			;(props.record.items || []).forEach(it => {
-				const row = form.items.pop()
+				const row = blankRow()
 				const p = it.product || {}
 				row.product_id = it.product_id
 				row.product_name = p.name || ''
@@ -1424,6 +1445,8 @@ watch(
 				row._options = p.id ? [p] : []
 				form.items.push(row)
 			})
+			// 载入后补齐空行：占用了几行就补几行，商品多于 15 行也不会被截断
+			ensureBlankRows()
 		} else {
 			if (!loadDraft()) initBlank()
 		}

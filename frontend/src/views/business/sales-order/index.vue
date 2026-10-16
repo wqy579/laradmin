@@ -1175,8 +1175,20 @@ const handleAdd = () => {
   orderType.value = "normal";
   dialog.order = true;
 };
-const handleEdit = (row) => {
-  currentOrder.value = row;
+const handleEdit = async (row) => {
+  // 列表接口只带 customer/warehouse/salesman，不含明细行（items）。
+  // 直接拿列表行当 record 传进弹窗，编辑时商品明细会整片空白、
+  // 一保存还会把原有明细覆盖掉。所以编辑前先取一次详情，把带 items 的完整单传进去。
+  let record = row;
+  try {
+    const res = await businessApi.salesOrder.detail.get(row.id);
+    if (res.code === 200 && res.data) record = res.data;
+  } catch {
+    ElMessage.error("明细加载失败，请重试");
+    return;
+  }
+  currentOrder.value = record;
+  orderType.value = record.order_type || "normal";
   dialog.order = true;
 };
 const handleDetail = async (row) => {
