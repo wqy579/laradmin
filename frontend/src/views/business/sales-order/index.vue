@@ -1487,6 +1487,22 @@ const eq = (a, b) => a != null && String(a) === String(b ?? "");
 // ===== 生命周期 =====
 onMounted(async () => {
   // 加载下拉数据（车辆、业务员等，独立于列表接口）
+  //
+  // 缺陷 #21：这里原先 await 住整组下拉请求，才轮到 doSearch()。
+  // 供应商全量列表是其中最大的一笔（page_size 9999），首屏要等它
+  // 才出列表——而列表本身并不依赖任何一项下拉数据（供应商下拉只在
+  // 采购类弹窗用，这张页面根本不用）。改成两组并发、谁也不等谁：
+  // 列表数据立即开跑，下拉数据后台补齐，回来再渲染下拉。
+  loadDropdowns();
+  doSearch();
+  // 聚焦表格容器，让键盘事件生效
+  nextTick(() => {
+    document.querySelector(".so-page")?.focus();
+  });
+});
+
+/** 下拉数据（车辆/业务员/供应商/仓库/退货计数）：与列表并行加载，不阻塞首屏 */
+const loadDropdowns = async () => {
   try {
     await Promise.all([
       businessApi.vehicle.list
@@ -1512,12 +1528,7 @@ onMounted(async () => {
         ),
     ]);
   } catch {}
-  await doSearch();
-  // 聚焦表格容器，让键盘事件生效
-  nextTick(() => {
-    document.querySelector(".so-page")?.focus();
-  });
-});
+};
 
 onBeforeUnmount(() => {
   enterTimer && clearTimeout(enterTimer);

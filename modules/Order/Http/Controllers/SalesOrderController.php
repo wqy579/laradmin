@@ -5,6 +5,7 @@ namespace Modules\Order\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Support\Inbox;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Auth\Models\User as AdminUser;
@@ -501,9 +502,47 @@ class SalesOrderController extends Controller
     {
         $validated = $this->validateOrder($request);
 
+        // ---------------------------------------------------------------- 重复提交防护
+        //
+        // 业务反馈「多人同时点会卡死，且存在重复提交风险」。前端已加按钮锁
+        // （submitting 早退），但那只管单标签页：回车+点击同时触发、弱网下
+        // 浏览器自动重发、用户以为卡住后退重进再点一次，都会产生第二个
+        // 完全相同的 POST。这类重复订单在业务上极难察觉（单号不同、日期相同、
+        // 明细一模一样），却会造成重复冻结库存。
+        //
+        // 这里用前端带来的 client_token 做幂等键：
+        //   同一 token 的第二次请求直接返回首次创建的订单，不再落库。
+        // 用 Cache 而不是新建表：本场景只需覆盖「秒级重发」窗口，不需要永久留痕；
+        // 复用已有的 Redis，无需迁移、无需清理任务。
+        // 取不到 token（老前端/第三方调用）时行为不变，照常创建。
+        $clientToken = trim((string) ($request->input('client_token') ?? ''));
+        $idempotencyKey = $clientToken !== ''
+            ? 'sales_order:create:'.auth('admin')->id().':'.$clientToken
+            : '';
+
+        if ($idempotencyKey !== '') {
+            $cached = Cache::get($idempotencyKey);
+            if (is_array($cached) && isset($cached['id'])) {
+                $existing = SalesOrder::with(['customer', 'warehouse', 'salesman', 'items.product'])->find($cached['id']);
+                if ($existing) {
+                    // 幂等命中：返回首单，不重复创建、不重复冻结库存
+                    return $this->created($existing, '订单已创建（重复提交已拦截，未重复下单）');
+                }
+            }
+            // 抢占：拿不到锁说明另一个同样的请求正在处理中，直接挡回，
+            // 让前端等到第一次的结果，而不是并发写两张单。
+            if (! Cache::add($idempotencyKey.'_lock', 1, 30)) {
+                return $this->error('订单正在提交中，请勿重复点击', 429);
+            }
+        }
+
         // 前置校验：正常销售价 + 库存充足（下单即冻结，需先确认冻结得到）
         $errors = $this->validateStockAndPrice($validated['items'], (int) $validated['warehouse_id'], []);
         if ($errors !== []) {
+            if ($idempotencyKey !== '') {
+                Cache::forget($idempotencyKey.'_lock');
+            }
+
             return $this->error(implode('；', $errors), 422);
         }
 
@@ -558,12 +597,26 @@ class SalesOrderController extends Controller
 
             DB::commit();
 
+            // 幂等键落定：记下 token → 订单 id，有效期 10 分钟。
+            // 这段时间内任何带同一 token 的重发都直接返回这张单，不再新建。
+            // 必须在 commit 之后写——事务里写的话，一旦回滚就会出现
+            // 「缓存指向一张并不存在的订单」，重发时查到空记录又走到创建分支。
+            if ($idempotencyKey !== '') {
+                Cache::put($idempotencyKey, ['id' => $order->id, 'order_no' => $order->order_no], 600);
+            }
+
             // 操作日志在事务提交后写：单据已落库，日志失败不应回滚业务（对齐旧系统 commit 后再 logOperation）
             $this->logOperation($order, '创建订单', '下单'.count($validated['items']).'种商品，总金额：'.number_format((float) $order->total_amount, 2), null, 'pending');
 
             return $this->created($order->fresh(['customer', 'warehouse', 'salesman', 'items.product']), '订单创建成功');
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // 失败要释放抢占锁，否则用户在 30 秒内重试会被自己的锁挡住，
+            // 报「正在提交中」却根本没有请求在处理。
+            if ($idempotencyKey !== '') {
+                Cache::forget($idempotencyKey.'_lock');
+            }
 
             return $this->error('订单创建失败: '.$e->getMessage(), 500);
         }
@@ -812,6 +865,9 @@ class SalesOrderController extends Controller
             'items.*.production_date' => 'nullable|date',
             'items.*.tax_rate' => 'nullable|numeric|min:0|max:100',
             'items.*.discount_rate' => 'nullable|numeric|min:0|max:100',
+            // 幂等键：前端每次「新增」生成一次，重发时原样带回。
+            // 限长 64——它只用来做缓存键，不该被塞进任意长度的字符串。
+            'client_token' => 'nullable|string|max:64',
         ];
 
         $messages = [

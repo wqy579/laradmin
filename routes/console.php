@@ -27,3 +27,10 @@ Schedule::command('notifications:retry-unsent --limit=100')
 Schedule::command('stock:warning')
     ->dailyAt('08:00')
     ->withoutOverlapping();
+
+// 请求日志清理：每天凌晨 3:30 删掉 30 天前的 system_log。
+// 该表每个请求写一条，曾经因为既不限体积又不清理涨到 2.2GB，
+// 引发并发写锁等待、拖慢订单页。体积已由中间件截断，这里兜底防堆积。
+Schedule::command('logs:prune --days=30')
+    ->dailyAt('03:30')
+    ->withoutOverlapping();

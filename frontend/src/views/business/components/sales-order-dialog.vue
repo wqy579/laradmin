@@ -337,7 +337,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 
@@ -349,6 +349,15 @@ const CLEAR_PRICE_MODES = ['赠品', '陈列费']
 // 占用掉几行就自动补几行，不用再手动点每行右侧的「＋」。
 const EMPTY_ROWS = 15
 const DRAFT_KEY = 'sales_order_draft'
+
+// 幂等键生成：优先用 crypto.randomUUID（现代浏览器原生，无碰撞风险）；
+// 老浏览器/非安全上下文降级成「时间戳 + 两段随机」，同一毫秒内也不会撞。
+const newClientToken = () => {
+	try {
+		if (window.crypto?.randomUUID) return window.crypto.randomUUID()
+	} catch { /* 非安全上下文下 randomUUID 可能抛错，走降级分支 */ }
+	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`
+}
 
 const props = defineProps({
 	visible: { type: Boolean, default: false },
@@ -364,6 +373,11 @@ const emit = defineEmits(['update:visible', 'success'])
 
 const formRef = ref(null)
 const submitting = ref(false)
+// 幂等键：一次「新增」会话一个 client_token，随请求一起发。
+// 崩溃/超时重试、用户狂点提交、弱网下浏览器自动重发时，服务端凭同一个 token
+// 认出这是同一张单，直接返回首次创建结果，而不是再落一张重复订单。
+// 编辑走 PUT（天然幂等），不需要 token。
+let clientToken = ''
 const saleModes = SALE_MODES
 // 订单类型：normal / process / exchange / give_back（退货是独立模块 sales_returns 表，不在此对话框）
 const ORDER_TYPE_LABELS = { normal: '普通订单', process: '处理订单', exchange: '换货订单', give_back: '还货订单' }
@@ -1220,6 +1234,11 @@ const buildPayload = () => {
 }
 
 const handleSubmit = async () => {
+	// 重复提交闸门：submitting 既是按钮 loading，也是这里的第一道锁。
+	// 之前只把它当 loading 用，没有 early-return——用户连点两下、或回车键
+	// 连同鼠标点击一起触发时，两次 handleSubmit 都会走完全流程各发一次
+	// POST，落下两张内容相同的订单。这里直接短路第二次进入。
+	if (submitting.value) return
 	try {
 		await formRef.value.validate()
 	} catch (invalidFields) {
@@ -1268,8 +1287,11 @@ const handleSubmit = async () => {
 	try {
 		const res = props.record
 			? await businessApi.salesOrder.edit.put(props.record.id, payload)
-			: await businessApi.salesOrder.add.post(payload)
+			: await businessApi.salesOrder.add.post({ ...payload, client_token: clientToken })
 		if (res.code === 200) {
+			// 提交成功即作废本次 token：下次「新增」会用新 token，
+			// 不会因为复用旧 token 被服务端当成重复单而直接返回老订单。
+			clientToken = ''
 			ElMessage.success(res.message || '订单创建成功')
 			clearDraft()
 			emit('success')
@@ -1278,7 +1300,8 @@ const handleSubmit = async () => {
 			ElMessage.error(res.message || '提交失败')
 		}
 	} catch (e) {
-		// 422/校验错误：console 打印完整响应体方便定位，toast 由拦截器弹
+		// 422/校验错误：console 打印完整响应体方便定位，toast 由拦截器弹。
+		// 失败时保留 clientToken：用户改完再点的还是同一张单，服务端照常幂等。
 		console.error('订单提交失败:', e?.response?.status, e?.response?.data, 'payload:', payload)
 	} finally {
 		submitting.value = false
@@ -1353,6 +1376,10 @@ const loadDraft = () => {
 // ---------------------------------------------------------------- 表单初始化
 
 const initBlank = () => {
+	// 每次「新增」会话换一个幂等键。放在 initBlank 而不是 watch(visible)：
+	// 切换订单类型（普通→换货…）也会走这里，切完仍属同一次新建会话，
+	// token 一并刷新反而更安全——旧 token 对应的 payload 已经不打算提交了。
+	clientToken = newClientToken()
 	form.customer_id = null
 	form.supplier_id = null
 	form.warehouse_id = null
@@ -1387,13 +1414,15 @@ watch(
 	async (open) => {
 		// 关弹窗时把防抖窗口里还没落盘的最后一次改动补写进去，避免刚敲完就关丢失
 		if (!open) { flushDraft(); return }
-		await loadSalesmen()
+		// 缺陷 #21：弹窗打开慢/多人同时点会卡死——根因之一是这里先把两笔
+		// 网络请求（员工全量下拉、分类树）await 完，才开始同步构建 15 行表单。
+		// 请求没回来之前弹窗是空白的，业务侧观感就是「点新增没反应」。
+		// 现在顺序反过来：同步逻辑（构行、回填）先跑完让弹窗立刻可见，
+		// 网络数据随后在后台补齐。resetPicker 是纯同步的，保留在最前面。
 		resetPicker()
-		await loadCategories()
 		if (props.record) {
 			orderTypeLocal.value = props.record.order_type || 'normal'
 			form.customer_id = props.record.customer_id
-			ensureCustomer(props.record.customer_id) // 远程模式下补取客户名/余额
 			form.warehouse_id = props.record.warehouse_id
 			form.salesman_id = props.record.salesman_id || null
 			form.order_date = props.record.order_date
@@ -1450,7 +1479,15 @@ watch(
 		} else {
 			if (!loadDraft()) initBlank()
 		}
-		await loadStock()
+		// 构行/回填已同步跑完，等这一帧落屏，弹窗即可见；
+		// 下拉、分类、客户回显、库存这些网络补齐放到帧后并行跑，谁也不挡弹窗出现。
+		await nextTick()
+		loadSalesmen()
+		loadCategories()
+		if (props.record) {
+			ensureCustomer(props.record.customer_id) // 远程模式下补取客户名/余额
+			await loadStock()
+		}
 	},
 	{ immediate: true }
 )
