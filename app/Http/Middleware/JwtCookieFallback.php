@@ -29,7 +29,7 @@ class JwtCookieFallback
         if ($cookieToken) {
             // Cookie 里的 token 是我们自己签发并校验过的，优先于请求头：
             // 代理可能塞进一个自己的（非 JWT）Authorization 值，那种值不该被信任。
-            $request->headers->set('Authorization', 'Bearer ' . $cookieToken);
+            $request->headers->set('Authorization', 'Bearer '.$cookieToken);
         }
 
         $response = $next($request);
@@ -59,7 +59,7 @@ class JwtCookieFallback
         }
 
         $payload = json_decode($response->getContent(), true);
-        if (!is_array($payload)) {
+        if (! is_array($payload)) {
             return null;
         }
 
