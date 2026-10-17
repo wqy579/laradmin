@@ -8,7 +8,7 @@
  * TODO(api)：接入后端后整体替换为 API 调用（见 shared.js 顶部路径约定）。
  * ============================================================ */
 
-import { reactive, readonly } from 'vue'
+import { reactive } from 'vue'
 import { mockAssetCards, mockDepreciationItems, salePnl, curMonth } from './shared'
 
 const state = reactive({
