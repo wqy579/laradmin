@@ -15,4 +15,10 @@ export default [
 		component: () => import('../../views/cash/handover-query/index.vue'),
 		meta: { title: '上交款查询', perm: 'cash:handover' },
 	},
+	{
+		path: '/cash/card-txn',
+		name: 'CashCardTxn',
+		component: () => import('../../views/cash/card-txn/index.vue'),
+		meta: { title: '刷卡收款记录', perm: 'cash:card:view' },
+	},
 ]
