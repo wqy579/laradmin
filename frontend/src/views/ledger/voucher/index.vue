@@ -15,6 +15,7 @@
 				<el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD" range-separator="至" start-placeholder="开始" end-placeholder="结束" style="width:240px" @change="onDateChange" />
 				<el-button type="primary" @click="load">查询</el-button>
 				<el-button @click="reset">重置</el-button>
+				<el-checkbox v-model="filters.include_red">含红冲</el-checkbox>
 			</div>
 			<div class="btn-bar">
 				<el-button type="primary" style="width:110px" @click="openForm()">新增凭证</el-button>
@@ -26,14 +27,16 @@
 				<template #voucher_no="{ row }">
 					<a class="link" @click="openDetail(row)">{{ row.voucher_no }}</a>
 				</template>
-				<template #total_debit="{ row }"><span class="amt">{{ fmt(row.total_debit) }}</span></template>
-				<template #total_credit="{ row }"><span class="amt">{{ fmt(row.total_credit) }}</span></template>
+				<template #total_debit="{ row }"><span class="amt" :class="{ 'amt-red': !!row.red_of_id }">{{ fmt(row.total_debit) }}</span></template>
+				<template #total_credit="{ row }"><span class="amt" :class="{ 'amt-red': !!row.red_of_id }">{{ fmt(row.total_credit) }}</span></template>
 				<template #status="{ row }">
 					<el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+					<el-tag v-if="row.is_red" type="danger" effect="light" size="small">已红冲</el-tag>
 				</template>
 				<template #action="{ row }">
 					<el-button v-if="row.status === 'draft' || row.status === 'submitted'" link type="primary" @click="openForm(row)">编辑</el-button>
 					<el-button v-if="row.status === 'submitted'" link type="success" @click="audit(row)">审核</el-button>
+					<el-button v-if="row.status === 'audited' && !row.is_red" link type="danger" @click="redReverse(row)"><el-icon><RefreshLeft /></el-icon>红冲</el-button>
 					<el-button link type="info" @click="openDetail(row)">查看</el-button>
 					<el-button v-if="row.status !== 'reversed'" link type="danger" @click="reverse(row)">作废</el-button>
 				</template>
@@ -47,6 +50,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { RefreshLeft } from '@element-plus/icons-vue'
 import ledgerApi from '@/api/ledger'
 import sTable from '@/components/sTable/index.vue'
 import VoucherForm from '../components/VoucherForm.vue'
@@ -60,7 +64,7 @@ const tableRef = ref(null)
 const formRef = ref(null)
 const detailRef = ref(null)
 const selected = ref([])
-const filters = reactive({ voucher_no: '', status: '', start_date: '', end_date: '', page: 1, page_size: 20 })
+const filters = reactive({ voucher_no: '', status: '', start_date: '', end_date: '', page: 1, page_size: 20, include_red: false })
 
 const columns = [
 	{ type: 'checkbox', width: 45, align: 'center' },
@@ -72,8 +76,8 @@ const columns = [
 	{ field: 'total_credit', title: '贷方合计', width: 130, align: 'right', slots: { default: 'total_credit' } },
 	{ field: 'maker_name', title: '制单人', width: 100 },
 	{ field: 'auditor_name', title: '审核人', width: 100 },
-	{ field: 'status', title: '状态', width: 100, align: 'center', slots: { default: 'status' } },
-	{ title: '操作', width: 220, align: 'center', fixed: 'right', slots: { default: 'action' } },
+	{ field: 'status', title: '状态', width: 110, align: 'center', slots: { default: 'status' } },
+	{ title: '操作', width: 260, align: 'center', fixed: 'right', slots: { default: 'action' } },
 ]
 
 const fmt = (v) => Number(v || 0).toFixed(2)
@@ -93,7 +97,7 @@ const load = async () => {
 	} catch { ElMessage.error('加载失败') }
 	finally { loading.value = false }
 }
-const reset = () => { Object.assign(filters, { voucher_no: '', status: '', start_date: '', end_date: '', page: 1 }); dateRange.value = []; load() }
+const reset = () => { Object.assign(filters, { voucher_no: '', status: '', start_date: '', end_date: '', include_red: false, page: 1 }); dateRange.value = []; load() }
 const openForm = (row) => formRef.value?.open(row)
 const openDetail = (row) => detailRef.value?.open(row.id)
 const audit = (row) => {
@@ -104,6 +108,11 @@ const audit = (row) => {
 const reverse = (row) => {
 	ElMessageBox.confirm('确认作废该凭证？作废后保留编号不回收，显示作废红章。', '操作确认', { type: 'warning' })
 		.then(async () => { await ledgerApi.voucher.reverse.post(row.id); ElMessage.success('作废成功'); load() })
+		.catch(() => {})
+}
+const redReverse = (row) => {
+	ElMessageBox.confirm(`确认红冲凭证 ${row.voucher_no}？红冲后不可撤销`, '操作确认', { type: 'warning' })
+		.then(async () => { await ledgerApi.voucher.redReverse.post(row.id); ElMessage.success('红冲成功'); load() })
 		.catch(() => {})
 }
 const batchAudit = async () => {

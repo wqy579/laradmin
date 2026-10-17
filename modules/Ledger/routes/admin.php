@@ -53,6 +53,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/audit', [VoucherController::class, 'audit']);
         Route::post('/{id}/reverse-audit', [VoucherController::class, 'reverseAudit']);
         Route::post('/{id}/reverse', [VoucherController::class, 'reverse']);
+        Route::post('/{id}/red-reverse', [VoucherController::class, 'redReverse']);
     });
 
     // ===== 财务月结 =====

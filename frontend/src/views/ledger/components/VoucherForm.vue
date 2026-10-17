@@ -12,6 +12,9 @@
 				<el-form-item label="附单据数">
 					<el-input-number v-model="form.attachments_count" :min="0" controls-position="right" style="width:100px" />
 				</el-form-item>
+				<el-form-item label="录单时自动审核" label-width="110px">
+					<el-switch v-model="form.auto_audit" />
+				</el-form-item>
 			</el-form>
 		</div>
 		<!-- 分录表格 -->
@@ -73,7 +76,8 @@
 				</div>
 				<div class="right-btns">
 					<el-button @click="visible = false">取消</el-button>
-					<el-button type="primary" @click="submitAudit">提交审核</el-button>
+					<el-button v-if="form.auto_audit" type="primary" @click="submitAudit">保存并审核</el-button>
+					<el-button v-else type="primary" @click="submitAudit">提交审核</el-button>
 				</div>
 			</div>
 		</template>
@@ -88,7 +92,7 @@ import ledgerApi from '@/api/ledger'
 const emit = defineEmits(['saved'])
 const visible = ref(false)
 const title = ref('新增记账凭证')
-const form = reactive({ id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '' })
+const form = reactive({ id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '', auto_audit: false })
 const entries = ref([])
 const subjectOptions = ref([])
 const brandOptions = ref([])
@@ -104,23 +108,32 @@ const round = (v) => Math.round(v * 100) / 100
 const auxLabel = (a) => ({ customer: '客户', supplier: '供应商', employee: '员工', department: '部门', project: '项目' }[a] || a)
 const auxOptions = (type) => auxMap[type] || []
 
+/** 录单时自动审核默认值：取系统参数，取不到则 false。 */
+const loadAutoAuditDefault = async () => {
+	try {
+		const res = await import('@/api/system').then(m => m.default.system.config.all.get())
+		const cfg = res.data || {}
+		form.auto_audit = !!(cfg['ledger.voucher.auto_audit'] ?? cfg['ledger_auto_audit'] ?? false)
+	} catch {
+		form.auto_audit = false
+	}
+}
+
 const open = async (row) => {
-	Object.assign(form, { id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '' })
+	Object.assign(form, { id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '', auto_audit: false })
 	entries.value = [emptyEntry(), emptyEntry(), emptyEntry(), emptyEntry(), emptyEntry()]
-	await loadOptions()
+	await Promise.all([loadOptions(), loadAutoAuditDefault()])
 	if (row) {
 		const res = await ledgerApi.voucher.detail.get(row.id)
 		const v = res.data?.voucher
 		if (v) {
-			Object.assign(form, { id: v.id, voucher_no: v.voucher_no, voucher_date: v.voucher_date, attachments_count: v.attachments_count, remark: v.remark })
+			Object.assign(form, { id: v.id, voucher_no: v.voucher_no, voucher_date: v.voucher_date, attachments_count: v.attachments_count, remark: v.remark, auto_audit: !!v.auto_audit })
 			entries.value = v.entries.map(e => ({ subject_id: e.subject_id, subject_code: e.subject_code, subject_name: e.subject_name, aux_types: subjectOptions.value.find(s => s.id === e.subject_id)?.aux_types || [], aux_type: e.aux_type, aux_id: e.aux_id, aux_name: e.aux_name, brand_id: e.brand_id, brand_name: e.brand_name, summary: e.summary, debit_amount: Number(e.debit_amount), credit_amount: Number(e.credit_amount) }))
 			// 补齐至少 5 行
 			while (entries.value.length < 5) entries.value.push(emptyEntry())
 		}
-		title.value = row ? '编辑记账凭证' : '新增记账凭证'
-	} else {
-		title.value = '新增记账凭证'
 	}
+	title.value = row ? '编辑记账凭证' : '新增记账凭证'
 	visible.value = true
 }
 defineExpose({ open })
@@ -198,19 +211,22 @@ const saveAndNew = async () => {
 	try {
 		await ledgerApi.voucher.add.post(buildPayload('draft'))
 		ElMessage.success('保存成功')
-		Object.assign(form, { id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '' })
+		Object.assign(form, { id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '', auto_audit: false })
 		entries.value = [emptyEntry(), emptyEntry(), emptyEntry(), emptyEntry(), emptyEntry()]
 	} catch (e) { ElMessage.error(e?.message || '保存失败') }
 }
 const submitAudit = async () => {
 	if (!balanced.value) return ElMessage.error(`借贷不平衡，借方合计 ${fmt(totalDebit.value)}，贷方合计 ${fmt(totalCredit.value)}`)
+	// 录单时自动审核开启 → 保存即已审核（制单人自审入账）；否则走提交审核
+	const status = form.auto_audit ? 'audited' : 'submitted'
+	const successMsg = form.auto_audit ? '保存并审核成功' : '提交成功'
 	try {
-		if (form.id) await ledgerApi.voucher.edit.put(form.id, buildPayload('submitted'))
-		else await ledgerApi.voucher.add.post(buildPayload('submitted'))
-		ElMessage.success('提交成功')
+		if (form.id) await ledgerApi.voucher.edit.put(form.id, buildPayload(status))
+		else await ledgerApi.voucher.add.post(buildPayload(status))
+		ElMessage.success(successMsg)
 		visible.value = false
 		emit('saved')
-	} catch (e) { ElMessage.error(e?.message || '提交失败') }
+	} catch (e) { ElMessage.error(e?.message || (form.auto_audit ? '保存并审核失败' : '提交失败')) }
 }
 
 // 金额转中文大写（简化版）

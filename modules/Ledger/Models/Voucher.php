@@ -23,6 +23,7 @@ class Voucher extends Model
         'total_debit', 'total_credit', 'status',
         'maker_id', 'maker_name', 'auditor_id', 'auditor_name',
         'audited_at', 'remark',
+        'red_of_id', 'is_red', 'auto_audit',
     ];
 
     protected $casts = [
@@ -31,6 +32,8 @@ class Voucher extends Model
         'attachments_count' => 'integer',
         'total_debit' => 'decimal:2',
         'total_credit' => 'decimal:2',
+        'is_red' => 'boolean',
+        'auto_audit' => 'boolean',
     ];
 
     const STATUS_DRAFT = 'draft';
@@ -54,6 +57,18 @@ class Voucher extends Model
     public function auditor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'auditor_id');
+    }
+
+    /** 红冲单所属的原凭证 */
+    public function reversal(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'red_of_id');
+    }
+
+    /** 原凭证被生成的红冲单 */
+    public function redReversals(): HasMany
+    {
+        return $this->hasMany(self::class, 'red_of_id');
     }
 
     public static function statusLabel(string $status): string

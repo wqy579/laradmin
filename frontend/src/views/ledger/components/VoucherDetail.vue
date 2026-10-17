@@ -8,6 +8,11 @@
 				<span class="vp-date">日期：{{ voucher.voucher_date }}</span>
 				<span class="vp-att">附单据 {{ voucher.attachments_count }} 张</span>
 			</div>
+			<div v-if="voucher.red_of_id || voucher.is_red" class="vp-flags">
+				<el-tag v-if="voucher.red_of_id" type="danger" effect="light" size="small">红冲单</el-tag>
+				<span v-if="voucher.red_of_id" class="vp-orig-no">原凭证号：<a class="link" @click="openOriginal">{{ voucher.red_of_voucher_no }}</a></span>
+				<el-tag v-if="voucher.is_red" type="danger" effect="light" size="small">已红冲</el-tag>
+			</div>
 			<table class="vp-table">
 				<thead>
 					<tr>
@@ -25,15 +30,15 @@
 						<td>{{ e.subject_code }} {{ e.subject_name }}</td>
 						<td>{{ e.aux_name || '—' }}</td>
 							<td>{{ e.brand_name || '—' }}</td>
-						<td class="amt">{{ fmt(e.debit_amount) }}</td>
-						<td class="amt">{{ fmt(e.credit_amount) }}</td>
+						<td class="amt" :class="{ 'amt-red': !!voucher.red_of_id }">{{ fmt(e.debit_amount) }}</td>
+						<td class="amt" :class="{ 'amt-red': !!voucher.red_of_id }">{{ fmt(e.credit_amount) }}</td>
 					</tr>
 				</tbody>
 				<tfoot>
 					<tr>
 						<td colspan="4" class="vp-chinese">合计：人民币（大写）{{ voucher.amount_chinese }}</td>
-						<td class="amt"><b>借方合计：{{ fmt(voucher.total_debit) }}</b></td>
-						<td class="amt"><b>贷方合计：{{ fmt(voucher.total_credit) }}</b></td>
+						<td class="amt" :class="{ 'amt-red': !!voucher.red_of_id }"><b>借方合计：{{ fmt(voucher.total_debit) }}</b></td>
+						<td class="amt" :class="{ 'amt-red': !!voucher.red_of_id }"><b>贷方合计：{{ fmt(voucher.total_credit) }}</b></td>
 					</tr>
 				</tfoot>
 			</table>
@@ -71,20 +76,34 @@ const open = async (id) => {
 }
 defineExpose({ open })
 const fmt = (v) => Number(v || 0).toFixed(2)
+const openOriginal = async () => {
+	const origId = voucher.value.red_of_id
+	if (!origId) return
+	try {
+		const res = await ledgerApi.voucher.detail.get(origId)
+		voucher.value = res.data?.voucher || {}
+	} catch { ElMessage.error('加载失败') }
+}
 const print = () => {
 	const html = document.getElementById('voucherPrintArea')?.innerHTML
 	const w = window.open('', '_blank', 'width=900,height=700')
 	w.document.write(`<html><head><title>记账凭证</title><style>
 		.vp-title { text-align:center; font-size:20px; font-weight:700; margin:16px 0; }
 		.vp-head { display:flex; justify-content:space-between; font-size:14px; margin-bottom:12px; }
+		.vp-flags { display:flex; gap:8px; align-items:center; margin-bottom:12px; font-size:14px; }
+		.vp-flags .link { color:#409eff; cursor:pointer; text-decoration:underline; }
 		.vp-table { width:100%; border-collapse:collapse; }
 		.vp-table th, .vp-table td { border:1px solid #303133; padding:6px 8px; font-size:14px; text-align:center; }
 		.amt { text-align:right; }
+		.amt-red { color:#f56c6c; }
 		.vp-chinese { text-align:left; font-weight:700; }
 		.vp-signs { display:flex; justify-content:space-around; margin-top:40px; }
 		.vp-sign { text-align:center; }
 		.vp-sign .lbl { font-size:13px; color:#606266; display:block; }
 		.vp-sign .name { display:inline-block; min-width:80px; border-bottom:1px solid #606266; margin-top:8px; }
+		.vp-stamp { position:absolute; top:40%; left:40%; font-size:40px; font-weight:700; border:3px solid; padding:8px 16px; opacity:0.8; transform:rotate(-15deg); pointer-events:none; }
+		.audit-stamp { color:#f56c6c; border-color:#f56c6c; border-radius:50%; }
+		.void-stamp { color:#f56c6c; border-color:#f56c6c; }
 	</style></head><body style="padding:40px;">${html}</body></html>`)
 	w.document.close()
 	w.focus()
