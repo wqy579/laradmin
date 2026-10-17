@@ -11,4 +11,16 @@ export default [
 		component: () => import('../../views/points/rule/index.vue'),
 		meta: { title: '积分规则', perm: 'cash:integral:rule' },
 	},
+	{
+		path: '/points/grant',
+		name: 'PointsGrant',
+		component: () => import('../../views/points/grant/index.vue'),
+		meta: { title: '积分发放', perm: 'cash:integral:grant' },
+	},
+	{
+		path: '/points/use',
+		name: 'PointsUse',
+		component: () => import('../../views/points/use/index.vue'),
+		meta: { title: '积分核销', perm: 'cash:integral:use' },
+	},
 ]
