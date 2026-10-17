@@ -45,6 +45,7 @@
 				<el-button size="small" @click="reorderBalance">科目余额重排</el-button>
 				<el-button type="primary" size="small" @click="refresh">查询</el-button>
 				<el-button size="small" @click="resetSearch">重置</el-button>
+				<el-button size="small" @click="exportData">导出</el-button>
 			</div>
 		</div>
 
@@ -56,6 +57,7 @@
 				v-loading="loading"
 				:show-summary="true"
 				:summary-method="summaryMethod"
+				@row-dblclick="openVoucher"
 			>
 				<el-table-column prop="date" label="日期" width="110" align="center">
 					<template #default="{ row }"><span class="tabular" :class="row.is_red ? 'num-red' : ''">{{ row.date }}</span></template>
@@ -64,7 +66,9 @@
 					<template #default="{ row }"><span :class="row.is_red ? 'num-red' : 'cell-regular'">{{ row.doc_type }}</span></template>
 				</el-table-column>
 				<el-table-column prop="doc_no" label="单据号" width="150" align="left">
-					<template #default="{ row }"><span class="tabular">{{ row.doc_no }}</span></template>
+					<template #default="{ row }">
+						<span class="link tabular" @click="openVoucher(row)">{{ row.doc_no }}</span>
+					</template>
 				</el-table-column>
 				<el-table-column prop="subject" label="科目" width="140" align="left">
 					<template #default="{ row }"><span :class="row.is_red ? 'num-red' : ''">{{ row.subject }}</span></template>
@@ -89,6 +93,11 @@
 				<el-table-column prop="salesman" label="业务员" width="100" align="left">
 					<template #default="{ row }"><span :class="row.is_red ? 'num-red' : 'cell-regular'">{{ row.salesman }}</span></template>
 				</el-table-column>
+				<el-table-column label="操作" width="90" align="right">
+					<template #default="{ row }">
+						<el-button link type="primary" size="small" @click="openVoucher(row)">查看</el-button>
+					</template>
+				</el-table-column>
 				<template #empty>
 					<span class="empty-text">暂无数据</span>
 				</template>
@@ -99,13 +108,41 @@
 			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="(p) => (page = p)" />
 		</div>
 
+		<!-- 凭证穿透：只读（凭证头 + 分录），mock -->
+		<el-drawer v-model="drawer" size="640px" :title="current ? `凭证详情 ${current.voucher_no}` : '凭证详情'" destroy-on-close>
+			<div v-if="current" class="v-wrap">
+				<div class="v-head">
+					<div class="v-item"><span class="v-label">凭证字号</span><span class="v-value tabular">{{ current.voucher_no }}</span></div>
+					<div class="v-item"><span class="v-label">日期</span><span class="v-value tabular">{{ current.date }}</span></div>
+					<div class="v-item"><span class="v-label">单据类型</span><span class="v-value">{{ current.doc_type }}</span></div>
+					<div class="v-item"><span class="v-label">单据号</span><span class="v-value tabular">{{ current.doc_no }}</span></div>
+					<div class="v-item"><span class="v-label">科目</span><span class="v-value">{{ current.subject }}</span></div>
+					<div class="v-item"><span class="v-label">业务员</span><span class="v-value">{{ current.salesman }}</span></div>
+					<div class="v-item v-item--wide"><span class="v-label">摘要</span><span class="v-value">{{ (current.is_red ? '(红冲) ' : '') + current.summary }}</span></div>
+					<div class="v-item v-item--wide"><span class="v-label">状态</span><span class="v-value"><el-tag size="small" :type="current.is_red ? 'danger' : 'success'">{{ current.is_red ? '红冲' : '正常' }}</el-tag></span></div>
+				</div>
+				<div class="v-section-title">凭证分录</div>
+				<el-table :data="entries" border size="small" :show-summary="true" :summary-method="entrySummary">
+					<el-table-column prop="summary" label="摘要" min-width="180" align="left" />
+					<el-table-column prop="subject" label="科目" width="140" align="left" />
+					<el-table-column prop="debit" label="借方" width="110" align="right">
+						<template #default="{ row }"><span class="tabular">{{ fmt(row.debit) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="credit" label="贷方" width="110" align="right">
+						<template #default="{ row }"><span class="tabular">{{ fmt(row.credit) }}</span></template>
+					</el-table-column>
+				</el-table>
+				<div class="v-foot">制单：系统（mock 演示数据）　附单据数：1　记账：—　审核：—</div>
+			</div>
+		</el-drawer>
 	</div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { subjectTree, dateTypes, docTypes, salesmans, buildJournalRows, reorderBalances } from './mock'
+import { saveBlob } from '@/utils/fileDownload'
+import { subjectTree, dateTypes, docTypes, salesmans, buildJournalRows, reorderBalances, buildEntries } from './mock'
 
 // 金额千分位 + 两位小数；负值着红由各列 class 控制
 const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -127,6 +164,8 @@ const rows = ref(buildJournalRows())
 const loading = ref(false)
 const page = ref(1)
 const pageSize = 30
+const drawer = ref(false)
+const current = ref(null)
 
 // —— 前端筛选（mock 数据一次到位）——
 const filteredList = computed(() => {
@@ -172,12 +211,48 @@ const summaryMethod = ({ columns }) => {
 		return ''
 	})
 }
+const entrySummary = ({ columns }) =>
+	columns.map((col, i) => {
+		if (i === 0) return '合计'
+		if (col.property === 'debit') return fmt(entries.value.reduce((s, e) => s + Number(e.debit || 0), 0))
+		if (col.property === 'credit') return fmt(entries.value.reduce((s, e) => s + Number(e.credit || 0), 0))
+		return ''
+	})
+
 // 「科目余额重排」：按当前筛选重算余额列并回写
 const reorderBalance = () => {
 	const map = new Map()
 	reorderBalances(filteredList.value).forEach((r) => map.set(r.id, r.balance))
 	rows.value = rows.value.map((r) => (map.has(r.id) ? { ...r, balance: map.get(r.id) } : r))
 	ElMessage.success('余额已重排')
+}
+
+// 凭证穿透（双击行 / 单击单据号 / 查看）
+const entries = computed(() => (current.value ? buildEntries(current.value) : []))
+const openVoucher = (row) => {
+	if (!row) return
+	current.value = row
+	drawer.value = true
+}
+
+// 导出：前端 mock 数据生成 CSV（带 BOM，Excel 直开）
+const exportData = () => {
+	const list = filteredList.value
+	if (!list.length) return ElMessage.warning('无数据')
+	const header = ['日期', '单据类型', '单据号', '科目', '摘要', '收入(借)', '支出(贷)', '余额', '业务员']
+	const esc = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"'
+	const lines = [header.map(esc).join(',')]
+	list.forEach((r) => {
+		lines.push(
+			[r.date, r.doc_type, r.doc_no, r.subject, (r.is_red ? '(红冲) ' : '') + r.summary, fmt(r.income), fmt(r.outcome), fmt(r.balance), r.salesman].map(esc).join(',')
+		)
+	})
+	lines.push(
+		['合计', '', '', '', '', fmt(list.reduce((s, r) => s + Number(r.income || 0), 0)), fmt(list.reduce((s, r) => s + Number(r.outcome || 0), 0)), '', ''].map(esc).join(',')
+	)
+	const range = applied.value.daterange?.length === 2 ? `${applied.value.daterange[0]}_${applied.value.daterange[1]}` : '全期'
+	saveBlob('﻿' + lines.join('\r\n'), `日记账_${range}.csv`)
+	ElMessage.success('导出成功')
 }
 
 onMounted(refresh)
@@ -242,6 +317,10 @@ onMounted(refresh)
 	font-weight: 600;
 	opacity: 0.35;
 }
+.link {
+	color: var(--color-primary);
+	cursor: pointer;
+}
 .empty-text {
 	color: var(--text-secondary);
 	font-size: var(--font-base);
@@ -273,5 +352,59 @@ onMounted(refresh)
 }
 :deep(.el-table__footer td:first-child) {
 	text-align: left;
+}
+/* 凭证穿透抽屉（640px 只读） */
+.v-wrap {
+	font-size: var(--font-base);
+	color: var(--text-primary);
+}
+:deep(.el-drawer__header) {
+	height: 50px;
+	margin-bottom: 8px;
+	padding-top: 0;
+	padding-bottom: 0;
+	border-bottom: 1px solid var(--border-lighter);
+}
+:deep(.el-drawer__title) {
+	font-size: var(--font-h2);
+	font-weight: 600;
+	color: var(--text-primary);
+	height: 50px;
+	line-height: 50px;
+}
+.v-head {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 12px 24px;
+	padding: 16px;
+	background: var(--bg-hover);
+	border: 1px solid var(--border-lighter);
+	border-radius: var(--radius-md);
+}
+.v-item {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+.v-item--wide {
+	grid-column: span 2;
+}
+.v-label {
+	color: var(--text-regular);
+	flex-shrink: 0;
+}
+.v-value {
+	color: var(--text-primary);
+}
+.v-section-title {
+	font-size: var(--font-h3);
+	font-weight: 600;
+	color: var(--text-primary);
+	margin: 16px 0 8px;
+}
+.v-foot {
+	margin-top: 16px;
+	color: var(--text-secondary);
+	font-size: var(--font-aux);
 }
 </style>

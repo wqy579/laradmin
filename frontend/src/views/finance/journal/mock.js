@@ -84,3 +84,12 @@ export function reorderBalances(rows) {
 		return { ...row, balance }
 	})
 }
+
+/** 生成凭证分录（凭证头 + 分录的只读穿透数据）：本行流水 + 对方科目对冲 */
+export function buildEntries(row) {
+	const counter = counterSubject(row.doc_type)
+	return [
+		{ summary: row.summary, subject: row.subject, debit: row.income, credit: row.outcome },
+		{ summary: row.summary, subject: counter, debit: row.outcome, credit: row.income },
+	]
+}
