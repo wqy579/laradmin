@@ -23,4 +23,10 @@ export default [
 		component: () => import('../../views/points/use/index.vue'),
 		meta: { title: '积分核销', perm: 'cash:integral:use' },
 	},
+	{
+		path: '/points/query',
+		name: 'PointsQuery',
+		component: () => import('../../views/points/query/index.vue'),
+		meta: { title: '积分查询', perm: 'cash:integral:query' },
+	},
 ]
