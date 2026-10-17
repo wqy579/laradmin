@@ -259,20 +259,20 @@ function digitsToChinese(num) {
 </script>
 
 <style scoped>
-.voucher-head { border-bottom: 1px solid #ebeef5; padding-bottom: 12px; margin-bottom: 16px; }
+.voucher-head { border-bottom: 1px solid var(--border-lighter); padding-bottom: 12px; margin-bottom: 16px; }
 .entry-table { margin-bottom: 8px; }
 .acct-table { width: 100%; border-collapse: collapse; }
-.acct-table th { background: #f5f7fa; color: #606266; font-size: 14px; font-weight: 500; height: 40px; border: 1px solid #ebeef5; text-align: center; }
-.acct-table td { border: 1px solid #ebeef5; padding: 4px 8px; }
+.acct-table th { background: var(--bg-hover); color: var(--text-regular); font-size: 14px; font-weight: 500; height: 40px; border: 1px solid var(--border-lighter); text-align: center; }
+.acct-table td { border: 1px solid var(--border-lighter); padding: 4px 8px; }
 .acct-table td .amt-cell { width: 100%; text-align: right; }
-.del-icon { color: #f56c6c; cursor: pointer; font-size: 16px; }
-.add-entry-btn { width: 100%; border: 1px dashed #409eff; color: #409eff; margin-top: 8px; }
-.total-row { display: flex; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #ebeef5; margin-top: 8px; }
-.chinese { font-size: 15px; font-weight: 700; color: #303133; }
-.total-amt { font-size: 14px; color: #606266; }
-.green { color: #67c23a; }
-.red { color: #f56c6c; }
-.dash { color: #909399; text-align: center; display: inline-block; width: 100%; }
+.del-icon { color: var(--color-danger); cursor: pointer; font-size: 16px; }
+.add-entry-btn { width: 100%; border: 1px dashed var(--color-primary); color: var(--color-primary); margin-top: 8px; }
+.total-row { display: flex; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid var(--border-lighter); margin-top: 8px; }
+.chinese { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.total-amt { font-size: 14px; color: var(--text-regular); }
+.green { color: var(--color-success); }
+.red { color: var(--color-danger); }
+.dash { color: var(--text-secondary); text-align: center; display: inline-block; width: 100%; }
 .footer-bar { display: flex; justify-content: space-between; padding: 0 20px; }
-.left-btns .el-button { border-color: #409eff; color: #409eff; }
+.left-btns .el-button { border-color: var(--color-primary); color: var(--color-primary); }
 </style>

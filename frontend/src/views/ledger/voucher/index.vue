@@ -138,12 +138,13 @@ onMounted(() => load())
 </script>
 
 <style scoped>
-.page { background: #f0f2f5; min-height: 100vh; }
-.page-header { height: 50px; background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 18px; font-weight: 700; color: #303133; }
+.page { background: var(--bg-body); min-height: 100vh; }
+.page-header { height: 50px; background: var(--bg-card); border-bottom: 1px solid var(--border-light); padding: 0 20px; display: flex; align-items: center; }
+.title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; }
-.btn-bar { height: 50px; display: flex; gap: 8px; align-items: center; border-top: 1px solid #ebeef5; padding-top: 12px; margin-bottom: 12px; }
-.link { color: #409eff; cursor: pointer; }
-.amt { color: #303133; font-weight: 500; text-align: right; display: inline-block; width: 100%; }
+.btn-bar { height: 50px; display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--border-lighter); padding-top: 12px; margin-bottom: 12px; }
+.link { color: var(--color-primary); cursor: pointer; }
+.amt { color: var(--text-primary); font-weight: 500; text-align: right; display: inline-block; width: 100%; }
+.amt-red { color: var(--color-danger); }
 </style>

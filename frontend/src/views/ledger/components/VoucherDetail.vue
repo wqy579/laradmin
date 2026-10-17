@@ -112,19 +112,23 @@ const print = () => {
 </script>
 
 <style scoped>
-.voucher-print { padding: 20px; }
-.vp-title { text-align:center; font-size:20px; font-weight:700; color:#303133; margin-bottom:16px; }
-.vp-head { display:flex; justify-content:space-between; font-size:14px; color:#606266; margin-bottom:12px; }
+.voucher-print { padding: 20px; position: relative; }
+.vp-title { text-align:center; font-size:20px; font-weight:700; color:var(--text-primary); margin-bottom:16px; }
+.vp-head { display:flex; justify-content:space-between; font-size:14px; color:var(--text-regular); margin-bottom:12px; }
+.vp-flags { display:flex; gap:8px; align-items:center; margin-bottom:12px; font-size:14px; }
+.vp-flags .link { color:var(--color-primary); cursor:pointer; text-decoration:underline; }
+.vp-orig-no { font-size:14px; color:var(--text-regular); }
 .vp-table { width:100%; border-collapse:collapse; }
-.vp-table th { background:#f5f7fa; border:1px solid #303133; padding:8px; font-size:14px; font-weight:500; color:#606266; }
-.vp-table td { border:1px solid #303133; padding:8px; font-size:14px; }
+.vp-table th { background:var(--bg-hover); border:1px solid var(--text-primary); padding:8px; font-size:14px; font-weight:500; color:var(--text-regular); }
+.vp-table td { border:1px solid var(--text-primary); padding:8px; font-size:14px; }
 .amt { text-align:right; }
+.amt-red { color:var(--color-danger); }
 .vp-chinese { text-align:left; font-weight:700; }
 .vp-signs { display:flex; justify-content:space-around; margin-top:40px; }
 .vp-sign { text-align:center; }
-.vp-sign .lbl { font-size:13px; color:#606266; display:block; }
-.vp-sign .name { display:inline-block; min-width:80px; border-bottom:1px solid #606266; margin-top:8px; }
+.vp-sign .lbl { font-size:13px; color:var(--text-regular); display:block; }
+.vp-sign .name { display:inline-block; min-width:80px; border-bottom:1px solid var(--text-regular); margin-top:8px; }
 .vp-stamp { position:absolute; top:40%; left:40%; font-size:40px; font-weight:700; border:3px solid; padding:8px 16px; opacity:0.8; transform:rotate(-15deg); pointer-events:none; }
-.audit-stamp { color:#f56c6c; border-color:#f56c6c; border-radius:50%; }
-.void-stamp { color:#f56c6c; border-color:#f56c6c; }
+.audit-stamp { color:var(--color-danger); border-color:var(--color-danger); border-radius:50%; }
+.void-stamp { color:var(--color-danger); border-color:var(--color-danger); }
 </style>
