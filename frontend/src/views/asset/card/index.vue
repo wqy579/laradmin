@@ -190,8 +190,8 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Plus } from '@element-plus/icons-vue'
 import {
 	ASSET_CATEGORIES,
@@ -208,6 +208,7 @@ import {
 import { listCards, listDepRuns } from '../store'
 
 const DEP_LABEL = Object.fromEntries(DEP_METHODS.map((m) => [m.value, m.label]))
+const route = useRoute()
 const router = useRouter()
 
 /* ---------- 筛选 ---------- */
@@ -289,6 +290,18 @@ const openDetail = (row) => {
 const openDep = (row) => openDetail(row)
 
 const goPurchase = () => router.push('/asset/purchase')
+
+/* 购置单「卡片」按钮深链：?focus=<资产 id> 自动展开详情 */
+onMounted(() => {
+	const focus = route.query.focus
+	if (focus) {
+		const target = listCards().find((a) => a.id === focus)
+		if (target) {
+			openDetail(target)
+			router.replace({ query: { ...route.query, focus: '' } })
+		}
+	}
+})
 </script>
 
 <style scoped>
