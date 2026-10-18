@@ -36,6 +36,7 @@ const ledgerApi = {
 		batchReverse: { post: (params) => request.post('ledger/vouchers/batch-reverse', params) },
 		reverseAudit: { post: (id) => request.post(`ledger/vouchers/${id}/reverse-audit`) },
 		reverse: { post: (id) => request.post(`ledger/vouchers/${id}/reverse`) },
+		redReverse: { post: (id) => request.post(`ledger/vouchers/${id}/red-reverse`) },
 		subjectLedger: { get: (params) => request.get('ledger/vouchers/subject-ledger', { params }) },
 		templates: { get: () => request.get('ledger/vouchers/templates') },
 		saveTemplate: { post: (params) => request.post('ledger/vouchers/templates', params) },
