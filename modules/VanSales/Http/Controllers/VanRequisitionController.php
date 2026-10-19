@@ -453,18 +453,48 @@ class VanRequisitionController extends Controller
         return $this->success($requisition, '已驳回，可继续修改');
     }
 
-    /** 取消（draft/pending → cancelled） */
+    /**
+     * 取消（draft/pending/approved → cancelled）
+     *
+     * approved 取消必须释放 approve 时冻结的源仓库存：冻结的唯一原有解冻路径是
+     * 拣货单 approve，要货单若审核后永不拣货，冻结量将永久悬挂（可用库存虚减）。
+     * picked 为拣货完成终态，库存已由拣货单解冻出库，不允许再取消。
+     */
     public function cancel($id)
     {
-        $requisition = VanRequisition::find($id);
+        $requisition = VanRequisition::with('items')->find($id);
         if (! $requisition) {
             return $this->notFound('要货申请不存在');
         }
-        if (! in_array($requisition->status, [VanRequisition::STATUS_DRAFT, VanRequisition::STATUS_PENDING], true)) {
+        if (! in_array($requisition->status, [VanRequisition::STATUS_DRAFT, VanRequisition::STATUS_PENDING, VanRequisition::STATUS_APPROVED], true)) {
             return $this->error('当前状态不能取消', 422);
         }
 
-        $requisition->update(['status' => VanRequisition::STATUS_CANCELLED]);
+        [$adminId, $adminName] = $this->currentAdmin();
+        $fromStatus = $requisition->status;
+
+        try {
+            DB::transaction(function () use ($requisition, $adminId, $adminName, $fromStatus) {
+                if ($fromStatus === VanRequisition::STATUS_APPROVED) {
+                    foreach ($requisition->items as $item) {
+                        $this->stockService->unfreeze(
+                            (int) $item->product_id,
+                            (int) $requisition->warehouse_id,
+                            (int) $item->apply_qty,
+                            (int) $requisition->id,
+                            'VanRequisition',
+                            'requisition_unfreeze',
+                            '要货单取消解冻'
+                        );
+                    }
+                }
+
+                $requisition->update(['status' => VanRequisition::STATUS_CANCELLED]);
+                $this->writeOperationLog($requisition, $adminId, $adminName, 'cancel', '取消', $fromStatus, VanRequisition::STATUS_CANCELLED);
+            });
+        } catch (StockRuleException $e) {
+            return $this->error('取消失败：'.$e->getMessage(), 422);
+        }
 
         return $this->success($requisition, '已取消');
     }
