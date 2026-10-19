@@ -9020,6 +9020,18 @@
         ]
     },
     {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/{id}/reverse",
+        "name": "admin.",
+        "action": "Modules\\Ledger\Http\\Controllers\\VoucherController@reverse",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "GET",
         "uri": "api/import/status",
         "name": null,
