@@ -1,0 +1,107 @@
+/* 出纳资金单族（P0-8）共享页面样式
+ * 供 views/cashier/*/index.vue 以 <style scoped> 内 @import 复用。
+ * 仅引用 tokens.css 的 CSS 变量，禁私造色值/字号。 */
+.cash-page {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+.cash-filter {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 12px 16px;
+	background: var(--bg-card);
+	border-bottom: 1px solid var(--border-lighter);
+}
+.cash-filter__label {
+	font-size: var(--font-base);
+	color: var(--text-regular);
+	white-space: nowrap;
+}
+.cash-table {
+	flex: 1;
+	padding: 0 16px;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+.cash-table :deep(.el-table) {
+	flex: 1;
+}
+.cash-table :deep(.el-table th.el-table__cell) {
+	background: var(--bg-hover);
+	color: var(--text-regular);
+	font-weight: 600;
+	font-size: var(--font-base);
+}
+.cash-table :deep(.el-table td.el-table__cell) {
+	color: var(--text-primary);
+	font-size: var(--font-base);
+}
+.cash-table :deep(.el-table__row) {
+	height: 40px;
+}
+.cash-table :deep(.el-table__footer) {
+	background: var(--bg-hover);
+}
+.cash-table :deep(.el-table__footer td.el-table__cell) {
+	color: var(--text-primary);
+	font-weight: 600;
+	font-size: var(--font-base);
+}
+/* 收入红 / 支出绿（设计文档 8.1 通用表格列） */
+.cash-income {
+	color: var(--color-danger);
+	font-weight: 600;
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+}
+.cash-expense {
+	color: var(--color-success);
+	font-weight: 600;
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+}
+/* 余额：等宽，负值红 */
+.cash-balance {
+	color: var(--text-primary);
+	font-weight: 600;
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+}
+.cash-balance--neg {
+	color: var(--color-danger);
+}
+.cash-link {
+	color: var(--color-primary);
+	cursor: pointer;
+}
+.cash-link:hover {
+	text-decoration: underline;
+}
+.cash-pager {
+	display: flex;
+	justify-content: flex-end;
+	padding: 12px 16px 0;
+}
+.cash-hint {
+	margin-top: 8px;
+	font-size: var(--font-aux);
+	color: var(--text-secondary);
+}
+/* 单据头表单（弹窗内）：右对齐标签 */
+.cash-form :deep(.el-form-item__label) {
+	font-size: var(--font-base);
+	color: var(--text-regular);
+}
+.cash-form :deep(.el-form-item__content) {
+	font-size: var(--font-base);
+}
+/* 单据编号只读占位 */
+.cash-no {
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-secondary);
+}
