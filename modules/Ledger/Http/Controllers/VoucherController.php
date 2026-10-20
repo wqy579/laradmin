@@ -22,7 +22,7 @@ class VoucherController extends Controller
         $filters = $request->only([
             'voucher_no', 'status', 'start_date', 'end_date', 'period',
             'subject_id', 'maker_name', 'auditor_name',
-            'min_amount', 'max_amount', 'direction',
+            'min_amount', 'max_amount', 'direction', 'include_red',
         ]);
         $page = (int) $request->input('page', 1);
         $pageSize = (int) $request->input('page_size', 20);
@@ -41,12 +41,15 @@ class VoucherController extends Controller
             'voucher_date' => 'required|date',
             'attachments_count' => 'nullable|integer|min:0',
             'remark' => 'nullable|string',
-            'status' => 'nullable|in:draft,submitted',
+            'status' => 'nullable|in:draft,submitted,audited',
+            'auto_audit' => 'nullable|boolean',
             'entries' => 'required|array|min:1',
             'entries.*.subject_id' => 'required|exists:ledger_subjects,id',
             'entries.*.aux_type' => 'nullable|string',
             'entries.*.aux_id' => 'nullable|integer',
             'entries.*.aux_name' => 'nullable|string',
+            'entries.*.brand_id' => 'nullable|integer',
+            'entries.*.brand_name' => 'nullable|string',
             'entries.*.summary' => 'nullable|string|max:200',
             'entries.*.debit_amount' => 'nullable|numeric',
             'entries.*.credit_amount' => 'nullable|numeric',
@@ -74,12 +77,15 @@ class VoucherController extends Controller
             'voucher_date' => 'sometimes|date',
             'attachments_count' => 'nullable|integer|min:0',
             'remark' => 'nullable|string',
-            'status' => 'nullable|in:draft,submitted',
+            'status' => 'nullable|in:draft,submitted,audited',
+            'auto_audit' => 'nullable|boolean',
             'entries' => 'sometimes|array|min:1',
             'entries.*.subject_id' => 'required_with:entries|exists:ledger_subjects,id',
             'entries.*.aux_type' => 'nullable|string',
             'entries.*.aux_id' => 'nullable|integer',
             'entries.*.aux_name' => 'nullable|string',
+            'entries.*.brand_id' => 'nullable|integer',
+            'entries.*.brand_name' => 'nullable|string',
             'entries.*.summary' => 'nullable|string|max:200',
             'entries.*.debit_amount' => 'nullable|numeric',
             'entries.*.credit_amount' => 'nullable|numeric',
@@ -158,6 +164,26 @@ class VoucherController extends Controller
         }
     }
 
+    /** 红冲：生成一张借贷对调的红冲凭证，原凭证标注已红冲 */
+    public function redReverse(int $id)
+    {
+        $user = request()->input('auth_user');
+
+        try {
+            $voucher = $this->service->redReverse(
+                $id,
+                $user?->id ?? 0,
+                $user?->real_name ?? $user?->username ?? '系统'
+            );
+
+            return $this->success(['voucher' => $this->service->detail($voucher->id)], '红冲成功');
+        } catch (\DomainException $e) {
+            return $this->error($e->getMessage(), 422);
+        } catch (\Throwable $e) {
+            return $this->error('红冲失败：'.$e->getMessage(), 500);
+        }
+    }
+
     public function reverse(int $id)
     {
         try {
@@ -222,12 +248,13 @@ class VoucherController extends Controller
 
     public function export(Request $request)
     {
-        $filters = $request->only(['voucher_no', 'status', 'start_date', 'end_date', 'period', 'subject_id']);
+        $filters = $request->only(['voucher_no', 'status', 'start_date', 'end_date', 'period', 'subject_id', 'include_red']);
         $data = $this->service->list($filters, 1, 10000);
-        $csv = "\u{FEFF}凭证字号,凭证日期,期间,摘要,借方合计,贷方合计,制单人,审核人,状态\n";
+        $csv = "\u{FEFF}凭证字号,凭证日期,期间,摘要,借方合计,贷方合计,制单人,审核人,状态,是否红冲\n";
         foreach ($data['list'] as $v) {
+            $redFlag = $v['is_red'] ? '已红冲' : (($v['red_of_id'] ?? null) ? '红冲单' : '');
             $csv .= sprintf(
-                "%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
                 $this->csvCell($v['voucher_no']),
                 $v['voucher_date'],
                 $v['period'],
@@ -236,7 +263,8 @@ class VoucherController extends Controller
                 number_format((float) $v['total_credit'], 2, '.', ''),
                 $this->csvCell($v['maker_name'] ?? ''),
                 $this->csvCell($v['auditor_name'] ?? ''),
-                $v['status_label']
+                $v['status_label'],
+                $redFlag
             );
         }
 

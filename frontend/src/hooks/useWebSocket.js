@@ -16,8 +16,16 @@ function dispatchMessage(msg) {
 	if (handler) handler(data)
 }
 
+// 缺陷 #19：WS 每次重连/心跳都会往控制台打日志，弱网或后端重启时成百上千条刷屏，
+// 控制台自己也要吃 CPU。默认静默；需要排查时控制台执行
+// localStorage.setItem('ws_debug', '1') 再刷新即可重新打开。
+const wsDebug = () => {
+	try { return localStorage.getItem('ws_debug') === '1' } catch { return false }
+}
+const wsLog = (...args) => { if (wsDebug()) console.log(...args) }
+
 messageHandlers.set('connected', (data) => {
-	console.log('[WebSocket] 服务器确认连接', data)
+	wsLog('[WebSocket] 服务器确认连接', data)
 })
 
 messageHandlers.set('notification', (data) => {
@@ -35,7 +43,7 @@ messageHandlers.set('notification', (data) => {
 })
 
 messageHandlers.set('data_update', (data) => {
-	console.log('[WebSocket] 数据更新', data)
+	wsLog('[WebSocket] 数据更新', data)
 })
 
 messageHandlers.set('heartbeat_response', () => {})
@@ -74,12 +82,12 @@ export function useWebSocket() {
 				pongTimeout: 10000,
 			},
 			onConnected() {
-				console.log('[WebSocket] 连接已建立')
+				wsLog('[WebSocket] 连接已建立')
 				// WS 恢复说明服务已恢复，确保遮罩关闭
 				stopDeployProbe()
 			},
 			onDisconnected(_ws, event) {
-				console.log('[WebSocket] 连接已断开', event?.code)
+				wsLog('[WebSocket] 连接已断开', event?.code)
 				// 断开可能是部署所致，启动健康探测（失败则显示升级遮罩）
 				startDeployProbe()
 			},

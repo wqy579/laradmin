@@ -28,9 +28,22 @@
 			<el-row :gutter="12">
 				<el-col :span="5">
 					<el-form-item label="客户" prop="customer_id">
-						<el-select v-model="form.customer_id" placeholder="请选择客户" filterable clearable style="width:100%" @change="onCustomerChange">
-							<el-option v-for="c in customerOptions" :key="c.id" :label="c.name" :value="c.id" />
-						</el-select>
+						<!-- 缺陷 #19：在售客户 3500+ 条，用 el-select 会一次性建 3500 多个
+						     el-option 组件实例（每次开弹窗重建一次），打开「新增订单」要卡好几秒。
+						     换成虚拟滚动的 el-select-v2，只渲染可视区那一屏。 -->
+						<el-select-v2
+							v-model="form.customer_id"
+							:options="customerPickerOptions"
+							:loading="custLoading"
+							:remote="!hasPresetCustomers"
+							:remote-method="searchCustomers"
+							placeholder="请选择客户（输入名称/编码/电话搜索）"
+							filterable
+							clearable
+							style="width:100%"
+							@visible-change="onCustomerDropdown"
+							@change="onCustomerChange"
+						/>
 					</el-form-item>
 				</el-col>
 				<el-col :span="4">
@@ -48,13 +61,23 @@
 					</el-form-item>
 				</el-col>
 				<el-col :span="3">
-					<el-form-item label="下单日期" prop="order_date">
-						<el-date-picker v-model="form.order_date" type="date" value-format="YYYY-MM-DD" placeholder="下单日期" style="width:100%" />
+					<el-form-item prop="order_date">
+						<template #label>
+							<span :class="{ 'date-hist': isHistoryDate }">下单日期<span v-if="isHistoryDate" class="date-hist-tag">历史</span></span>
+						</template>
+						<!-- 捕获阶段的 Esc 监听必须挂在原生元素上：el-date-picker 把 keydown
+						     声明成了组件自定义事件，@keydown.esc.capture 写在它身上不会落到
+						     DOM 捕获阶段，拦不住组件内部「关面板即丢弃键入」的逻辑。 -->
+						<span class="date-cell" @keydown.esc.capture="onDateEsc($event, form, 'order_date')">
+							<el-date-picker v-model="form.order_date" type="date" value-format="YYYY-MM-DD" placeholder="下单日期" style="width:100%" />
+						</span>
 					</el-form-item>
 				</el-col>
 				<el-col :span="3">
 					<el-form-item label="送货日期">
-						<el-date-picker v-model="form.delivery_date" type="date" value-format="YYYY-MM-DD" placeholder="送货日期" style="width:100%" />
+						<span class="date-cell" @keydown.esc.capture="onDateEsc($event, form, 'delivery_date')">
+							<el-date-picker v-model="form.delivery_date" type="date" value-format="YYYY-MM-DD" placeholder="送货日期" style="width:100%" />
+						</span>
 					</el-form-item>
 				</el-col>
 			</el-row>
@@ -68,7 +91,9 @@
 				</el-col>
 				<el-col :span="3">
 					<el-form-item label="对账日期">
-						<el-date-picker v-model="form.reconcile_date" type="date" value-format="YYYY-MM-DD" placeholder="对账日期" style="width:100%" />
+						<span class="date-cell" @keydown.esc.capture="onDateEsc($event, form, 'reconcile_date')">
+							<el-date-picker v-model="form.reconcile_date" type="date" value-format="YYYY-MM-DD" placeholder="对账日期" style="width:100%" />
+						</span>
 					</el-form-item>
 				</el-col>
 				<el-col :span="3">
@@ -202,7 +227,9 @@
 							</td>
 							<template v-if="form.show_production_date">
 								<td class="c-date">
-									<el-date-picker v-model="item.production_date" type="date" value-format="YYYY-MM-DD" placeholder="-" size="small" style="width:100%" />
+									<span class="date-cell" @keydown.esc.capture="onDateEsc($event, item, 'production_date')">
+										<el-date-picker v-model="item.production_date" type="date" value-format="YYYY-MM-DD" placeholder="-" size="small" style="width:100%" />
+									</span>
 								</td>
 							</template>
 							<td class="c-spec">{{ item.spec || '-' }}</td>
@@ -238,11 +265,17 @@
 										<el-input v-model="item.price_medium" size="small" class="p-input" placeholder="盒价" @input="onMediumPriceChange(item)" />
 										<span class="u-name">元/{{ item.unit_medium }}</span>
 									</template>
-									<el-input v-model="item.price_small" size="small" class="p-input" placeholder="袋价" @input="onSmallPriceChange(item)" />
-									<span v-if="item.unit_small" class="u-name">元/{{ item.unit_small }}</span>
-								</div>
-								<div v-if="item.price_source" class="price-source">{{ item.price_source }}</div>
-							</td>
+							<el-input v-model="item.price_small" size="small" class="p-input" placeholder="袋价" @input="onSmallPriceChange(item)" />
+								<span v-if="item.unit_small" class="u-name">元/{{ item.unit_small }}</span>
+							</div>
+							<div v-if="item.price_source" class="price-source">{{ item.price_source }}</div>
+							<!-- 缺陷 #20：手改过价就挂个「手改价」标记 + 一键还原目录价，
+							     既保证不被覆盖，也留了明确的退回路径 -->
+							<div v-if="item._priceEdited" class="price-source">
+								手改价
+								<span class="price-restore" title="按当前商品目录价重新填充三档单价" @click="restoreCatalogPrice(item)">还原目录价</span>
+							</div>
+						</td>
 							<template v-if="form.enable_tax">
 								<td class="c-tax">
 									<el-input v-model.number="item.tax_rate" size="small" type="number" min="0" max="100" step="1" placeholder="0" style="width:50px" @input="calcAmount(item)" />
@@ -304,7 +337,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 
@@ -312,9 +345,19 @@ import businessApi from '@/api/business'
 const SALE_MODES = ['正常销售', '赠品', '陈列费', '试用', '特价销售', '返利']
 // 旧系统 onModeChange 只对这两种模式清零单价并标记 price_source='特殊'
 const CLEAR_PRICE_MODES = ['赠品', '陈列费']
-// 新增一张空表单时预置的行数，沿用旧系统的 20 行
-const EMPTY_ROWS = 20
+// 新增一张空表单时预置的空行数。录入过程中始终保持这么多空行可用：
+// 占用掉几行就自动补几行，不用再手动点每行右侧的「＋」。
+const EMPTY_ROWS = 15
 const DRAFT_KEY = 'sales_order_draft'
+
+// 幂等键生成：优先用 crypto.randomUUID（现代浏览器原生，无碰撞风险）；
+// 老浏览器/非安全上下文降级成「时间戳 + 两段随机」，同一毫秒内也不会撞。
+const newClientToken = () => {
+	try {
+		if (window.crypto?.randomUUID) return window.crypto.randomUUID()
+	} catch { /* 非安全上下文下 randomUUID 可能抛错，走降级分支 */ }
+	return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`
+}
 
 const props = defineProps({
 	visible: { type: Boolean, default: false },
@@ -330,6 +373,11 @@ const emit = defineEmits(['update:visible', 'success'])
 
 const formRef = ref(null)
 const submitting = ref(false)
+// 幂等键：一次「新增」会话一个 client_token，随请求一起发。
+// 崩溃/超时重试、用户狂点提交、弱网下浏览器自动重发时，服务端凭同一个 token
+// 认出这是同一张单，直接返回首次创建结果，而不是再落一张重复订单。
+// 编辑走 PUT（天然幂等），不需要 token。
+let clientToken = ''
 const saleModes = SALE_MODES
 // 订单类型：normal / process / exchange / give_back（退货是独立模块 sales_returns 表，不在此对话框）
 const ORDER_TYPE_LABELS = { normal: '普通订单', process: '处理订单', exchange: '换货订单', give_back: '还货订单' }
@@ -373,8 +421,58 @@ const visible = computed({ get: () => props.visible, set: (v) => emit('update:vi
 
 // 客户下拉只列启用客户。禁用即作废——作废客户不在下拉出现；
 // 编辑旧单时若该客户已作废，下拉不回填其名（作废即不存在，留空提示重选）。
-const customerOptions = computed(() => props.customers.filter((c) => c.is_active))
-const selectedCustomer = computed(() => props.customers.find((c) => c.id === form.customer_id) || null)
+// ---------------------------------------------------------------- 客户下拉（缺陷 #19 主因）
+// 在售客户 3500+ 条，全量拉一次是 3.3MB，占了订单页首屏 3.9MB 的 85%——
+// 每次进订单页都要先吞下这 3.3MB 才能渲染，「加载慢/列表半天出不来」就是它。
+// 改成本地/远程双模：父级预置了列表就本地过滤（兼容其他页面），
+// 否则走远程搜索——只在敲关键字时取前 50 条，首屏再不拉全量。
+const remoteCustomers = ref([])
+const custLoading = ref(false)
+const customerCache = ref({}) // id -> 客户对象（回显名字 + 余额/信用额度要用）
+const hasPresetCustomers = computed(() => props.customers.length > 0)
+
+const customerPickerOptions = computed(() => {
+	if (hasPresetCustomers.value) {
+		return props.customers.filter((c) => c.is_active).map((c) => ({ value: c.id, label: c.name }))
+	}
+	// 远程模式：搜索结果 + 已选客户，保证编辑旧单时输入框显示得出名字
+	const list = remoteCustomers.value.map((c) => ({ value: c.id, label: c.name }))
+	const cur = customerCache.value[form.customer_id]
+	if (cur && !list.some((o) => o.value === cur.id)) list.unshift({ value: cur.id, label: cur.name })
+	return list
+})
+const selectedCustomer = computed(() => {
+	if (hasPresetCustomers.value) return props.customers.find((c) => c.id === form.customer_id) || null
+	return customerCache.value[form.customer_id] || null
+})
+
+let custSearchTimer = null
+const searchCustomers = (kw) => {
+	if (hasPresetCustomers.value) return
+	clearTimeout(custSearchTimer)
+	custSearchTimer = setTimeout(async () => {
+		custLoading.value = true
+		try {
+			const res = await businessApi.customer.list.get({
+				keyword: String(kw || '').trim(),
+				is_active: 1,
+				page_size: 50,
+			})
+			const list = res.code === 200 ? (res.data?.list || []) : []
+			remoteCustomers.value = list
+			list.forEach((c) => { customerCache.value[c.id] = c })
+		} catch { /* 网络失败保持原结果，不阻断录单 */ }
+		custLoading.value = false
+	}, 250)
+}
+// 面板首次展开时先带一屏（最新 50 条），避免空关键字下什么都不显示
+const onCustomerDropdown = (open) => { if (open) searchCustomers('') }
+// 编辑旧单时，已选客户不在搜索结果里，单独取一次以显示名字和欠款信息
+const ensureCustomer = async (id) => {
+	if (!id || hasPresetCustomers.value || customerCache.value[id]) return
+	const res = await businessApi.customer.detail.get(id).catch(() => null)
+	if (res && res.code === 200 && res.data) customerCache.value[id] = res.data
+}
 // 安全欠款 = 余额超出信用额度的部分。balance 语义是「欠款余额」（正数=客户欠我们的），
 // 未设额度（credit_limit=0）时按无限额处理，不显示安全欠款。
 const safeCreditAmount = computed(() => {
@@ -454,6 +552,11 @@ const blankRow = () => ({
 	_blurTimer: null,
 	_suggHover: false,
 	_prevOptions: [],
+	_blurred: false,
+	_seq: 0,
+	// 缺陷 #20：行内单价被人工改过。改过之后选商品/重选商品都不再拿目录价覆盖，
+	// 补录历史单（当时的价 ≠ 现在的售价）时改多少就是多少。
+	_priceEdited: false,
 })
 
 /** 把后端/商品列表的商品映射成行内字段（旧系统 applyProduct 的同款取值） */
@@ -471,20 +574,24 @@ const applyProduct = (item, p) => {
 	item.unit_small = p.price_unit_small || ''
 	item.unit_conversion = Number(p.unit_conversion) || 0
 	item.unit_conversion_medium = Number(p.unit_conversion_medium) || 0
-	const sm = Number(p.price_small) || 0
-	const mc = item.unit_conversion_medium
-	const c = item.unit_conversion
-	item.price_small = sm
-	item.price_medium = Number(p.price_medium) || 0
-	item.price_large = Number(p.price_large) || 0
-	// DB 未存中/大单位价（=0）时按小单位价 × 换算比派生，与 onSmallPriceChange 同口径：
-	// 1 件 = c 小、1 中 = mc 小。例如 c=120、mc=20、sm=2.4 → 件价 288、盒价 48。
-	// 只补缺失值，不覆盖已存的非零目录价（件价可能单独定档）
-	if (!item.price_medium && sm > 0 && mc > 0) {
-		item.price_medium = Math.round(sm * mc * 100) / 100
-	}
-	if (!item.price_large && sm > 0 && c > 0) {
-		item.price_large = Math.round(sm * c * 100) / 100
+	// 缺陷 #20：这一行的三档单价是用户手敲的（多为补录历史单，当时价 ≠ 现售价），
+	// 选商品只补商品名/规格/单位/库存，绝不动价格——否则敲进去的价会被当前售价冲掉。
+	if (!item._priceEdited) {
+		const sm = Number(p.price_small) || 0
+		const mc = item.unit_conversion_medium
+		const c = item.unit_conversion
+		item.price_small = sm
+		item.price_medium = Number(p.price_medium) || 0
+		item.price_large = Number(p.price_large) || 0
+		// DB 未存中/大单位价（=0）时按小单位价 × 换算比派生，与 onSmallPriceChange 同口径：
+		// 1 件 = c 小、1 中 = mc 小。例如 c=120、mc=20、sm=2.4 → 件价 288、盒价 48。
+		// 只补缺失值，不覆盖已存的非零目录价（件价可能单独定档）
+		if (!item.price_medium && sm > 0 && mc > 0) {
+			item.price_medium = Math.round(sm * mc * 100) / 100
+		}
+		if (!item.price_large && sm > 0 && c > 0) {
+			item.price_large = Math.round(sm * c * 100) / 100
+		}
 	}
 	// 优先取下拉结果里的 stock_qty（搜索时已按当前仓库关联，最新）；缺了再回落到批量 stockMap
 	item.stock = Number(p.stock_qty ?? stockMap.value[p.id] ?? 0)
@@ -513,6 +620,38 @@ const todayStr = () => {
 	const day = String(d.getDate()).padStart(2, '0')
 	return `${y}-${m}-${day}`
 }
+
+// ---------------------------------------------------------------- 日期录入（缺陷 #18 修复）
+// Element Plus 的 el-date-picker 里，键盘键入的文本只是 userInput「草稿」，
+// 只有回车或失焦才会真正写回 model。按 Esc 时它只把面板关掉、草稿留着，
+// 紧接着内部 watch(pickerVisible) 又把 userInput 清空——于是输入框看起来
+// 显示着刚敲的 2026-10-01，form.order_date 却还是今天，肉眼完全看不出来，
+// 一点提交就落库成今天。补录历史单时天天踩这个坑。
+// 这里在捕获阶段先截下 Esc：输入框当前文本是合法日期就先写进 model 再收面板。
+const DATE_TEXT_RE = /^\s*(\d{4})-(\d{1,2})-(\d{1,2})\s*$/
+const parseDateText = (txt) => {
+	const m = DATE_TEXT_RE.exec(String(txt || ''))
+	if (!m) return null
+	const y = Number(m[1])
+	const mo = Number(m[2])
+	const d = Number(m[3])
+	if (mo < 1 || mo > 12 || d < 1 || d > 31) return null
+	const dt = new Date(y, mo - 1, d)
+	// 挡掉 2026-02-31 这类会被 Date 自动进位的假日期
+	if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null
+	return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+}
+/** Esc 关日期面板：先把键入值落进模型，再交给组件收面板 */
+const onDateEsc = (e, target, key) => {
+	const el = e?.target
+	const val = parseDateText(el?.value)
+	if (!val || !target || !key) return // 不是合法日期 → 交回组件自己处理（仅关面板）
+	target[key] = val
+	e.stopPropagation()
+	el.blur() // 让组件按新值重绘输入框，避免残留草稿文本
+}
+// 下单日期不是今天时高亮提示，避免补录历史单后误以为是当天
+const isHistoryDate = computed(() => !!form.order_date && form.order_date !== todayStr())
 
 const categories = ref([])  // 主分类树（带 children / product_count）
 const picker = reactive({
@@ -660,7 +799,21 @@ const calcAmount = (item) => {
 // 三组换算用物理口径：c=大→小(1大=c小)、mc=中→小(1中=mc小)，大→中=c/mc。
 // 改一档价，另两档据此自动带出。quantity/requiredSmall 走后端膨胀口径 c*mc，与此处不同。
 
+// 缺陷 #20：三档单价任一档被手敲过就打标记，之后选/换商品不再拿目录价覆盖。
+// 换算联动（改一档带出另两档）属于用户主动操作，同样算手改。
+const markPriceEdited = (item) => { item._priceEdited = true }
+/** 一键放弃手改价，按当前商品的目录价重新填充三档单价 */
+const restoreCatalogPrice = (item) => {
+	item._priceEdited = false
+	const p = (item._options || []).find(o => o.id === item.product_id) || null
+	if (!p) { ElMessage.warning('请重新搜索并选择该商品后再还原目录价'); return }
+	applyProduct(item, p)
+	calcAmount(item)
+	ElMessage.success('已按目录价还原')
+}
+
 const onSmallPriceChange = (item) => {
+	markPriceEdited(item)
 	const sm = Number(item.price_small) || 0
 	const mc = Number(item.unit_conversion_medium) || 0
 	const c = Number(item.unit_conversion) || 0
@@ -681,6 +834,7 @@ const onSmallPriceChange = (item) => {
 }
 
 const onMediumPriceChange = (item) => {
+	markPriceEdited(item)
 	const md = Number(item.price_medium) || 0
 	const mc = Number(item.unit_conversion_medium) || 0
 	const c = Number(item.unit_conversion) || 0
@@ -698,6 +852,7 @@ const onMediumPriceChange = (item) => {
 }
 
 const onLargePriceChange = (item) => {
+	markPriceEdited(item)
 	const lg = Number(item.price_large) || 0
 	const mc = Number(item.unit_conversion_medium) || 0
 	const c = Number(item.unit_conversion) || 0
@@ -723,6 +878,8 @@ const onModeChange = (item) => {
 		item.price_medium = 0
 		item.price_large = 0
 		item.price_source = '特殊'
+		// 单价已被清零，手改标记一并解除，换商品时照常带目录价
+		item._priceEdited = false
 	} else {
 		item.price_source = ''
 	}
@@ -734,6 +891,18 @@ const onModeChange = (item) => {
 const searchProducts = (keyword, item) => {
 	item._loading = true
 	item._searchKeyword = keyword
+	// P0-1 根因修复：下拉「是否显示」原先只在 onProdFocus 里置为 true，
+	// 但取数是本函数——onProdInput（输入/扫码）也会独立调用它。
+	// 于是只要 focus 被守卫拦下（客户/仓库未选）或已经失焦，
+	// 请求照发、数据照回（code:200、total:1），却被
+	// v-if="item.showSuggestions && item._options.length" 挡住，
+	// DOM 里 .prod-suggestions 恒为 0，订单录不进去。
+	// 改为：只要发起搜索，就保证下拉处于打开状态。
+	item.showSuggestions = true
+	// 竞态序号：一次搜索 = 一个 seq。响应回来时 seq 已变说明用户又搜了更新的关键字，
+	// 旧响应必须作废，否则慢请求会覆盖快请求的结果（快速扫码时很容易出现）。
+	item._seq = (item._seq || 0) + 1
+	const seq = item._seq
 	// 过滤作废商品（is_active=1）+ 限定当前选中分类（主/子）；未选分类时搜全部在售
 	businessApi.product.list.get({
 		keyword: keyword || '',
@@ -752,6 +921,10 @@ const searchProducts = (keyword, item) => {
 			// 第二次点会被当取消清掉第一行（10件正常+1件赠品丢10件那种）。勾选状态全 false
 			item.checkedProducts = list.map(() => false)
 			item._prevOptions = list.slice()
+			// 失焦竞态保护：请求发出后用户若已失焦（扫码枪输完就失焦、或手快点了别处），
+			// onProdBlur 的 200ms 定时器可能已把下拉关掉——此时不再强行弹回，
+			// 避免"点了别处下拉又自己冒出来"。seq 变了同理，只认最新那次搜索。
+			if (item._seq === seq && !item._blurred) item.showSuggestions = true
 		})
 		.catch(() => { item._options = [] })
 		.finally(() => { item._loading = false })
@@ -759,9 +932,12 @@ const searchProducts = (keyword, item) => {
 
 /** 用商品对象填一行（行内下拉勾选/全选添加复用，与 applyProduct 同口径） */
 const fillRowWithProduct = (row, p) => {
+	// 行里换成了另一个商品 → 上一件商品手敲的价不再适用，解除标记让目录价正常带出
+	if (row.product_id && row.product_id !== p.id) row._priceEdited = false
 	applyProduct(row, p)
-	// 「最近价」开关打开时，用该客户上次成交价覆盖目录价（异步不阻塞填行）
-	if (form.use_recent_price && form.customer_id) {
+	// 「最近价」开关打开时，用该客户上次成交价覆盖目录价（异步不阻塞填行）。
+	// 缺陷 #20：手改过价的行不覆盖——历史单价是用户明确敲进去的。
+	if (form.use_recent_price && form.customer_id && !row._priceEdited) {
 		applyRecentPrice(row)
 	}
 	row._searchKeyword = ''
@@ -789,6 +965,8 @@ const applyRecentPrice = async (row) => {
 		row.price_medium = pm
 		row.price_large = pl
 		row.price_source = '最近价'
+		// 最近成交价也是「非目录价」，同样纳入保护，避免被后续填充冲掉
+		row._priceEdited = true
 		calcAmount(row)
 	} catch { /* 网络失败保持目录价 */ }
 }
@@ -807,13 +985,13 @@ const duplicateItem = (idx) => {
 		product_id, product_name, spec, sale_mode, price_source, stock, stockDisplay,
 		qty_large, qty_medium, qty_small, price_large, price_medium, price_small,
 		unit_large, unit_medium, unit_small, unit_conversion, unit_conversion_medium,
-		amount, remark, production_date, tax_rate, discount_rate, _options,
+		amount, remark, production_date, tax_rate, discount_rate, _options, _priceEdited,
 	} = src
 	Object.assign(copy, {
 		product_id, product_name, spec, sale_mode, price_source, stock, stockDisplay,
 		qty_large, qty_medium, qty_small, price_large, price_medium, price_small,
 		unit_large, unit_medium, unit_small, unit_conversion, unit_conversion_medium,
-		amount, remark, production_date, tax_rate, discount_rate, _options,
+		amount, remark, production_date, tax_rate, discount_rate, _options, _priceEdited,
 	})
 	form.items.splice(idx + 1, 0, copy)
 }
@@ -821,13 +999,30 @@ const duplicateItem = (idx) => {
 const removeItem = (idx) => {
 	if (form.items.length <= 1) return
 	form.items.splice(idx, 1)
-	// 始终补齐到 EMPTY_ROWS 行，避免删行后留下空白
-	while (form.items.length < EMPTY_ROWS) form.items.push(blankRow())
+	ensureBlankRows()
 }
 const clearItems = () => {
 	form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
 	if (promo.value.applied && promo.value.applied.length) promo.value = { discount_total: 0, final_total: 0, applied: [] }
 }
+
+// ------------------------------------------------- 自动补行：始终保持 EMPTY_ROWS 个空行
+// 业务反馈：以前默认固定 20 行，录满后要手点每行右侧的「＋」才能继续，很容易录到一半才发现加不了。
+// 现在的规则：列表里始终留有 EMPTY_ROWS 个没占的行，占用掉几个就自动补几个
+// （例如占用 1 个 → 补 1 个，列表变成 N+1 行，其中 15 行是空的）。
+// 补的是空行，不会动已录的数据。
+const occupiedCount = computed(() => form.items.reduce((n, i) => n + (i.product_id ? 1 : 0), 0))
+const ensureBlankRows = () => {
+	let blank = 0
+	for (const i of form.items) if (!i.product_id) blank++
+	const need = EMPTY_ROWS - blank
+	if (need > 0) {
+		for (let k = 0; k < need; k++) form.items.push(blankRow())
+	}
+}
+// 只在「占用行数变化」时触发（填行 / 清行 / 载入草稿或订单），
+// 比 deep watch 便宜得多，也不会被行内的按键编辑吵到
+watch(occupiedCount, ensureBlankRows)
 
 // ---------------------------------------------------------------- 商品行内搜索下拉（对齐旧系统新增订单）
 // 每行商品格 = 搜索输入框 + 下拉建议；每条建议带 checkbox：勾=填下一空行、取消=清该行；
@@ -841,6 +1036,7 @@ const onProdInput = (item, e) => {
 // 聚焦：校验客户/仓库 → 开下拉 → 搜索（对齐旧系统 onFocusProduct；业务员非必填故不校验）
 const onProdFocus = (item) => {
 	if (item._blurTimer) { clearTimeout(item._blurTimer); item._blurTimer = null }
+	item._blurred = false
 	if (!form.customer_id) { ElMessage.error('请先选择客户'); item.showSuggestions = false; return }
 	if (!form.warehouse_id) { ElMessage.error('请先选择仓库'); item.showSuggestions = false; return }
 	// 已填行 focus：保留下拉供继续勾选，但不重新搜索，避免空关键字覆盖原筛选结果（如「大黄米」）
@@ -851,6 +1047,7 @@ const onProdFocus = (item) => {
 // 失焦：延迟 200ms 关下拉，悬停在下拉内时不关（对齐旧系统 onBlurProduct）
 const onProdBlur = (item) => {
 	if (item._suggHover) return
+	item._blurred = true
 	if (item._blurTimer) clearTimeout(item._blurTimer)
 	item._blurTimer = setTimeout(() => { item.showSuggestions = false }, 200)
 }
@@ -941,6 +1138,7 @@ const clearProductFromRow = (row, reopen = false) => {
 	row.production_date = null
 	row.tax_rate = 0
 	row.discount_rate = 0
+	row._priceEdited = false
 	row._searchKeyword = ''
 	row._options = []
 	row.checkedProducts = []
@@ -1036,6 +1234,11 @@ const buildPayload = () => {
 }
 
 const handleSubmit = async () => {
+	// 重复提交闸门：submitting 既是按钮 loading，也是这里的第一道锁。
+	// 之前只把它当 loading 用，没有 early-return——用户连点两下、或回车键
+	// 连同鼠标点击一起触发时，两次 handleSubmit 都会走完全流程各发一次
+	// POST，落下两张内容相同的订单。这里直接短路第二次进入。
+	if (submitting.value) return
 	try {
 		await formRef.value.validate()
 	} catch (invalidFields) {
@@ -1084,8 +1287,11 @@ const handleSubmit = async () => {
 	try {
 		const res = props.record
 			? await businessApi.salesOrder.edit.put(props.record.id, payload)
-			: await businessApi.salesOrder.add.post(payload)
+			: await businessApi.salesOrder.add.post({ ...payload, client_token: clientToken })
 		if (res.code === 200) {
+			// 提交成功即作废本次 token：下次「新增」会用新 token，
+			// 不会因为复用旧 token 被服务端当成重复单而直接返回老订单。
+			clientToken = ''
 			ElMessage.success(res.message || '订单创建成功')
 			clearDraft()
 			emit('success')
@@ -1094,7 +1300,8 @@ const handleSubmit = async () => {
 			ElMessage.error(res.message || '提交失败')
 		}
 	} catch (e) {
-		// 422/校验错误：console 打印完整响应体方便定位，toast 由拦截器弹
+		// 422/校验错误：console 打印完整响应体方便定位，toast 由拦截器弹。
+		// 失败时保留 clientToken：用户改完再点的还是同一张单，服务端照常幂等。
 		console.error('订单提交失败:', e?.response?.status, e?.response?.data, 'payload:', payload)
 	} finally {
 		submitting.value = false
@@ -1133,11 +1340,15 @@ const loadDraft = () => {
 	let draft = null
 	try { draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null') } catch { draft = null }
 	if (!draft || !Array.isArray(draft.items)) return false
+	// 缺陷 #18 配套：下单日期一律从今天起，绝不从上一次草稿继承。
+	// 补录历史单（如 2024-12-31）后关掉弹窗，再开新单时若沿用草稿日期，
+	// 整张新单会静默记到两年前——这类错误落库后极难发现。日期错了重新敲
+	// 一下就行，数据错了要改一整条账。
 	Object.assign(form, {
 		customer_id: draft.customer_id || null,
 		warehouse_id: draft.warehouse_id || null,
 		salesman_id: draft.salesman_id || null,
-		order_date: draft.order_date || null,
+		order_date: todayStr(),
 		remark: draft.remark || '',
 	})
 	form.items = draft.items.map(i => ({
@@ -1152,12 +1363,23 @@ const loadDraft = () => {
 		_blurTimer: null,
 		_suggHover: false,
 	}))
+	const rows = form.items.filter(i => i.product_id).length
+	if (rows) {
+		ElMessage.info({
+			message: `已恢复上次未提交的 ${rows} 行商品；下单日期已重置为今天${draft.order_date && draft.order_date !== todayStr() ? `（上次的 ${draft.order_date} 未沿用）` : ''}`,
+			duration: 5000,
+		})
+	}
 	return form.items.length > 0
 }
 
 // ---------------------------------------------------------------- 表单初始化
 
 const initBlank = () => {
+	// 每次「新增」会话换一个幂等键。放在 initBlank 而不是 watch(visible)：
+	// 切换订单类型（普通→换货…）也会走这里，切完仍属同一次新建会话，
+	// token 一并刷新反而更安全——旧 token 对应的 payload 已经不打算提交了。
+	clientToken = newClientToken()
 	form.customer_id = null
 	form.supplier_id = null
 	form.warehouse_id = null
@@ -1190,10 +1412,14 @@ const loadSalesmen = async () => {
 watch(
 	() => props.visible,
 	async (open) => {
-		if (!open) return
-		await loadSalesmen()
+		// 关弹窗时把防抖窗口里还没落盘的最后一次改动补写进去，避免刚敲完就关丢失
+		if (!open) { flushDraft(); return }
+		// 缺陷 #21：弹窗打开慢/多人同时点会卡死——根因之一是这里先把两笔
+		// 网络请求（员工全量下拉、分类树）await 完，才开始同步构建 15 行表单。
+		// 请求没回来之前弹窗是空白的，业务侧观感就是「点新增没反应」。
+		// 现在顺序反过来：同步逻辑（构行、回填）先跑完让弹窗立刻可见，
+		// 网络数据随后在后台补齐。resetPicker 是纯同步的，保留在最前面。
 		resetPicker()
-		await loadCategories()
 		if (props.record) {
 			orderTypeLocal.value = props.record.order_type || 'normal'
 			form.customer_id = props.record.customer_id
@@ -1201,9 +1427,12 @@ watch(
 			form.salesman_id = props.record.salesman_id || null
 			form.order_date = props.record.order_date
 			form.remark = props.record.remark || ''
-			form.items = Array.from({ length: EMPTY_ROWS }, () => blankRow())
+			// 每行各建一行再按原顺序追加，不复用pop出的同一行
+			// （原来 form.items.pop() 拿到的是刚 push 回去的那行，每次都在覆盖自己，
+			//  结果一张多商品订单编辑时只剩最后一行）
+			form.items = []
 			;(props.record.items || []).forEach(it => {
-				const row = form.items.pop()
+				const row = blankRow()
 				const p = it.product || {}
 				row.product_id = it.product_id
 				row.product_name = p.name || ''
@@ -1245,15 +1474,43 @@ watch(
 				row._options = p.id ? [p] : []
 				form.items.push(row)
 			})
+			// 载入后补齐空行：占用了几行就补几行，商品多于 15 行也不会被截断
+			ensureBlankRows()
 		} else {
 			if (!loadDraft()) initBlank()
 		}
-		await loadStock()
+		// 构行/回填已同步跑完，等这一帧落屏，弹窗即可见；
+		// 下拉、分类、客户回显、库存这些网络补齐放到帧后并行跑，谁也不挡弹窗出现。
+		await nextTick()
+		loadSalesmen()
+		loadCategories()
+		if (props.record) {
+			ensureCustomer(props.record.customer_id) // 远程模式下补取客户名/余额
+			await loadStock()
+		}
 	},
 	{ immediate: true }
 )
 
-watch(form, saveDraft, { deep: true })
+// 缺陷 #19：saveDraft 里要深遍历 20 行表单 + JSON.stringify + 同步写 localStorage。
+// 原先挂在 deep watcher 上——每敲一个字符就跑一整轮，录到第 9 单左右浏览器就明显卡顿。
+// 改成 800ms 防抖：连着录入时只在停手时落盘一次，语义不变（草稿本来就是「关掉还在」）。
+let draftTimer = null
+const scheduleDraft = () => {
+	if (draftTimer) clearTimeout(draftTimer)
+	draftTimer = setTimeout(() => {
+		draftTimer = null
+		saveDraft()
+	}, 800)
+}
+const flushDraft = () => {
+	if (!draftTimer) return
+	clearTimeout(draftTimer)
+	draftTimer = null
+	saveDraft()
+}
+watch(form, scheduleDraft, { deep: true })
+onBeforeUnmount(flushDraft)
 
 watch(() => props.salesmen, v => { if (v.length) salesmen.value = v }, { immediate: true })
 
@@ -1275,6 +1532,19 @@ const onDialogKeydown = (e) => {
 </script>
 
 <style scoped>
+/* 日期格的外层包裹：只为了让 Esc 的捕获监听能挂在原生 DOM 上，本身不留样式痕迹 */
+.date-cell { display: block; width: 100%; }
+/* 缺陷 #18：下单日期不是今天时，标签变警示色，避免补录历史单后误当成当天的单 */
+.date-hist { color: var(--el-color-warning); font-weight: 700; }
+.date-hist-tag {
+	margin-left: 2px;
+	padding: 0 3px;
+	border-radius: 2px;
+	background: var(--el-color-warning);
+	color: #fff;
+	font-size: 10px;
+	line-height: 14px;
+}
 .items-wrap {
 	flex: 1 1 0;
 	min-width: 0;
@@ -1356,6 +1626,8 @@ const onDialogKeydown = (e) => {
 .u-input, .p-input { width: 46px; }
 .u-name { font-size: 10px; color: var(--el-text-color-secondary); }
 .price-source { font-size: 10px; color: var(--el-color-warning); margin-top: 2px; }
+.price-restore { margin-left: 4px; color: var(--el-color-primary); cursor: pointer; text-decoration: underline; }
+.price-restore:hover { color: var(--el-color-primary-dark-2); }
 .text-danger { color: var(--el-color-danger); }
 .summary { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: var(--el-fill-color-light); border: 1px solid var(--el-border-color); border-radius: 4px; }
 .summary .grand { margin-left: 14px; color: var(--el-color-danger); font-weight: 700; font-size: 16px; }
@@ -1381,7 +1653,7 @@ const onDialogKeydown = (e) => {
    之前 flex:1 按剩余空间撑高，分类列无上限、整框被拉得非常高。
    这里写死定高，三栏同高对齐，对话框随之收敛 */
 .cat-picker {
-	height: 680px;
+	height: 580px;
 	min-height: 0;
 	display: flex;
 	gap: 1px;

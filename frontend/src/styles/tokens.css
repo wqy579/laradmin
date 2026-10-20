@@ -1,0 +1,70 @@
+/* ============================================================
+ * laradmin 全局 Design Tokens（卷00 全局设计规范落地）
+ * 所有新模块必须引用本文件 CSS 变量，禁止私造色值/字号。
+ * 引入方式：main.js 中 import './styles/tokens.css'
+ * ============================================================ */
+:root {
+  /* ---- 色彩 ---- */
+  --color-primary: #409EFF;
+  --color-primary-light: #ECF5FF;
+  --color-primary-dark: #337ECC;
+  --color-success: #67C23A;
+  --color-warning: #E6A23C;
+  --color-danger: #F56C6C;
+  --color-info: #909399;
+
+  /* ---- 文字 ---- */
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --text-placeholder: #C0C4CC;
+
+  /* ---- 背景 ---- */
+  --bg-body: #F2F3F5;
+  --bg-card: #FFFFFF;
+  --bg-hover: #F5F7FA;
+  --bg-active: #ECF5FF;
+
+  /* ---- 边框 ---- */
+  --border-base: #DCDFE6;
+  --border-light: #E4E7ED;
+  --border-lighter: #EBEEF5;
+  --border-extra: #F2F6FC;
+
+  /* ---- 字体 ---- */
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", sans-serif;
+  --font-numeric: "DIN Alternate", "Roboto Mono", "SFMono-Regular", Consolas,
+    "Liberation Mono", monospace; /* 金额/编号/条码等宽 */
+
+  /* ---- 间距 ---- */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+
+  /* ---- 圆角 ---- */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+
+  /* ---- 阴影 ---- */
+  --shadow-card: 0 1px 4px rgba(0, 21, 41, 0.06);
+  --shadow-pop: 0 2px 12px rgba(0, 0, 0, 0.12);
+
+  /* ---- 字号阶梯（唯一标准，禁止其它值）---- */
+  --font-h1: 20px;   /* 页面主标题 600/28px */
+  --font-h2: 16px;   /* 卡片/模块标题 600/24px */
+  --font-h3: 14px;   /* 分区小标题 600/22px */
+  --font-base: 13px; /* 表格/表单/按钮正文 400/20px */
+  --font-aux: 12px;  /* 辅助说明/Tag 400/18px */
+  --font-stat: 24px; /* 统计卡大数字 600/32px */
+}
+
+/* 数字（金额/数量/编号/条码/日期时间）一律等宽对齐 */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-numeric);
+}

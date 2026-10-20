@@ -21,7 +21,7 @@ name: Tests
 
 on:
   push:
-    branches: [main]
+    branches: ["**"]  # 所有分支推送都触发 CI
   pull_request:
     branches: [main]
   workflow_dispatch:

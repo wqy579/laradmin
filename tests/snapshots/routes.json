@@ -7473,6 +7473,18 @@
     },
     {
         "method": "POST",
+        "uri": "admin/ledger/vouchers/{id}/red-reverse",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@redReverse",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
         "uri": "admin/ledger/vouchers/{id}/reverse",
         "name": "admin.",
         "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@reverse",
@@ -7956,6 +7968,18 @@
         "uri": "admin/perf/profit/trend",
         "name": "admin.",
         "action": "Modules\\Performance\\Http\\Controllers\\ProfitController@trend",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/reports/return-summary",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\ReturnSummaryController@index",
         "middleware": [
             "api",
             "stock.snapshot",

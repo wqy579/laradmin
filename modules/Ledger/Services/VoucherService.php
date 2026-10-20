@@ -35,6 +35,10 @@ class VoucherService
         if (! empty($filters['status'])) {
             $q->where('status', $filters['status']);
         }
+        // 默认隐藏红冲单本身；勾选「含红冲」才同时列出红冲单与原单
+        if (empty($filters['include_red'])) {
+            $q->whereNull('red_of_id');
+        }
         if (! empty($filters['start_date'])) {
             $q->whereDate('voucher_date', '>=', $filters['start_date']);
         }
@@ -110,7 +114,17 @@ class VoucherService
             $voucher->maker_id = $makerId;
             $voucher->maker_name = $makerName;
             $voucher->remark = $data['remark'] ?? null;
+            $voucher->auto_audit = (bool) ($data['auto_audit'] ?? false);
             $voucher->save();
+
+            // 录单时自动审核：制单人自审入账（等同审核动作，平衡校验与期间校验已在上方完成）
+            if (($data['status'] ?? null) === Voucher::STATUS_AUDITED) {
+                $voucher->status = Voucher::STATUS_AUDITED;
+                $voucher->auditor_id = $makerId;
+                $voucher->auditor_name = $makerName;
+                $voucher->audited_at = now();
+                $voucher->save();
+            }
 
             $this->saveEntries($voucher, $entries);
 
@@ -231,6 +245,75 @@ class VoucherService
             $voucher->save();
 
             return $voucher->fresh();
+        });
+    }
+
+    /**
+     * 红冲（红字冲销）：仅已审核凭证可红冲，生成一张借贷对调的新凭证。
+     *
+     * - 新凭证：借贷金额对调，摘要前缀「(红冲){原凭证号}」，红冲单本身 status=audited；
+     * - 原凭证：status 不变，is_red 置真（列表据此显示「已红冲」Tag）；
+     * - 期间已月结则禁止红冲（与增删改/审核/反审核/作废同一拦截口径）。
+     */
+    public function redReverse(int $id, int $operatorId, string $operatorName): Voucher
+    {
+        return DB::transaction(function () use ($id, $operatorId, $operatorName) {
+            $voucher = Voucher::with('entries')->findOrFail($id);
+
+            if ($voucher->status !== Voucher::STATUS_AUDITED) {
+                throw new \DomainException('只有已审核的凭证才能红冲');
+            }
+            if ($voucher->is_red) {
+                throw new \DomainException('该凭证已被红冲，不可重复红冲');
+            }
+            $this->ensurePeriodOpen($voucher->period);
+
+            // 借贷对调后的分录：subject/aux/brand 全部保留，金额借↔贷互换
+            $reversedEntries = $voucher->entries->map(function ($e) use ($voucher) {
+                return [
+                    'subject_id' => $e->subject_id,
+                    'subject_code' => $e->subject_code,
+                    'subject_name' => $e->subject_name,
+                    'aux_type' => $e->aux_type,
+                    'aux_id' => $e->aux_id,
+                    'aux_name' => $e->aux_name,
+                    'brand_id' => $e->brand_id,
+                    'brand_name' => $e->brand_name,
+                    'summary' => '(红冲)'.$voucher->voucher_no.' '.($e->summary ?? ''),
+                    'debit_amount' => round((float) $e->credit_amount, 2),
+                    'credit_amount' => round((float) $e->debit_amount, 2),
+                ];
+            })->all();
+
+            $totalDebit = round(array_sum(array_column($reversedEntries, 'debit_amount')), 2);
+            $totalCredit = round(array_sum(array_column($reversedEntries, 'credit_amount')), 2);
+            $this->ensureBalanced($totalDebit, $totalCredit);
+
+            $newVoucher = new Voucher;
+            $newVoucher->voucher_no = $this->nextVoucherNo($voucher->period);
+            $newVoucher->voucher_date = $voucher->voucher_date;
+            $newVoucher->period = $voucher->period;
+            $newVoucher->attachments_count = (int) $voucher->attachments_count;
+            $newVoucher->total_debit = $totalDebit;
+            $newVoucher->total_credit = $totalCredit;
+            $newVoucher->status = Voucher::STATUS_AUDITED;
+            $newVoucher->maker_id = $operatorId;
+            $newVoucher->maker_name = $operatorName;
+            $newVoucher->auditor_id = $operatorId;
+            $newVoucher->auditor_name = $operatorName;
+            $newVoucher->audited_at = now();
+            $newVoucher->remark = '红冲 '.$voucher->voucher_no;
+            $newVoucher->red_of_id = $voucher->id;
+            $newVoucher->is_red = false;
+            $newVoucher->auto_audit = false;
+            $newVoucher->save();
+
+            $this->saveEntries($newVoucher, $reversedEntries);
+
+            $voucher->is_red = true;
+            $voucher->save();
+
+            return $newVoucher->fresh('entries');
         });
     }
 
@@ -417,6 +500,8 @@ class VoucherService
                 'subject_code' => $e['subject_code'] ?? null,
                 'subject_name' => $e['subject_name'] ?? null,
                 'aux_type' => $e['aux_type'] ?? null,
+                'brand_id' => isset($e['brand_id']) ? (int) $e['brand_id'] : null,
+                'brand_name' => $e['brand_name'] ?? null,
                 'summary' => $e['summary'] ?? null,
                 'debit_amount' => (float) ($e['debit_amount'] ?? 0),
                 'credit_amount' => (float) ($e['credit_amount'] ?? 0),
@@ -453,6 +538,8 @@ class VoucherService
                 'aux_type' => $e['aux_type'] ?? null,
                 'aux_id' => isset($e['aux_id']) ? (int) $e['aux_id'] : null,
                 'aux_name' => $e['aux_name'] ?? null,
+                'brand_id' => isset($e['brand_id']) ? (int) $e['brand_id'] : null,
+                'brand_name' => $e['brand_name'] ?? null,
                 'summary' => $e['summary'] ?? null,
                 'debit_amount' => round($debit, 2),
                 'credit_amount' => round($credit, 2),
@@ -499,6 +586,8 @@ class VoucherService
             $entry->aux_type = $e['aux_type'];
             $entry->aux_id = $e['aux_id'];
             $entry->aux_name = $e['aux_name'];
+            $entry->brand_id = $e['brand_id'];
+            $entry->brand_name = $e['brand_name'];
             $entry->summary = $e['summary'];
             $entry->debit_amount = $e['debit_amount'];
             $entry->credit_amount = $e['credit_amount'];
@@ -528,6 +617,12 @@ class VoucherService
             'auditor_name' => $voucher->auditor_name,
             'audited_at' => $voucher->audited_at?->format('Y-m-d H:i:s'),
             'remark' => $voucher->remark,
+            'red_of_id' => $voucher->red_of_id,
+            'is_red' => (bool) $voucher->is_red,
+            'auto_audit' => (bool) $voucher->auto_audit,
+            'red_of_voucher_no' => $voucher->red_of_id
+                ? Voucher::whereKey($voucher->red_of_id)->value('voucher_no')
+                : null,
             'summary' => $firstSummary,
             'amount_chinese' => AmountChinese::convert((float) $voucher->total_debit),
             'created_at' => $voucher->created_at?->format('Y-m-d H:i:s'),
@@ -542,6 +637,8 @@ class VoucherService
                 'aux_type' => $e->aux_type,
                 'aux_id' => $e->aux_id,
                 'aux_name' => $e->aux_name,
+                'brand_id' => $e->brand_id,
+                'brand_name' => $e->brand_name,
                 'summary' => $e->summary,
                 'debit_amount' => (float) $e->debit_amount,
                 'credit_amount' => (float) $e->credit_amount,

@@ -1175,8 +1175,20 @@ const handleAdd = () => {
   orderType.value = "normal";
   dialog.order = true;
 };
-const handleEdit = (row) => {
-  currentOrder.value = row;
+const handleEdit = async (row) => {
+  // 列表接口只带 customer/warehouse/salesman，不含明细行（items）。
+  // 直接拿列表行当 record 传进弹窗，编辑时商品明细会整片空白、
+  // 一保存还会把原有明细覆盖掉。所以编辑前先取一次详情，把带 items 的完整单传进去。
+  let record = row;
+  try {
+    const res = await businessApi.salesOrder.detail.get(row.id);
+    if (res.code === 200 && res.data) record = res.data;
+  } catch {
+    ElMessage.error("明细加载失败，请重试");
+    return;
+  }
+  currentOrder.value = record;
+  orderType.value = record.order_type || "normal";
   dialog.order = true;
 };
 const handleDetail = async (row) => {
@@ -1475,6 +1487,22 @@ const eq = (a, b) => a != null && String(a) === String(b ?? "");
 // ===== 生命周期 =====
 onMounted(async () => {
   // 加载下拉数据（车辆、业务员等，独立于列表接口）
+  //
+  // 缺陷 #21：这里原先 await 住整组下拉请求，才轮到 doSearch()。
+  // 供应商全量列表是其中最大的一笔（page_size 9999），首屏要等它
+  // 才出列表——而列表本身并不依赖任何一项下拉数据（供应商下拉只在
+  // 采购类弹窗用，这张页面根本不用）。改成两组并发、谁也不等谁：
+  // 列表数据立即开跑，下拉数据后台补齐，回来再渲染下拉。
+  loadDropdowns();
+  doSearch();
+  // 聚焦表格容器，让键盘事件生效
+  nextTick(() => {
+    document.querySelector(".so-page")?.focus();
+  });
+});
+
+/** 下拉数据（车辆/业务员/供应商/仓库/退货计数）：与列表并行加载，不阻塞首屏 */
+const loadDropdowns = async () => {
   try {
     await Promise.all([
       businessApi.vehicle.list
@@ -1483,9 +1511,9 @@ onMounted(async () => {
       businessApi.employee.list
         .get({ is_active: 1, page_size: 9999 })
         .then((r) => r.code === 200 && (salesmen.value = r.data?.list || [])),
-      businessApi.customer.list
-        .get({ page_size: 9999 })
-        .then((r) => r.code === 200 && (customers.value = r.data?.list || [])),
+      // 缺陷 #19：这里原先一次性拉全部在售客户（3564 条 / 3.3MB），
+      // 订单页首屏 3.9MB 里有 85% 是它，页面因此半天渲染不出来。
+      // 客户下拉已改成弹窗内远程搜索（按需取 50 条），首屏不再需要这份数据。
       businessApi.supplier.list
         .get({ page_size: 9999 })
         .then((r) => r.code === 200 && (suppliers.value = r.data?.list || [])),
@@ -1500,12 +1528,7 @@ onMounted(async () => {
         ),
     ]);
   } catch {}
-  await doSearch();
-  // 聚焦表格容器，让键盘事件生效
-  nextTick(() => {
-    document.querySelector(".so-page")?.focus();
-  });
-});
+};
 
 onBeforeUnmount(() => {
   enterTimer && clearTimeout(enterTimer);

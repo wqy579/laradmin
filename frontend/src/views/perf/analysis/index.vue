@@ -86,9 +86,9 @@
 				</el-table>
 			</el-tab-pane>
 
-			<!-- 业务员销售分析 -->
+			<!-- 业务员销售分析（双击行查看销售走势） -->
 			<el-tab-pane label="业务员销售分析" name="employees">
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据" @row-dblclick="openTrend">
 					<el-table-column prop="salesman_name" label="业务员" width="120" />
 					<el-table-column prop="department" label="部门" width="120" />
 					<el-table-column prop="visit_count" label="拜访客户数" width="110" align="right" />
@@ -152,6 +152,20 @@
 			</el-tab-pane>
 		</el-tabs>
 
+		<!-- 业务员销售走势弹窗 -->
+		<el-dialog v-model="trendVisible" class="trend-dialog" :title="`${trendName} 销售走势`" width="760px" :close-on-click-modal="false" @closed="closeTrend">
+			<div class="trend-head">
+				<el-radio-group v-model="trendMode" size="small" @change="loadTrend">
+					<el-radio-button value="month">月度</el-radio-button>
+					<el-radio-button value="year">年度</el-radio-button>
+				</el-radio-group>
+			</div>
+			<div v-loading="trendLoading" class="trend-box">
+				<div v-if="!trendLoading && !trendRows.length" class="trend-empty">当前筛选条件下暂无数据</div>
+				<div v-show="trendRows.length" ref="trendEl" class="trend-chart" />
+			</div>
+		</el-dialog>
+
 		<div class="perf-toolbar">
 			<span class="pager-total">共 {{ total }} 条</span>
 			<el-pagination small layout="prev, pager, next, jumper" :page-size="30" :total="total" :current-page="page" @current-change="onPage" />
@@ -160,8 +174,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
+import * as echarts from 'echarts'
 import perfApi from '@/api/perf'
 import { saveBlob } from '@/utils/fileDownload'
 
@@ -192,6 +207,16 @@ const page = ref(1)
 const total = ref(0)
 const PAGE_SIZE = 30
 
+// 双击行 → 销售走势弹窗（数据复用 growth-return 接口，按业务员筛选）
+const trendVisible = ref(false)
+const trendName = ref('')
+const trendSalesmanId = ref(null)
+const trendMode = ref('month')
+const trendLoading = ref(false)
+const trendRows = ref([])
+const trendEl = ref(null)
+let trendChart = null
+
 const pagedList = computed(() => {
 	const start = (page.value - 1) * PAGE_SIZE
 	return list.value.slice(start, start + PAGE_SIZE)
@@ -200,8 +225,8 @@ const pagedList = computed(() => {
 const totalSale = computed(() => list.value.reduce((s, r) => s + Math.abs(Number(r.sale_amount || 0)), 0))
 const sharePct = (row) => {
 	const t = totalSale.value
-	if (!t) return '0.0'
-	return ((Math.abs(Number(row.sale_amount || 0)) / t) * 100).toFixed(1)
+	if (!t) return '0.00'
+	return ((Math.abs(Number(row.sale_amount || 0)) / t) * 100).toFixed(2)
 }
 const hasCol = (key) => list.value.some((r) => r[key] !== undefined && r[key] !== null && r[key] !== '')
 const hasAnyCol = (keys) => keys.some(hasCol)
@@ -261,12 +286,98 @@ const exportData = async () => {
 	}
 }
 
+// ===== 业务员销售走势（双击行打开）=====
+const fmtDate = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+// 走势窗口固定：月度=近12个月，年度=近5个自然年（与看板「近12个月」口径一致）
+const trendParams = () => {
+	const now = new Date()
+	if (trendMode.value === 'year') return { start_date: `${now.getFullYear() - 4}-01-01`, end_date: fmtDate(now) }
+	return { start_date: fmtDate(new Date(now.getFullYear(), now.getMonth() - 11, 1)), end_date: fmtDate(now) }
+}
+// 后端短区间返回日粒度：统一聚合到 月（Y-m）/ 年（Y）
+const groupTrend = (points) => {
+	const by = new Map()
+	for (const p of points) {
+		const raw = String(p.month || '')
+		const key = trendMode.value === 'year' ? raw.slice(0, 4) : (raw.length === 7 ? raw : raw.slice(0, 7))
+		by.set(key, (by.get(key) || 0) + Number(p.sale || 0))
+	}
+	return [...by.entries()]
+		.map(([month, sale]) => ({ month, sale }))
+		.sort((a, b) => a.month.localeCompare(b.month))
+}
+const shortMoney = (v) => {
+	const n = Number(v || 0)
+	return Math.abs(n) >= 10000 ? `${(n / 10000).toFixed(1)}万` : String(Math.round(n))
+}
+const drawTrend = () => {
+	if (trendChart) { trendChart.dispose(); trendChart = null }
+	if (!trendRows.value.length || !trendEl.value) return
+	const rows = trendRows.value
+	trendChart = echarts.init(trendEl.value)
+	trendChart.setOption({
+		title: { text: `${trendMode.value === 'year' ? '年度' : '月度'}销售走势（${trendMode.value === 'year' ? '近5年' : '近12个月'}）`, left: 16, top: 10, textStyle: { fontSize: 14, color: '#303133' } },
+		tooltip: {
+			trigger: 'axis',
+			formatter: (ps) => `${ps[0].axisValue}<br/>销售额：${fmtMoney(ps[0].value)}`,
+		},
+		grid: { left: 70, right: 24, top: 50, bottom: 30 },
+		xAxis: {
+			type: 'category', boundaryGap: false, data: rows.map((r) => r.month),
+			axisLine: { lineStyle: { color: '#DCDFE6' } }, axisLabel: { color: '#909399' },
+		},
+		yAxis: {
+			type: 'value', splitLine: { lineStyle: { color: '#EBEEF5' } },
+			axisLabel: { color: '#909399', formatter: (v) => shortMoney(v) },
+		},
+		series: [{
+			name: '销售额', type: 'line', smooth: true,
+			data: rows.map((r) => r.sale),
+			lineStyle: { width: 2, color: '#409EFF' }, itemStyle: { color: '#409EFF' },
+			showSymbol: rows.length <= 15, symbolSize: 8,
+			// 点数少时直接标值（悬浮层兜底其余情况）
+			label: { show: rows.length <= 12, position: 'top', color: '#606266', fontSize: 11, formatter: (p) => shortMoney(p.value) },
+		}],
+	})
+}
+const loadTrend = async () => {
+	trendLoading.value = true
+	try {
+		const res = await perfApi.analysis.growthReturn.get({ ...trendParams(), salesman_ids: [trendSalesmanId.value] })
+		const points = res.code === 200 ? (res.data?.growth_return || res.data?.list || []) : []
+		trendRows.value = groupTrend(points)
+		await nextTick()
+		drawTrend()
+	} catch {
+		trendRows.value = []
+	} finally {
+		trendLoading.value = false
+	}
+}
+const openTrend = (row) => {
+	trendSalesmanId.value = row.salesman_id
+	trendName.value = row.salesman_name
+	trendMode.value = 'month'
+	trendRows.value = []
+	trendVisible.value = true
+	loadTrend()
+}
+const closeTrend = () => {
+	if (trendChart) { trendChart.dispose(); trendChart = null }
+}
+const onWinResize = () => trendChart?.resize()
+
 onMounted(() => {
 	const now = new Date()
 	const first = new Date(now.getFullYear(), now.getMonth(), 1)
 	const f = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 	dateRange.value = [f(first), f(now)]
 	refresh()
+	window.addEventListener('resize', onWinResize)
+})
+onUnmounted(() => {
+	window.removeEventListener('resize', onWinResize)
+	if (trendChart) { trendChart.dispose(); trendChart = null }
 })
 </script>
 
@@ -281,4 +392,12 @@ onMounted(() => {
 .text-up { color: #F56C6C; }
 .text-down { color: #67C23A; }
 .text-nil { color: #909399; }
+/* 走势弹窗：标题栏 50px / 16px 加粗 #303133，圆角 4px（与站内弹窗一致） */
+:deep(.trend-dialog .el-dialog) { border-radius: 4px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); }
+:deep(.trend-dialog .el-dialog__header) { margin: 0; padding: 0 20px; height: 50px; line-height: 50px; border-bottom: 1px solid #ebeef5; }
+:deep(.trend-dialog .el-dialog__title) { font-size: 16px; font-weight: 600; color: #303133; line-height: 50px; }
+.trend-head { padding: 12px 20px 0; }
+.trend-box { position: relative; height: 360px; padding: 4px 12px 12px; }
+.trend-chart { width: 100%; height: 100%; }
+.trend-empty { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #909399; }
 </style>

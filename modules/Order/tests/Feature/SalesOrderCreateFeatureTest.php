@@ -3,9 +3,11 @@
 namespace Tests\Order\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Modules\Auth\Models\User;
+use Modules\Order\Models\SalesOrder;
 use Modules\Stock\Models\Product;
 use Modules\Stock\Models\Stock;
 use Tests\TestCase;
@@ -358,5 +360,96 @@ class SalesOrderCreateFeatureTest extends TestCase
         $this->assertIsArray($logs);
         $this->assertCount(1, $logs);
         $this->assertSame('创建订单', $logs[0]['action']);
+    }
+
+    // ---------------------------------------------------------------- 幂等：重复提交防护
+    //
+    // 业务反馈「多人同时点会卡死，且存在重复提交风险」。前端已加按钮锁，
+    // 但那只管单标签页——回车+点击同时触发、弱网重发、用户以为卡住重进再点，
+    // 都会产生第二个完全相同的 POST。这类重复单在业务上极难察觉
+    // （单号不同、明细一模一样），却会重复冻结库存。后端用 client_token 兜底。
+
+    /** 同一 client_token 发两次，只应落一张单，第二次返回首次结果 */
+    public function test_same_client_token_creates_only_one_order(): void
+    {
+        Cache::flush();
+
+        $token = 'tok-'.uniqid('', true);
+        $payload = $this->basePayload(['client_token' => $token]);
+
+        $first = $this->postJson('/admin/business/sales-order', $payload);
+        $first->assertOk();
+        $firstId = $first->json('data.id');
+        $this->assertNotNull($firstId);
+
+        $second = $this->postJson('/admin/business/sales-order', $payload);
+        $second->assertOk();
+        $this->assertSame(
+            $firstId,
+            $second->json('data.id'),
+            '同一 client_token 的第二次提交必须返回首单，不能新建一张重复订单'
+        );
+
+        $this->assertSame(
+            1,
+            SalesOrder::where('customer_id', $this->customerId)->count(),
+            '重复提交后应只有一张订单落库'
+        );
+    }
+
+    /** 不同 client_token 是两张独立订单，幂等键不能误伤正常的下第二单 */
+    public function test_different_client_token_creates_separate_orders(): void
+    {
+        Cache::flush();
+
+        $a = $this->postJson('/admin/business/sales-order', $this->basePayload(['client_token' => 'tok-a-'.uniqid()]));
+        $a->assertOk();
+
+        $b = $this->postJson('/admin/business/sales-order', $this->basePayload(['client_token' => 'tok-b-'.uniqid()]));
+        $b->assertOk();
+
+        $this->assertNotSame(
+            $a->json('data.id'),
+            $b->json('data.id'),
+            '换了 token 就是新的一单——幂等键只挡重发，不该把连续下单也当成重复'
+        );
+    }
+
+    /** 不带 client_token 的老调用方行为不变，照常创建 */
+    public function test_missing_client_token_still_creates_order(): void
+    {
+        $res = $this->postJson('/admin/business/sales-order', $this->basePayload());
+
+        $res->assertOk();
+        $this->assertNotNull($res->json('data.id'));
+    }
+
+    /** 库存不足等失败场景必须释放抢占锁，否则用户重试会被自己的锁挡住 */
+    public function test_failed_submit_releases_lock_so_retry_is_not_blocked(): void
+    {
+        Cache::flush();
+
+        $token = 'tok-fail-'.uniqid();
+        // 数量远超库存（预置 100000），必然走失败分支
+        $bad = $this->basePayload([
+            'client_token' => $token,
+            'items' => [['product_id' => $this->productId, 'qty_small' => 999999999, 'price_small' => 3.5]],
+        ]);
+
+        $this->postJson('/admin/business/sales-order', $bad)->assertStatus(422);
+
+        // 修正数量后用同一 token 重试：不该收到「订单正在提交中」的 429
+        $good = $this->basePayload([
+            'client_token' => $token,
+            'items' => [['product_id' => $this->productId, 'qty_small' => 10, 'price_small' => 3.5]],
+        ]);
+        $retry = $this->postJson('/admin/business/sales-order', $good);
+
+        $this->assertNotSame(
+            429,
+            $retry->getStatusCode(),
+            '失败后必须释放抢占锁，否则用户改完再点会被自己的锁挡住'
+        );
+        $retry->assertOk();
     }
 }

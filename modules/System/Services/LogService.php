@@ -7,9 +7,32 @@ use Modules\System\Models\Log;
 
 class LogService
 {
-    public function create(array $data): Log
+    /**
+     * 开关：请求日志入库失败时是否抛出异常。
+     *
+     * 日志是旁路能力，绝不能反过来把业务请求带崩。中间件本身已 try/catch，
+     * 这里再收一道口子，保证「表被锁死 / 磁盘满 / 字段超长」这类写日志失败
+     * 只落 Laravel 日志、不影响用户请求。测试里想断言写入行为时可临时置 true。
+     */
+    public static bool $throwOnFailure = false;
+
+    public function create(array $data): ?Log
     {
-        return Log::create($data);
+        try {
+            return Log::create($data);
+        } catch (\Throwable $e) {
+            if (self::$throwOnFailure) {
+                throw $e;
+            }
+
+            \Illuminate\Support\Facades\Log::warning('system_log 写入失败（已忽略，不影响请求）', [
+                'error' => $e->getMessage(),
+                'module' => $data['module'] ?? null,
+                'action' => $data['action'] ?? null,
+            ]);
+
+            return null;
+        }
     }
 
     public function getList(array $params): array

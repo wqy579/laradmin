@@ -1,4 +1,5 @@
 import config from '../config'
+import moduleRoutes from './modules'
 
 const systemRoutes = [
 	{
@@ -494,6 +495,14 @@ const systemRoutes = [
 		component: () => import('../views/perf/analysis/index.vue'),
 		meta: { title: '商品与客户分析' },
 	},
+	{
+		path: '/perf/return-summary',
+		name: 'PerfReturnSummary',
+		component: () => import('../views/perf/return-summary/index.vue'),
+		meta: { title: '退货汇总单' },
+	},
 ]
+
+systemRoutes.push(...moduleRoutes)
 
 export default systemRoutes

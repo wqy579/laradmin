@@ -5,6 +5,7 @@ namespace Modules\System\Providers;
 use App\Contracts\TaskNotification;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Modules\System\Console\Commands\PruneSystemLogs;
 use Modules\System\Console\Commands\RetryUnsentNotifications;
 use Modules\System\Console\Commands\RunScheduled;
 use Modules\System\Console\Commands\UpdateMenuIcons;
@@ -16,6 +17,7 @@ class SystemServiceProvider extends ServiceProvider
 {
     protected array $commands = [
         RetryUnsentNotifications::class,
+        PruneSystemLogs::class,
         RunScheduled::class,
         UpdateMenuIcons::class,
     ];

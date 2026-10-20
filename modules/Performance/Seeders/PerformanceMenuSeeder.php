@@ -37,6 +37,7 @@ class PerformanceMenuSeeder extends Seeder
         ['name' => 'perf.stock-warning', 'title' => '库存预警中心', 'path' => '/perf/stock-warning', 'component' => 'perf/stock-warning/index', 'sort' => 7],
         ['name' => 'perf.dashboard', 'title' => '销售分析看板', 'path' => '/perf/dashboard', 'component' => 'perf/dashboard/index', 'sort' => 8],
         ['name' => 'perf.analysis', 'title' => '商品与客户分析', 'path' => '/perf/analysis', 'component' => 'perf/analysis/index', 'sort' => 9],
+        ['name' => 'perf.return-summary', 'title' => '退货汇总单', 'path' => '/perf/return-summary', 'component' => 'perf/return-summary/index', 'sort' => 10],
     ];
 
     /** 权限按钮节点：name / title / parent_name */
