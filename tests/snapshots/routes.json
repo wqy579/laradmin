@@ -7473,6 +7473,18 @@
     },
     {
         "method": "POST",
+        "uri": "admin/ledger/vouchers/{id}/red-reverse",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@redReverse",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
         "uri": "admin/ledger/vouchers/{id}/reverse",
         "name": "admin.",
         "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@reverse",
@@ -9012,18 +9024,6 @@
         "uri": "admin/system/upload/multiple",
         "name": "admin.",
         "action": "Modules\\System\\Http\\Controllers\\Admin\\Upload@uploadMultiple",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "POST",
-        "uri": "admin/ledger/vouchers/{id}/reverse",
-        "name": "admin.",
-        "action": "Modules\\Ledger\Http\\Controllers\\VoucherController@reverse",
         "middleware": [
             "api",
             "stock.snapshot",
