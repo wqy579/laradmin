@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Modules\Stock\Models\Stock;
 use Modules\Stock\Models\Warehouse;
+use Modules\VanSales\Models\VanRequisition;
 use Tests\TestCase;
 
 /**
@@ -119,7 +120,7 @@ class VanRequisitionFreezeLeakTest extends TestCase
         $this->postJson("/admin/business/van-requisition/{$id}/approve")->assertStatus(200);
 
         // 直接置为 picked 终态（拣货流程由 VanPicking 负责，本测试只验证状态门禁）
-        \Modules\VanSales\Models\VanRequisition::where('id', $id)->update(['status' => 'picked']);
+        VanRequisition::where('id', $id)->update(['status' => 'picked']);
 
         $cancelRes = $this->postJson("/admin/business/van-requisition/{$id}/cancel");
         $cancelRes->assertStatus(422);
@@ -127,7 +128,7 @@ class VanRequisitionFreezeLeakTest extends TestCase
 
     private function getRequisitionStatus(int $id): string
     {
-        return (string) \Modules\VanSales\Models\VanRequisition::where('id', $id)->value('status');
+        return (string) VanRequisition::where('id', $id)->value('status');
     }
 
     /** 建一辆车 + 回填车辆仓（type=vehicle + vehicle_id），复刻 VanReturnToWarehouseFlowTest */
