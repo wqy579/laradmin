@@ -389,7 +389,11 @@ class VanReturnBorrowOrderController extends Controller
             return;
         }
         $newQty = (int) $balance->qty - $qty;
-        $balance->update(['qty' => $newQty, 'updated_at' => now()]);
+        if ($newQty <= 0) {
+            $balance->delete();          // 超还时删除行（实现 1/2 一致）
+        } else {
+            $balance->update(['qty' => $newQty, 'updated_at' => now()]);
+        }
     }
 
     private function writeOperationLog(VanReturnBorrowOrder $order, ?int $adminId, string $adminName, string $action, string $actionLabel, ?string $fromStatus, ?string $toStatus, ?string $detail = null): void
