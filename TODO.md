@@ -78,6 +78,7 @@
 | 应收应付调整单 | P1 | 完成 D-18 页面实现 (feat/finance-batch1) | 0a3913d |
 | 客户余额调整单 | P1 | 完成 D-20 页面实现 (feat/finance-batch2) | |
 | 供应商余额调整单 | P1 | 完成 D-21 页面实现 (feat/finance-batch2) | |
+| 资金增减单（两个方向） | P1 | 完成 D-22+D-23 页面实现——单头单据，增加/减少两个方向，无审核流保存即生效 (feat/finance-batch3) | 517b014 |
 
 ---
 
