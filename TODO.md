@@ -35,13 +35,14 @@
 - 下一步：考虑要货单 approved 冻结泄漏（P0）、decreaseBorrowBalance 负数下限（P3）
 
 ### 会话 F
-- 分支：feat/finance-batch3
-- 任务：财务域第三批——D-22+D-23 资金增减单（增加/减少两个方向）
-- 状态：🔄 进行中（feat/finance-batch3）
+- 分支：feat/finance-batch4
+- 任务：财务域第四批——D-19 借款/还款单 + 逾期提醒
+- 状态：🔄 进行中（feat/finance-batch4）
 - 已完成：
   - 第一批（feat/finance-batch1，已合并）：D-08 余额查询品牌余额 Tab2（commit 8d00914）+ D-18 应收应付调整单（commit 0a3913d）
   - 第二批（feat/finance-batch2，已合并）：D-20 客户余额调整单 + D-21 供应商余额调整单
   - 第三批（feat/finance-batch3）：D-22+D-23 资金增减单（路由/mock/单头单据页面实现）
+  - 第四批（feat/finance-batch4）：D-19 借款/还款单 + 逾期提醒实现
 
 ---
 
@@ -79,6 +80,7 @@
 | 客户余额调整单 | P1 | 完成 D-20 页面实现 (feat/finance-batch2) | |
 | 供应商余额调整单 | P1 | 完成 D-21 页面实现 (feat/finance-batch2) | |
 | 资金增减单（两个方向） | P1 | 完成 D-22+D-23 页面实现——单头单据，增加/减少两个方向，无审核流保存即生效 (feat/finance-batch3) | 517b014 |
+| 借款/还款单 + 逾期提醒 | P1 | 完成 D-19 页面实现——借款/还款两类单据，逾期提醒实时计算 (feat/finance-batch4) | |
 
 ---
 
