@@ -35,15 +35,17 @@
 - 下一步：考虑要货单 approved 冻结泄漏（P0）、decreaseBorrowBalance 负数下限（P3）
 
 ### 会话 F
-- 分支：feat/finance-batch6
-- 任务：财务域第六批 —— D-28 辅助单位余额查询（Tab3 填充）+ D-29 现金账户收支查询
-- 状态：🔄 进行中（feat/finance-batch6）
+- 分支：feat/finance-batch7
+- 任务：财务域第七批 —— D-04 凭证多条件查询后端修复 + D-05 defineExpose bug 修复 + 后端接口
+- 状态：🔄 进行中（feat/finance-batch7）
 - 已完成：
   - 第一批（feat/finance-batch1，已合并）：D-08 余额查询品牌余额 Tab2（commit 8d00914）+ D-18 应收应付调整单（commit 0a3913d）
   - 第二批（feat/finance-batch2，已合并）：D-20 客户余额调整单 + D-21 供应商余额调整单
   - 第三批（feat/finance-batch3）：D-22+D-23 资金增减单（路由/mock/单头单据页面实现）
   - 第四批（feat/finance-batch4）：D-19 借款/还款单 + 逾期提醒实现
   - 第五批（feat/finance-batch5）：D-24 欠条确认/驳回 + 签字图（列表/新增含签字图上传/查看/确认驳回交互，纯前端 mock）
+  - 第六批（feat/finance-batch6）：D-28 辅助单位余额查询（Tab3 填充）+ D-29 现金账户收支查询
+  - 第七批（feat/finance-batch7）：D-04 凭证多条件查询后端修复 + D-05 科目树展开/折叠 defineExpose 修复 + 科目导出按筛选条件过滤
 
 ---
 
@@ -60,6 +62,8 @@
 
 | 辅助单位余额查询 Tab3 | P2 | 填充 Tab3 辅助单位维度余额查询 (feat/finance-batch6) | |
 | 现金账户收支查询 | P2 | 实现账户流水查询、滚动余额计算 (feat/finance-batch6) | |
+| D-04 凭证多条件查询后端修复 | P1 | 凭证导出/查询支持 min_amount/max_amount/制单人/审核人/方向等组合条件 (feat/finance-batch7) | |
+| D-05 defineExpose bug 修复 + 后端接口 | P1 | 科目树展开/折叠改用 getGridInstance()；科目导出支持按筛选条件过滤 (feat/finance-batch7) | |
 |------|--------|------|--------|
 | 财务凭证页 | P0 | 财务凭证页 | feat(voucher): P0-1 财务凭证页 |
 | 业务员订单汇总表 | P1 | 业务员订单汇总表 - 3视图报表 | feat(report): P1-1 业务员订单汇总表 - 3视图报表 |

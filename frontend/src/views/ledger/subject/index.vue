@@ -122,8 +122,8 @@ const load = async () => {
 }
 const handleSearch = () => load()
 const handleReset = () => { Object.assign(filters, { code: '', name: '', category: '', status: '' }); load() }
-const toggleExpandAll = () => { allExpanded.value = !allExpanded.value; tableRef.value?.$refs?.xGrid?.setAllTreeExpand(allExpanded.value) }
-const toggleRow = (row) => { tableRef.value?.$refs?.xGrid?.toggleTreeExpand(row) }
+const toggleExpandAll = () => { allExpanded.value = !allExpanded.value; tableRef.value?.getGridInstance?.()?.setAllTreeExpand(allExpanded.value) }
+const toggleRow = (row) => { tableRef.value?.getGridInstance?.()?.toggleTreeExpand(row) }
 const openForm = (row, parent) => formRef.value?.open(row, parent)
 const toggleStatus = async (row) => {
 	try { await ledgerApi.subject.toggleStatus.put(row.id); ElMessage.success(row.status === 'enabled' ? '已停用' : '已启用'); load() }

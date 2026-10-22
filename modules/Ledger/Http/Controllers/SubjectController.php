@@ -148,7 +148,57 @@ class SubjectController extends Controller
 
     public function export(Request $request)
     {
-        $tree = $this->service->tree();
+        $code = trim((string) $request->input('code', ''));
+        $name = trim((string) $request->input('name', ''));
+        $category = $request->input('category');
+        $status = $request->input('status');
+
+        $query = Subject::query();
+        if ($code !== '') {
+            $query->where('code', 'like', '%'.$code.'%');
+        }
+        if ($name !== '') {
+            $query->where('name', 'like', '%'.$name.'%');
+        }
+        if ($category && $category !== 'all') {
+            $query->where('category', $category);
+        }
+        if ($status && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        if ($code === '' && $name === '' && ! $category && ! $status) {
+            $tree = $this->service->tree();
+        } else {
+            $matched = $query->get();
+            $keepIds = $matched->pluck('id')->all();
+            foreach ($matched as $m) {
+                $pid = $m->parent_id;
+                while ($pid) {
+                    $keepIds[] = $pid;
+                    $parent = Subject::find($pid);
+                    $pid = $parent?->parent_id ?? 0;
+                }
+            }
+            $keepIds = array_unique($keepIds);
+            $all = Subject::orderBy('sort')->orderBy('code')->get()->filter(fn ($s) => in_array($s->id, $keepIds));
+            $byParent = $all->groupBy('parent_id');
+
+            $build = function (int $parentId) use (&$build, $byParent) {
+                $nodes = $byParent->get($parentId, collect());
+                $tree = [];
+                foreach ($nodes as $node) {
+                    $item = $node->toArray();
+                    $item['category_label'] = Subject::categoryLabel($node->category);
+                    $item['direction_label'] = Subject::directionLabel($node->balance_direction);
+                    $item['children'] = $build($node->id);
+                    $tree[] = $item;
+                }
+                return $tree;
+            };
+            $tree = $build(0);
+        }
+
         $csv = "\u{FEFF}科目编码,科目名称,科目类别,余额方向,是否末级,级次,辅助核算,状态,备注\n";
         $flatten = function (array $nodes, int $depth = 0) use (&$flatten, &$csv) {
             foreach ($nodes as $node) {
