@@ -127,3 +127,12 @@
 2. 做完更新：完成后把状态改成 ✅
 3. 新任务从池里领：从待办任务池里选下一个
 4. 分支隔离：每个任务用独立分支，不要在 main 上直接改
+---
+
+## 基建与环境（编排层 2026-10-22 14:30 记录）
+
+1. **worktree 隔离**：三会话曾共享 `/workspace/laradmin` 导致分支互相 checkout 踩踏，已改为 git worktree：`/workspace/wt-base`(feat/base-components)、`/workspace/wt-order`(feat/order-closure)、`/workspace/wt-report`(feat/report-analysis)。各自独立工作区+独立数据库。
+2. **本机环境从零搭好**（machine c 原是纯 git 副本）：MariaDB 10.11(127.0.0.1:3306, root 空密码) + Redis(6379) + 三库 `laradmin_base/order/report`（各 135 表全量迁移）；各 worktree 已装 vendor/node_modules/.env/JWT_SECRET。
+3. **修复仓库级 bug**（commit 097d697，已推 main）：`modules/Order/.../2026_10_15_000001_widen_order_type_on_sales_orders.php` 用 MySQL 专有 `SHOW COLUMNS`，sqlite 测试连接下炸掉全部 RefreshDatabase 测试（357 failed）；已加驱动守卫，三 worktree 基线均 **370 passed / 1 skipped / 0 failed**。
+4. 测试命令注意：项目无 pest 二进制，用 `php artisan test`（phpunit + pest-plugin）；并行需 paratest 未装，顺序跑约 27s。
+5. laradmin-explorer 子代理模型已从 machine-c 改为 amd-best（400 unknown provider 修复）。
