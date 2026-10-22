@@ -59,7 +59,55 @@
 				</div>
 			</el-tab-pane>
 
-			<!-- Tab2：辅助单位余额查询（暂未开放） -->
+			<!-- Tab2：品牌余额查询（D-08 综合双视图：按品牌维度 + 合计行） -->
+			<el-tab-pane label="品牌余额查询" name="brand">
+				<!-- 筛选 -->
+				<div class="bal-filter">
+					<span class="bal-filter__label">品牌</span>
+					<el-select v-model="brandSearch.brand" clearable placeholder="全部品牌" size="small" style="width: 160px" @change="refreshBrand">
+						<el-option v-for="b in brandOptions" :key="b" :label="b" :value="b" />
+					</el-select>
+					<span class="bal-filter__label">关键字</span>
+					<el-input v-model="brandSearch.keyword" placeholder="往来单位/科目" clearable size="small" style="width: 200px" @keyup.enter="refreshBrand" @clear="refreshBrand" />
+					<el-button type="primary" size="small" @click="refreshBrand">查询</el-button>
+					<el-button size="small" @click="resetBrandSearch">重置</el-button>
+					<div style="flex: 1" />
+					<el-button size="small" :loading="brandExporting" @click="exportBrandData">导出</el-button>
+				</div>
+
+				<!-- 表格 -->
+				<div class="bal-table">
+					<el-table :data="brandPagedList" border v-loading="brandLoading" show-summary :summary-method="brandSummaryMethod">
+						<el-table-column type="index" label="序号" width="50" align="center" />
+						<el-table-column prop="brand" label="品牌" width="110" align="left" show-overflow-tooltip />
+						<el-table-column prop="category" label="类别" width="90" align="left" show-overflow-tooltip />
+						<el-table-column prop="unit" label="往来单位" min-width="170" show-overflow-tooltip />
+						<el-table-column prop="subject" label="科目" width="110" align="left" show-overflow-tooltip />
+						<el-table-column label="预收款" width="120" align="right">
+							<template #default="{ row }">
+								<span class="tabular">{{ fmt(row.prepaid) }}</span>
+							</template>
+						</el-table-column>
+						<el-table-column label="应收款" width="120" align="right">
+							<template #default="{ row }">
+								<span class="tabular">{{ fmt(row.receivable) }}</span>
+							</template>
+						</el-table-column>
+						<el-table-column label="合计" width="130" align="right">
+							<template #default="{ row }">
+								<span class="tabular" :class="row.total < 0 ? 'bal-num--neg' : 'bal-num--pos'">{{ fmt(row.total) }}</span>
+							</template>
+						</el-table-column>
+					</el-table>
+				</div>
+
+				<!-- 分页 -->
+				<div class="bal-pager">
+					<el-pagination background layout="total, prev, pager, next, sizes" :total="brandTotal" :page-size="brandPageSize" :current-page="brandPage" :page-sizes="[10, 20, 50]" @current-change="onBrandPageChange" @size-change="onBrandSizeChange" />
+				</div>
+			</el-tab-pane>
+
+			<!-- Tab3：辅助单位余额查询（暂未开放） -->
 			<el-tab-pane label="辅助单位余额查询" name="aux">
 				<div class="bal-placeholder">
 					<el-empty description="暂未开放" />
@@ -71,7 +119,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { MOCK_BALANCE_UNIT, MOCK_SUBJECTS } from '../../../mock/balance'
+import { MOCK_BALANCE_UNIT, MOCK_BALANCE_BRAND, MOCK_BRANDS, MOCK_SUBJECTS } from '../../../mock/balance'
 import { saveBlob } from '../../../utils/fileDownload'
 
 const activeTab = ref('customer')
@@ -168,6 +216,85 @@ async function exportData() {
 }
 
 onMounted(refresh)
+
+/* ---------- D-08 Tab2 品牌余额查询（独立状态，不与 Tab1 共用） ---------- */
+const brandOptions = MOCK_BRANDS
+const brandSearch = reactive({
+	brand: '',
+	keyword: '',
+})
+const brandLoading = ref(false)
+const brandExporting = ref(false)
+const brandPage = ref(1)
+const brandPageSize = ref(20)
+
+// TODO(api): 替换为 GET /api/finance/balances?dimension=brand（brand/keyword 作 query 参数）
+const brandFiltered = computed(() => {
+	let list = [...MOCK_BALANCE_BRAND]
+	if (brandSearch.brand) {
+		list = list.filter((r) => r.brand === brandSearch.brand)
+	}
+	const kw = brandSearch.keyword.trim().toLowerCase()
+	if (kw) {
+		list = list.filter((r) => r.unit.toLowerCase().includes(kw) || r.subject.toLowerCase().includes(kw))
+	}
+	return list
+})
+
+const brandTotal = computed(() => brandFiltered.value.length)
+const brandPagedList = computed(() => {
+	const start = (brandPage.value - 1) * brandPageSize.value
+	return brandFiltered.value.slice(start, start + brandPageSize.value)
+})
+
+function brandSummaryMethod({ columns }) {
+	return columns.map((col, i) => {
+		if (i === 0) return '合计'
+		if (col.label === '预收款') return fmt(brandFiltered.value.reduce((s, r) => s + r.prepaid, 0))
+		if (col.label === '应收款') return fmt(brandFiltered.value.reduce((s, r) => s + r.receivable, 0))
+		if (col.label === '合计') return fmt(brandFiltered.value.reduce((s, r) => s + r.total, 0))
+		return ''
+	})
+}
+
+function refreshBrand() {
+	brandLoading.value = true
+	// TODO(api): GET /api/finance/balances?dimension=brand&brand=&keyword=
+	setTimeout(() => {
+		brandLoading.value = false
+		brandPage.value = 1
+	}, 200)
+}
+
+function resetBrandSearch() {
+	brandSearch.brand = ''
+	brandSearch.keyword = ''
+	brandPage.value = 1
+	refreshBrand()
+}
+
+function onBrandPageChange(p) {
+	brandPage.value = p
+}
+
+function onBrandSizeChange(s) {
+	brandPageSize.value = s
+	brandPage.value = 1
+}
+
+async function exportBrandData() {
+	brandExporting.value = true
+	try {
+		const rows = brandFiltered.value
+		const header = ['序号', '品牌', '类别', '往来单位', '科目', '预收款', '应收款', '合计']
+		const lines = rows.map((r, i) => [i + 1, r.brand, r.category, r.unit, r.subject, r.prepaid, r.receivable, r.total])
+		lines.push(['', '合计', '', '', '', rows.reduce((s, r) => s + r.prepaid, 0), rows.reduce((s, r) => s + r.receivable, 0), rows.reduce((s, r) => s + r.total, 0)])
+		const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\r\n')
+		saveBlob(new Blob(['' + csv], { type: 'text/csv;charset=utf-8' }), '品牌余额查询.csv')
+	} finally {
+		brandExporting.value = false
+	}
+}
 </script>
 
 <style scoped>
