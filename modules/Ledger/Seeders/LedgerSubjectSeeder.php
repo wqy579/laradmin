@@ -3,55 +3,51 @@
 namespace Modules\Ledger\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use Modules\Ledger\Models\Subject;
 
 /**
  * 预置《小企业会计准则》标准科目表（资产/负债/权益/成本/损益五类）。
  *
  * 编码与名称按准则写死，预置到二级或三级。aux_types 标记末级科目是否挂辅助核算
- * （应收账款挂客户、应付账款挂供应商等）。
+ * （应收账款挂客户、应付账款挂供应商、主营收入/成本挂品牌）。
+ *
+ * 幂等：全部按 code updateOrCreate，可重复执行不报错不重复；
+ * 2026_10_14_000008 迁移在生产 migrate-only 场景也调用本 seeder，二者口径一致。
  */
 class LedgerSubjectSeeder extends Seeder
 {
     public function run(): void
     {
         $rows = $this->subjects();
-        $now = now();
         $idByCode = [];
+
         foreach ($rows as $row) {
-            $exists = DB::table('ledger_subjects')->where('code', $row['code'])->exists();
-            if (! $exists) {
-                $idByCode[$row['code']] = DB::table('ledger_subjects')->insertGetId([
-                    'parent_id' => 0,
-                    'code' => $row['code'],
+            // 按 code updateOrCreate：已存在则对齐预置口径，不存在则新建
+            $subject = Subject::updateOrCreate(
+                ['code' => $row['code']],
+                [
                     'name' => $row['name'],
                     'category' => $row['category'],
                     'balance_direction' => $row['balance_direction'],
                     'is_leaf' => $row['is_leaf'],
                     'level' => $row['level'],
-                    'aux_types' => isset($row['aux_types']) ? json_encode($row['aux_types']) : null,
+                    'aux_types' => $row['aux_types'] ?? null,
                     'sort' => 0,
-                    'status' => 'enabled',
-                    'created_at' => $now,
-                    'updated_at' => $now,
-                ]);
-            } else {
-                $idByCode[$row['code']] = DB::table('ledger_subjects')->where('code', $row['code'])->value('id');
-            }
+                    'status' => Subject::STATUS_ENABLED,
+                ]
+            );
+            $idByCode[$row['code']] = $subject->id;
         }
 
-        // 回填 parent_id（用 parent_code 解析）与 level
+        // 第二遍回填 parent_id（用 parent_code 解析；顶级科目保持默认 0）
         foreach ($rows as $row) {
-            $parentId = 0;
-            $level = $row['level'];
             if (! empty($row['parent_code'])) {
                 $parentId = $idByCode[$row['parent_code']] ?? 0;
+                Subject::where('code', $row['code'])->update([
+                    'parent_id' => $parentId,
+                    'updated_at' => now(),
+                ]);
             }
-            DB::table('ledger_subjects')->where('code', $row['code'])->update([
-                'parent_id' => $parentId,
-                'level' => $level,
-                'updated_at' => now(),
-            ]);
         }
     }
 
@@ -96,12 +92,12 @@ class LedgerSubjectSeeder extends Seeder
             ['code' => '4104', 'name' => '利润分配', 'category' => 'equity', 'balance_direction' => 'credit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true],
 
             // ===== 成本类 cost =====
-            ['code' => '5401', 'name' => '主营业务成本', 'category' => 'cost', 'balance_direction' => 'debit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true],
+            ['code' => '5401', 'name' => '主营业务成本', 'category' => 'cost', 'balance_direction' => 'debit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true, 'aux_types' => ['brand']],
             ['code' => '5402', 'name' => '其他业务成本', 'category' => 'cost', 'balance_direction' => 'debit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true],
             ['code' => '5403', 'name' => '税金及附加', 'category' => 'cost', 'balance_direction' => 'debit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true],
 
             // ===== 损益类 profit_loss =====
-            ['code' => '6001', 'name' => '主营业务收入', 'category' => 'profit_loss', 'balance_direction' => 'credit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true],
+            ['code' => '6001', 'name' => '主营业务收入', 'category' => 'profit_loss', 'balance_direction' => 'credit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true, 'aux_types' => ['brand']],
             ['code' => '6051', 'name' => '其他业务收入', 'category' => 'profit_loss', 'balance_direction' => 'credit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true],
             ['code' => '6111', 'name' => '投资收益', 'category' => 'profit_loss', 'balance_direction' => 'credit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true],
             ['code' => '6301', 'name' => '营业外收入', 'category' => 'profit_loss', 'balance_direction' => 'credit', 'level' => 1, 'parent_code' => null, 'is_leaf' => true],

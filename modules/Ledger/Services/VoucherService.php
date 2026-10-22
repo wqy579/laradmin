@@ -525,8 +525,17 @@ class VoucherService
             }
             $subject = Subject::find($subjectId);
             if (! $subject || ! $subject->is_leaf) {
-                throw new \DomainException('分录必须选择末级科目：'.$subject?->name);
+                throw new \DomainException('分录必须选择末级科目：'.($subject?->name ?? '未知科目'));
             }
+
+            // 品牌辅助核算校验：若科目标记了 brand 辅助，则 brand_id 必填
+            $auxTypes = $subject->aux_types ?? [];
+            if (in_array('brand', $auxTypes)) {
+                if (empty($e['brand_id'])) {
+                    throw new \DomainException('科目【'.$subject->code.' '.$subject->name.'】要求填写品牌辅助核算');
+                }
+            }
+
             // 借贷互斥：填了借方该行贷方置 0，反之亦然
             if (abs($debit) >= 0.005 && abs($credit) >= 0.005) {
                 throw new \DomainException('同一分录借方与贷方不能同时有金额');
