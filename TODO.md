@@ -35,9 +35,9 @@
 - 下一步：考虑要货单 approved 冻结泄漏（P0）、decreaseBorrowBalance 负数下限（P3）
 
 ### 会话 F
-- 分支：feat/finance-batch5
-- 任务：财务域第五批——D-24 欠条确认/驳回 + 签字图
-- 状态：🔄 进行中（feat/finance-batch5）
+- 分支：feat/finance-batch6
+- 任务：财务域第六批 —— D-28 辅助单位余额查询（Tab3 填充）+ D-29 现金账户收支查询
+- 状态：🔄 进行中（feat/finance-batch6）
 - 已完成：
   - 第一批（feat/finance-batch1，已合并）：D-08 余额查询品牌余额 Tab2（commit 8d00914）+ D-18 应收应付调整单（commit 0a3913d）
   - 第二批（feat/finance-batch2，已合并）：D-20 客户余额调整单 + D-21 供应商余额调整单
@@ -57,6 +57,9 @@
 | 资产利润表 | P2 | 利润表 + 资产负债表 | feat(finance): 资产负债表完善 + 红冲财务联动 |
 
 | 已实现但未入表（证据: git log） | 优先级 | 说明 | Commit |
+
+| 辅助单位余额查询 Tab3 | P2 | 填充 Tab3 辅助单位维度余额查询 (feat/finance-batch6) | |
+| 现金账户收支查询 | P2 | 实现账户流水查询、滚动余额计算 (feat/finance-batch6) | |
 |------|--------|------|--------|
 | 财务凭证页 | P0 | 财务凭证页 | feat(voucher): P0-1 财务凭证页 |
 | 业务员订单汇总表 | P1 | 业务员订单汇总表 - 3视图报表 | feat(report): P1-1 业务员订单汇总表 - 3视图报表 |
