@@ -56,3 +56,21 @@ export const MOCK_BALANCE_BRAND = [
 	{ brand: '元气森林', category: '客户', unit: '好又多卖场', subject: '预收账款', prepaid: 15000, receivable: 2100, total: 12900 },
 	{ brand: '元气森林', category: '客户', unit: '天天平价', subject: '应收账款', prepaid: 0, receivable: 5400, total: -5400 },
 ]
+
+// ---------- D-28 辅助单位余额查询（Tab3，按辅助单位维度：门店/部门/其他） ----------
+// 按辅助单位类型的余额数据，字段与 MOCK_BALANCE_UNIT 保持一致（unitType/category/unit/subject/amount/date）
+// TODO(api): GET /api/finance/balances?dimension=aux（支持 unitType/subject/keyword 筛选）
+export const MOCK_BALANCE_AUX = [
+	{ unitType: '门店', category: '门店', unit: '朝阳区一号店', brand: '蒙牛', subject: '门店借出款', balance: 15000, date: '2026-10-17' },
+	{ unitType: '门店', category: '门店', unit: '朝阳区一号店', brand: '伊利', subject: '门店借入款', balance: -2000, date: '2026-10-17' },
+	{ unitType: '门店', category: '门店', unit: '海淀区三号店', brand: '康师傅', subject: '门店借出款', balance: 8500, date: '2026-10-17' },
+	{ unitType: '门店', category: '门店', unit: '海淀区三号店', brand: '统一', subject: '应收账款', balance: 4200, date: '2026-10-17' },
+	{ unitType: '门店', category: '门店', unit: '丰台区五号店', brand: '蒙牛', subject: '门店借出款', balance: 11000, date: '2026-10-17' },
+	{ unitType: '门店', category: '门店', unit: '丰台区五号店', brand: '农夫山泉', subject: '预收账款', balance: -3600, date: '2026-10-17' },
+	{ unitType: '部门', category: '部门', unit: '销售一部', brand: '伊利', subject: '应收账款', balance: 12400, date: '2026-10-17' },
+	{ unitType: '部门', category: '部门', unit: '销售一部', brand: '蒙牛', subject: '预收账款', balance: -3000, date: '2026-10-17' },
+	{ unitType: '部门', category: '部门', unit: '销售二部', brand: '康师傅', subject: '应收账款', balance: 9200, date: '2026-10-17' },
+	{ unitType: '部门', category: '部门', unit: '财务部', brand: '统一', subject: '门店借入款', balance: -1000, date: '2026-10-17' },
+	{ unitType: '其他', category: '其他', unit: '临时项目组A', brand: '娃哈哈', subject: '应收账款', balance: 6700, date: '2026-10-17' },
+	{ unitType: '其他', category: '其他', unit: '专项审计组', brand: '光明', subject: '门店借入款', balance: -5000, date: '2026-10-17' },
+]

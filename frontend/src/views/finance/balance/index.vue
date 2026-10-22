@@ -107,19 +107,58 @@
 				</div>
 			</el-tab-pane>
 
-			<!-- Tab3：辅助单位余额查询（暂未开放） -->
-			<el-tab-pane label="辅助单位余额查询" name="aux">
-				<div class="bal-placeholder">
-					<el-empty description="暂未开放" />
-				</div>
-			</el-tab-pane>
+							<!-- Tab3：辅助单位余额查询 -->
+				<el-tab-pane label="辅助单位余额查询" name="aux">
+					<!-- 筛选 -->
+					<div class="bal-filter">
+						<span class="bal-filter__label">辅助单位类型</span>
+						<el-select v-model="auxSearch.unitType" clearable placeholder="全部类型" size="small" style="width: 160px" @change="refreshAux">
+							<el-option v-for="t in auxUnitTypes" :key="t" :label="t" :value="t" />
+						</el-select>
+						<span class="bal-filter__label">科目</span>
+						<el-select v-model="auxSearch.subject" clearable placeholder="全部科目" size="small" style="width: 180px" @change="refreshAux">
+							<el-option v-for="s in subjects" :key="s" :label="s" :value="s" />
+						</el-select>
+						<span class="bal-filter__label">关键字</span>
+						<el-input v-model="auxSearch.keyword" placeholder="辅助单位名称" clearable size="small" style="width: 200px" @keyup.enter="refreshAux" @clear="refreshAux" />
+						<el-button type="primary" size="small" @click="refreshAux">查询</el-button>
+						<el-button size="small" @click="resetAuxSearch">重置</el-button>
+						<div style="flex: 1" />
+						<el-button size="small" :loading="auxExporting" @click="exportAuxData">导出</el-button>
+					</div>
+
+					<!-- 表格 -->
+					<div class="bal-table">
+						<el-table :data="auxPagedList" border v-loading="auxLoading" show-summary :summary-method="auxSummaryMethod">
+							<el-table-column type="index" label="序号" width="50" align="center" />
+							<el-table-column prop="category" label="类别" width="100" align="left" show-overflow-tooltip />
+							<el-table-column prop="unit" label="辅助单位" min-width="180" show-overflow-tooltip />
+							<el-table-column prop="subject" label="科目" width="120" align="left" show-overflow-tooltip />
+							<el-table-column label="余额" width="130" align="right">
+								<template #default="{ row }">
+									<span class="tabular" :class="row.balance < 0 ? 'bal-num--neg' : 'bal-num--pos'">{{ fmt(row.balance) }}</span>
+								</template>
+							</el-table-column>
+							<el-table-column prop="date" label="日期" width="110" align="center">
+								<template #default="{ row }">
+									<span class="tabular">{{ row.date }}</span>
+								</template>
+							</el-table-column>
+						</el-table>
+					</div>
+
+					<!-- 分页 -->
+					<div class="bal-pager">
+						<el-pagination background layout="total, prev, pager, next, sizes" :total="auxTotal" :page-size="auxPageSize" :current-page="auxPage" :page-sizes="[10, 20, 50]" @current-change="onAuxPageChange" @size-change="onAuxSizeChange" />
+					</div>
+				</el-tab-pane>
 		</el-tabs>
 	</div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { MOCK_BALANCE_UNIT, MOCK_BALANCE_BRAND, MOCK_BRANDS, MOCK_SUBJECTS } from '../../../mock/balance'
+import { MOCK_BALANCE_UNIT, MOCK_BALANCE_BRAND, MOCK_BALANCE_AUX, MOCK_BRANDS, MOCK_SUBJECTS } from '../../../mock/balance'
 import { saveBlob } from '../../../utils/fileDownload'
 
 const activeTab = ref('customer')
@@ -293,6 +332,89 @@ async function exportBrandData() {
 		saveBlob(new Blob(['' + csv], { type: 'text/csv;charset=utf-8' }), '品牌余额查询.csv')
 	} finally {
 		brandExporting.value = false
+	}
+}
+
+
+/* ---------- D-28 Tab3 辅助单位余额查询（独立状态，与 Tab1/Tab2 互不影响） ---------- */
+const auxUnitTypes = ['门店', '部门', '其他']
+const auxSearch = reactive({
+	unitType: '',
+	subject: '',
+	keyword: '',
+})
+const auxLoading = ref(false)
+const auxExporting = ref(false)
+const auxPage = ref(1)
+const auxPageSize = ref(20)
+
+// TODO(api): 替换为 GET /api/finance/balances?dimension=aux（unitType/subject/keyword 作 query 参数）
+const auxFiltered = computed(() => {
+	let list = [...MOCK_BALANCE_AUX]
+	if (auxSearch.unitType) {
+		list = list.filter((r) => r.unitType === auxSearch.unitType)
+	}
+	if (auxSearch.subject) {
+		list = list.filter((r) => r.subject === auxSearch.subject)
+	}
+	const kw = auxSearch.keyword.trim().toLowerCase()
+	if (kw) {
+		list = list.filter((r) => r.unit.toLowerCase().includes(kw))
+	}
+	return list
+})
+
+const auxTotal = computed(() => auxFiltered.value.length)
+const auxPagedList = computed(() => {
+	const start = (auxPage.value - 1) * auxPageSize.value
+	return auxFiltered.value.slice(start, start + auxPageSize.value)
+})
+
+function auxSummaryMethod({ columns }) {
+	return columns.map((col, i) => {
+		if (i === 0) return '合计'
+		if (col.label === '余额') return fmt(auxFiltered.value.reduce((s, r) => s + r.balance, 0))
+		return ''
+	})
+}
+
+function refreshAux() {
+	auxLoading.value = true
+	// TODO(api): GET /api/finance/balances?dimension=aux&unitType=&subject=&keyword=
+	setTimeout(() => {
+		auxLoading.value = false
+		auxPage.value = 1
+	}, 200)
+}
+
+function resetAuxSearch() {
+	auxSearch.unitType = ''
+	auxSearch.subject = ''
+	auxSearch.keyword = ''
+	auxPage.value = 1
+	refreshAux()
+}
+
+function onAuxPageChange(p) {
+	auxPage.value = p
+}
+
+function onAuxSizeChange(s) {
+	auxPageSize.value = s
+	auxPage.value = 1
+}
+
+async function exportAuxData() {
+	auxExporting.value = true
+	try {
+		const rows = auxFiltered.value
+		const header = ['序号', '类别', '辅助单位', '科目', '余额', '日期']
+		const lines = rows.map((r, i) => [i + 1, r.category, r.unit, r.subject, r.balance, r.date])
+		lines.push(['', '合计', '', '', rows.reduce((s, r) => s + r.balance, 0), ''])
+		const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\r\n')
+		saveBlob(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }), '辅助单位余额查询.csv')
+	} finally {
+		auxExporting.value = false
 	}
 }
 </script>
