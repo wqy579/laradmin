@@ -350,6 +350,7 @@ const businessApi = {
 			delete: { delete: (id) => request.delete(`business/visit/logs/${id}`) },
 		},
 		achievement: { get: (params) => request.get('business/visit/achievement', { params }) },
+		trend: { get: (params) => request.get('business/visit/trend', { params }) },
 		schedule: { get: (params) => request.get('business/visit/schedule', { params }) },
 	},
 

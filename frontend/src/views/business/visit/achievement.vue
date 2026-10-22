@@ -56,9 +56,14 @@
 				<el-table-column prop="route_name" label="所属线路" width="140" show-overflow-tooltip />
 				<el-table-column prop="plan_customers" label="计划客户数" width="100" align="right" />
 				<el-table-column prop="actual_visits" label="实际拜访数" width="100" align="right" />
-				<el-table-column prop="achievement_rate" label="达成率" width="90" align="right">
+				<el-table-column prop="achievement_rate" label="达成率" width="130" align="right">
 					<template #default="{ row }">
-						<span :class="rateClass(row.achievement_rate)">{{ Number(row.achievement_rate || 0).toFixed(1) }}%</span>
+						<el-progress
+							:percentage="progressPct(row.achievement_rate)"
+							:stroke-width="8"
+							:color="rateColor(row.achievement_rate)"
+							:format="() => `${Number(row.achievement_rate || 0).toFixed(1)}%`"
+						/>
 					</template>
 				</el-table-column>
 				<el-table-column prop="reached_customers" label="覆盖客户数" width="100" align="right" />
@@ -158,6 +163,17 @@ function rateClass(v) {
 	if (n >= 100) return 'rp-rate-high'
 	if (n >= 80) return 'rp-rate-mid'
 	return 'rp-rate-low'
+}
+/** 进度条三色，与图例分档一致（≥100 达标 / 80~99 / <80），色值同 report.css */
+function rateColor(v) {
+	const n = Number(v || 0)
+	if (n >= 100) return '#67c23a'
+	if (n >= 80) return '#e6a23c'
+	return '#f56c6c'
+}
+/** el-progress 超过 100% 会裁剪，封顶 100 展示条长，实际数值仍按原文本显示 */
+function progressPct(v) {
+	return Math.min(100, Math.max(0, Math.round(Number(v || 0) * 10) / 10))
 }
 /** 0 次的月份不参与配色（灰色），否则整片红看起来像全是问题 */
 function bucketClass(rate, value) {

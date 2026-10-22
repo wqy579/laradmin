@@ -13,17 +13,23 @@ use Modules\Auth\Models\Permission;
  * migration 里注册的菜单都会在 db:seed 时被清掉——所以菜单定义必须同时落在
  * 这里（见 InventoryMenuTest 的教训）。本 seeder 幂等：firstOrCreate 按名判重。
  *
- * 权限节点：九个子菜单（menu 类型）+ 按钮权限（button 类型：
+ * 挂载位置：任务书 T4.1「报表 → 绩效分析」，parent 指向 BusinessSeeder 的
+ * report（报表管理）；report 缺失时回退顶级（parent_id=0），不阻断菜单其余部分。
+ *
+ * 权限节点：十个子菜单（menu 类型，含退货汇总单）+ 按钮权限（button 类型：
  * 导出/审核/查询/新增/编辑/删除）。
  */
 class PerformanceMenuSeeder extends Seeder
 {
+    /** 上级菜单名：report=报表管理（T4.1 挂载点），查不到则落顶级 */
+    private const PARENT_NAME = 'report';
+
     private const PARENT = [
         'name' => 'perf',
         'title' => '绩效分析',
         'path' => '/perf/commission-rule',
         'icon' => 'ElIconTrendCharts',
-        'sort' => 14,
+        'sort' => 6, // 报表管理子项顺序：销售/库存/业务员/综合/经营历程 1-5，绩效 6
     ];
 
     /** 子菜单：name / title / path / component / sort */
@@ -52,11 +58,13 @@ class PerformanceMenuSeeder extends Seeder
 
     public function run(): void
     {
-        // 顶级分组菜单：component 空串 + path 指向第一个子路由（项目硬约定）
+        // 分组菜单：component 空串 + path 指向第一个子路由（项目硬约定）；
+        // 挂在「报表管理」下（T4.1），报表菜单还没建好时回退顶级
+        $reportId = Permission::where('name', self::PARENT_NAME)->value('id');
         Permission::firstOrCreate(['name' => self::PARENT['name']], [
             'title' => self::PARENT['title'],
             'type' => 'menu',
-            'parent_id' => 0,
+            'parent_id' => $reportId ?: 0,
             'path' => self::PARENT['path'],
             'component' => '',
             'sort' => self::PARENT['sort'],
