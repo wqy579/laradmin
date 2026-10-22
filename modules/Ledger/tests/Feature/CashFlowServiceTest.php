@@ -106,10 +106,12 @@ class CashFlowServiceTest extends TestCase
         ]);
 
         $journal = $this->service->getJournal(['start_date' => '2026-10-01']);
-        
-        $this->assertCount(3, $journal);
-        $this->assertEquals(100.0, $journal[0]['balance']);
-        $this->assertEquals(70.0, $journal[1]['balance']);
-        $this->assertEquals(120.0, $journal[2]['balance']);
+
+        $this->assertEquals(0.0, $journal['opening_balance']);
+        $this->assertCount(3, $journal['rows']);
+        $this->assertEquals(100.0, $journal['rows'][0]['balance']);
+        $this->assertEquals(70.0, $journal['rows'][1]['balance']);
+        $this->assertEquals(120.0, $journal['rows'][2]['balance']);
+        $this->assertEquals(120.0, $journal['closing_balance']);
     }
 }

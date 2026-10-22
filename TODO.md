@@ -65,13 +65,23 @@
 ### 会话 F
 - 分支：feat/finance-batch7
 - 任务：财务域第七批 —— D-04 凭证多条件查询后端修复 + D-05 defineExpose bug 修复
-- 状态：🔄 进行中（2026-10-22 启动，机 f headless worker）
+- 状态：✅ 已完成（2026-10-22 完工，机 f headless worker）
 - 已完成：
   - 第一批（feat/finance-batch1，已合并）：D-08 余额查询品牌余额 Tab2（commit 8d00914）+ D-18 应收应付调整单（commit 0a3913d）
   - 第二批（feat/finance-batch2，已合并）：D-20 客户余额调整单 + D-21 供应商余额调整单
   - 第三批（feat/finance-batch3）：D-22+D-23 资金增减单（路由/mock/单头单据页面实现）
   - 第四批（feat/finance-batch4）：D-19 借款/还款单 + 逾期提醒实现
-  - 第五批（feat/finance-batch5）：D-24 欠条确认/驳回 + 签字图（列表/新增含签字图上传/查看/确认驳回交互，纯前端 mock）
+  - 第五批（feat/finance-batch5）：D-24 欠条确认/驳回 + 签字图（列表/新增含签字图上传/确认驳回交互，纯前端 mock）
+
+### 会话 G · fin-b8（机 f · worker 会话 G）
+- 分支：feat/finance-batch8
+- 任务：T1.5 财务公共取数服务 —— cash_flow 统一落库 + 经营历程写入规范 + 日记账取数
+- 状态：✅ 已完成
+- 交付：
+  - `modules/Ledger/Services/CashFlowService.php`（统一入口 record/recordReceive/recordPay/recordExpense，正负号强制约定，related_type+related_id+flow_type 幂等防重，getJournal 逐行滚动余额含期初）
+  - `modules/Ledger/docs/cash_flow_spec.md`（资金动作写入规范 + 与机 c business/history 口径衔接）
+  - `modules/Ledger/tests/Feature/CashFlowServiceTest.php`（4 测试 / 17 断言，sqlite :memory:）
+- 接线情况：机 f 侧现有 Ledger 控制器（科目/凭证/月结/报表/余额）均不产生现金流水，无既有资金单后端可接线；资金增减单（D-22/D-23）仍为前端 mock 单头单据。**接线计划**：T3.1 出纳资金单族落地时，保存动作统一走 CashFlowService::record（related_type 取资金单模型名），并用 recordReceive/recordPay 替换各 ad-hoc 写入点（Delivery/Collection、Delivery/Remit、Member 充值等属机 c，需编排层协调后替换）。
 
 ---
 
@@ -85,7 +95,7 @@
 | 资产利润表 | P2 | 利润表 + 资产负债表 | feat(finance): 资产负债表完善 + 红冲财务联动 |
 
 | 已实现但未入表（证据: git log） | 优先级 | 说明 | Commit |
-
+|-----------------------------------|--------|------|--------|
 | 辅助单位余额查询 Tab3 | P2 | 填充 Tab3 辅助单位维度余额查询 (feat/finance-batch6) | |
 | 现金账户收支查询 | P2 | 实现账户流水查询、滚动余额计算 (feat/finance-batch6) | |
 |------|--------|------|--------|
@@ -118,6 +128,7 @@
 ---
 
 ## 待办任务池
+
 
 ---
 

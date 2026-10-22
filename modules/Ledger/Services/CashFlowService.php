@@ -51,7 +51,14 @@ class CashFlowService
             }
         }
 
-        $flowNo = $this->generateFlowNo();
+        // flow_no 唯一约束兜底：极小概率碰撞时重试（最多 5 次）
+        $flowNo = null;
+        for ($i = 0; $i < 5; $i++) {
+            $flowNo = $this->generateFlowNo();
+            if (! DB::table('cash_flows')->where('flow_no', $flowNo)->exists()) {
+                break;
+            }
+        }
 
         DB::table('cash_flows')->insert([
             'flow_no' => $flowNo,
@@ -89,17 +96,18 @@ class CashFlowService
 
     /**
      * 日记账查询：滚动余额计算
+     *
+     * @param array $filters [
+     *   'start_date' => 'Y-m-d',
+     *   'end_date' => 'Y-m-d',
+     *   'flow_type' => string,
+     *   'payment_method' => string,
+     * ]
      */
     public function getJournal(array $filters = []): array
     {
         $query = DB::table('cash_flows');
 
-        if (!empty($filters['start_date'])) {
-            $query->where('flow_date', '>=', $filters['start_date']);
-        }
-        if (!empty($filters['end_date'])) {
-            $query->where('flow_date', '<=', $filters['end_date']);
-        }
         if (!empty($filters['flow_type'])) {
             $query->where('flow_type', $filters['flow_type']);
         }
@@ -107,9 +115,27 @@ class CashFlowService
             $query->where('payment_method', $filters['payment_method']);
         }
 
+        // 计算期初余额（start_date 之前的所有流水总和）
+        $openingBalance = 0.0;
+        if (!empty($filters['start_date'])) {
+            $openingBalance = (float) DB::table('cash_flows')
+                ->where('flow_date', '<', $filters['start_date'])
+                ->when(!empty($filters['flow_type']), fn($q) => $q->where('flow_type', $filters['flow_type']))
+                ->when(!empty($filters['payment_method']), fn($q) => $q->where('payment_method', $filters['payment_method']))
+                ->sum('amount');
+        }
+
+        // 获取当前区间数据
+        if (!empty($filters['start_date'])) {
+            $query->where('flow_date', '>=', $filters['start_date']);
+        }
+        if (!empty($filters['end_date'])) {
+            $query->where('flow_date', '<=', $filters['end_date']);
+        }
+
         $rows = $query->orderBy('flow_date')->orderBy('id')->get();
 
-        $balance = 0.0;
+        $balance = $openingBalance;
         $result = [];
         foreach ($rows as $row) {
             $balance += (float)$row->amount;
@@ -124,7 +150,11 @@ class CashFlowService
             ];
         }
 
-        return $result;
+        return [
+            'opening_balance' => round($openingBalance, 2),
+            'rows' => $result,
+            'closing_balance' => round($balance, 2),
+        ];
     }
 
     private function generateFlowNo(): string
