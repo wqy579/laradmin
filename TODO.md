@@ -65,13 +65,26 @@
 ### 会话 F
 - 分支：feat/finance-batch7
 - 任务：财务域第七批 —— D-04 凭证多条件查询后端修复 + D-05 defineExpose bug 修复
-- 状态：🔄 进行中（2026-10-22 启动，机 f headless worker）
+- 状态：✅ 已完成（2026-10-22，修复提交已推送：24a90e8 D-04 + c6eb95b D-05，待编排层合并）
 - 已完成：
   - 第一批（feat/finance-batch1，已合并）：D-08 余额查询品牌余额 Tab2（commit 8d00914）+ D-18 应收应付调整单（commit 0a3913d）
   - 第二批（feat/finance-batch2，已合并）：D-20 客户余额调整单 + D-21 供应商余额调整单
   - 第三批（feat/finance-batch3）：D-22+D-23 资金增减单（路由/mock/单头单据页面实现）
   - 第四批（feat/finance-batch4）：D-19 借款/还款单 + 逾期提醒实现
   - 第五批（feat/finance-batch5）：D-24 欠条确认/驳回 + 签字图（列表/新增含签字图上传/查看/确认驳回交互，纯前端 mock）
+  - 第七批（feat/finance-batch7，已推送待合并）：D-04 凭证多条件查询后端修复（24a90e8）+ D-05 科目树 defineExpose 缺陷修复 + 科目导出筛选（c6eb95b）
+
+### 会话 G · fin-b8（机 f · tmux worker）
+- 分支：feat/finance-batch8
+- 任务：T1.5 财务公共取数服务 —— history 经营历程写入规范 + cash_flow 统一落库服务 + 日记账取数
+- 状态：🔄 进行中（2026-10-22 启动，worktree /workspace/laradmin-b8）
+- 注意：cash_flows 表在机 c 的 Order 模块（共享基础设施），只读写不改 Order 模块
+
+### 会话 H · fin-b9（机 f · tmux worker）
+- 分支：feat/finance-batch9
+- 任务：T1.3 总账科目 Seeder —— fin_subject 预置科目补全 + 品牌辅助核算标记
+- 状态：🔄 进行中（2026-10-22 启动，worktree /workspace/laradmin-b9）
+- 注意：T1.2 通用组件封装归机 c 会话 C1，本会话不碰通用组件（避免重复封装）
 
 ---
 
