@@ -34,6 +34,14 @@
   - 更新路由基线快照（routes.json）
 - 下一步：考虑要货单 approved 冻结泄漏（P0）、decreaseBorrowBalance 负数下限（P3）
 
+### 会话 F
+- 分支：feat/finance-batch1
+- 任务：财务域第一批——D-08 余额查询补【品牌余额查询】Tab2 / D-18 应收应付调整单（纯前端 + mock）
+- 状态：🔄 进行中（feat/finance-batch1 收尾）
+- 已完成：
+  - D-08 余额查询新增品牌余额查询 Tab2（commit 8d00914）
+  - D-18 应收应付调整单：路由模块 + mock（commit 0a3913d）+ 页面（列表/筛选/分页/新增查看 Dialog/审核驳回）
+
 ---
 
 ## 已完成
@@ -65,6 +73,8 @@
 | 单据打印预览 | P2 | 单据打印预览——订单/配送单/收款单三种打印模板 | feat(print): 单据打印预览——订单/配送单/收款单三种打印模板 |
 | 登录弹窗公告 | P2 | 登录弹窗公告——is_popup 标记 + popup-pending 接口 + 弹窗组件 | feat(notice): 登录弹窗公告——is_popup 标记 + popup-pending 接口 + 弹窗组件 |
 | 品牌档案管理对齐规格 | P2 | 品牌档案管理对齐规格——查询区/操作区/导出/编码校验 | feat(brand): 品牌档案管理对齐规格——查询区/操作区/导出/编码校验 |
+| 品牌余额查询 Tab2 | P1 | 余额查询补【品牌余额查询】Tab2 (feat/finance-batch1) | 8d00914 |
+| 应收应付调整单 | P1 | 完成 D-18 页面实现 (feat/finance-batch1) | 0a3913d |
 
 ---
 
