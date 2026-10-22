@@ -77,14 +77,14 @@
 ### 会话 G · fin-b8（机 f · tmux worker）
 - 分支：feat/finance-batch8
 - 任务：T1.5 财务公共取数服务 —— history 经营历程写入规范 + cash_flow 统一落库服务 + 日记账取数
-- 状态：🔄 进行中（2026-10-22 启动，worktree /workspace/laradmin-b8）
+- 状态：✅ 已完成（2026-10-22 21:4x 完工，已推送待合并；CashFlowService 幂等落库+flow_no 碰撞重试+日记账滚动余额，4 测试全过；commit cd2f2f1 + e5de462）
 - 注意：cash_flows 表在机 c 的 Order 模块（共享基础设施），只读写不改 Order 模块
 
 ### 会话 H · fin-b9（机 f · tmux worker）
 - 分支：feat/finance-batch9
 - 任务：T1.3 总账科目 Seeder —— fin_subject 预置科目补全 + 品牌辅助核算标记
-- 状态：🔄 进行中（2026-10-22 启动，worktree /workspace/laradmin-b9）
-- 注意：T1.2 通用组件封装归机 c 会话 C1，本会话不碰通用组件（避免重复封装）
+- 状态：✅ 已完成（2026-10-22 22:0x 完工，已推送待合并；Seeder 幂等 updateOrCreate + 主营收入/成本品牌辅助标记 + VoucherService 品牌禁存校验，11 测试全过；commit d468548）
+- 注意：T1.2 通用组件封装归机 c 会话 C1，本会话不碰通用组件（避免重复封装）；应收票据 1121/应付票据 2201 未入预置表，留作后续小补丁
 
 ---
 
@@ -127,6 +127,8 @@
 | 资金增减单（两个方向） | P1 | 完成 D-22+D-23 页面实现——单头单据，增加/减少两个方向，无审核流保存即生效 (feat/finance-batch3) | 517b014 |
 | 借款/还款单 + 逾期提醒 | P1 | 完成 D-19 页面实现——借款/还款两类单据，逾期提醒实时计算 (feat/finance-batch4) | |
 | 欠条确认/驳回 + 签字图 | P1 | 完成 D-24 页面实现——欠条列表/新增含签字图上传/确认驳回二次确认交互 (feat/finance-batch5) | |
+| 财务公共取数服务（T1.5） | P1 | CashFlowService：收款/付款/红冲幂等落库 + flow_no 唯一碰撞重试 + 日记账滚动余额取数 (feat/finance-batch8) | cd2f2f1 + e5de462 |
+| 总账科目 Seeder 补全与品牌辅助核算（T1.3） | P1 | LedgerSubjectSeeder 按 code updateOrCreate 幂等 + 6001/5401 品牌辅助标记 + VoucherService 品牌禁存校验 (feat/finance-batch9) | d468548 |
 
 ---
 
