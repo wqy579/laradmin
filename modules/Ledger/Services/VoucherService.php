@@ -3,6 +3,7 @@
 namespace Modules\Ledger\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Modules\Ledger\Models\Period;
 use Modules\Ledger\Models\Subject;
 use Modules\Ledger\Models\Voucher;
@@ -36,7 +37,7 @@ class VoucherService
             $q->where('status', $filters['status']);
         }
         // 默认隐藏红冲单本身；勾选「含红冲」才同时列出红冲单与原单
-        if (empty($filters['include_red'])) {
+        if (empty($filters['include_red']) && Schema::hasColumn('ledger_vouchers', 'red_of_id')) {
             $q->whereNull('red_of_id');
         }
         if (! empty($filters['start_date'])) {

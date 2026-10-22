@@ -248,7 +248,11 @@ class VoucherController extends Controller
 
     public function export(Request $request)
     {
-        $filters = $request->only(['voucher_no', 'status', 'start_date', 'end_date', 'period', 'subject_id', 'include_red']);
+        $filters = $request->only([
+            'voucher_no', 'status', 'start_date', 'end_date', 'period',
+            'subject_id', 'include_red', 'maker_name', 'auditor_name',
+            'min_amount', 'max_amount', 'direction'
+        ]);
         $data = $this->service->list($filters, 1, 10000);
         $csv = "\u{FEFF}凭证字号,凭证日期,期间,摘要,借方合计,贷方合计,制单人,审核人,状态,是否红冲\n";
         foreach ($data['list'] as $v) {
@@ -267,6 +271,7 @@ class VoucherController extends Controller
                 $redFlag
             );
         }
+
 
         return response($csv, 200, [
             'Content-Type' => 'text/csv; charset=utf-8',
