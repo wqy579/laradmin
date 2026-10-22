@@ -35,12 +35,13 @@
 - 下一步：考虑要货单 approved 冻结泄漏（P0）、decreaseBorrowBalance 负数下限（P3）
 
 ### 会话 F
-- 分支：feat/finance-batch1
-- 任务：财务域第一批——D-08 余额查询补【品牌余额查询】Tab2 / D-18 应收应付调整单（纯前端 + mock）
-- 状态：🔄 进行中（feat/finance-batch1 收尾）
+- 分支：feat/finance-batch2
+- 任务：财务域第二批——D-20 客户余额调整单（坏账/抹零）/ D-21 供应商余额调整单（纯前端 + mock）
+- 状态：🔄 进行中（feat/finance-batch2）
 - 已完成：
-  - D-08 余额查询新增品牌余额查询 Tab2（commit 8d00914）
-  - D-18 应收应付调整单：路由模块 + mock（commit 0a3913d）+ 页面（列表/筛选/分页/新增查看 Dialog/审核驳回）
+  - 第一批（feat/finance-batch1，已合并）：D-08 余额查询品牌余额 Tab2（commit 8d00914）+ D-18 应收应付调整单（commit 0a3913d）
+  - D-20 客户余额调整单：路由模块 + mock（mock/customer-balance-adjustment.js）+ 页面（列表/筛选/分页/新增查看 Dialog/审核驳回）
+  - D-21 供应商余额调整单：路由模块 + mock（mock/supplier-balance-adjustment.js）+ 页面（与 D-20 同构，往来单位换供应商语义）
 
 ---
 
@@ -75,6 +76,8 @@
 | 品牌档案管理对齐规格 | P2 | 品牌档案管理对齐规格——查询区/操作区/导出/编码校验 | feat(brand): 品牌档案管理对齐规格——查询区/操作区/导出/编码校验 |
 | 品牌余额查询 Tab2 | P1 | 余额查询补【品牌余额查询】Tab2 (feat/finance-batch1) | 8d00914 |
 | 应收应付调整单 | P1 | 完成 D-18 页面实现 (feat/finance-batch1) | 0a3913d |
+| 客户余额调整单 | P1 | 完成 D-20 页面实现 (feat/finance-batch2) | |
+| 供应商余额调整单 | P1 | 完成 D-21 页面实现 (feat/finance-batch2) | |
 
 ---
 
