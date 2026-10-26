@@ -18,7 +18,7 @@
 				<el-button type="primary" @click="load">查询</el-button>
 				<el-button @click="handleExport">导出</el-button>
 			</div>
-			<sTable :columns="columns" :data="rows" :loading="loading" height="100%" stripe show-footer :footer-method="footer">
+			<sTable :columns="columns" :data="rows" :loading="loading" height="100%" stripe show-footer :footer-method="footer" :row-class-name="rowClass">
 				<template #opening_debit="{ row }"><span class="amt">{{ fmt(row.opening_debit) }}</span></template>
 				<template #opening_credit="{ row }"><span class="amt">{{ fmt(row.opening_credit) }}</span></template>
 				<template #occur_debit="{ row }"><span class="amt">{{ fmt(row.occur_debit) }}</span></template>
@@ -56,6 +56,7 @@ const columns = [
 	{ field: 'end_credit', title: '期末贷方', width: 130, align: 'right', slots: { default: 'end_credit' } },
 ]
 const fmt = (v) => Number(v || 0).toFixed(2)
+const rowClass = ({ row }) => row.is_leaf ? '' : 'non-leaf-row'
 const footer = () => ['合计', '', '', fmt(total.value.opening_debit), fmt(total.value.opening_credit), fmt(total.value.occur_debit), fmt(total.value.occur_credit), fmt(total.value.end_debit), fmt(total.value.end_credit)]
 
 const load = async () => {
@@ -83,6 +84,7 @@ onMounted(() => { filters.start_period = new Date().getFullYear() + '-01'; filte
 .lbl { font-size: 14px; color: #606266; }
 .amt { text-align: right; display: inline-block; width: 100%; }
 .non-leaf { font-weight: 700; }
+:deep(.non-leaf-row) { background: #fafafa !important; font-weight: 700; }
 .balance-hint { margin-top: 12px; font-size: 14px; font-weight: 700; text-align: right; }
 .balance-hint.ok { color: #67c23a; }
 .balance-hint.err { color: #f56c6c; }

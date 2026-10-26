@@ -32,7 +32,7 @@
 				<el-button style="width:90px" @click="handleExport">导出</el-button>
 			</div>
 			<!-- 树形表格 -->
-			<sTable ref="tableRef" :columns="columns" :data="treeData" :loading="loading" height="100%" stripe :tree-config="{ transform: true, rowField: 'id', parentField: 'parent_id' }">
+			<sTable ref="tableRef" :columns="columns" :data="treeData" :loading="loading" height="100%" stripe :tree-config="{ transform: true, rowField: 'id', parentField: 'parent_id' }" highlight-current-row>
 				<template #checkbox="{ row }">
 					<el-checkbox v-model="row._checked" />
 				</template>
@@ -155,4 +155,6 @@ onMounted(() => load())
 .toggle-icon { cursor: pointer; color: #409eff; }
 .cat-icon { margin-right: 4px; vertical-align: middle; }
 .dash { color: #909399; }
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-body--row.row--current > .vxe-body--column) { background-color: #ECF5FF; color: #409EFF; }
 </style>

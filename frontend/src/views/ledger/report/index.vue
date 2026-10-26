@@ -52,8 +52,8 @@
 							<tbody>
 								<tr v-for="r in income.rows" :key="r.code" :class="{ bold: r.bold, total: r.is_total }">
 									<td :style="{ paddingLeft: r.name.startsWith('   ') ? '20px' : '0' }">{{ r.name.trim() }}</td>
-									<td class="amt" :class="{ red: r.code === 'net_profit' && r.month < 0 }">{{ fmt(r.month) }}</td>
-									<td class="amt" :class="{ red: r.code === 'net_profit' && r.year < 0 }">{{ fmt(r.year) }}</td>
+									<td class="amt" :class="profitColor(r.code, r.month)">{{ fmt(r.month) }}</td>
+									<td class="amt" :class="profitColor(r.code, r.year)">{{ fmt(r.year) }}</td>
 								</tr>
 							</tbody>
 						</table>
@@ -104,6 +104,13 @@ const income = ref({ rows: [] })
 const journal = ref({ rows: [], subject: null, opening_balance: 0, closing_balance: 0 })
 
 const fmt = (v) => Number(v || 0).toFixed(2)
+// 净利润：正红 #F56C6C、负绿 #67C23A（A7 对齐 DS）
+const profitColor = (code, val) => {
+	if (code !== 'net_profit') return ''
+	if (val > 0) return 'red'
+	if (val < 0) return 'green'
+	return ''
+}
 const bsLeft = computed(() => balanceSheet.value.left || [])
 const bsRight = computed(() => balanceSheet.value.right || [])
 const bsMaxRows = computed(() => Math.max(bsLeft.value.length, bsRight.value.length))
@@ -140,6 +147,7 @@ const doPrint = (id, title) => {
 		.amt{text-align:right;}
 		.bold{font-weight:700;}
 		.red{color:#f56c6c;}
+		.green{color:#67c23a;}
 	</style></head><body style="padding:40px;">${html}</body></html>`)
 	w.document.close(); w.focus(); w.print()
 }
@@ -172,5 +180,6 @@ onMounted(() => {
 .bold { font-weight: 700; }
 .total { background: #fafafa; }
 .red { color: #f56c6c; }
+.green { color: #67c23a; }
 .warn-hint { color: #e6a23c; font-size: 14px; margin: 8px 0; padding: 8px 12px; background: #fdf6ec; border-radius: 4px; }
 </style>
