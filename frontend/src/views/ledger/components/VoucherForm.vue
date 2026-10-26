@@ -17,6 +17,13 @@
 				</el-form-item>
 			</el-form>
 		</div>
+		<!-- 附件上传 -->
+		<div class="attach-row">
+			<span class="attach-label">附件</span>
+			<div class="attach-body">
+				<sUpload v-model="form.attachments" :max-count="10" list-type="text" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,.pdf" tip="支持 jpg/png/gif/webp/pdf，单个不超过 10MB，点击图片可预览" />
+			</div>
+		</div>
 		<!-- 分录表格 -->
 		<div class="entry-table">
 			<table class="acct-table">
@@ -88,11 +95,12 @@
 import { ref, reactive, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import ledgerApi from '@/api/ledger'
+import sUpload from '@/components/sUpload/index.vue'
 
 const emit = defineEmits(['saved'])
 const visible = ref(false)
 const title = ref('新增记账凭证')
-const form = reactive({ id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '', auto_audit: false })
+const form = reactive({ id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, attachments: [], remark: '', auto_audit: false })
 const entries = ref([])
 const subjectOptions = ref([])
 const brandOptions = ref([])
@@ -120,14 +128,14 @@ const loadAutoAuditDefault = async () => {
 }
 
 const open = async (row) => {
-	Object.assign(form, { id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '', auto_audit: false })
+	Object.assign(form, { id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, attachments: [], remark: '', auto_audit: false })
 	entries.value = [emptyEntry(), emptyEntry(), emptyEntry(), emptyEntry(), emptyEntry()]
 	await Promise.all([loadOptions(), loadAutoAuditDefault()])
 	if (row) {
 		const res = await ledgerApi.voucher.detail.get(row.id)
 		const v = res.data?.voucher
 		if (v) {
-			Object.assign(form, { id: v.id, voucher_no: v.voucher_no, voucher_date: v.voucher_date, attachments_count: v.attachments_count, remark: v.remark, auto_audit: !!v.auto_audit })
+			Object.assign(form, { id: v.id, voucher_no: v.voucher_no, voucher_date: v.voucher_date, attachments_count: v.attachments_count, attachments: v.attachments || [], remark: v.remark, auto_audit: !!v.auto_audit })
 			entries.value = v.entries.map(e => ({ subject_id: e.subject_id, subject_code: e.subject_code, subject_name: e.subject_name, aux_types: subjectOptions.value.find(s => s.id === e.subject_id)?.aux_types || [], aux_type: e.aux_type, aux_id: e.aux_id, aux_name: e.aux_name, brand_id: e.brand_id, brand_name: e.brand_name, summary: e.summary, debit_amount: Number(e.debit_amount), credit_amount: Number(e.credit_amount) }))
 			// 补齐至少 5 行
 			while (entries.value.length < 5) entries.value.push(emptyEntry())
@@ -211,7 +219,7 @@ const saveAndNew = async () => {
 	try {
 		await ledgerApi.voucher.add.post(buildPayload('draft'))
 		ElMessage.success('保存成功')
-		Object.assign(form, { id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, remark: '', auto_audit: false })
+		Object.assign(form, { id: null, voucher_no: '', voucher_date: new Date().toISOString().slice(0, 10), attachments_count: 0, attachments: [], remark: '', auto_audit: false })
 		entries.value = [emptyEntry(), emptyEntry(), emptyEntry(), emptyEntry(), emptyEntry()]
 	} catch (e) { ElMessage.error(e?.message || '保存失败') }
 }
@@ -260,6 +268,9 @@ function digitsToChinese(num) {
 
 <style scoped>
 .voucher-head { border-bottom: 1px solid var(--border-lighter); padding-bottom: 12px; margin-bottom: 16px; }
+.attach-row { display: flex; align-items: flex-start; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border-lighter); margin-bottom: 12px; }
+.attach-label { width: 90px; flex-shrink: 0; font-size: 14px; color: var(--text-regular); line-height: 32px; text-align: right; }
+.attach-body { flex: 1; min-width: 0; }
 .entry-table { margin-bottom: 8px; }
 .acct-table { width: 100%; border-collapse: collapse; }
 .acct-table th { background: var(--bg-hover); color: var(--text-regular); font-size: 14px; font-weight: 500; height: 40px; border: 1px solid var(--border-lighter); text-align: center; }
