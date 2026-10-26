@@ -7065,6 +7065,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/ledger/dashboard/overview",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\DashboardController@overview",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/ledger/dashboard/recent-vouchers",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\DashboardController@recentVouchers",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/ledger/opening-balances",
         "name": "admin.",
         "action": "Modules\\Ledger\\Http\\Controllers\\OpeningBalanceController@index",

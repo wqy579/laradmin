@@ -29,14 +29,15 @@ class LedgerSeeder extends Seeder
     {
         $menus = [
             ['name' => 'ledger', 'title' => '总账管理', 'parent_name' => null, 'path' => '/ledger/subject', 'component' => null, 'sort' => 13, 'icon' => 'ElIconNotebook'],
-            ['name' => 'ledger.subject', 'title' => '会计科目', 'parent_name' => 'ledger', 'path' => '/ledger/subject', 'component' => 'ledger/subject/index', 'sort' => 1, 'icon' => null],
-            ['name' => 'ledger.opening', 'title' => '期初余额', 'parent_name' => 'ledger', 'path' => '/ledger/opening', 'component' => 'ledger/opening/index', 'sort' => 2, 'icon' => null],
-            ['name' => 'ledger.voucher', 'title' => '记账凭证', 'parent_name' => 'ledger', 'path' => '/ledger/voucher', 'component' => 'ledger/voucher/index', 'sort' => 3, 'icon' => null],
-            ['name' => 'ledger.voucher-query', 'title' => '凭证查询', 'parent_name' => 'ledger', 'path' => '/ledger/voucher-query', 'component' => 'ledger/voucher-query/index', 'sort' => 4, 'icon' => null],
-            ['name' => 'ledger.voucher-audit', 'title' => '凭证审核', 'parent_name' => 'ledger', 'path' => '/ledger/voucher-audit', 'component' => 'ledger/voucher-audit/index', 'sort' => 5, 'icon' => null],
-            ['name' => 'ledger.period', 'title' => '财务月结', 'parent_name' => 'ledger', 'path' => '/ledger/period', 'component' => 'ledger/period/index', 'sort' => 6, 'icon' => null],
-            ['name' => 'ledger.balance', 'title' => '科目余额表', 'parent_name' => 'ledger', 'path' => '/ledger/balance', 'component' => 'ledger/balance/index', 'sort' => 7, 'icon' => null],
-            ['name' => 'ledger.report', 'title' => '财务报表', 'parent_name' => 'ledger', 'path' => '/ledger/report', 'component' => 'ledger/report/index', 'sort' => 8, 'icon' => null],
+            ['name' => 'ledger.dashboard', 'title' => '总账驾驶舱', 'parent_name' => 'ledger', 'path' => '/ledger/dashboard', 'component' => 'ledger/dashboard/index', 'sort' => 1, 'icon' => null],
+            ['name' => 'ledger.subject', 'title' => '会计科目', 'parent_name' => 'ledger', 'path' => '/ledger/subject', 'component' => 'ledger/subject/index', 'sort' => 2, 'icon' => null],
+            ['name' => 'ledger.opening', 'title' => '期初余额', 'parent_name' => 'ledger', 'path' => '/ledger/opening', 'component' => 'ledger/opening/index', 'sort' => 3, 'icon' => null],
+            ['name' => 'ledger.voucher', 'title' => '记账凭证', 'parent_name' => 'ledger', 'path' => '/ledger/voucher', 'component' => 'ledger/voucher/index', 'sort' => 4, 'icon' => null],
+            ['name' => 'ledger.voucher-query', 'title' => '凭证查询', 'parent_name' => 'ledger', 'path' => '/ledger/voucher-query', 'component' => 'ledger/voucher-query/index', 'sort' => 5, 'icon' => null],
+            ['name' => 'ledger.voucher-audit', 'title' => '凭证审核', 'parent_name' => 'ledger', 'path' => '/ledger/voucher-audit', 'component' => 'ledger/voucher-audit/index', 'sort' => 6, 'icon' => null],
+            ['name' => 'ledger.period', 'title' => '财务月结', 'parent_name' => 'ledger', 'path' => '/ledger/period', 'component' => 'ledger/period/index', 'sort' => 7, 'icon' => null],
+            ['name' => 'ledger.balance', 'title' => '科目余额表', 'parent_name' => 'ledger', 'path' => '/ledger/balance', 'component' => 'ledger/balance/index', 'sort' => 8, 'icon' => null],
+            ['name' => 'ledger.report', 'title' => '财务报表', 'parent_name' => 'ledger', 'path' => '/ledger/report', 'component' => 'ledger/report/index', 'sort' => 9, 'icon' => null],
         ];
 
         $idMap = [];
@@ -76,6 +77,7 @@ class LedgerSeeder extends Seeder
     private function registerButtons(): void
     {
         $buttons = [
+            ['name' => 'ledger.dashboard.view', 'title' => '查看驾驶舱', 'parent_name' => 'ledger.dashboard', 'path' => 'ledger.dashboard.view', 'sort' => 1],
             ['name' => 'ledger.subject.view', 'title' => '查看科目', 'parent_name' => 'ledger.subject', 'path' => 'ledger.subject.view', 'sort' => 1],
             ['name' => 'ledger.subject.create', 'title' => '新增科目', 'parent_name' => 'ledger.subject', 'path' => 'ledger.subject.create', 'sort' => 2],
             ['name' => 'ledger.subject.update', 'title' => '编辑科目', 'parent_name' => 'ledger.subject', 'path' => 'ledger.subject.update', 'sort' => 3],
