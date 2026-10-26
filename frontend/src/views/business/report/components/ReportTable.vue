@@ -233,8 +233,10 @@ const props = defineProps({
 	dense: { type: Boolean, default: false },
 	/** 穿透：双击行后拉源单明细的接口（payload）=> Promise，不传则禁用穿透 */
 	drillFetcher: { type: Function, default: null },
+	/** 自定义穿透载荷构造器（row）=> payload；默认按 order_no / order_id 构造，客户类报表按 customer_id 下钻 */
+	drillPayload: { type: Function, default: null },
 })
-defineEmits(['pageChange', 'pageSizeChange', 'refresh', 'rowDblclick'])
+const emit = defineEmits(['pageChange', 'pageSizeChange', 'refresh', 'rowDblclick'])
 
 // ================= 规范行高 / 表头 =================
 // 列表 48px / 明细 41px；表头 44px #F5F7FA 14px/500 #606266
@@ -245,12 +247,19 @@ const headerCellStyle = () => ({ height: '44px', background: '#F5F7FA', color: '
 const drillOpen = ref(false)
 const drillPayload = ref(null)
 function onRowDblclick(row) {
-	if (!props.drillFetcher) return
-	drillPayload.value = props.drillFetcher ? toDrillPayload(row) : null
-	if (drillPayload.value) drillOpen.value = true
+	// 内置穿透抽屉：order/stock 等明细类报表，双击行直接打开源单明细
+	if (props.drillFetcher) {
+		drillPayload.value = toDrillPayload(row)
+		if (drillPayload.value) drillOpen.value = true
+	}
+	// 自定义穿透：客户类报表双击行由父组件决定（如打开该客户订单列表抽屉）
+	emit('rowDblclick', row)
 }
-/** 默认按 order_no 优先、order_id 兜底构造穿透载荷（父组件可覆盖） */
+/** 父组件可传 drillPayload 自定义载荷构造器（如客户报表按 customer_id 下钻） */
 function toDrillPayload(row) {
+	return props.drillPayload ? props.drillPayload(row) : defaultDrillPayload(row)
+}
+function defaultDrillPayload(row) {
 	return row?.order_no != null ? { order_no: row.order_no } : row?.order_id != null ? { order_id: row.order_id } : null
 }
 
