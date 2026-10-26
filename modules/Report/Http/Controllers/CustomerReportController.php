@@ -235,6 +235,7 @@ class CustomerReportController extends Controller
 
             case 'customer_order':
                 $query = DB::table('sales_orders as so')
+                    ->join('sales_order_items as soi', 'soi.sales_order_id', '=', 'so.id')
                     ->leftJoin('customers as c', 'c.id', '=', 'so.customer_id')
                     ->leftJoin('warehouses as w', 'w.id', '=', 'so.warehouse_id')
                     ->leftJoin('auth_user as sm', 'sm.id', '=', 'so.salesman_id');
