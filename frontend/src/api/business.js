@@ -771,9 +771,17 @@ const businessApi = {
 			delete: { delete: (id) => request.delete(`business/report/templates/${id}`) },
 		},
 
+		// 列配置持久化：每用户每报表一份列显隐/排序偏好（E1 基座）
+		columns: {
+			get: { get: (params) => request.get('business/report/columns', { params }) },
+			save: { post: (params) => request.post('business/report/columns', params) },
+		},
+
 		sales: {
 			get: (params) => request.get('business/report/sales', { params }),
 			export: { get: (params) => request.get('business/report/sales/export', { params, responseType: 'blob' }) },
+			// 穿透：双击行 → 源单明细抽屉（传 order_no 或 order_id）
+			drill: { get: (params) => request.get('business/report/sales/drill', { params }) },
 		},
 
 		stock: {

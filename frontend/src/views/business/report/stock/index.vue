@@ -25,6 +25,7 @@
 				<!-- 库存负数标红由列定义的 negative_red 驱动，ReportTable 统一处理 -->
 				<ReportTable
 					v-else
+					report="stock"
 					:columns="columns"
 					:data="list"
 					:loading="loading"
@@ -138,7 +139,7 @@ async function onExport() {
 	exporting.value = true
 	try {
 		const blob = await businessApi.report.stock.export.get(buildParams())
-		saveBlob(blob, `库存报表_${TABS.find((t) => t.value === activeTab.value)?.label || ''}.csv`)
+		saveBlob(blob, `库存报表_${TABS.find((t) => t.value === activeTab.value)?.label || ''}.xls`)
 	} catch {
 		ElMessage.error('导出失败')
 	} finally {

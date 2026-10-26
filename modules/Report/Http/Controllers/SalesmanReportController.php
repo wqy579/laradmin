@@ -84,14 +84,9 @@ class SalesmanReportController extends Controller
             });
         }
 
-        $body = [];
-        foreach ($rows as $row) {
-            $body[] = array_map(fn ($c) => $row->{$c['prop']} ?? '', $columns);
-        }
-
-        return ReportFilter::csvResponse(
-            ReportFilter::csv('业务员报表 - '.(self::DIMENSIONS[$dimension] ?? ''), array_column($columns, 'label'), $body),
-            'salesman_report_'.$dimension.'.csv'
+        return ReportFilter::excelResponse(
+            ReportFilter::excel('业务员报表 - '.(self::DIMENSIONS[$dimension] ?? ''), $columns, $rows),
+            'salesman_report_'.$dimension.'.xls'
         );
     }
 
