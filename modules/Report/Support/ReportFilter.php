@@ -49,6 +49,7 @@ class ReportFilter
             'end_date' => $request->input('end_date'),
             'start_time' => $request->input('start_time'),
             'end_time' => $request->input('end_time'),
+            'as_of_date' => $request->input('as_of_date'),
             // 客户维度
             'customer_category' => self::toArray($request->input('customer_category')),
             'customer_level_ids' => self::toArray($request->input('customer_level_ids')),
@@ -86,6 +87,7 @@ class ReportFilter
             // 展示控制
             'with_price' => $request->boolean('with_price', true),
             'zero_sale' => $request->input('zero_sale'),
+            'return_rate_threshold' => $request->input('return_rate_threshold'),
             // 分页
             'page' => max(1, (int) $request->input('page', 1)),
             'page_size' => min(500, max(1, (int) $request->input('page_size', 30))),
