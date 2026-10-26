@@ -22,10 +22,12 @@ jobs:
           script: |
             set -e
             cd /www/wwwroot/laradmin
+            # 探测可用 PHP：优先 php8.5（与 laravels worker 同运行时），回退默认 php，避免硬编码 command not found
+            PHP_BIN="$(command -v php8.5 || command -v php || echo /usr/bin/php8.5)"
 
             echo "=== 1. 核对（dry-run，不写入）==="
-            php8.5 artisan business:sync-cost-prices --dry-run
+            "$PHP_BIN" artisan business:sync-cost-prices --dry-run
 
             echo
             echo "=== 2. 替换不一致的行（按 external_id 匹配，仅更新不一致的）==="
-            php8.5 artisan business:sync-cost-prices
+            "$PHP_BIN" artisan business:sync-cost-prices
