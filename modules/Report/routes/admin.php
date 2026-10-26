@@ -55,7 +55,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
             Route::get('/export', [SalesReportController::class, 'export']);
             // 穿透：双击行 → 源单明细抽屉
             Route::get('/drill', [SalesReportController::class, 'drill']);
-});
+        });
 
         // 客户报表（E2，6 个汇总维度）
         Route::prefix('customer')->group(function () {
