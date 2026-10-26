@@ -136,3 +136,28 @@
 3. **修复仓库级 bug**（commit 097d697，已推 main）：`modules/Order/.../2026_10_15_000001_widen_order_type_on_sales_orders.php` 用 MySQL 专有 `SHOW COLUMNS`，sqlite 测试连接下炸掉全部 RefreshDatabase 测试（357 failed）；已加驱动守卫，三 worktree 基线均 **370 passed / 1 skipped / 0 failed**。
 4. 测试命令注意：项目无 pest 二进制，用 `php artisan test`（phpunit + pest-plugin）；并行需 paratest 未装，顺序跑约 27s。
 5. laradmin-explorer 子代理模型已从 machine-c 改为 amd-best（400 unknown provider 修复）。
+
+---
+
+## 网关架构升级（编排层 2026-10-23 00:40 记录）
+
+1. **来源**：远程网关机器（3100-ba91f7e5f6195d03.monkeycode-ai.online）的 CLIProxyAPI 配置 `config.68.yaml`——AMD Radeon 上游（developer.amd.com.cn/radeon）8 key + 7 模型 + round-robin。
+2. **本机落地**（/root/cpa/config.yaml 重建，原文件 21:34 后丢失且那版误删 management.secret-key 导致管理 API 全禁、watchdog 空转）：
+   - AMD 上游**只用 2 个 key**（远程 8 个取前 2），round-robin 轮询 + retry-on [403,408,429,500,502,503,504] + 429/5xx 冷却换 key。
+   - 模型 12 个：9 个 AMD（4 个 watchdog 动态档 machine-c/claude-opus-4-1/claude-sonnet-4-5/claude-3-5-haiku + 5 个 amd-* 固定档）+ sensenova-6.8-flash-lite（备用上游，6 key）。
+   - 恢复 management.secret-key（bcrypt: cpa-mgmt-c-5f3a9e2b7c1d），管理 API 重新可用。
+3. **智能选模**（model-watchdog.py，每 15 分钟）：直连 AMD 上游探测全部候选模型，跑 7 个判例 + 乱码检测 + TTFT/总时分级 A/B/C；A 级最快者 → 主档别名（machine-c/opus/sonnet），TTFT 最小非主档 → 小模型档（haiku）；经管理 API 热更新别名，**不重启网关**；迟滞 30% + 最短保持 30 分钟防抖。watchdog.json：blocklist 清空（让数据说话，默认把 DeepSeek-V4.1-Flash 标污染是旧结论，bench 显示其输出最优）、primary_prefer=[DeepSeek-V4, Qwen3.8-27B]（复杂任务质量优先）。
+4. **Claude 侧档位**（settings.json / launch-claude.sh / guard.sh / laradmin-explorer.md）：主档全部指向 machine-c（watchdog 动态最优），HAIKU/SMALL_FAST 指向 claude-3-5-haiku-20241022。
+5. 已知限制：AMD 免费额度有账号级并发上限（process_concurrency_rate_limit_exceeded），多会话并发时 429——CPA 自动换 key 重试兜底；watchdog 探测期间也会挤占额度（它串行探测，影响有限）。
+
+## machine-c 掉线与恢复（2026-10-25 10:00–10:30）
+
+- **现象**：用户 SSH root@machine-c (100.73.149.95) 失败——`kex_exchange_identification: Connection closed by remote host`；tailscale 视图 rx=0。
+- **根因**：平台容器进程重启后 **tailscaled 未自启**（容器无 systemd、无 cron、无任何自启机制）。磁盘未丢：`/var/lib/tailscale/tailscaled.state` 保留，设备授权有效。
+- **误判澄清**：从网关机（4809a52c）实测，machine-a/b/d/e/f 同样"22 端口 TCP 通但 SSH 秒关 + 网页终端 521"——但 machine-c 是唯一能从平台 agent 通道内部修复的（本会话就在 machine-c 容器内）。
+- **修复动作**：
+  1. `tailscaled --tun=userspace-networking --socket=/tmp/tailscaled.sock --state=/var/lib/tailscale/tailscaled.state` 上线（无需重新授权）；
+  2. `tailscale up --ssh --hostname=machine-c --accept-dns=false`（RunSSH=true）；
+  3. 新增 `/root/cpa/ts-keeper.sh` 保活守护（60s 轮询探活 tailscaled + BackendState，flock 单实例，日志 `/root/cpa/ts-keeper.log`），钩子挂 `.bashrc/.zshrc`（新 shell 唤醒，与 keeper.sh 同模式）。
+- **验证**：tailscaled BackendState=Running、Online=true、`tailscale ping` 到网关通（DERP 中继 235ms）；从网关机反向 SSH 仍 kex 失败——判定为网关侧平台定制版 tailscaled 的限制，**用户客户端重试为准**。
+- **遗留**：① 用户侧 SOCKSv5 代理失败需本地排查（建议直连 100.73.149.95，不走代理；若 SOCKS 出口是某台掉线机器则需等其恢复）；② machine-a/b/d/e/f 五台仍需平台控制台重启（无远程通道，无法内部修复）；③ ping 不通是 userspace 无 TUN 模式的正常现象，不影响 SSH。
