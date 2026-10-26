@@ -57,8 +57,7 @@
     <!-- ============ 工具条 ============ -->
     <div class="voucher-toolbar">
       <span class="voucher-toolbar__title">财务凭证</span>
-      <el-button type="primary" size="small" v-permission="'fin:voucher:add'" @click="openCreate">+ 新增凭证</el-button>
-      <el-button size="small" v-permission="'fin:voucher:audit'" :disabled="!draftCount" @click="batchAudit">批量审核</el-button>
+      <!-- 凭证录入/审核统一走 ledger 模块（BUG-10），本页为查询视图 -->
       <el-button size="small" v-permission="'fin:voucher:view'" :disabled="!activeVoucher" @click="printActive">打印</el-button>
     </div>
 
@@ -104,16 +103,9 @@
         <el-table-column label="操作" width="150" align="right">
           <template #default="{ row }">
             <template v-if="row._groupFirst">
+              <!-- 查询视图：仅查看/打印，录入/审核/红冲走 ledger 模块（BUG-10） -->
               <el-button link type="primary" size="small" @click.stop="openView(row._voucher)">查看</el-button>
-              <template v-if="row._voucher.status === 'draft'">
-                <el-button link type="primary" size="small" v-permission="'fin:voucher:edit'" @click.stop="openEdit(row._voucher)">编辑</el-button>
-                <el-button link type="success" size="small" v-permission="'fin:voucher:audit'" @click.stop="auditOne(row._voucher)">审核</el-button>
-                <el-button link type="danger" size="small" v-permission="'fin:voucher:delete'" @click.stop="deleteOne(row._voucher)">删除</el-button>
-              </template>
-              <template v-else-if="row._voucher.status === 'audited'">
-                <el-button link type="primary" size="small" @click.stop="printOne(row._voucher)">打印</el-button>
-                <el-button link type="danger" size="small" v-permission="'fin:voucher:reverse'" @click.stop="reverseOne(row._voucher)">红冲</el-button>
-              </template>
+              <el-button link type="primary" size="small" v-if="row._voucher.status === 'audited'" @click.stop="printOne(row._voucher)">打印</el-button>
             </template>
           </template>
         </el-table-column>
@@ -232,12 +224,7 @@
         </div>
       </el-form>
 
-      <template #footer v-if="mode !== 'view'">
-        <el-button size="small" @click="dialogVisible = false">取消</el-button>
-        <el-button size="small" :disabled="!canSave" @click="saveDraft">保存为草稿</el-button>
-        <el-button size="small" type="success" :disabled="!canSave" @click="saveAudit">保存并审核</el-button>
-      </template>
-      <template #footer v-else>
+      <template #footer>
         <el-button size="small" @click="dialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
@@ -344,8 +331,6 @@ const entryRows = computed(() => {
   return rows
 })
 
-const draftCount = computed(() => filteredVouchers.value.filter((v) => v.status === 'draft').length)
-
 function rowClassName({ row }) {
   return row._groupFirst ? 'voucher-row--group' : ''
 }
@@ -425,89 +410,6 @@ function exportData() {
   ElMessage.success('已导出 ' + entryRows.value.length + ' 条分录')
 }
 
-/* ---------- 凭证操作 ---------- */
-function nextVoucherNo(type) {
-  const d = new Date()
-  const ym = String(d.getFullYear()) + String(d.getMonth() + 1).padStart(2, '0')
-  let maxSeq = 0
-  vouchers.value.forEach((v) => {
-    const m = /^V(\d{6})(\d{4})$/.exec(v.no)
-    if (m && m[1] === ym) maxSeq = Math.max(maxSeq, Number(m[2]))
-  })
-  return 'V' + ym + String(maxSeq + 1).padStart(4, '0')
-}
-
-async function auditOne(v) {
-  try {
-    await ElMessageBox.confirm('审核后凭证将锁定，仅可查看/打印/红冲。确认审核「' + v.no + '」？', '审核确认', { type: 'warning' })
-  } catch (e) {
-    return
-  }
-  v.status = 'audited'
-  ElMessage.success('已审核：' + v.no)
-}
-
-async function batchAudit() {
-  const drafts = filteredVouchers.value.filter((v) => v.status === 'draft')
-  if (!drafts.length) return
-  try {
-    await ElMessageBox.confirm('将审核当前列表中的 ' + drafts.length + ' 张草稿凭证，审核后锁定。确认继续？', '批量审核确认', { type: 'warning' })
-  } catch (e) {
-    return
-  }
-  drafts.forEach((v) => {
-    v.status = 'audited'
-  })
-  ElMessage.success('已批量审核 ' + drafts.length + ' 张凭证')
-}
-
-async function deleteOne(v) {
-  try {
-    await ElMessageBox.confirm('删除后不可恢复。确认删除草稿「' + v.no + '」？', '删除确认', { type: 'warning' })
-  } catch (e) {
-    return
-  }
-  const i = vouchers.value.indexOf(v)
-  if (i > -1) vouchers.value.splice(i, 1)
-  if (activeVoucher.value === v) activeVoucher.value = null
-  ElMessage.success('已删除：' + v.no)
-}
-
-async function reverseOne(v) {
-  try {
-    await ElMessageBox.confirm('红冲将生成一笔借贷相反的新凭证，原凭证标记「已红冲」。确认红冲「' + v.no + '」？', '红冲确认', { type: 'warning' })
-  } catch (e) {
-    return
-  }
-  const revNo = nextVoucherNo(v.voucher_type)
-  const reversed = {
-    id: 'v' + Date.now(),
-    no: revNo,
-    voucher_type: v.voucher_type,
-    date: today(),
-    department: v.department,
-    employee: v.employee,
-    attachment_count: 0,
-    auto_audit: true,
-    remark: '红冲 ' + v.no,
-    status: 'audited',
-    reversed_no: '',
-    items: v.items.map((it) => ({
-      subject: it.subject,
-      subject_name: it.subject_name,
-      brand: it.brand,
-      partner: it.partner,
-      abstract: '(红冲)' + v.no + ' ' + it.abstract,
-      debit: it.credit,
-      credit: it.debit,
-    })),
-  }
-  v.status = 'reversed'
-  v.reversed_no = revNo
-  vouchers.value.unshift(reversed)
-  ElMessage.success('已红冲，新凭证号：' + revNo)
-}
-
 /* ---------- 打印 ---------- */
 function voucherPrintHtml(v) {
   const rows = v.items
@@ -585,7 +487,7 @@ function printActive() {
 
 /* ---------- 新增/编辑/查看弹窗 ---------- */
 const dialogVisible = ref(false)
-const mode = ref('create') // create | edit | view
+const mode = ref('view') // 查询视图：仅 view；录入/审核走 ledger 模块（BUG-10）
 const editingId = ref('')
 
 const emptyForm = () => ({
@@ -608,19 +510,6 @@ const dialogTitle = computed(() => (mode.value === 'create' ? '新增凭证' : m
 const debitTotal = computed(() => form.value.items.reduce((s, it) => s + Number(it.debit || 0), 0))
 const creditTotal = computed(() => form.value.items.reduce((s, it) => s + Number(it.credit || 0), 0))
 const balanced = computed(() => debitTotal.value > 0 && debitTotal.value === creditTotal.value)
-
-const canSave = computed(() => {
-  const f = form.value
-  if (!f.employee) return false
-  if (!f.date) return false
-  if (f.items.length < 2) return false
-  if (!balanced.value) return false
-  const badBrand = f.items.some((it) => subjectHasBrand(it.subject) && !it.brand)
-  if (badBrand) return false
-  const badAmount = f.items.some((it) => (Number(it.debit || 0) > 0) === (Number(it.credit || 0) > 0))
-  if (badAmount) return false
-  return true
-})
 
 function newEntry() {
   return { subject: '', subject_name: '', brand: '', partner: '', abstract: '', debit: 0, credit: 0 }
@@ -666,33 +555,6 @@ function disableFuture(date) {
   return date && date.getTime() > Date.now()
 }
 
-function openCreate() {
-  mode.value = 'create'
-  editingId.value = ''
-  form.value = emptyForm()
-  form.value.no = nextVoucherNo('记')
-  form.value.items = [newEntry(), newEntry()]
-  dialogVisible.value = true
-}
-
-function openEdit(v) {
-  mode.value = 'edit'
-  editingId.value = v.id
-  form.value = {
-    no: v.no,
-    voucher_type: v.voucher_type,
-    date: v.date,
-    department: v.department,
-    employee: v.employee,
-    attachment_count: v.attachment_count,
-    auto_audit: v.auto_audit,
-    remark: v.remark,
-    status: v.status,
-    items: v.items.map((it) => ({ ...it })),
-  }
-  dialogVisible.value = true
-}
-
 function openView(v) {
   mode.value = 'view'
   editingId.value = v.id
@@ -713,48 +575,6 @@ function openView(v) {
 
 function onDialogClosed() {
   form.value = emptyForm()
-}
-
-function commitForm(asAudited) {
-  const f = form.value
-  const idx = vouchers.value.findIndex((v) => v.id === editingId.value)
-  if (idx > -1) {
-    const v = vouchers.value[idx]
-    v.voucher_type = f.voucher_type
-    v.date = f.date
-    v.department = f.department
-    v.employee = f.employee
-    v.attachment_count = f.attachment_count
-    v.auto_audit = f.auto_audit
-    v.remark = f.remark
-    v.items = f.items.map((it) => ({ ...it }))
-    if (asAudited || v.status === 'audited') v.status = 'audited'
-  } else {
-    vouchers.value.unshift({
-      id: 'v' + Date.now(),
-      no: f.no,
-      voucher_type: f.voucher_type,
-      date: f.date,
-      department: f.department || 'dept-1',
-      employee: f.employee,
-      attachment_count: f.attachment_count,
-      auto_audit: f.auto_audit,
-      remark: f.remark,
-      status: asAudited ? 'audited' : 'draft',
-      reversed_no: '',
-      items: f.items.map((it) => ({ ...it })),
-    })
-  }
-  dialogVisible.value = false
-  ElMessage.success(asAudited ? '已保存并审核：' + f.no : '已保存为草稿：' + f.no)
-}
-
-function saveDraft() {
-  commitForm(false)
-}
-
-function saveAudit() {
-  commitForm(true)
 }
 </script>
 

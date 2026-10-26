@@ -4,6 +4,7 @@ namespace Modules\Business\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Auth\Models\Department;
 
 class Expense extends Model
 {

@@ -91,11 +91,27 @@ class PerformanceMenuSeeder extends Seeder
             ]);
         }
 
+        // BUG-01/C7：业务员订单汇总挂「报表管理」菜单（report 为父）。
+        // report 父级由 Business 模块创建；若尚未落库则回退挂到 perf 分组下，避免悬空。
+        $reportParentId = Permission::where('name', 'report')->value('id')
+            ?? $parentId
+            ?? 0;
+        Permission::firstOrCreate(['name' => 'report.salesman-order'], [
+            'title' => '业务员订单汇总',
+            'type' => 'menu',
+            'parent_id' => $reportParentId,
+            'path' => '/report/salesman-order',
+            'component' => 'report/salesman-order/index',
+            'sort' => 6,
+            'status' => 1,
+        ]);
+
         // 给超级管理员、管理员角色补授权
         $menuNames = array_merge(
             [self::PARENT['name']],
             array_column(self::CHILDREN, 'name'),
-            array_column(self::BUTTONS, 'name')
+            array_column(self::BUTTONS, 'name'),
+            ['report.salesman-order']
         );
         $menuIds = Permission::whereIn('name', $menuNames)->pluck('id');
         if ($menuIds->isEmpty()) {

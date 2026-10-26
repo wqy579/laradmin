@@ -43,7 +43,8 @@ class LedgerMenuMetaTest extends TestCase
             ->where('name', 'like', 'ledger.%')
             ->get();
 
-        $this->assertCount(8, $children, '总账应有 8 个子菜单');
+        // A8 新增「总账驾驶舱」后共 9 个子菜单（dashboard + 原有 8 个）
+        $this->assertCount(9, $children, '总账应有 9 个子菜单（含 A8 总账驾驶舱）');
         foreach ($children as $child) {
             $meta = json_decode($child->meta ?? 'null', true) ?? [];
             $this->assertSame(false, $meta['hidden'] ?? null, "{$child->name} 缺 meta.hidden=false");

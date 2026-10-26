@@ -63,6 +63,11 @@ const ledgerApi = {
 		journal: { get: (params) => request.get('ledger/reports/journal', { params }) },
 		export: (params) => request.get('ledger/reports/export', { params, responseType: 'blob' }),
 	},
+	// 总账驾驶舱（A8 首页 dashboard）
+	dashboard: {
+		overview: { get: () => request.get('ledger/dashboard/overview') },
+		recentVouchers: { get: (params) => request.get('ledger/dashboard/recent-vouchers', { params }) },
+	},
 }
 
 export default ledgerApi

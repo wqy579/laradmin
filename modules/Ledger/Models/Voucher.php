@@ -19,7 +19,7 @@ class Voucher extends Model
     protected $table = 'ledger_vouchers';
 
     protected $fillable = [
-        'voucher_no', 'voucher_date', 'period', 'attachments_count',
+        'voucher_no', 'voucher_date', 'period', 'attachments_count', 'attachments',
         'total_debit', 'total_credit', 'status',
         'maker_id', 'maker_name', 'auditor_id', 'auditor_name',
         'audited_at', 'remark',
@@ -30,6 +30,7 @@ class Voucher extends Model
         'voucher_date' => 'date',
         'audited_at' => 'datetime',
         'attachments_count' => 'integer',
+        'attachments' => 'array',
         'total_debit' => 'decimal:2',
         'total_credit' => 'decimal:2',
         'is_red' => 'boolean',

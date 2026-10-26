@@ -233,7 +233,7 @@ const props = defineProps({
 	dense: { type: Boolean, default: false },
 	/** 穿透：双击行后拉源单明细的接口（payload）=> Promise，不传则禁用穿透 */
 	drillFetcher: { type: Function, default: null },
-	/** 自定义穿透载荷构造器（row）=> payload；默认按 order_no / order_id 构造，客户类报表按 customer_id 下钻 */
+/** 自定义穿透载荷构造器（row）=> payload；默认按 order_no / order_id 构造，客户类报表按 customer_id 下钻 */
 	drillPayload: { type: Function, default: null },
 })
 const emit = defineEmits(['pageChange', 'pageSizeChange', 'refresh', 'rowDblclick'])
@@ -247,7 +247,7 @@ const headerCellStyle = () => ({ height: '44px', background: '#F5F7FA', color: '
 const drillOpen = ref(false)
 const drillPayload = ref(null)
 function onRowDblclick(row) {
-	// 内置穿透抽屉：order/stock 等明细类报表，双击行直接打开源单明细
+// 内置穿透抽屉：order/stock 等明细类报表，双击行直接打开源单明细
 	if (props.drillFetcher) {
 		drillPayload.value = toDrillPayload(row)
 		if (drillPayload.value) drillOpen.value = true

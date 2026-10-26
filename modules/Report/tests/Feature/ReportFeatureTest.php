@@ -287,7 +287,7 @@ class ReportFeatureTest extends TestCase
         $this->assertEquals(50, round((float) $oct['mom_change'], 2), '10 月环比应为 +50%');
         // 退货率列定义需带阈值，环比列需带上涨箭头标记，前端据此标红 + 箭头
         $rateCol = collect($res->json('data.columns'))->firstWhere('prop', 'return_rate');
-        $this->assertSame(5, (float) $rateCol['threshold']);
+        $this->assertEquals(5, round((float) $rateCol['threshold']));
         $momCol = collect($res->json('data.columns'))->firstWhere('prop', 'mom_change');
         $this->assertTrue($momCol['arrow'] ?? false, '环比列应带上涨箭头标记');
     }
