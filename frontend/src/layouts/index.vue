@@ -10,11 +10,15 @@ import TagsBar from './components/tags-bar.vue'
 import SettingsDrawer from './components/settings.vue'
 import MenuItem from './components/menu-item.vue'
 import { menuIcons } from '../config/menuIcons'
+import DemoWatermark from '../components/demo-watermark/index.vue'
 
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const userStore = useUserStore()
+
+// BUG-04 过渡期「演示数据」水印：仅财务域 finance 各页挂水印 + 顶部提示条
+const isFinanceRoute = computed(() => route.path.startsWith('/finance/'))
 
 const { isMobile } = useResponsive()
 
@@ -175,6 +179,7 @@ function getTopActiveMenu() {
 		</el-header>
 		<TagsBar v-if="appStore.showTagsBar" compact />
 		<el-main class="layout-content">
+			<DemoWatermark v-if="isFinanceRoute" />
 			<RouterView :key="route.fullPath" />
 		</el-main>
 
@@ -247,6 +252,7 @@ function getTopActiveMenu() {
 			</el-header>
 			<TagsBar v-if="appStore.showTagsBar" />
 			<el-main class="layout-content">
+				<DemoWatermark v-if="isFinanceRoute" />
 				<RouterView :key="route.fullPath" />
 			</el-main>
 		</el-container>
@@ -275,6 +281,7 @@ function getTopActiveMenu() {
 		<TagsBar v-if="appStore.showTagsBar" />
 
 		<el-main class="layout-content">
+			<DemoWatermark v-if="isFinanceRoute" />
 			<RouterView :key="route.fullPath" />
 		</el-main>
 	</el-container>
@@ -334,6 +341,7 @@ function getTopActiveMenu() {
 			</el-header>
 			<TagsBar v-if="appStore.showTagsBar" />
 			<el-main class="layout-content">
+				<DemoWatermark v-if="isFinanceRoute" />
 				<RouterView :key="route.fullPath" />
 			</el-main>
 		</el-container>
@@ -380,6 +388,7 @@ function getTopActiveMenu() {
 	background: var(--layout-content-bg);
 	overflow-y: auto;
 	padding: 0;
+	position: relative; /* 作为「演示数据」水印层的定位锚点（BUG-04） */
 }
 
 /* ===== sidebar (basic + shared footer) ===== */
