@@ -23,6 +23,7 @@
 			<template #bill_no_default="{ row }">
 				<el-button type="primary" link size="small" @click="handleView(row)">{{ row.bill_no }}</el-button>
 			</template>
+			<template #actual_default="{ row }">¥{{ fmt(row.actual_amount) }}</template>
 			<template #status_default="{ row }">
 				<el-tag class="status-tag" :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
 			</template>

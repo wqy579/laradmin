@@ -102,11 +102,30 @@ return new class extends Migration
             }
         }
 
+        // BUG-01/C7：业务员订单汇总挂「报表管理」菜单（report 为父）。
+        if (! DB::table('auth_permission')->where('name', 'report.salesman-order')->exists()) {
+            DB::table('auth_permission')->insert([
+                'title' => '业务员订单汇总',
+                'name' => 'report.salesman-order',
+                'type' => 'menu',
+                'parent_id' => DB::table('auth_permission')->where('name', 'report')->value('id')
+                    ?? $parentId
+                    ?? 0,
+                'path' => '/report/salesman-order',
+                'component' => 'report/salesman-order/index',
+                'sort' => 6,
+                'status' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         // 给超级管理员角色补授权（超管虽走 isSuperAdmin，但 admin/manager 角色靠关联表）
         $menuNames = array_merge(
             [self::PARENT['name']],
             array_column(self::CHILDREN, 'name'),
-            array_column(self::BUTTONS, 'name')
+            array_column(self::BUTTONS, 'name'),
+            ['report.salesman-order']
         );
         $menuIds = DB::table('auth_permission')->whereIn('name', $menuNames)->pluck('id');
         if ($menuIds->isEmpty()) {
@@ -133,7 +152,8 @@ return new class extends Migration
         $names = array_merge(
             [self::PARENT['name']],
             array_column(self::CHILDREN, 'name'),
-            array_column(self::BUTTONS, 'name')
+            array_column(self::BUTTONS, 'name'),
+            ['report.salesman-order']
         );
         $ids = DB::table('auth_permission')->whereIn('name', $names)->pluck('id');
         if ($ids->isNotEmpty()) {
