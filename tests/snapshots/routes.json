@@ -4197,6 +4197,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/report/columns",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\ReportColumnController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/report/columns",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\ReportColumnController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/report/combined",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\CombinedReportController@index",
@@ -4236,6 +4260,18 @@
         "uri": "admin/business/report/sales",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\SalesReportController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/sales/drill",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\SalesReportController@drill",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -7464,6 +7500,18 @@
         "uri": "admin/ledger/vouchers/{id}/audit",
         "name": "admin.",
         "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@audit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/{id}/red-reverse",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@redReverse",
         "middleware": [
             "api",
             "stock.snapshot",
