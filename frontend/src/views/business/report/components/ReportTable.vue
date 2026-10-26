@@ -8,11 +8,26 @@
 				size="small"
 				border
 				stripe
-				:row-style="{ height: '36px' }"
-				:header-cell-style="{ height: '40px', background: '#f5f7fa', color: '#909399', fontWeight: 700, fontSize: '13px' }"
-				:empty-text="loading ? '' : '暂无数据'"
-				@row-dblclick="$emit('rowDblclick', $event)"
+				:row-style="rowStyle"
+				:header-cell-style="headerCellStyle"
+				:empty-text="loading ? '' : ' '"
+				@row-dblclick="onRowDblclick"
 			>
+				<template #empty>
+					<div class="rp-empty-box" v-if="!loading">
+						<svg width="96" height="80" viewBox="0 0 96 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+							<rect x="18" y="12" width="60" height="44" rx="2" fill="#fff" stroke="#dcdfe6" stroke-width="1.5"/>
+							<rect x="14" y="20" width="8" height="36" rx="1" fill="#dcdfe6"/>
+							<path d="M30 22h28" stroke="#e4e7ed" stroke-width="1.5" stroke-linecap="round"/>
+							<path d="M30 29h20" stroke="#e4e7ed" stroke-width="1.5" stroke-linecap="round"/>
+							<path d="M30 36h24" stroke="#e4e7ed" stroke-width="1.5" stroke-linecap="round"/>
+							<path d="M34 51l6-6 7 4 7-7 6 5" stroke="#c0c4cc" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+							<rect x="18" y="60" width="60" height="5" rx="2.5" fill="#f5f7fa"/>
+							<path d="M38 66h20" stroke="#dcdfe6" stroke-width="1.5" stroke-linecap="round"/>
+						</svg>
+						<p class="rp-empty-text">暂无数据</p>
+					</div>
+				</template>
 				<template v-for="col in visibleColumns" :key="col.prop">
 					<el-table-column
 						:prop="col.prop"
@@ -44,17 +59,17 @@
 		<div class="rp-grid-page">
 			<el-pagination
 				background
-				size="small"
+				small
 				layout="total, sizes, prev, pager, next, jumper"
 				:total="total"
 				:page-size="pageSize"
-				:page-sizes="[10, 20, 30, 50, 100]"
+				:page-sizes="[20, 30]"
 				:current-page="currentPage"
 				@current-change="$emit('pageChange', $event)"
 				@update:page-size="$emit('pageSizeChange', $event)"
 			/>
 			<span class="rp-spacer"></span>
-			<!-- 列设置 -->
+			<!-- 列设置：显隐 + 拖拽排序 + 持久化 -->
 			<el-popover placement="top" :width="360" trigger="click" :hide-after="0">
 				<template #reference>
 					<el-button size="small" circle title="列设置">
@@ -66,25 +81,44 @@
 						<span>列设置</span>
 						<el-button link size="small" @click="resetColumns">重置</el-button>
 					</div>
-					<div class="rp-col-panel-list">
-						<div v-for="c in columnState" :key="c.prop" class="rp-col-item">
+					<div class="rp-col-panel-list" @dragover.prevent @drop="onDrop">
+						<div
+							v-for="(c, i) in columnState"
+							:key="c.prop"
+							class="rp-col-item"
+							draggable="true"
+							@dragstart="dragIndex = i"
+							@dragenter="dragOver = i"
+							@dragend="dragOver = null"
+							:class="{ 'rp-col-dragging': dragOver === i }"
+						>
 							<el-icon class="rp-col-drag"><Rank /></el-icon>
-							<el-checkbox v-model="c.visible" />
+							<el-checkbox v-model="c.visible" @change="persistColumns" />
 							<span class="rp-col-label">{{ c.label }}</span>
 						</div>
 					</div>
+					<div class="rp-col-panel-foot">拖动左侧手柄调整列顺序，勾选显隐，布局自动保存</div>
 				</div>
 			</el-popover>
 			<el-button size="small" circle title="刷新" @click="$emit('refresh')">
 				<el-icon><Refresh /></el-icon>
 			</el-button>
 		</div>
+
+		<!-- 穿透抽屉：双击行 → 源单明细 -->
+		<ReportDrillDrawer
+			v-model="drillOpen"
+			:payload="drillPayload"
+			:fetcher="drillFetcher"
+		/>
 	</div>
 </template>
 
 <script setup>
-import { ref, computed, watch, h } from 'vue'
+import { ref, computed, watch, h, onMounted } from 'vue'
 import { Setting, Refresh, Rank } from '@element-plus/icons-vue'
+import businessApi from '@/api/business'
+import ReportDrillDrawer from './ReportDrillDrawer.vue'
 
 /** 金额：统一 2 位小数 + 千分位 */
 function money(v) {
@@ -184,6 +218,8 @@ function renderCell(col, row) {
 }
 
 const props = defineProps({
+	/** 报表标识：列配置持久化按此 key 区分（如 sales / stock / salesman / combined） */
+	report: { type: String, default: '' },
 	columns: { type: Array, default: () => [] },
 	data: { type: Array, default: () => [] },
 	loading: { type: Boolean, default: false },
@@ -193,11 +229,37 @@ const props = defineProps({
 	summary: { type: [Object, null], default: null },
 	/** 汇总行要展示哪些列（不传则自动取所有数值列） */
 	summaryProps: { type: Array, default: null },
+	/** 明细视图用更紧凑的行高（41px），列表视图默认 48px */
+	dense: { type: Boolean, default: false },
+	/** 穿透：双击行后拉源单明细的接口（payload）=> Promise，不传则禁用穿透 */
+	drillFetcher: { type: Function, default: null },
 })
 defineEmits(['pageChange', 'pageSizeChange', 'refresh', 'rowDblclick'])
 
-/** 列显隐状态：维度切换导致列集合变化时重建，保留同名列的旧选择 */
+// ================= 规范行高 / 表头 =================
+// 列表 48px / 明细 41px；表头 44px #F5F7FA 14px/500 #606266
+const rowStyle = () => ({ height: props.dense ? '41px' : '48px' })
+const headerCellStyle = () => ({ height: '44px', background: '#F5F7FA', color: '#606266', fontWeight: 500, fontSize: '14px' })
+
+// ================= 穿透抽屉 =================
+const drillOpen = ref(false)
+const drillPayload = ref(null)
+function onRowDblclick(row) {
+	if (!props.drillFetcher) return
+	drillPayload.value = props.drillFetcher ? toDrillPayload(row) : null
+	if (drillPayload.value) drillOpen.value = true
+}
+/** 默认按 order_no 优先、order_id 兜底构造穿透载荷（父组件可覆盖） */
+function toDrillPayload(row) {
+	return row?.order_no != null ? { order_no: row.order_no } : row?.order_id != null ? { order_id: row.order_id } : null
+}
+
+// ================= 列显隐 + 排序 + 持久化 =================
 const columnState = ref([])
+const dragIndex = ref(null)
+const dragOver = ref(null)
+
+/** 后端列定义变化（维度切换）时重建列状态；同名列保留旧显隐，顺序默认按后端下发 */
 watch(
 	() => props.columns,
 	(cols) => {
@@ -207,14 +269,62 @@ watch(
 			label: c.label,
 			visible: prev.has(c.prop) ? prev.get(c.prop) : true,
 		}))
+		applyPersisted()
 	},
 	{ immediate: true, deep: false }
 )
+
+/** 打开报表时回放该用户该报表的列布局快照 */
+async function applyPersisted() {
+	if (!props.report) return
+	try {
+		const res = await businessApi.report.columns.get({ report: props.report })
+		if (res.code !== 200 || !Array.isArray(res.data) || !res.data.length) return
+		const saved = new Map(res.data.map((c) => [c.prop, c]))
+		// 只回放当前报表真实存在的列，顺序按用户保存的顺序；新列默认可见排尾部
+		const current = new Map(columnState.value.map((c) => [c.prop, c]))
+		const ordered = res.data.filter((c) => current.has(c.prop))
+		const rest = columnState.value.filter((c) => !saved.has(c.prop))
+		columnState.value = [
+			...ordered.map((c) => ({ prop: c.prop, label: c.label, visible: c.visible !== false })),
+			...rest,
+		]
+	} catch {
+		/* 持久化读失败不阻塞表格展示 */
+	}
+}
+
+/** 显隐 / 排序变化后把当前列布局写回后端 */
+function persistColumns() {
+	if (!props.report) return
+	const payload = columnState.value.map((c) => ({ prop: c.prop, label: c.label, visible: c.visible }))
+	businessApi.report.columns.save({ report: props.report, columns: payload }).catch(() => {})
+}
+
 const visibleColumns = computed(() =>
-	props.columns.filter((c) => columnState.value.find((s) => s.prop === c.prop)?.visible !== false)
+	columnState.value
+		.filter((s) => s.visible !== false)
+		.map((s) => props.columns.find((c) => c.prop === s.prop))
+		.filter(Boolean)
 )
+
 function resetColumns() {
 	columnState.value.forEach((c) => (c.visible = true))
+	persistColumns()
+}
+
+/** 拖拽排序：把源列插到目标列前 */
+function onDrop() {
+	const from = dragIndex.value
+	const to = dragOver.value
+	dragIndex.value = null
+	dragOver.value = null
+	if (from == null || to == null || from === to) return
+	const next = columnState.value.slice()
+	const [moved] = next.splice(from, 1)
+	next.splice(to, 0, moved)
+	columnState.value = next
+	persistColumns()
 }
 
 const summaryKeys = computed(() => {
@@ -263,16 +373,54 @@ function alignOf(col) {
 .rp-cell-zero {
 	color: #c0c4cc;
 }
+
+/* 空态：纸箱插图 + 14px #C0C4CC */
+.rp-empty-box {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 32px 0;
+}
+.rp-empty-text {
+	font-size: 14px;
+	color: #c0c4cc;
+	margin: 0;
+}
+
+/* 分页条 52px，pager 按钮 24×24 圆角 2px */
 .rp-grid-page {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 8px 16px;
+	gap: 12px;
+	height: 52px;
+	padding: 0 16px;
 	flex-shrink: 0;
+	border-top: 1px solid #ebeef5;
+}
+.rp-grid-page :deep(.el-pagination) {
+	height: 28px;
+}
+.rp-grid-page :deep(.el-pagination.is-background .el-pager li),
+.rp-grid-page :deep(.el-pagination .btn-prev),
+.rp-grid-page :deep(.el-pagination .btn-next) {
+	min-width: 24px;
+	height: 24px;
+	line-height: 24px;
+	border-radius: 2px;
+}
+.rp-grid-page :deep(.el-pagination .el-pagination__sizes) {
+	margin-right: 4px;
+}
+.rp-grid-page :deep(.el-pagination__jump) {
+	display: flex;
+	align-items: center;
 }
 .rp-spacer {
 	flex: 1;
 }
+
+/* 列设置面板 */
 .rp-col-panel-head {
 	display: flex;
 	justify-content: space-between;
@@ -290,9 +438,17 @@ function alignOf(col) {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 2px 0;
+	padding: 3px 4px;
 	font-size: 13px;
 	color: #606266;
+	border-radius: 3px;
+}
+.rp-col-item.draggable {
+	cursor: grab;
+}
+.rp-col-dragging {
+	background: #f0f7ff;
+	outline: 1px dashed #409eff;
 }
 .rp-col-drag {
 	color: #c0c4cc;
@@ -300,5 +456,10 @@ function alignOf(col) {
 }
 .rp-col-label {
 	flex: 1;
+}
+.rp-col-panel-foot {
+	margin-top: 8px;
+	font-size: 12px;
+	color: #c0c4cc;
 }
 </style>

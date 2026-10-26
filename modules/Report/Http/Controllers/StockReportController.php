@@ -60,14 +60,9 @@ class StockReportController extends Controller
         $columns = $this->columns($dimension);
         $rows = $this->aggregate($params, $dimension)->limit(50000)->get();
 
-        $body = [];
-        foreach ($rows as $row) {
-            $body[] = array_map(fn ($c) => $row->{$c['prop']} ?? '', $columns);
-        }
-
-        return ReportFilter::csvResponse(
-            ReportFilter::csv('库存报表 - '.(self::DIMENSIONS[$dimension] ?? ''), array_column($columns, 'label'), $body),
-            'stock_report_'.$dimension.'.csv'
+        return ReportFilter::excelResponse(
+            ReportFilter::excel('库存报表 - '.(self::DIMENSIONS[$dimension] ?? ''), $columns, $rows),
+            'stock_report_'.$dimension.'.xls'
         );
     }
 

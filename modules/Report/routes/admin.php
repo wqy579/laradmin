@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Report\Http\Controllers\CombinedReportController;
 use Modules\Report\Http\Controllers\RecentPriceController;
+use Modules\Report\Http\Controllers\ReportColumnController;
 use Modules\Report\Http\Controllers\ReportOptionController;
 use Modules\Report\Http\Controllers\ReportTemplateController;
 use Modules\Report\Http\Controllers\SalesmanReportController;
@@ -41,10 +42,18 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
             Route::delete('/{id}', [ReportTemplateController::class, 'destroy']);
         });
 
+        // 列配置持久化：每用户每报表一份列显隐/排序偏好
+        Route::prefix('columns')->group(function () {
+            Route::get('/', [ReportColumnController::class, 'show']);
+            Route::post('/', [ReportColumnController::class, 'store']);
+        });
+
         // 销售报表（13 个汇总维度）
         Route::prefix('sales')->group(function () {
             Route::get('/', [SalesReportController::class, 'index']);
             Route::get('/export', [SalesReportController::class, 'export']);
+            // 穿透：双击行 → 源单明细抽屉
+            Route::get('/drill', [SalesReportController::class, 'drill']);
         });
 
         // 库存报表（4 个汇总维度）

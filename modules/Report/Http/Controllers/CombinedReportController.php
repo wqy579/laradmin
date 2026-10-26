@@ -55,14 +55,9 @@ class CombinedReportController extends Controller
         $columns = $this->columns($dimension, $params);
         $rows = $this->aggregate($params, $dimension)->limit(50000)->get();
 
-        $body = [];
-        foreach ($rows as $row) {
-            $body[] = array_map(fn ($c) => $row->{$c['prop']} ?? '', $columns);
-        }
-
-        return ReportFilter::csvResponse(
-            ReportFilter::csv('综合报表 - '.(self::DIMENSIONS[$dimension] ?? ''), array_column($columns, 'label'), $body),
-            'combined_report_'.$dimension.'.csv'
+        return ReportFilter::excelResponse(
+            ReportFilter::excel('综合报表 - '.(self::DIMENSIONS[$dimension] ?? ''), $columns, $rows),
+            'combined_report_'.$dimension.'.xls'
         );
     }
 

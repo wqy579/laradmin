@@ -15,6 +15,7 @@
 		<el-tabs v-model="activeTab" class="rp-tabs" @tab-change="onTabChange">
 			<el-tab-pane v-for="t in TABS" :key="t.value" :label="t.label" :name="t.value">
 				<ReportTable
+					report="salesman"
 					:columns="columns"
 					:data="list"
 					:loading="loading"
@@ -140,7 +141,7 @@ async function onExport() {
 	exporting.value = true
 	try {
 		const blob = await businessApi.report.salesman.export.get(buildParams())
-		saveBlob(blob, `业务员报表_${TABS.find((t) => t.value === activeTab.value)?.label || ''}.csv`)
+		saveBlob(blob, `业务员报表_${TABS.find((t) => t.value === activeTab.value)?.label || ''}.xls`)
 	} catch {
 		ElMessage.error('导出失败')
 	} finally {
