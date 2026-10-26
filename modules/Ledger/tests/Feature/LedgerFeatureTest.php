@@ -159,6 +159,54 @@ class LedgerFeatureTest extends TestCase
         $this->assertEquals('反结账后改', $updated->remark);
     }
 
+    public function test_voucher_attachments_persist_across_crud(): void
+    {
+        $this->seedSubjects();
+        $cash = Subject::where('code', '1001')->first();
+        $ar = Subject::where('code', '1122')->first();
+        $svc = app(VoucherService::class);
+
+        $attachments = [
+            ['url' => '/storage/att/a.png', 'name' => '合同扫描件.png', 'file_name' => 'a.png', 'size' => 1024, 'mime_type' => 'image/png'],
+            ['url' => '/storage/att/b.pdf', 'name' => '发票.pdf', 'file_name' => 'b.pdf', 'size' => 2048, 'mime_type' => 'application/pdf'],
+        ];
+
+        // 创建时写入附件
+        $voucher = $svc->create([
+            'voucher_date' => now()->format('Y-m-d'),
+            'attachments' => $attachments,
+            'attachments_count' => count($attachments),
+            'entries' => [
+                ['subject_id' => $cash->id, 'subject_code' => $cash->code, 'subject_name' => $cash->name, 'summary' => '收款', 'debit_amount' => 100, 'credit_amount' => 0],
+                ['subject_id' => $ar->id, 'subject_code' => $ar->code, 'subject_name' => $ar->name, 'summary' => '冲应收', 'debit_amount' => 0, 'credit_amount' => 100],
+            ],
+        ], 1, '测试员');
+
+        $this->assertCount(2, $voucher->attachments);
+        $this->assertEquals('合同扫描件.png', $voucher->attachments[0]['name']);
+
+        // 重新从库读取仍能还原
+        $fresh = Voucher::find($voucher->id);
+        $this->assertCount(2, $fresh->attachments);
+        $this->assertEquals('application/pdf', $fresh->attachments[1]['mime_type']);
+
+        // 更新时替换附件
+        $newAtt = [['url' => '/storage/att/c.png', 'name' => '对账单.png', 'file_name' => 'c.png', 'size' => 512, 'mime_type' => 'image/png']];
+        $updated = $svc->update($voucher->id, ['attachments' => $newAtt, 'attachments_count' => 1]);
+        $this->assertCount(1, $updated->attachments);
+        $this->assertEquals('对账单.png', $updated->attachments[0]['name']);
+
+        // 不传 attachments 时保留原值
+        $kept = $svc->update($voucher->id, ['remark' => '仅改备注']);
+        $this->assertCount(1, $kept->attachments);
+
+        // 红冲后新凭证继承附件
+        $svc->auditOne($voucher->id, 1, '审核员');
+        $red = $svc->redReverse($voucher->id, 1, '测试员');
+        $this->assertCount(1, $red->attachments);
+        $this->assertEquals('对账单.png', $red->attachments[0]['name']);
+    }
+
     public function test_amount_chinese_conversion(): void
     {
         $this->assertEquals('零元整', AmountChinese::convert(0));
