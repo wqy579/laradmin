@@ -251,6 +251,7 @@ class ReportFeatureTest extends TestCase
         DB::table('deliveries')->insert([
             'order_id' => $orderId,
             'status' => 1,
+            'delivery_no' => 'DEL'.$orderId.'20260505',
             'created_at' => now(),
             'updated_at' => now(),
         ]);

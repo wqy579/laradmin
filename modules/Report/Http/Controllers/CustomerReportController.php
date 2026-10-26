@@ -5,6 +5,7 @@ namespace Modules\Report\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Modules\Report\Support\ReportFilter;
 
@@ -45,7 +46,7 @@ class CustomerReportController extends Controller
             $total = $rows->count();
             $items = $rows->forPage($page, $pageSize)->values();
 
-            $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $paginator = new LengthAwarePaginator(
                 $items,
                 $total,
                 $pageSize,
@@ -171,7 +172,7 @@ class CustomerReportController extends Controller
                         'p.price_unit_small as unit',
                         'soi.quantity as qty',
                         DB::raw('CASE WHEN soi.price > 0 THEN soi.price ELSE soi.price_small END as price'),
-                        DB::raw($amountExpr.' as amount'),
+                        DB::raw('soi.amount as amount'),
                         'w.name as warehouse_name',
                         'sm.real_name as salesman_name',
                     ])
@@ -206,7 +207,7 @@ class CustomerReportController extends Controller
                     DB::raw('so.total_amount as order_amount'),
                     DB::raw('so.paid_amount as paid_amount'),
                     DB::raw('ROUND(COALESCE(so.total_amount,0) - COALESCE(so.paid_amount,0), 2) as unpaid_amount'),
-                    DB::raw('julianday(\''.$asOf.'\') - julianday(COALESCE(so.dispatch_date, so.order_date)) as age_days'),
+                    DB::raw("DATEDIFF('".$asOf."', COALESCE(so.dispatch_date, so.order_date)) as age_days"),
                     'so.payment_status',
                 ]);
 
@@ -288,19 +289,19 @@ class CustomerReportController extends Controller
 
         $salesSub = $this->baseQuery($params)
             ->select(
-                DB::raw("strftime('%Y-%m', so.order_date) as period"),
+                DB::raw("DATE_FORMAT(so.order_date, '%Y-%m') as period"),
                 DB::raw($amountExpr.' as sales_amount')
             )
-            ->groupBy(DB::raw("strftime('%Y-%m', so.order_date)"));
+            ->groupBy(DB::raw("DATE_FORMAT(so.order_date, '%Y-%m')"));
 
         $returnSub = DB::table('sales_returns as sr')
             ->leftJoin('customers as c', 'c.id', '=', 'sr.customer_id')
             ->whereNotIn('sr.status', ['cancelled', 'draft'])
             ->select(
-                DB::raw("strftime('%Y-%m', sr.return_date) as period"),
+                DB::raw("DATE_FORMAT(sr.return_date, '%Y-%m') as period"),
                 DB::raw('SUM(COALESCE(sr.total_amount,0)) as return_amount')
             )
-            ->groupBy(DB::raw("strftime('%Y-%m', sr.return_date)"));
+            ->groupBy(DB::raw("DATE_FORMAT(sr.return_date, '%Y-%m')"));
 
         if ($params['customer_ids']) {
             $returnSub->whereIn('sr.customer_id', $params['customer_ids']);
@@ -533,7 +534,7 @@ class CustomerReportController extends Controller
             'end_date' => 'nullable|string',
         ]);
 
-        if (! $validated['customer_id'] && ! $validated['customer_code']) {
+        if (! ($validated['customer_id'] ?? null) && ! ($validated['customer_code'] ?? null)) {
             return $this->error('缺少客户 ID 或客户编码', 422);
         }
 
@@ -568,7 +569,7 @@ class CustomerReportController extends Controller
             ->orderByDesc('so.order_date')
             ->orderByDesc('so.id');
 
-        if ($validated['start_date'] || $validated['end_date']) {
+        if (($validated['start_date'] ?? null) || ($validated['end_date'] ?? null)) {
             $orders->whereBetween('so.order_date', [
                 $validated['start_date'] ?: '1970-01-01',
                 $validated['end_date'] ?: '2999-12-31',
