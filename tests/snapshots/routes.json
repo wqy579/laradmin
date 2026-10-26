@@ -2301,6 +2301,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/general-expense",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/general-expense/statistics",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/history",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\BusinessHistoryController@index",
@@ -3033,6 +3057,54 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/other-income",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/other-income/statistics",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/other-incomes",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/other-incomes/statistics",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/pay",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@index",
@@ -3120,6 +3192,42 @@
         "uri": "admin/business/pay/{id}/approve",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\PayController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/payable",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\PayableController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/payment",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\PaymentController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/payment/statistics",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\PaymentController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3372,6 +3480,30 @@
         "uri": "admin/business/point-rule/{key}",
         "name": "admin.",
         "action": "Modules\\Member\\Http\\Controllers\\PointRuleController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/price-batch",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\PriceBatchController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/price-batch/batch",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\PriceBatchController@batch",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -4044,6 +4176,18 @@
         "uri": "admin/business/purchase-return/{id}/submit",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\PurchaseReturnController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/receivable",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\ReceivableController@index",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -5424,6 +5568,30 @@
         "uri": "admin/business/supplier",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\SupplierController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/supplier-payment",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierPaymentController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/supplier-payment/statistics",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\SupplierPaymentController@statistics",
         "middleware": [
             "api",
             "stock.snapshot",

@@ -394,6 +394,17 @@ const businessApi = {
 		statistics: { get: (params) => request.get('business/expense/statistics', { params }) },
 	},
 
+	// 付款单
+	payment: {
+		list: { get: (params) => request.get('business/payment', { params }) },
+		statistics: { get: (params) => request.get('business/payment/statistics', { params }) },
+	},
+	// 供应商付款
+	supplierPayment: {
+		list: { get: (params) => request.get('business/supplier-payment', { params }) },
+		statistics: { get: (params) => request.get('business/supplier-payment/statistics', { params }) },
+	},
+
 	// 考勤管理
 	attendance: {
 		list: { get: (params) => request.get('business/attendance', { params }) },
