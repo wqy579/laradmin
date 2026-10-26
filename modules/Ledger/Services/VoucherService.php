@@ -3,7 +3,6 @@
 namespace Modules\Ledger\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Builder;
 use Modules\Ledger\Models\Period;
 use Modules\Ledger\Models\Subject;
 use Modules\Ledger\Models\Voucher;
@@ -649,4 +648,3 @@ class VoucherService
         return $data;
     }
 }
-
