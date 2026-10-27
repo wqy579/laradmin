@@ -1,21 +1,10 @@
 <template>
 	<div class="perf-list">
-		<!-- 预警概览 -->
-		<div class="overview-cards" v-if="overview">
-			<div class="ov-card" :class="{ red: overview.safety_stock > 0 }">
-				<div class="ov-num">{{ overview.safety_stock }}</div><div class="ov-label">安全库存预警</div>
-			</div>
-			<div class="ov-card" :class="{ red: overview.expiry > 0 }">
-				<div class="ov-num">{{ overview.expiry }}</div><div class="ov-label">临期/超期</div>
-			</div>
-			<div class="ov-card" :class="{ red: overview.low_sellable > 0 }">
-				<div class="ov-num">{{ overview.low_sellable }}</div><div class="ov-label">可销天数低</div>
-			</div>
-			<div class="ov-card" :class="{ red: overview.exception > 0 }">
-				<div class="ov-num">{{ overview.exception }}</div><div class="ov-label">库存异常</div>
-			</div>
-			<div class="ov-card blue">
-				<div class="ov-num">{{ overview.turnover_days }}</div><div class="ov-label">库存周转(天)</div>
+		<!-- 预警概览（4 卡，同 A8 规范） -->
+		<div class="stat-cards" v-if="overview">
+			<div class="stat-card" v-for="c in cards" :key="c.key" :style="{ borderLeftColor: c.color }">
+				<div class="stat-num">{{ overview[c.key] }}</div>
+				<div class="stat-label">{{ c.label }}</div>
 			</div>
 		</div>
 
@@ -41,6 +30,11 @@
 					<el-table-column prop="daily_30" label="日均销量" width="90" align="right" />
 					<el-table-column prop="sellable_days" label="可销天数" width="100" align="right">
 						<template #default="{ row }">{{ row.sellable_days > 99999 ? '充足' : row.sellable_days }}</template>
+					</el-table-column>
+					<el-table-column label="操作" width="90" align="center" fixed="right">
+						<template #default="{ row }">
+							<span class="link" @click="onDrillPurchase(row)">采购申请</span>
+						</template>
 					</el-table-column>
 				</el-table>
 			</el-tab-pane>
@@ -144,6 +138,14 @@ const total = ref(0)
 const selection = ref([])
 const PAGE_SIZE = 30
 
+// 预警概览 4 卡（同 A8 规范：白底 96px、左侧 4px 色条、数字 24px 加粗、标签 13px #909399）
+const cards = [
+	{ key: 'safety_stock', label: '安全库存预警', color: '#F56C6C' },
+	{ key: 'expiry', label: '临期/超期', color: '#E6A23E' },
+	{ key: 'low_sellable', label: '可销天数低', color: '#E6A23E' },
+	{ key: 'exception', label: '库存异常', color: '#F56C6C' },
+]
+
 const pagedList = computed(() => {
 	const start = (page.value - 1) * PAGE_SIZE
 	return list.value.slice(start, start + PAGE_SIZE)
@@ -155,19 +157,18 @@ const expiryType = (s) => ({ normal: 'success', near_expiry: 'warning', expired:
 const expiryDaysColor = (d) => (d <= 0 ? '#F56C6C' : d <= 30 ? '#E6A23E' : '#67C23A')
 // 建议补货 = 安全库存×2 − 当前库存，min 0
 const suggestQty = (r) => Math.max(0, Number(r.safety_stock || 0) * 2 - Number(r.current_stock || 0))
+// 明细三级分级（执行文档 C5）：断档=0 → danger 红；告急<7 → warning 橙；安全≥7 → info 灰
 const sellableSeg = (r) => {
-	const days = Number(r.sellable_days)
 	const st = r.status
-	if (st === 'short' || (!st && days <= 7)) return { label: '缺货风险', type: 'danger' }
-	if (st === 'low' || (!st && days <= 15)) return { label: '及时补货', type: 'warning' }
-	if (st === 'slow' || (!st && days > 90)) return { label: '滞销', type: 'info' }
-	return { label: '正常', type: 'success' }
+	if (st === 'out') return { label: '断档', type: 'danger' }
+	if (st === 'urgent') return { label: '告急', type: 'warning' }
+	return { label: '安全', type: 'info' }
 }
 const sellableColor = (r) => {
-	const s = sellableSeg(r).label
-	return s === '缺货风险' ? '#F56C6C' : s === '及时补货' ? '#E6A23E' : s === '滞销' ? '#909399' : '#67C23A'
+	const t = sellableSeg(r).type
+	return t === 'danger' ? '#F56C6C' : t === 'warning' ? '#E6A23E' : '#909399'
 }
-const sellableText = (r) => (r.sellable_days > 99999 ? '充足' : `${r.sellable_days}天`)
+const sellableText = (r) => (r.sellable_days == null ? '充足' : (Number(r.sellable_days) > 99999 ? '充足' : `${r.sellable_days}天`))
 // 盘亏类问题橙色，其余（负库存等）红色
 const isLossIssue = (r) => {
 	const i = String(r.issue || '')
@@ -205,6 +206,15 @@ const refresh = async () => {
 
 const onPage = (p) => { page.value = p }
 const onSelectionChange = (rows) => { selection.value = rows }
+
+// 单行穿透采购申请（text 链）：带商品参数预填商品与建议补货量
+const onDrillPurchase = (row) => {
+	const q = new URLSearchParams()
+	if (row.product_id) q.set('product_id', row.product_id)
+	const qty = suggestQty(row)
+	if (qty > 0) q.set('qty', qty)
+	router.push(`/business/purchase-application?${q.toString()}`)
+}
 
 // 勾选多行 → 批量生成采购申请草稿
 const onPurchase = () => {
@@ -257,13 +267,12 @@ onMounted(() => { loadOverview(); refresh() })
 
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; overflow: auto; }
-.overview-cards { display: flex; gap: 16px; padding: 12px 20px; }
-.ov-card { flex: 1; background: #fff; height: 80px; border: 1px solid #ebeef5; border-radius: 4px; padding: 12px 20px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-.ov-card.red { border-left: 4px solid #f56c6c; }
-.ov-card.blue { border-left: 4px solid #409eff; }
-.ov-num { font-size: 24px; font-weight: bold; color: #303133; }
-.ov-label { font-size: 13px; color: #909399; margin-top: 4px; }
+.stat-cards { display: flex; gap: 16px; padding: 12px 20px; }
+.stat-card { flex: 1; background: #fff; height: 96px; border: 1px solid #DCDFE6; border-left: 4px solid #409EFF; border-radius: 4px; padding: 16px 20px; display: flex; flex-direction: column; justify-content: center; }
+.stat-num { font-size: 24px; font-weight: bold; color: #303133; }
+.stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
 .perf-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 12px 20px; }
 .pager-total { font-size: 14px; color: #606266; }
 .text-red { color: #F56C6C; font-weight: 600; }
+.link { color: #409EFF; cursor: pointer; }
 </style>
