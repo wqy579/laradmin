@@ -2,10 +2,10 @@
 
 namespace Tests\Ledger\Feature;
 
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Modules\Ledger\Models\Subject;
 use Tests\TestCase;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 
 class SubjectExportTest extends TestCase
 {
@@ -13,7 +13,7 @@ class SubjectExportTest extends TestCase
     {
         parent::setUp();
 
-        if (!Schema::hasTable('auth_permission')) {
+        if (! Schema::hasTable('auth_permission')) {
             Schema::create('auth_permission', function (Blueprint $table) {
                 $table->id();
                 $table->string('code')->unique();
@@ -24,7 +24,7 @@ class SubjectExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('auth_role_permission')) {
+        if (! Schema::hasTable('auth_role_permission')) {
             Schema::create('auth_role_permission', function (Blueprint $table) {
                 $table->unsignedBigInteger('role_id');
                 $table->unsignedBigInteger('permission_id');
@@ -33,7 +33,7 @@ class SubjectExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('auth_user')) {
+        if (! Schema::hasTable('auth_user')) {
             Schema::create('auth_user', function (Blueprint $table) {
                 $table->id();
                 $table->string('username')->unique();
@@ -45,7 +45,7 @@ class SubjectExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('auth_role')) {
+        if (! Schema::hasTable('auth_role')) {
             Schema::create('auth_role', function (Blueprint $table) {
                 $table->id();
                 $table->string('code')->unique();
@@ -57,7 +57,7 @@ class SubjectExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('auth_user_role')) {
+        if (! Schema::hasTable('auth_user_role')) {
             Schema::create('auth_user_role', function (Blueprint $table) {
                 $table->unsignedBigInteger('user_id');
                 $table->unsignedBigInteger('role_id');
@@ -66,7 +66,7 @@ class SubjectExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('ledger_subjects')) {
+        if (! Schema::hasTable('ledger_subjects')) {
             Schema::create('ledger_subjects', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('parent_id')->default(0);
@@ -91,12 +91,12 @@ class SubjectExportTest extends TestCase
 
         // Create 2 subjects with parent_id=0 to ensure they are at root of tree()
         Subject::create([
-            'parent_id' => 0, 'code' => '1001', 'name' => 'Cash', 'category' => 'asset', 
-            'balance_direction' => 'debit', 'level' => 1
+            'parent_id' => 0, 'code' => '1001', 'name' => 'Cash', 'category' => 'asset',
+            'balance_direction' => 'debit', 'level' => 1,
         ]);
         Subject::create([
-            'parent_id' => 0, 'code' => '2001', 'name' => 'Liability', 'category' => 'liability', 
-            'balance_direction' => 'credit', 'level' => 1
+            'parent_id' => 0, 'code' => '2001', 'name' => 'Liability', 'category' => 'liability',
+            'balance_direction' => 'credit', 'level' => 1,
         ]);
 
         $this->actingAsAdmin();
@@ -110,6 +110,6 @@ class SubjectExportTest extends TestCase
 
         // Expected: Header + 1 matching row = 2 lines.
         // If it ignores filters, it will be Header + 2 rows = 3 lines.
-        $this->assertEquals(2, count($lines), 'Export should filter by name. Got ' . count($lines) . ' lines.');
+        $this->assertEquals(2, count($lines), 'Export should filter by name. Got '.count($lines).' lines.');
     }
 }

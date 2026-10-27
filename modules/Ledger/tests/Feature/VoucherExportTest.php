@@ -2,12 +2,12 @@
 
 namespace Tests\Ledger\Feature;
 
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Modules\Ledger\Models\Subject;
 use Modules\Ledger\Models\Voucher;
 use Modules\Ledger\Models\VoucherEntry;
 use Tests\TestCase;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 
 class VoucherExportTest extends TestCase
 {
@@ -15,7 +15,7 @@ class VoucherExportTest extends TestCase
     {
         parent::setUp();
 
-        if (!Schema::hasTable('auth_permission')) {
+        if (! Schema::hasTable('auth_permission')) {
             Schema::create('auth_permission', function (Blueprint $table) {
                 $table->id();
                 $table->string('code')->unique();
@@ -26,7 +26,7 @@ class VoucherExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('auth_role_permission')) {
+        if (! Schema::hasTable('auth_role_permission')) {
             Schema::create('auth_role_permission', function (Blueprint $table) {
                 $table->unsignedBigInteger('role_id');
                 $table->unsignedBigInteger('permission_id');
@@ -35,7 +35,7 @@ class VoucherExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('auth_user')) {
+        if (! Schema::hasTable('auth_user')) {
             Schema::create('auth_user', function (Blueprint $table) {
                 $table->id();
                 $table->string('username')->unique();
@@ -47,7 +47,7 @@ class VoucherExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('auth_role')) {
+        if (! Schema::hasTable('auth_role')) {
             Schema::create('auth_role', function (Blueprint $table) {
                 $table->id();
                 $table->string('code')->unique();
@@ -59,7 +59,7 @@ class VoucherExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('auth_user_role')) {
+        if (! Schema::hasTable('auth_user_role')) {
             Schema::create('auth_user_role', function (Blueprint $table) {
                 $table->unsignedBigInteger('user_id');
                 $table->unsignedBigInteger('role_id');
@@ -68,7 +68,7 @@ class VoucherExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('ledger_subjects')) {
+        if (! Schema::hasTable('ledger_subjects')) {
             Schema::create('ledger_subjects', function (Blueprint $table) {
                 $table->id();
                 $table->string('code');
@@ -80,7 +80,7 @@ class VoucherExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('ledger_vouchers')) {
+        if (! Schema::hasTable('ledger_vouchers')) {
             Schema::create('ledger_vouchers', function (Blueprint $table) {
                 $table->id();
                 $table->string('voucher_no');
@@ -95,7 +95,7 @@ class VoucherExportTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('ledger_voucher_entries')) {
+        if (! Schema::hasTable('ledger_voucher_entries')) {
             Schema::create('ledger_voucher_entries', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('voucher_id');
@@ -107,7 +107,7 @@ class VoucherExportTest extends TestCase
         }
 
         $this->cash = Subject::updateOrCreate(['code' => '1001'], [
-            'name' => '库存现金', 'category' => 'asset', 'balance_direction' => 'debit'
+            'name' => '库存现金', 'category' => 'asset', 'balance_direction' => 'debit',
         ]);
     }
 
@@ -123,8 +123,9 @@ class VoucherExportTest extends TestCase
         ];
         $v = Voucher::create(array_merge($defaults, $overrides));
         VoucherEntry::create([
-            'voucher_id' => $v->id, 'subject_id' => $this->cash->id, 'debit_amount' => 100, 'credit_amount' => 0
+            'voucher_id' => $v->id, 'subject_id' => $this->cash->id, 'debit_amount' => 100, 'credit_amount' => 0,
         ]);
+
         return $v;
     }
 
@@ -148,6 +149,6 @@ class VoucherExportTest extends TestCase
         $content = $response->getContent();
 
         $lines = explode("\n", trim($content));
-        $this->assertEquals(2, count($lines), 'Export should filter by amount but currently ignores it. Got ' . count($lines) . ' lines.');
+        $this->assertEquals(2, count($lines), 'Export should filter by amount but currently ignores it. Got '.count($lines).' lines.');
     }
 }

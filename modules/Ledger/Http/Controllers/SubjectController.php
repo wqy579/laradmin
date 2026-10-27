@@ -194,6 +194,7 @@ class SubjectController extends Controller
                     $item['children'] = $build($node->id);
                     $tree[] = $item;
                 }
+
                 return $tree;
             };
             $tree = $build(0);

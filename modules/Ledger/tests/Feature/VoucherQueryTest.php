@@ -2,13 +2,13 @@
 
 namespace Tests\Ledger\Feature;
 
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Modules\Ledger\Models\Subject;
 use Modules\Ledger\Models\Voucher;
 use Modules\Ledger\Models\VoucherEntry;
 use Modules\Ledger\Services\VoucherService;
 use Tests\TestCase;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 
 class VoucherQueryTest extends TestCase
 {
@@ -16,7 +16,7 @@ class VoucherQueryTest extends TestCase
     {
         parent::setUp();
 
-        if (!Schema::hasTable('ledger_subjects')) {
+        if (! Schema::hasTable('ledger_subjects')) {
             Schema::create('ledger_subjects', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('parent_id')->nullable();
@@ -34,7 +34,7 @@ class VoucherQueryTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('ledger_vouchers')) {
+        if (! Schema::hasTable('ledger_vouchers')) {
             Schema::create('ledger_vouchers', function (Blueprint $table) {
                 $table->id();
                 $table->string('voucher_no');
@@ -57,7 +57,7 @@ class VoucherQueryTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('ledger_voucher_entries')) {
+        if (! Schema::hasTable('ledger_voucher_entries')) {
             Schema::create('ledger_voucher_entries', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('voucher_id');
@@ -79,19 +79,19 @@ class VoucherQueryTest extends TestCase
 
         $this->cash = Subject::updateOrCreate(['code' => '1001'], [
             'name' => '库存现金', 'category' => 'asset',
-            'balance_direction' => 'debit', 'is_leaf' => true, 'level' => 4, 'status' => 'enabled'
+            'balance_direction' => 'debit', 'is_leaf' => true, 'level' => 4, 'status' => 'enabled',
         ]);
         $this->bank = Subject::updateOrCreate(['code' => '1002'], [
             'name' => '银行存款', 'category' => 'asset',
-            'balance_direction' => 'debit', 'is_leaf' => true, 'level' => 4, 'status' => 'enabled'
+            'balance_direction' => 'debit', 'is_leaf' => true, 'level' => 4, 'status' => 'enabled',
         ]);
         $this->revenue = Subject::updateOrCreate(['code' => '6001'], [
             'name' => '主营业务收入', 'category' => 'profit_loss',
-            'balance_direction' => 'credit', 'is_leaf' => true, 'level' => 4, 'status' => 'enabled'
+            'balance_direction' => 'credit', 'is_leaf' => true, 'level' => 4, 'status' => 'enabled',
         ]);
         $this->expense = Subject::updateOrCreate(['code' => '6601'], [
             'name' => '销售费用', 'category' => 'profit_loss',
-            'balance_direction' => 'debit', 'is_leaf' => true, 'level' => 4, 'status' => 'enabled'
+            'balance_direction' => 'debit', 'is_leaf' => true, 'level' => 4, 'status' => 'enabled',
         ]);
     }
 
@@ -108,18 +108,19 @@ class VoucherQueryTest extends TestCase
         ];
         $v = Voucher::create(array_merge($defaults, $overrides));
 
-        if (!isset($overrides['entries'])) {
+        if (! isset($overrides['entries'])) {
             VoucherEntry::create([
                 'voucher_id' => $v->id, 'line_no' => 1, 'subject_id' => $this->cash->id,
                 'subject_code' => '1001', 'subject_name' => '库存现金',
-                'debit_amount' => 100, 'credit_amount' => 0, 'summary' => 'Test Debit'
+                'debit_amount' => 100, 'credit_amount' => 0, 'summary' => 'Test Debit',
             ]);
             VoucherEntry::create([
                 'voucher_id' => $v->id, 'line_no' => 2, 'subject_id' => $this->revenue->id,
                 'subject_code' => '6001', 'subject_name' => '主营业务收入',
-                'debit_amount' => 0, 'credit_amount' => 100, 'summary' => 'Test Credit'
+                'debit_amount' => 0, 'credit_amount' => 100, 'summary' => 'Test Credit',
             ]);
         }
+
         return $v;
     }
 
@@ -135,11 +136,11 @@ class VoucherQueryTest extends TestCase
         VoucherEntry::where('voucher_id', $v2->id)->delete();
         VoucherEntry::create([
             'voucher_id' => $v2->id, 'line_no' => 1, 'subject_id' => $this->bank->id,
-            'subject_code' => '1002', 'subject_name' => '银行存款', 'debit_amount' => 100, 'credit_amount' => 0
+            'subject_code' => '1002', 'subject_name' => '银行存款', 'debit_amount' => 100, 'credit_amount' => 0,
         ]);
         VoucherEntry::create([
             'voucher_id' => $v2->id, 'line_no' => 2, 'subject_id' => $this->revenue->id,
-            'subject_code' => '6001', 'subject_name' => '主营业务收入', 'debit_amount' => 0, 'credit_amount' => 100
+            'subject_code' => '6001', 'subject_name' => '主营业务收入', 'debit_amount' => 0, 'credit_amount' => 100,
         ]);
 
         $svc = app(VoucherService::class);
@@ -148,7 +149,7 @@ class VoucherQueryTest extends TestCase
         $res = $svc->list([
             'start_date' => '2026-01-01',
             'end_date' => '2026-01-10',
-            'subject_id' => $this->bank->id
+            'subject_id' => $this->bank->id,
         ], 1, 20);
         $this->assertEquals(0, $res['total']);
 
@@ -156,7 +157,7 @@ class VoucherQueryTest extends TestCase
         $res2 = $svc->list([
             'start_date' => '2026-01-01',
             'end_date' => '2026-01-20',
-            'subject_id' => $this->bank->id
+            'subject_id' => $this->bank->id,
         ], 1, 20);
         $this->assertEquals(1, $res2['total']);
     }
@@ -175,7 +176,7 @@ class VoucherQueryTest extends TestCase
 
         $res = $svc->list([
             'subject_id' => $this->cash->id,
-            'min_amount' => 500
+            'min_amount' => 500,
         ], 1, 20);
         $this->assertEquals(1, $res['total']);
     }
@@ -189,19 +190,19 @@ class VoucherQueryTest extends TestCase
         $this->createVoucher([
             'voucher_date' => '2026-01-01',
             'total_debit' => 100, 'total_credit' => 100,
-            'status' => 'audited'
+            'status' => 'audited',
         ]);
         // V2: 2026-01-01, Cash, 1000, Draft
         $this->createVoucher([
             'voucher_date' => '2026-01-01',
             'total_debit' => 1000, 'total_credit' => 1000,
-            'status' => 'draft'
+            'status' => 'draft',
         ]);
         // V3: 2026-02-01, Cash, 1000, Audited
         $this->createVoucher([
             'voucher_date' => '2026-02-01',
             'total_debit' => 1000, 'total_credit' => 1000,
-            'status' => 'audited'
+            'status' => 'audited',
         ]);
 
         $svc = app(VoucherService::class);
@@ -211,7 +212,7 @@ class VoucherQueryTest extends TestCase
             'end_date' => '2026-01-31',
             'subject_id' => $this->cash->id,
             'min_amount' => 500,
-            'status' => 'audited'
+            'status' => 'audited',
         ], 1, 20);
 
         $this->assertEquals(0, $res['total'], 'V1 is too small, V2 is draft, V3 is wrong date');
@@ -235,7 +236,7 @@ class VoucherQueryTest extends TestCase
 
         $res = $svc->list([
             'direction' => 'credit',
-            'min_amount' => 500
+            'min_amount' => 500,
         ], 1, 20);
         $this->assertEquals(1, $res['total']);
     }
