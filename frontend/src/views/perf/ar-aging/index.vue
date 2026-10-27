@@ -1,10 +1,14 @@
 <template>
 	<div class="perf-list">
 		<div class="perf-filter">
+			<el-radio-group v-model="dimension" size="small" @change="onDimension">
+				<el-radio-button label="customer">按客户</el-radio-button>
+				<el-radio-button label="salesman">按业务员</el-radio-button>
+			</el-radio-group>
 			<span class="label">客户</span>
-			<el-input v-model="search.customer_name" placeholder="客户名称" clearable size="small" style="width: 160px" @keyup.enter="refresh" @clear="refresh" />
+			<el-input v-model="search.customer_name" placeholder="客户名称" clearable size="small" style="width: 150px" @keyup.enter="refresh" @clear="refresh" />
 			<span class="label">业务员</span>
-			<el-input v-model="search.salesman_name" placeholder="业务员" clearable size="small" style="width: 140px" @keyup.enter="refresh" @clear="refresh" />
+			<el-input v-model="search.salesman_name" placeholder="业务员" clearable size="small" style="width: 130px" @keyup.enter="refresh" @clear="refresh" />
 			<span class="label">截止日期</span>
 			<el-date-picker v-model="search.as_of_date" type="date" value-format="YYYY-MM-DD" size="small" style="width: 150px" @change="refresh" />
 			<el-button type="primary" size="small" @click="refresh">查询</el-button>
@@ -21,16 +25,17 @@
 		</div>
 
 		<div class="perf-content">
-			<el-table :data="pagedList" border stripe height="100%" v-loading="loading" @expand-change="(row) => loadDetails(row)">
+			<el-table :data="pagedList" border stripe height="100%" v-loading="loading" show-summary :summary-method="summaryMethod" @expand-change="(row) => loadDetails(row)">
 				<el-table-column type="expand">
 					<template #default="{ row }">
 						<div class="detail-box" v-loading="row._loading">
-							<el-table v-if="detailMap[row.customer_id]?.length" :data="detailMap[row.customer_id]" border size="small">
-								<el-table-column prop="order_no" label="单据号" min-width="160">
+							<el-table v-if="detailMap[row[dimKey]]?.length" :data="detailMap[row[dimKey]]" border size="small">
+								<el-table-column prop="order_no" label="单据号" min-width="150">
 									<template #default="{ row: o }">
 										<span class="link" @click="goOrder(o)">{{ o.order_no }}</span>
 									</template>
 								</el-table-column>
+								<el-table-column v-if="dimension === 'salesman'" prop="customer_name" label="客户" min-width="150" />
 								<el-table-column prop="order_date" label="日期" width="120" align="center" />
 								<el-table-column prop="total_amount" label="金额" width="130" align="right">
 									<template #default="{ row: o }"><span :class="negClass(o.total_amount)">¥{{ fmt(o.total_amount) }}</span></template>
@@ -50,41 +55,81 @@
 						</div>
 					</template>
 				</el-table-column>
-				<el-table-column prop="customer_code" label="客户编号" width="120" />
-				<el-table-column prop="customer_name" label="客户名称" min-width="200" />
-				<el-table-column prop="salesman_name" label="业务员" width="110" />
-				<el-table-column prop="outstanding" label="应收余额" width="130" align="right">
-					<template #default="{ row }"><span :class="negClass(row.outstanding)">¥{{ fmt(row.outstanding) }}</span></template>
-				</el-table-column>
-				<el-table-column label="额度占用%" width="140" align="right">
-					<template #default="{ row }">{{ Number(row.credit_usage_rate || 0).toFixed(1) }}%</template>
-				</el-table-column>
-				<el-table-column prop="unmatured" label="未到期" width="120" align="right">
-					<template #default="{ row }"><span :class="negClass(row.unmatured)">¥{{ fmt(row.unmatured) }}</span></template>
-				</el-table-column>
-				<el-table-column prop="b1_30" label="1~30天" width="120" align="right">
-					<template #default="{ row }"><span :style="{ color: agingColor(30) }">¥{{ fmt(row.b1_30) }}</span></template>
-				</el-table-column>
-				<el-table-column prop="b31_60" label="31~60天" width="120" align="right">
-					<template #default="{ row }"><span :style="{ color: agingColor(60) }">¥{{ fmt(row.b31_60) }}</span></template>
-				</el-table-column>
-				<el-table-column prop="b61_90" label="61~90天" width="120" align="right">
-					<template #default="{ row }"><span :style="{ color: agingColor(90) }">¥{{ fmt(row.b61_90) }}</span></template>
-				</el-table-column>
-				<el-table-column prop="b91_180" label="91~180天" width="130" align="right">
-					<template #default="{ row }"><span :style="{ color: agingColor(180), fontWeight: 'bold' }">¥{{ fmt(row.b91_180) }}</span></template>
-				</el-table-column>
-				<el-table-column prop="b180_plus" label="180天以上" width="130" align="right">
-					<template #default="{ row }"><span :style="{ color: agingColor(999), fontWeight: 'bold' }">¥{{ fmt(row.b180_plus) }}</span></template>
-				</el-table-column>
-				<el-table-column prop="max_age" label="最长逾期" width="100" align="center">
-					<template #default="{ row }"><span class="text-red">{{ row.max_age }}天</span></template>
-				</el-table-column>
-				<el-table-column label="状态" width="90" align="center">
-					<template #default="{ row }">
-						<el-tag :type="riskType(row.status)" size="small">{{ riskLabel(row.status) }}</el-tag>
-					</template>
-				</el-table-column>
+
+				<!-- 客户维度 -->
+				<template v-if="dimension === 'customer'">
+					<el-table-column prop="customer_code" label="客户编号" width="120" />
+					<el-table-column prop="customer_name" label="客户名称" min-width="190" />
+					<el-table-column prop="salesman_name" label="业务员" width="110" />
+					<el-table-column prop="outstanding" label="应收余额" width="130" align="right">
+						<template #default="{ row }"><span :class="negClass(row.outstanding)">¥{{ fmt(row.outstanding) }}</span></template>
+					</el-table-column>
+					<el-table-column label="额度占用%" width="130" align="right">
+						<template #default="{ row }">{{ Number(row.credit_usage_rate || 0).toFixed(1) }}%</template>
+					</el-table-column>
+					<el-table-column prop="unmatured" label="未到期" width="120" align="right">
+						<template #default="{ row }"><span :class="negClass(row.unmatured)">¥{{ fmt(row.unmatured) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b1_30" label="1~30天" width="120" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(30) }">¥{{ fmt(row.b1_30) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b31_60" label="31~60天" width="120" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(60) }">¥{{ fmt(row.b31_60) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b61_90" label="61~90天" width="120" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(90) }">¥{{ fmt(row.b61_90) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b91_180" label="91~180天" width="130" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(180), fontWeight: 'bold' }">¥{{ fmt(row.b91_180) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b180_plus" label="180天以上" width="130" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(999), fontWeight: 'bold' }">¥{{ fmt(row.b180_plus) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="max_age" label="最长逾期" width="100" align="center">
+						<template #default="{ row }"><span class="text-red">{{ row.max_age }}天</span></template>
+					</el-table-column>
+					<el-table-column label="状态" width="90" align="center">
+						<template #default="{ row }">
+							<el-tag :type="riskType(row.status)" size="small">{{ riskLabel(row.status) }}</el-tag>
+						</template>
+					</el-table-column>
+				</template>
+
+				<!-- 业务员维度 -->
+				<template v-else>
+					<el-table-column prop="salesman_name" label="业务员" min-width="170" />
+					<el-table-column prop="customer_count" label="客户数" width="90" align="center" />
+					<el-table-column prop="outstanding" label="应收余额" width="130" align="right">
+						<template #default="{ row }"><span :class="negClass(row.outstanding)">¥{{ fmt(row.outstanding) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="unmatured" label="未到期" width="120" align="right">
+						<template #default="{ row }"><span :class="negClass(row.unmatured)">¥{{ fmt(row.unmatured) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b1_30" label="1~30天" width="120" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(30) }">¥{{ fmt(row.b1_30) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b31_60" label="31~60天" width="120" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(60) }">¥{{ fmt(row.b31_60) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b61_90" label="61~90天" width="120" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(90) }">¥{{ fmt(row.b61_90) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b91_180" label="91~180天" width="130" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(180), fontWeight: 'bold' }">¥{{ fmt(row.b91_180) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="b180_plus" label="180天以上" width="130" align="right">
+						<template #default="{ row }"><span :style="{ color: agingColor(999), fontWeight: 'bold' }">¥{{ fmt(row.b180_plus) }}</span></template>
+					</el-table-column>
+					<el-table-column prop="max_age" label="最长逾期" width="100" align="center">
+						<template #default="{ row }"><span class="text-red">{{ row.max_age }}天</span></template>
+					</el-table-column>
+					<el-table-column label="状态" width="90" align="center">
+						<template #default="{ row }">
+							<el-tag :type="riskType(row.status)" size="small">{{ riskLabel(row.status) }}</el-tag>
+						</template>
+					</el-table-column>
+				</template>
+
 				<template #empty>
 					<span class="empty-text">当前筛选条件下暂无数据</span>
 				</template>
@@ -118,20 +163,28 @@ const riskLabel = (s) => ({ normal: '正常', warning: '预警', high_risk: '高
 const riskType = (s) => ({ normal: 'success', warning: 'warning', high_risk: 'danger' }[s] || 'info')
 
 const router = useRouter()
+const dimension = ref('customer')
 const search = reactive({ customer_name: '', salesman_name: '', as_of_date: new Date().toISOString().slice(0, 10) })
 const result = ref(null)
 const loading = ref(false)
 const exporting = ref(false)
 const page = ref(1)
 const pageSize = 30
-const detailMap = reactive({}) // customer_id -> 下钻明细（优先 details 接口）
+const detailMap = reactive({}) // 维度 id -> 下钻明细（优先 details 接口）
 
-const buildParams = () => ({ ...search })
+// 展开列按下钻维度取 id 键（客户维度 customer_id，业务员维度 salesman_id）
+const dimKey = computed(() => (dimension.value === 'salesman' ? 'salesman_id' : 'customer_id'))
+
+const buildParams = () => ({ ...search, dimension: dimension.value })
 
 // 前端筛选 + 分页（后端一次返回全量 list）
 const filteredList = computed(() => {
 	if (!result.value?.list) return []
 	return result.value.list.filter((r) => {
+		if (dimension.value === 'salesman') {
+			if (search.salesman_name && !(r.salesman_name || '').includes(search.salesman_name)) return false
+			return true
+		}
 		if (search.customer_name && !(r.customer_name || '').includes(search.customer_name)) return false
 		if (search.salesman_name && !(r.salesman_name || '').includes(search.salesman_name)) return false
 		return true
@@ -156,6 +209,12 @@ const refresh = async () => {
 	}
 }
 
+const onDimension = () => {
+	page.value = 1
+	for (const k of Object.keys(detailMap)) delete detailMap[k]
+	refresh()
+}
+
 const resetSearch = () => {
 	search.customer_name = ''
 	search.salesman_name = ''
@@ -165,20 +224,20 @@ const resetSearch = () => {
 
 // 行下钻：优先 details 接口，回退 row.orders
 const loadDetails = async (row) => {
-	const cid = row.customer_id
-	if (detailMap[cid]) return
+	const key = row[dimKey.value]
+	if (!key || detailMap[key]) return
 	row._loading = true
 	try {
-		const res = await perfApi.ar.details(cid, { as_of_date: search.as_of_date })
+		const res = await perfApi.ar.details(key, { dimension: dimension.value, as_of_date: search.as_of_date })
 		if (res.code === 200 && res.data?.list) {
-			detailMap[cid] = res.data.list
+			detailMap[key] = res.data.list
 		} else if (row.orders?.length) {
-			detailMap[cid] = row.orders
+			detailMap[key] = row.orders
 		} else {
-			detailMap[cid] = []
+			detailMap[key] = []
 		}
 	} catch (e) {
-		detailMap[cid] = row.orders || []
+		detailMap[key] = row.orders || []
 	} finally {
 		row._loading = false
 	}
@@ -190,6 +249,17 @@ const goOrder = (o) => {
 	} else {
 		router.push({ path: '/business/sales-order', query: { order_no: o.order_no } })
 	}
+}
+
+// 合计行：用后端全量 totals（按维度合计），非当前页小计
+const summaryMethod = ({ columns }) => {
+	const t = result.value?.totals || {}
+	const moneyKeys = { outstanding: 1, unmatured: 1, b1_30: 1, b31_60: 1, b61_90: 1, b91_180: 1, b180_plus: 1 }
+	return columns.map((col, i) => {
+		if (i === 0) return '合计'
+		if (col.property && moneyKeys[col.property]) return '¥' + fmt(t[col.property])
+		return ''
+	})
 }
 
 const exportData = async () => {
