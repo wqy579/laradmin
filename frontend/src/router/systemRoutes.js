@@ -513,6 +513,12 @@ const systemRoutes = [
 		component: () => import('../views/perf/return-summary/index.vue'),
 		meta: { title: '退货汇总单' },
 	},
+	{
+		path: '/order/order-check',
+		name: 'OrderCheck',
+		component: () => import('../views/order/order-check/index.vue'),
+		meta: { title: '客户订货核对' },
+	},
 ]
 
 systemRoutes.push(...moduleRoutes)

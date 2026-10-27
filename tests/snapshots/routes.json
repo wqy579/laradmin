@@ -3165,6 +3165,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/order-check",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderCheckController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/order-check/{orderId}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderCheckController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/other-income",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@index",

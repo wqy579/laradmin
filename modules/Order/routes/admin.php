@@ -6,6 +6,7 @@ use Modules\Order\Http\Controllers\BusinessHistoryController;
 use Modules\Order\Http\Controllers\CashFlowController;
 use Modules\Order\Http\Controllers\CustomerController;
 use Modules\Order\Http\Controllers\DeliveryController;
+use Modules\Order\Http\Controllers\OrderCheckController;
 use Modules\Order\Http\Controllers\PayController;
 use Modules\Order\Http\Controllers\ProductBomController;
 use Modules\Order\Http\Controllers\ProfitController;
@@ -263,4 +264,9 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::get('business/profit', [ProfitController::class, 'index']);
     // 往来对账
     Route::get('business/statement', [ReceiveController::class, 'statement']);
+    // 订货闭环 T5.1 客户订货核对（订货中心）
+    Route::prefix('business/order-check')->group(function () {
+        Route::get('/', [OrderCheckController::class, 'index']);
+        Route::get('/{orderId}', [OrderCheckController::class, 'show']);
+    });
 });
