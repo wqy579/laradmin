@@ -28,6 +28,11 @@ const defaultConfig = {
 
 	// 语言
 	LANG: 'zh-cn',
+
+	// 过渡期「演示数据」水印开关（BUG-04）
+	// 未接真实后端前 = true，finance 各页挂「演示数据」水印 + 顶部提示条；
+	// 接真实后端后置 false，水印与提示条自动消失。
+	FINANCE_DEMO_WATERMARK: true,
 }
 
 // 合并 public/config.js 中的覆盖配置

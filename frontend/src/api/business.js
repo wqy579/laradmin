@@ -394,6 +394,17 @@ const businessApi = {
 		statistics: { get: (params) => request.get('business/expense/statistics', { params }) },
 	},
 
+	// 付款单
+	payment: {
+		list: { get: (params) => request.get('business/payment', { params }) },
+		statistics: { get: (params) => request.get('business/payment/statistics', { params }) },
+	},
+	// 供应商付款
+	supplierPayment: {
+		list: { get: (params) => request.get('business/supplier-payment', { params }) },
+		statistics: { get: (params) => request.get('business/supplier-payment/statistics', { params }) },
+	},
+
 	// 考勤管理
 	attendance: {
 		list: { get: (params) => request.get('business/attendance', { params }) },
@@ -741,6 +752,28 @@ const businessApi = {
 		publish: { post: (id) => request.post(`business/notice/${id}/publish`) },
 	},
 
+	// ============ 财务管理（B1） ============
+	// finance/voucher 为查询视图：凭证录入/审核统一走 ledger 视角（BUG-10）
+	finance: {
+		// 日记账：现金/银行科目流水（收入红/支出绿/余额逐行重排）
+		journal: { get: (params) => request.get('business/finance-journal', { params }) },
+		// 凭证查询视图：分组展示（含红冲分组）
+		voucher: { get: (params) => request.get('business/finance-voucher', { params }) },
+		// 月结向导 + 月结查询（B2）：复用 ledger PeriodService
+		monthClose: {
+			periods: { get: (params) => request.get('business/finance-month-close', { params }) },
+			check: { get: (period) => request.get(`business/finance-month-close/check/${period}`) },
+			close: { post: (period) => request.post(`business/finance-month-close/close/${period}`) },
+			reopen: { post: (period) => request.post(`business/finance-month-close/reopen/${period}`) },
+		},
+		// 对账单（B3）：客户应收 / 供应商应付
+		statement: { get: (params) => request.get('business/finance-statement', { params }) },
+		// 余额查询（B3）：客户 / 品牌 / 辅助单位
+		balance: { get: (params) => request.get('business/finance-balance', { params }) },
+		// 科目变化明细（B3）：逐科目流水 + 滚动余额
+		subjectChange: { get: (params) => request.get('business/finance-subject-change', { params }) },
+	},
+
 	// 内部邮件（Office 模块）
 	mail: {
 		list: { get: (params) => request.get('business/mail', { params }) },
@@ -771,9 +804,24 @@ const businessApi = {
 			delete: { delete: (id) => request.delete(`business/report/templates/${id}`) },
 		},
 
+		// 列配置持久化：每用户每报表一份列显隐/排序偏好（E1 基座）
+		columns: {
+			get: { get: (params) => request.get('business/report/columns', { params }) },
+			save: { post: (params) => request.post('business/report/columns', params) },
+		},
+
 		sales: {
 			get: (params) => request.get('business/report/sales', { params }),
 			export: { get: (params) => request.get('business/report/sales/export', { params, responseType: 'blob' }) },
+			// 穿透：双击行 → 源单明细抽屉（传 order_no 或 order_id）
+			drill: { get: (params) => request.get('business/report/sales/drill', { params }) },
+},
+
+		customer: {
+			get: (params) => request.get('business/report/customer', { params }),
+			export: { get: (params) => request.get('business/report/customer/export', { params, responseType: 'blob' }) },
+			// 穿透：客户维度双击 → 该客户订单列表抽屉（传 customer_id 或 customer_code）
+			drill: { get: (params) => request.get('business/report/customer/drill', { params }) },
 		},
 
 		stock: {
@@ -789,6 +837,18 @@ const businessApi = {
 		combined: {
 			get: (params) => request.get('business/report/combined', { params }),
 			export: { get: (params) => request.get('business/report/combined/export', { params, responseType: 'blob' }) },
+		},
+
+		// 销售分析族报表（E3，7 个维度：业务员/商品/排行/特价/促销/品项销售/品项铺市）
+		salesAnalysis: {
+			get: (params) => request.get('business/report/sales-analysis', { params }),
+			export: { get: (params) => request.get('business/report/sales-analysis/export', { params, responseType: 'blob' }) },
+		},
+
+		// 排行+价格类报表（E4，4 个维度：销售排行总表/商品价格/客户特价价格/促销价格）
+		priceRank: {
+			get: (params) => request.get('business/report/price-rank', { params }),
+			export: { get: (params) => request.get('business/report/price-rank/export', { params, responseType: 'blob' }) },
 		},
 	},
 }

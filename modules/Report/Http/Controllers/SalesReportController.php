@@ -79,15 +79,9 @@ class SalesReportController extends Controller
         $columns = $this->columns($dimension, $params);
         $rows = $this->aggregate($params, $dimension)->limit(50000)->get();
 
-        $headers = array_column($columns, 'label');
-        $body = [];
-        foreach ($rows as $row) {
-            $body[] = array_map(fn ($c) => $row->{$c['prop']} ?? '', $columns);
-        }
-
-        return ReportFilter::csvResponse(
-            ReportFilter::csv('销售报表 - '.(self::DIMENSIONS[$dimension] ?? ''), $headers, $body),
-            'sales_report_'.$dimension.'.csv'
+        return ReportFilter::excelResponse(
+            ReportFilter::excel('销售报表 - '.(self::DIMENSIONS[$dimension] ?? ''), $columns, $rows),
+            'sales_report_'.$dimension.'.xls'
         );
     }
 
@@ -542,6 +536,72 @@ class SalesReportController extends Controller
         }
 
         return [];
+    }
+
+    /**
+     * 穿透：双击行 → 源单抽屉（E1 基座）。
+     *
+     * 传订单号或订单 id，返回源单表头 + 商品明细，供 360px 抽屉渲染。
+     * 纯读，不写任何业务表；只读核对「报表里看到的金额 = 源单上的金额」。
+     */
+    public function drill(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'order_no' => 'nullable|string|max:50',
+            'order_id' => 'nullable|integer',
+        ]);
+
+        if (! $validated['order_no'] && ! $validated['order_id']) {
+            return $this->error('缺少订单号或订单 ID', 422);
+        }
+
+        $query = DB::table('sales_orders as so')
+            ->leftJoin('customers as c', 'c.id', '=', 'so.customer_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'so.warehouse_id')
+            ->leftJoin('auth_user as sm', 'sm.id', '=', 'so.salesman_id')
+            ->select(
+                'so.id as order_id', 'so.order_no', 'so.order_date', 'so.dispatch_date',
+                'so.order_type', 'so.status', 'so.payment_status', 'so.total_amount',
+                'so.paid_amount', 'so.remark',
+                'c.code as customer_code', 'c.name as customer_name',
+                'w.name as warehouse_name', 'sm.real_name as salesman_name'
+            );
+
+        if ($validated['order_id']) {
+            $query->where('so.id', $validated['order_id']);
+        } else {
+            $query->where('so.order_no', $validated['order_no']);
+        }
+
+        $header = $query->first();
+        if (! $header) {
+            return $this->error('源单不存在', 404);
+        }
+
+        $items = DB::table('sales_order_items as soi')
+            ->leftJoin('products as p', 'p.id', '=', 'soi.product_id')
+            ->where('soi.sales_order_id', $header->order_id)
+            ->select(
+                'p.code as product_code', 'p.name as product_name', 'p.spec', 'p.unit',
+                'soi.quantity', 'soi.actual_qty', 'soi.price', 'soi.amount', 'soi.discount_rate'
+            )
+            ->orderByDesc('soi.amount')
+            ->get();
+
+        return $this->success([
+            'header' => $header,
+            'items' => $items,
+            'columns' => [
+                ['prop' => 'product_code', 'label' => '商品编码', 'width' => 110, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'product_name', 'label' => '商品名称', 'width' => 180, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'spec', 'label' => '规格', 'width' => 80, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'unit', 'label' => '单位', 'width' => 60, 'align' => 'center', 'type' => 'text'],
+                ['prop' => 'quantity', 'label' => '数量', 'width' => 80, 'align' => 'right', 'type' => 'number'],
+                ['prop' => 'price', 'label' => '单价', 'width' => 90, 'align' => 'right', 'type' => 'money'],
+                ['prop' => 'amount', 'label' => '金额', 'width' => 110, 'align' => 'right', 'type' => 'money'],
+                ['prop' => 'discount_rate', 'label' => '折扣', 'width' => 70, 'align' => 'right', 'type' => 'percent'],
+            ],
+        ]);
     }
 
     /** 帮助视频 tab：没有视频源时给出可落地的说明，不留白页 */

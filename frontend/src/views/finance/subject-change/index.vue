@@ -81,7 +81,7 @@
 		</div>
 
 		<div class="perf-pager">
-			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="(p) => (page = p)" />
+			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="onPageChange" />
 		</div>
 
 		<!-- 业务单据穿透：只读（单据头 + 该单据科目变动），mock -->
@@ -115,7 +115,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { saveBlob } from '@/utils/fileDownload'
-import { subjectTree, docTypes, buildSubjectRows } from './mock'
+import businessApi from '@/api/business'
+import { subjectTree } from './mock'
 
 // 金额千分位 + 两位小数；负值着红由 class 控制
 const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -128,50 +129,66 @@ const defaultSearch = () => ({
 })
 
 const search = reactive(defaultSearch()) // 待应用的筛选草稿
-const applied = ref(defaultSearch()) // 点「查询」后生效的筛选
-const rows = ref(buildSubjectRows())
 const loading = ref(false)
+const rows = ref([])
+const docTypes = ref([])
 const page = ref(1)
 const pageSize = 30
+const total = ref(0)
 const drawer = ref(false)
 const current = ref(null)
 
-// —— 前端筛选（mock 数据一次到位）——
-const filteredList = computed(() => {
-	const f = applied.value
-	return rows.value.filter((r) => {
-		if (f.daterange?.length === 2) {
-			if (r.date < f.daterange[0] || r.date > f.daterange[1]) return false
-		}
-		if (f.subject_id && !r.subject_id.startsWith(String(f.subject_id))) return false // 树选父节点匹配其子科目
-		if (f.doc_type && r.doc_type !== f.doc_type) return false
-		if (f.exclude_before_open && r.before_open) return false
-		return true
-	})
-})
-const total = computed(() => filteredList.value.length)
-const pagedList = computed(() => {
-	const start = (page.value - 1) * pageSize
-	return filteredList.value.slice(start, start + pageSize)
-})
+const pagedList = computed(() => rows.value)
 
-const refresh = () => {
-	applied.value = JSON.parse(JSON.stringify(search))
-	page.value = 1
+// 拉取后端（B3，读 ledger 全部分录）——筛选以 query 参数下传，滚动余额由后端跨页计算
+const refresh = async () => {
+	loading.value = true
+	try {
+		const params = {
+			subject_id: search.subject_id || undefined,
+			doc_type: search.doc_type || undefined,
+			exclude_before_open: search.exclude_before_open ? 1 : undefined,
+			page: page.value,
+			page_size: pageSize,
+		}
+		if (search.daterange?.length === 2) {
+			params.start_date = search.daterange[0]
+			params.end_date = search.daterange[1]
+		}
+		const res = await businessApi.finance.subjectChange.get(params)
+		const data = res?.data?.data ?? res?.data ?? {}
+		rows.value = data.list || []
+		total.value = data.total || 0
+		docTypes.value = data.doc_types || []
+	} catch {
+		rows.value = []
+		total.value = 0
+		docTypes.value = []
+	} finally {
+		loading.value = false
+	}
 }
 const resetSearch = () => {
 	Object.assign(search, defaultSearch())
+	page.value = 1
+	refresh()
+}
+
+// 翻页 → 重新拉后端对应页
+const onPageChange = (p) => {
+	page.value = p
 	refresh()
 }
 
 // 科目列点击 → 反查该科目全部变动（联动筛选）
 const filterBySubject = (subjectId) => {
 	search.subject_id = subjectId
+	page.value = 1
 	refresh()
 	ElMessage.success('已按该科目反查')
 }
 
-// 业务单据穿透（双击行 / 单击单据号）：取该单据下全部科目变动
+// 业务单据穿透（双击行 / 单击单据号）：取该单据下全部科目变动（当前页内匹配）
 const docEntries = computed(() => (current.value ? rows.value.filter((r) => r.doc_no === current.value.doc_no) : []))
 const openDoc = (row) => {
 	if (!row) return
@@ -186,9 +203,9 @@ const entrySummary = ({ columns }) =>
 		return ''
 	})
 
-// 导出：前端 mock 数据生成 CSV（带 BOM，Excel 直开）
+// 导出：当前筛选结果生成 CSV（带 BOM，Excel 直开）
 const exportData = () => {
-	const list = filteredList.value
+	const list = pagedList.value
 	if (!list.length) return ElMessage.warning('无数据')
 	const header = ['日期', '科目', '单据类型', '单据号', '摘要', '借方', '贷方', '方向', '余额']
 	const esc = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"'
@@ -199,7 +216,7 @@ const exportData = () => {
 	lines.push(
 		['合计', '', '', '', '', fmt(list.reduce((s, r) => s + Number(r.debit || 0), 0)), fmt(list.reduce((s, r) => s + Number(r.credit || 0), 0)), '', ''].map(esc).join(',')
 	)
-	const range = applied.value.daterange?.length === 2 ? `${applied.value.daterange[0]}_${applied.value.daterange[1]}` : '全期'
+	const range = search.daterange?.length === 2 ? `${search.daterange[0]}_${search.daterange[1]}` : '全期'
 	// BOM（﻿）让 Excel 双击直开不乱码
 	saveBlob('﻿' + lines.join('\r\n'), `科目变化明细表_${range}.csv`)
 	ElMessage.success('导出成功')

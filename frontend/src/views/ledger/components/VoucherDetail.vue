@@ -48,6 +48,14 @@
 				<div class="vp-sign"><span class="lbl">记账</span><span class="name"></span></div>
 				<div class="vp-sign"><span class="lbl">出纳</span><span class="name"></span></div>
 			</div>
+			<div v-if="voucher.attachments && voucher.attachments.length" class="vp-attachments">
+				<div class="vp-att-title">附件（{{ voucher.attachments.length }}）</div>
+				<div class="vp-att-list">
+					<a v-for="(a, i) in voucher.attachments" :key="i" class="vp-att-item" :href="a.url" target="_blank" rel="noopener">
+						{{ a.name || a.file_name || `附件${i + 1}` }}
+					</a>
+				</div>
+			</div>
 			<div v-if="voucher.status === 'audited'" class="vp-stamp audit-stamp">审核</div>
 			<div v-if="voucher.status === 'reversed'" class="vp-stamp void-stamp">作废</div>
 		</div>
@@ -93,6 +101,9 @@ const print = () => {
 		.vp-flags { display:flex; gap:8px; align-items:center; margin-bottom:12px; font-size:14px; }
 		.vp-flags .link { color:#409eff; cursor:pointer; text-decoration:underline; }
 		.vp-table { width:100%; border-collapse:collapse; }
+		.vp-table tr { page-break-inside: avoid; break-inside: avoid; }
+			.vp-table thead { display: table-header-group; }
+			.vp-table tbody { display: table-row-group; }
 		.vp-table th, .vp-table td { border:1px solid #303133; padding:6px 8px; font-size:14px; text-align:center; }
 		.amt { text-align:right; }
 		.amt-red { color:#f56c6c; }
@@ -104,6 +115,10 @@ const print = () => {
 		.vp-stamp { position:absolute; top:40%; left:40%; font-size:40px; font-weight:700; border:3px solid; padding:8px 16px; opacity:0.8; transform:rotate(-15deg); pointer-events:none; }
 		.audit-stamp { color:#f56c6c; border-color:#f56c6c; border-radius:50%; }
 		.void-stamp { color:#f56c6c; border-color:#f56c6c; }
+		.vp-attachments { margin-top:16px; padding-top:12px; border-top:1px solid #e4e7ed; }
+		.vp-att-title { font-size:13px; color:#606266; margin-bottom:8px; font-weight:600; }
+		.vp-att-list { display:flex; flex-wrap:wrap; gap:8px; }
+		.vp-att-item { color:#409eff; text-decoration:underline; font-size:13px; }
 	</style></head><body style="padding:40px;">${html}</body></html>`)
 	w.document.close()
 	w.focus()
@@ -124,6 +139,10 @@ const print = () => {
 .amt { text-align:right; }
 .amt-red { color:var(--color-danger); }
 .vp-chinese { text-align:left; font-weight:700; }
+.vp-attachments { margin-top:16px; padding-top:12px; border-top:1px solid var(--border-light); }
+.vp-att-title { font-size:13px; color:var(--text-regular); margin-bottom:8px; font-weight:600; }
+.vp-att-list { display:flex; flex-wrap:wrap; gap:8px; }
+.vp-att-item { color:var(--color-primary); text-decoration:underline; font-size:13px; }
 .vp-signs { display:flex; justify-content:space-around; margin-top:40px; }
 .vp-sign { text-align:center; }
 .vp-sign .lbl { font-size:13px; color:var(--text-regular); display:block; }

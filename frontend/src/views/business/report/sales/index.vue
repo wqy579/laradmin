@@ -25,6 +25,7 @@
 
 				<ReportTable
 					v-else
+					report="sales"
 					:columns="columns"
 					:data="list"
 					:loading="loading"
@@ -32,6 +33,7 @@
 					:current-page="page"
 					:page-size="pageSize"
 					:summary="summary"
+					:drill-fetcher="businessApi.report.sales.drill.get"
 					@page-change="onPageChange"
 					@page-size-change="onPageSizeChange"
 					@refresh="fetchData"
@@ -190,7 +192,7 @@ async function onExport() {
 	exporting.value = true
 	try {
 		const blob = await businessApi.report.sales.export.get(buildParams())
-		saveBlob(blob, `销售报表_${TABS.find((t) => t.value === activeTab.value)?.label || ''}.csv`)
+		saveBlob(blob, `销售报表_${TABS.find((t) => t.value === activeTab.value)?.label || ''}.xls`)
 	} catch {
 		ElMessage.error('导出失败')
 	} finally {

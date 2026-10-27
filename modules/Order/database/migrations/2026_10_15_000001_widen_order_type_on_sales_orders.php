@@ -34,6 +34,13 @@ return new class extends Migration
             return;
         }
 
+        // sqlite（phpunit.xml 的测试连接）没有 enum 类型，列本身就是变长字符串，无需放宽。
+        // 原来的裸 SQL SHOW COLUMNS / ALTER TABLE MODIFY 是 MySQL 专有语法，
+        // 在 sqlite 上直接语法错误，会炸掉所有 RefreshDatabase 测试。
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         $row = DB::selectOne("SHOW COLUMNS FROM `sales_orders` WHERE Field = 'order_type'");
         $type = strtolower((string) ($row->Type ?? ''));
 
@@ -48,6 +55,11 @@ return new class extends Migration
     public function down(): void
     {
         if (! Schema::hasTable('sales_orders') || ! Schema::hasColumn('sales_orders', 'order_type')) {
+            return;
+        }
+
+        // 非 MySQL 驱动没有 enum，down 同样是 no-op（见 up() 注释）
+        if (DB::getDriverName() !== 'mysql') {
             return;
         }
 

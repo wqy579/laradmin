@@ -262,6 +262,18 @@ const systemRoutes = [
 				meta: { title: 'expense' },
 			},
 			{
+				path: '/business/payment',
+				name: 'Payment',
+				component: () => import('../views/business/payment/index.vue'),
+				meta: { title: 'payment' },
+			},
+			{
+				path: '/business/supplier-payment',
+				name: 'SupplierPayment',
+				component: () => import('../views/business/supplier-payment/index.vue'),
+				meta: { title: 'supplierPayment' },
+			},
+			{
 				path: '/business/receivable',
 				name: 'Receivable',
 				component: () => import('../views/business/receivable/index.vue'),

@@ -49,6 +49,7 @@ class ReportFilter
             'end_date' => $request->input('end_date'),
             'start_time' => $request->input('start_time'),
             'end_time' => $request->input('end_time'),
+            'as_of_date' => $request->input('as_of_date'),
             // 客户维度
             'customer_category' => self::toArray($request->input('customer_category')),
             'customer_level_ids' => self::toArray($request->input('customer_level_ids')),
@@ -86,6 +87,7 @@ class ReportFilter
             // 展示控制
             'with_price' => $request->boolean('with_price', true),
             'zero_sale' => $request->input('zero_sale'),
+            'return_rate_threshold' => $request->input('return_rate_threshold'),
             // 分页
             'page' => max(1, (int) $request->input('page', 1)),
             'page_size' => min(500, max(1, (int) $request->input('page_size', 30))),
@@ -319,6 +321,72 @@ class ReportFilter
     {
         return response($csv, 200, [
             'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    /**
+     * Excel 导出（XML Spreadsheet 2003，无第三方依赖）。
+     *
+     * 规范要求「导出 Excel 列宽 / 表头底色与页面一致」：这里带出 <Column> 列宽
+     * 与 #F5F7FA 表头底色，金额列右对齐，Excel 打开即与页面观感一致。
+     * $columns 传报表后端下发的列定义数组（含 prop/label/width/type），
+     * $rows 传数据行集合（object 或 assoc）。
+     */
+    public static function excel(string $title, array $columns, iterable $rows): string
+    {
+        $cell = static fn ($v) => htmlspecialchars((string) ($v ?? ''), ENT_QUOTES, 'UTF-8');
+
+        $colDefs = '';
+        $headCells = '';
+        foreach ($columns as $i => $col) {
+            $width = max(8, (int) ($col['width'] ?? 100) / 6); // px → Excel 字符宽(约6px/字)
+            $colDefs .= '<Column ss:AutoFitWidth="0" ss:Width="'.$width.'"/>';
+            $headCells .= '<Cell ss:StyleID="head"><Data ss:Type="String">'.$cell($col['label']).'</Data></Cell>';
+        }
+
+        $bodyRows = '';
+        foreach ($rows as $row) {
+            $bodyRows .= '<Row>';
+            foreach ($columns as $col) {
+                $v = is_object($row) ? ($row->{$col['prop']} ?? '') : ($row[$col['prop']] ?? '');
+                $align = in_array($col['type'] ?? '', ['money', 'number', 'int', 'percent', 'rate'], true)
+                    ? 'Number' : 'String';
+                $bodyRows .= '<Cell ss:StyleID="'.(strtolower($align).'-'.(($col['type'] ?? '') === 'money' ? 'money' : 'plain')).'">'
+                    .'<Data ss:Type="'.$align.'">'.$cell($v).'</Data></Cell>';
+            }
+            $bodyRows .= '</Row>';
+        }
+
+        return '<?xml version="1.0"?>'
+            .'<?mso-application progid="Excel.Sheet"?>'
+            .'<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" '
+            .'xmlns:o="urn:schemas-microsoft-com:office:office" '
+            .'xmlns:x="urn:schemas-microsoft-com:office:excel" '
+            .'xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" '
+            .'xmlns:html="http://www.w3.org/TR/REC-html40">'
+            .'<Styles>'
+            .'<Style ss:ID="head"><Font ss:Bold="1" ss:Color="#606266"/><Interior ss:Color="#F5F7FA" ss:Pattern="Solid"/></Style>'
+            .'<Style ss:ID="number-plain"><Alignment ss:Horizontal="Right"/><NumberFormat ss:Format="#,##0.00"/></Style>'
+            .'<Style ss:ID="number-money"><Alignment ss:Horizontal="Right"/><NumberFormat ss:Format="¥#,##0.00"/></Style>'
+            .'<Style ss:ID="string-plain"><Alignment ss:Horizontal="Left"/></Style>'
+            .'<Style ss:ID="string-money"><Alignment ss:Horizontal="Right"/></Style>'
+            .'</Styles>'
+            .'<Worksheet ss:Name="'.$cell($title).'">'
+            .'<Table>'.$colDefs
+            .'<Row ss:StyleID="head">'.$headCells.'</Row>'
+            .$bodyRows
+            .'</Table>'
+            .'<WorksheetOptions><DisplayGridlines/></WorksheetOptions>'
+            .'</Worksheet>'
+            .'</Workbook>';
+    }
+
+    /** Excel 下载响应（.xls XML 流，Excel 可直接打开） */
+    public static function excelResponse(string $xml, string $filename)
+    {
+        return response($xml, 200, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
     }

@@ -142,8 +142,15 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { MOCK_UNITS, MOCK_PERIODS, MOCK_DETAILS, MOCK_RECON_STATUS } from '../../../mock/statement'
-import { saveBlob } from '../../../utils/fileDownload'
+import businessApi from '@/api/business'
+import { saveBlob } from '@/utils/fileDownload'
+
+// 对账状态字典（非数据，仅标签/颜色）
+const MOCK_RECON_STATUS = {
+	settled: { label: '已对账', type: 'success' },
+	partial: { label: '部分对账', type: 'warning' },
+	unsettled: { label: '未对账', type: 'info' },
+}
 
 const kind = ref('customer')
 const loading = ref(false)
@@ -154,9 +161,14 @@ const search = reactive({
 })
 const selectedRow = ref(null)
 
+// 后端返回的真实数据（B3，读 ledger 往来科目）
+const units = ref([])
+const periodRows = ref([])
+const detailRows = ref([])
+
 const kindLabel = computed(() => (kind.value === 'customer' ? '应收' : '应付'))
 
-const unitOptions = computed(() => MOCK_UNITS.filter((u) => u.kind === kind.value))
+const unitOptions = computed(() => units.value.filter((u) => u.kind === kind.value))
 
 function onKindChange() {
 	search.unitId = null
@@ -174,7 +186,7 @@ function sumOf(list, key) {
 }
 
 const periods = computed(() => {
-	let list = MOCK_PERIODS.filter((p) => unitOptions.value.some((u) => u.id === p.unit_id))
+	let list = periodRows.value
 	if (search.unitId) list = list.filter((p) => p.unit_id === search.unitId)
 	if (search.month) {
 		const m = search.month // YYYY-MM
@@ -184,14 +196,13 @@ const periods = computed(() => {
 	return list.map((p) => ({
 		...p,
 		period: `${p.year}-${String(p.month).padStart(2, '0')}`,
-		unitName: MOCK_UNITS.find((u) => u.id === p.unit_id)?.name || '',
 		amount: kind.value === 'customer' ? p.receivable : p.payable,
 		settle: kind.value === 'customer' ? p.received : p.paid,
 	}))
 })
 
 const details = computed(() => {
-	let list = MOCK_DETAILS.filter((d) => unitOptions.value.some((u) => u.id === d.unit_id))
+	let list = detailRows.value
 	if (search.unitId) list = list.filter((d) => d.unit_id === search.unitId)
 	if (search.month) {
 		const m = search.month
@@ -204,7 +215,6 @@ const details = computed(() => {
 	return list.map((d) => ({
 		...d,
 		period: `${d.year}-${String(d.month).padStart(2, '0')}`,
-		unitName: MOCK_UNITS.find((u) => u.id === d.unit_id)?.name || '',
 	}))
 })
 
@@ -243,12 +253,21 @@ function periodSummary({ columns }) {
 	})
 }
 
-function refresh() {
+const refresh = async () => {
 	loading.value = true
-	// TODO(api): 替换为 fin_statement.list / fin_statement_item.list 接口
-	setTimeout(() => {
+	try {
+		const res = await businessApi.finance.statement.get({ kind: kind.value, unit_id: search.unitId || undefined })
+		const data = res?.data?.data ?? res?.data ?? {}
+		units.value = data.units || []
+		periodRows.value = data.periods || []
+		detailRows.value = data.details || []
+	} catch {
+		units.value = []
+		periodRows.value = []
+		detailRows.value = []
+	} finally {
 		loading.value = false
-	}, 150)
+	}
 }
 
 function resetSearch() {

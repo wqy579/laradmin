@@ -40,6 +40,7 @@ class VoucherController extends Controller
         $validated = $request->validate([
             'voucher_date' => 'required|date',
             'attachments_count' => 'nullable|integer|min:0',
+            'attachments' => 'nullable|array',
             'remark' => 'nullable|string',
             'status' => 'nullable|in:draft,submitted,audited',
             'auto_audit' => 'nullable|boolean',
@@ -76,6 +77,7 @@ class VoucherController extends Controller
         $validated = $request->validate([
             'voucher_date' => 'sometimes|date',
             'attachments_count' => 'nullable|integer|min:0',
+            'attachments' => 'nullable|array',
             'remark' => 'nullable|string',
             'status' => 'nullable|in:draft,submitted,audited',
             'auto_audit' => 'nullable|boolean',

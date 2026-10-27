@@ -6,7 +6,7 @@
 				<div class="mcq-filter__group">
 					<span class="mcq-filter__label">会计年</span>
 					<el-select v-model="search.year" size="small" style="width: 120px" @change="refresh">
-						<el-option v-for="y in YEARS" :key="y" :label="y" :value="y" />
+						<el-option v-for="y in YEARS" :key="y.year" :label="y.year" :value="y.year" />
 					</el-select>
 
 					<span class="mcq-filter__label">会计月</span>
@@ -69,9 +69,9 @@
 						<span class="tabular mcq-closed-at">{{ row.closed_at || '-' }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column label="操作" width="100" align="right" fixed="right">
+				<el-table-column label="操作" width="170" align="right" fixed="right">
 					<template #default="{ row }">
-						<el-button link type="primary" size="small" @click="viewVouchers(row)">查看凭证</el-button>
+						<el-button link type="primary" size="small" @click="viewSnapshot(row)">结账快照</el-button>
 						<el-button v-if="row.status === 'closed' && hasPerm('fin:monthclose:reverse')" link type="danger" size="small" @click="onReverse(row)">反月结</el-button>
 					</template>
 				</el-table-column>
@@ -101,42 +101,64 @@
 				/>
 			</div>
 		</div>
+
+		<!-- 结账快照弹窗 -->
+		<el-dialog v-model="snapshotVisible" :title="`结账快照 · ${snapshot.period}`" width="560px" :close-on-click-modal="false">
+			<div v-loading="snapshotLoading" class="snapshot-body">
+				<el-table :data="snapshot.checks" border size="small">
+					<el-table-column prop="title" label="检查项" min-width="180" />
+					<el-table-column label="结果" width="90" align="center">
+						<template #default="{ row }">
+							<el-tag :type="row.passed ? 'success' : row.blocking ? 'danger' : 'warning'" size="small">
+								{{ row.passed ? '通过' : row.blocking ? '阻断' : '警告' }}
+							</el-tag>
+						</template>
+					</el-table-column>
+					<el-table-column label="明细" min-width="200">
+						<template #default="{ row }">{{ row.detail }}</template>
+					</el-table-column>
+				</el-table>
+			</div>
+		</el-dialog>
 	</div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePermission } from '@/composables/usePermission'
-import { YEARS, MONTHS, PERIODS } from '../../../mock/month-close'
 import { saveBlob } from '../../../utils/fileDownload'
+import businessApi from '@/api/business'
 
 const { has: hasPerm } = usePermission()
-const router = useRouter()
 
 const loading = ref(false)
 const page = ref(1)
 const pageSize = ref(10)
+const YEARS = ref([])
+const MONTHS = ref([])
+const list = ref([])
 const search = reactive({
 	year: new Date().getFullYear(),
-	month: new Date().getMonth() + 1,
+	month: null,
 })
 
 const emptyText = ref('')
+
+// 结账快照
+const snapshotVisible = ref(false)
+const snapshotLoading = ref(false)
+const snapshot = reactive({ period: '', checks: [] })
 
 function fmt(v) {
 	return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 const filtered = computed(() => {
-	let list = PERIODS
-	if (search.year) list = list.filter((p) => p.year === Number(search.year))
-	if (search.month) list = list.filter((p) => p.month === Number(search.month))
-	return list.map((p) => ({
-		...p,
-		period: `${p.year}-${String(p.month).padStart(2, '0')}`,
-	}))
+	let rows = list.value
+	if (search.year) rows = rows.filter((p) => p.year === Number(search.year))
+	if (search.month) rows = rows.filter((p) => p.month === Number(search.month))
+	return rows
 })
 
 const paged = computed(() => {
@@ -146,15 +168,21 @@ const paged = computed(() => {
 
 function refresh() {
 	loading.value = true
-	// TODO(api): 替换为 GET /api/finance/periods 接口
-	setTimeout(() => {
-		loading.value = false
-	}, 150)
+	businessApi.finance.monthClose.periods
+		.get()
+		.then((res) => {
+			const years = res.data.years || []
+			YEARS.value = years.map((y) => ({ year: y.year, periods: y.periods }))
+			list.value = years.flatMap((y) => y.periods)
+			if (!MONTHS.value.length) MONTHS.value = Array.from({ length: 12 }, (_, i) => i + 1)
+		})
+		.catch(() => ElMessage.error('月结记录加载失败'))
+		.finally(() => (loading.value = false))
 }
 
 function resetSearch() {
 	search.year = new Date().getFullYear()
-	search.month = new Date().getMonth() + 1
+	search.month = null
 	page.value = 1
 	refresh()
 }
@@ -164,9 +192,16 @@ function onSizeChange(size) {
 	page.value = 1
 }
 
-function viewVouchers(row) {
-	// 跳转凭证页并携带该期间筛选参数；凭证页可能尚未实现，仅做路由跳转。
-	router.push({ path: '/finance/voucher', query: { period: row.period } })
+function viewSnapshot(row) {
+	snapshot.period = row.period
+	snapshot.checks = []
+	snapshotVisible.value = true
+	snapshotLoading.value = true
+	businessApi.finance.monthClose.check
+		.get(row.period)
+		.then((res) => (snapshot.checks = res.data.checks || []))
+		.catch(() => ElMessage.error('结账快照加载失败'))
+		.finally(() => (snapshotLoading.value = false))
 }
 
 function onReverse(row) {
@@ -176,16 +211,15 @@ function onReverse(row) {
 		type: 'warning',
 	})
 		.then(() => {
-			// TODO(api): 替换为 POST /api/finance/periods/{id}/reverse 接口
-			row.status = 'open'
-			row.status_label = '未结账'
-			row.closed_by_name = ''
-			row.closed_at = ''
-			ElMessage.success(`${row.year}年${row.month}月已反月结`)
+			businessApi.finance.monthClose.reopen
+				.post(row.period)
+				.then(() => {
+					ElMessage.success(`${row.year}年${row.month}月已反月结`)
+					refresh()
+				})
+				.catch((err) => ElMessage.error(err?.message || '反月结失败'))
 		})
-		.catch(() => {
-			// 取消：无操作
-		})
+		.catch(() => {})
 }
 
 function toCsv(header, lines) {
@@ -194,7 +228,6 @@ function toCsv(header, lines) {
 }
 
 function exportExcel() {
-	// TODO(api): 替换为 GET /api/finance/periods/export 接口
 	const header = ['会计期间', '状态', '凭证张数', '借方合计', '贷方合计', '结账人', '结账时间']
 	const lines = filtered.value.map((r) => [
 		r.period,
@@ -342,5 +375,10 @@ onMounted(refresh)
 	display: flex;
 	justify-content: flex-end;
 	padding-top: 12px;
+}
+
+/* ---- 结账快照 ---- */
+.snapshot-body {
+	min-height: 120px;
 }
 </style>

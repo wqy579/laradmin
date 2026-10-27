@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
  *   safety-stock   当前库存 ≤ products.safety_stock（< 红 / = 橙）；建议补货 = 安全线×2 − 当前库存，min 0
  *   expiry         商品级临期（products.expiry_date / shelf_life_days，库内无批次·生产日期字段，口径见响应 hint）
  *   sellable-days  近 30 天日均销量（stocks_history change_qty<0 合计 ÷ 30）算可销天数：
- *                  <7 缺货风险 / 7–90 正常 / >90 滞销（口径以任务书 §六 为准）；日均=0 → 可销天数 null
+ *                  明细三级分级（执行文档 C5）：断档=0 → danger 红 / 告急<7 → warning 橙 / 安全≥7 → info 灰；
+ *                  日均=0 → 可销天数 null
  *   stock-exception 库存负数（红）+ 盘亏未处理（stock_adjusts.adjust_type=stock_loss 或盘点 diff<0 且未审核，橙）
  *
  * 日均销量按商品一次批量取（无 N+1）；库存按商品聚合后一次 join（多仓合计）。
@@ -58,7 +59,8 @@ class StockWarningController extends Controller
         $sellable = $this->sellableDaysData($request, $warehouseId);
         $exception = $this->stockExceptionData($request, $warehouseId);
 
-        $lowSellCount = $sellable['list']->filter(fn ($r) => $r['status'] === 'short')->count();
+        // 可销天数低 = 告急(<7天) + 断档(=0)，即剩余可销 < 7 天者
+        $lowSellCount = $sellable['list']->filter(fn ($r) => in_array($r['status'], ['out', 'urgent'], true))->count();
         $total = $safety['total'] + $expiry['total'] + $lowSellCount + $exception['total'];
 
         return $this->success([
@@ -216,6 +218,12 @@ class StockWarningController extends Controller
 
     private function expiryData(Request $request, ?int $warehouseId): array
     {
+        // 距今天数跨方言：生产 MySQL 用 DATEDIFF；测试/轻量环境是 SQLite，改用 julianday 差值（结果同为整数天数）。
+        $today = now()->format('Y-m-d');
+        $diff = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(julianday(p.expiry_date) - julianday('{$today}') AS INTEGER)"
+            : 'DATEDIFF(p.expiry_date, CURDATE())';
+
         $rows = DB::table('products as p')
             ->leftJoin('stocks as s', function ($j) use ($warehouseId) {
                 $j->on('s.product_id', '=', 'p.id');
@@ -225,14 +233,14 @@ class StockWarningController extends Controller
             })
             ->where('p.is_active', 1)
             ->whereNotNull('p.expiry_date')
-            ->whereRaw('DATEDIFF(p.expiry_date, CURDATE()) <= 60')
+            ->whereRaw($diff.' <= 60')
             ->groupBy(
                 'p.id', 'p.code', 'p.name', 'p.spec', 'p.shelf_life_days', 'p.expiry_date'
             )
             ->selectRaw(
                 'p.id, p.code, p.name, p.spec, p.shelf_life_days, p.expiry_date,
                  COALESCE(SUM(s.quantity), 0) as stock_qty,
-                 DATEDIFF(p.expiry_date, CURDATE()) as remaining_days'
+                 '.$diff.' as remaining_days'
             )
             ->orderBy('remaining_days')
             ->get();
@@ -299,18 +307,19 @@ class StockWarningController extends Controller
             $avg = $dTotal / $days; // 日均销量
             $sellable = $avg > 0 ? round($cur / $avg, 1) : null;
 
+            // 明细三级分级（执行文档 C5）：断档 =0 → danger 红；告急 <7 天 → warning 橙；安全 ≥7 天 → info 灰
+            // 可销天数 = 库存 / 近 N 日日均销；日均=0 时无销量数据：库存 0 标断档，否则视为安全
             if ($sellable === null) {
-                // 日均=0：可销天数 null；库存 0 标缺货，否则正常
-                $status = $cur <= 0 ? 'short' : 'ok';
+                $status = $cur <= 0 ? 'out' : 'safe';
+            } elseif ($sellable == 0) {
+                $status = 'out';       // 断档
             } elseif ($sellable < 7) {
-                $status = 'short';   // 任务书：低于 7 天标缺货风险
-            } elseif ($sellable > 90) {
-                $status = 'slow';    // 任务书：高于 90 天标滞销
+                $status = 'urgent';    // 告急
             } else {
-                $status = 'ok';
+                $status = 'safe';      // 安全
             }
-            $hex = $status === 'short' ? '#F56C6C' : ($status === 'slow' ? '#E6A23E' : '#67C23A');
-            $label = $status === 'short' ? '缺货风险' : ($status === 'slow' ? '滞销' : '正常');
+            $hex = $status === 'out' ? '#F56C6C' : ($status === 'urgent' ? '#E6A23E' : '#909399');
+            $label = $status === 'out' ? '断档' : ($status === 'urgent' ? '告急' : '安全');
 
             return [
                 'product_id' => (int) $r->id,
@@ -325,7 +334,7 @@ class StockWarningController extends Controller
                 'status' => $status,
                 'status_label' => $label,
                 'hex' => $hex,
-                'action' => $status === 'short' ? 'replenish' : ($status === 'slow' ? 'promote' : 'observe'),
+                'action' => $status === 'safe' ? 'observe' : 'replenish',
             ];
         })->values();
 

@@ -3,6 +3,7 @@
 namespace Modules\Business\Seeders;
 
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Modules\Auth\Models\Permission;
 
 class BusinessSeeder extends Seeder
@@ -340,13 +341,99 @@ class BusinessSeeder extends Seeder
             ]);
         }
 
+        // 财务管理 · 财务域 13 页（/finance/*，B5 菜单挂载）
+        // 与上方业务资金 /business/* 子菜单并存：两者都属于「财务管理」顶级菜单。
+        // name 用 fin: 冒号前缀（前端 v-permission / usePermission 按此匹配），
+        // 且与业务子菜单的 finance.* 点号命名区分，保证全部唯一英文。
+        // 组件指向真实 vue：前端 transformMenusToRoutes -> loadComponent 解析。
+        $financeModuleMenus = [
+            ['name' => 'finance.module-balance', 'title' => '余额查询', 'path' => '/finance/balance', 'component' => 'finance/balance/index', 'sort' => 12],
+            ['name' => 'finance.journal', 'title' => '日记账', 'path' => '/finance/journal', 'component' => 'finance/journal/index', 'sort' => 13],
+            ['name' => 'finance.month-close', 'title' => '财务月结', 'path' => '/finance/month-close', 'component' => 'finance/month-close/index', 'sort' => 14],
+            ['name' => 'finance.month-close-query', 'title' => '月结查询', 'path' => '/finance/month-close/query', 'component' => 'finance/month-close-query/index', 'sort' => 15],
+            ['name' => 'finance.statement', 'title' => '对账单', 'path' => '/finance/statement', 'component' => 'finance/statement/index', 'sort' => 16],
+            ['name' => 'finance.subject-change', 'title' => '科目变化明细表', 'path' => '/finance/subject-change', 'component' => 'finance/subject-change/index', 'sort' => 17],
+            ['name' => 'finance.arap-adjustment', 'title' => '应收应付调整', 'path' => '/finance/arap-adjustment', 'component' => 'finance/arap-adjustment/index', 'sort' => 18],
+            ['name' => 'finance.borrow-repay', 'title' => '借款还款', 'path' => '/finance/borrow-repay', 'component' => 'finance/borrow-repay/index', 'sort' => 19],
+            ['name' => 'finance.customer-balance-adjustment', 'title' => '客户余额调整', 'path' => '/finance/customer-balance-adjustment', 'component' => 'finance/customer-balance-adjustment/index', 'sort' => 20],
+            ['name' => 'finance.fund-increase-decrease', 'title' => '资金增减', 'path' => '/finance/fund-increase-decrease', 'component' => 'finance/fund-increase-decrease/index', 'sort' => 21],
+            ['name' => 'finance.iou-confirm', 'title' => '欠条确认', 'path' => '/finance/iou-confirm', 'component' => 'finance/iou-confirm/index', 'sort' => 22],
+            ['name' => 'finance.supplier-balance-adjustment', 'title' => '供应商余额调整', 'path' => '/finance/supplier-balance-adjustment', 'component' => 'finance/supplier-balance-adjustment/index', 'sort' => 23],
+            ['name' => 'finance.voucher', 'title' => '财务凭证', 'path' => '/finance/voucher', 'component' => 'finance/voucher/index', 'sort' => 24],
+        ];
+
+        foreach ($financeModuleMenus as $menu) {
+            $parentId = Permission::where('name', 'finance')->value('id');
+            Permission::firstOrCreate(['name' => $menu['name']], [
+                'title' => $menu['title'],
+                'type' => 'menu',
+                'parent_id' => $parentId,
+                'path' => $menu['path'],
+                'component' => $menu['component'],
+                'sort' => $menu['sort'],
+                'status' => 1,
+            ]);
+        }
+
+        // 财务管理 · 财务域按钮权限点（fin:*）
+        // 前端各页 v-permission="'fin:xxx'" 与路由 meta.perm 依赖这些节点才能命中。
+        // 挂在对应 /finance/* 菜单下，类型 button，并统一授权给 super_admin。
+        $financeButtons = [
+            // 财务凭证（查询视图）
+            ['name' => 'fin:voucher:view', 'title' => '查看凭证', 'parent' => 'finance.voucher', 'sort' => 1],
+            ['name' => 'fin:voucher:export', 'title' => '导出凭证', 'parent' => 'finance.voucher', 'sort' => 2],
+            // 日记账
+            ['name' => 'fin:journal:view', 'title' => '查看日记账', 'parent' => 'finance.journal', 'sort' => 1],
+            // 月结向导 / 月结查询
+            ['name' => 'fin:monthclose:view', 'title' => '查看月结', 'parent' => 'finance.month-close-query', 'sort' => 1],
+            ['name' => 'fin:monthclose:execute', 'title' => '执行月结', 'parent' => 'finance.month-close', 'sort' => 1],
+            ['name' => 'fin:monthclose:reverse', 'title' => '反月结', 'parent' => 'finance.month-close-query', 'sort' => 2],
+            // 对账单
+            ['name' => 'fin:statement:view', 'title' => '查看对账单', 'parent' => 'finance.statement', 'sort' => 1],
+            // 科目变化明细
+            ['name' => 'fin:subjectchange:view', 'title' => '查看科目变化', 'parent' => 'finance.subject-change', 'sort' => 1],
+            // 应收应付调整
+            ['name' => 'fin:arap:adjust', 'title' => '应收应付调整', 'parent' => 'finance.arap-adjustment', 'sort' => 1],
+            // 借款还款
+            ['name' => 'fin:borrow:manage', 'title' => '借款还款管理', 'parent' => 'finance.borrow-repay', 'sort' => 1],
+            // 客户余额调整 / 供应商余额调整
+            ['name' => 'fin:balance:adjust', 'title' => '余额调整', 'parent' => 'finance.customer-balance-adjustment', 'sort' => 1],
+            // 资金增减
+            ['name' => 'fin:fund:adjust', 'title' => '资金增减', 'parent' => 'finance.fund-increase-decrease', 'sort' => 1],
+            // 欠条确认
+            ['name' => 'fin:iou:confirm', 'title' => '欠条确认', 'parent' => 'finance.iou-confirm', 'sort' => 1],
+        ];
+
+        $superRoleId = DB::table('auth_role')->where('code', 'super_admin')->value('id');
+        foreach ($financeButtons as $btn) {
+            $parentId = Permission::where('name', $btn['parent'])->value('id');
+            $perm = Permission::firstOrCreate(['name' => $btn['name']], [
+                'title' => $btn['title'],
+                'type' => 'button',
+                'parent_id' => $parentId,
+                'path' => $btn['name'],
+                'component' => null,
+                'sort' => $btn['sort'],
+                'status' => 1,
+            ]);
+            if ($superRoleId) {
+                DB::table('auth_role_permission')->updateOrInsert(
+                    ['role_id' => $superRoleId, 'permission_id' => $perm->id],
+                    ['updated_at' => now(), 'created_at' => now()]
+                );
+            }
+        }
+
         // 报表管理子菜单
         $reportMenus = [
             ['name' => 'report.sales', 'title' => '销售报表', 'parent' => 'report', 'path' => '/business/report/sales', 'sort' => 1],
             ['name' => 'report.stock', 'title' => '库存报表', 'parent' => 'report', 'path' => '/business/report/stock', 'sort' => 2],
             ['name' => 'report.salesman', 'title' => '业务员报表', 'parent' => 'report', 'path' => '/business/report/salesman', 'sort' => 3],
             ['name' => 'report.combined', 'title' => '综合报表', 'parent' => 'report', 'path' => '/business/report/combined', 'sort' => 4],
-            ['name' => 'report.history', 'title' => '经营历程', 'parent' => 'report', 'path' => '/business/history', 'component' => 'business/history/index', 'sort' => 5],
+            ['name' => 'report.customer', 'title' => '客户报表', 'parent' => 'report', 'path' => '/business/report/customer', 'component' => 'business/report/customer/index', 'sort' => 5],
+            ['name' => 'report.sales-analysis', 'title' => '销售分析', 'parent' => 'report', 'path' => '/business/report/sales-analysis', 'component' => 'business/report/sales-analysis/index', 'sort' => 7],
+            ['name' => 'report.price-rank', 'title' => '排行/价格', 'parent' => 'report', 'path' => '/business/report/price-rank', 'component' => 'business/report/price-rank/index', 'sort' => 8],
+            ['name' => 'report.history', 'title' => '经营历程', 'parent' => 'report', 'path' => '/business/history', 'component' => 'business/history/index', 'sort' => 6],
         ];
 
         foreach ($reportMenus as $menu) {
@@ -356,6 +443,7 @@ class BusinessSeeder extends Seeder
                 'type' => 'menu',
                 'parent_id' => $parentId,
                 'path' => $menu['path'],
+                'component' => $menu['component'] ?? null,
                 'sort' => $menu['sort'],
                 'status' => 1,
             ]);

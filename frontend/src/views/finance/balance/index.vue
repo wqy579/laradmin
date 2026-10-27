@@ -117,7 +117,7 @@
 						</el-select>
 						<span class="bal-filter__label">科目</span>
 						<el-select v-model="auxSearch.subject" clearable placeholder="全部科目" size="small" style="width: 180px" @change="refreshAux">
-							<el-option v-for="s in subjects" :key="s" :label="s" :value="s" />
+							<el-option v-for="s in auxSubjects" :key="s" :label="s" :value="s" />
 						</el-select>
 						<span class="bal-filter__label">关键字</span>
 						<el-input v-model="auxSearch.keyword" placeholder="辅助单位名称" clearable size="small" style="width: 200px" @keyup.enter="refreshAux" @clear="refreshAux" />
@@ -158,11 +158,10 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { MOCK_BALANCE_UNIT, MOCK_BALANCE_BRAND, MOCK_BALANCE_AUX, MOCK_BRANDS, MOCK_SUBJECTS } from '../../../mock/balance'
-import { saveBlob } from '../../../utils/fileDownload'
+import businessApi from '@/api/business'
+import { saveBlob } from '@/utils/fileDownload'
 
 const activeTab = ref('customer')
-const subjects = MOCK_SUBJECTS
 const unitTypes = ['客户', '业务员', '供应商']
 const search = reactive({
 	keyword: '',
@@ -170,24 +169,20 @@ const search = reactive({
 	unitType: '',
 	balanceDate: '2026-10-17',
 })
+// 后端返回的真实余额数据（B3，读 ledger 分录按维度聚合）
+const rows = ref([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const loading = ref(false)
 const exporting = ref(false)
 
+// 科目下拉（由当前维度数据去重得出）
+const subjects = computed(() => [...new Set(rows.value.map((r) => r.subject).filter(Boolean))])
+
 const filtered = computed(() => {
-	let list = [...MOCK_BALANCE_UNIT]
-	const kw = search.keyword.trim().toLowerCase()
-	if (kw) {
-		list = list.filter((r) => r.unit.toLowerCase().includes(kw))
-	}
-	if (search.subject) {
-		list = list.filter((r) => r.subject === search.subject)
-	}
-	if (search.unitType) {
-		list = list.filter((r) => r.unitType === search.unitType)
-	}
+	// 后端已按 keyword/subject/unitType 过滤，这里仅叠加客户端「余额日期」
+	let list = rows.value
 	if (search.balanceDate) {
 		list = list.filter((r) => r.date === search.balanceDate)
 	}
@@ -213,20 +208,31 @@ function summaryMethod({ columns }) {
 	})
 }
 
-function refresh() {
+const refresh = async () => {
 	loading.value = true
-	// TODO(api): 替换为 fin_balance_snapshot.list 接口
-	setTimeout(() => {
+	try {
+		const res = await businessApi.finance.balance.get({
+			dimension: 'customer',
+			keyword: search.keyword || undefined,
+			subject: search.subject || undefined,
+			unitType: search.unitType || undefined,
+		})
+		const data = res?.data?.data ?? res?.data ?? {}
+		rows.value = data.list || []
+		total.value = rows.value.length
+	} catch {
+		rows.value = []
+		total.value = 0
+	} finally {
 		loading.value = false
-		total.value = filtered.value.length
-	}, 200)
+	}
 }
 
 function resetSearch() {
 	search.keyword = ''
 	search.subject = ''
 	search.unitType = ''
-	search.balanceDate = '2026-10-17'
+	search.balanceDate = ''
 	page.value = 1
 	refresh()
 }
@@ -243,10 +249,10 @@ function onSizeChange(s) {
 async function exportData() {
 	exporting.value = true
 	try {
-		const rows = filtered.value
+		const list = filtered.value
 		const header = ['序号', '类别', '往来单位', '科目', '预收款', '应收款', '余额', '日期']
-		const lines = rows.map((r, i) => [i + 1, r.category, r.unit, r.subject, r.prepaid, r.receivable, r.balance, r.date])
-		lines.push(['', '合计', '', '', rows.reduce((s, r) => s + r.prepaid, 0), rows.reduce((s, r) => s + r.receivable, 0), rows.reduce((s, r) => s + r.balance, 0), ''])
+		const lines = list.map((r, i) => [i + 1, r.category, r.unit, r.subject, r.prepaid, r.receivable, r.balance, r.date])
+		lines.push(['', '合计', '', '', list.reduce((s, r) => s + r.prepaid, 0), list.reduce((s, r) => s + r.receivable, 0), list.reduce((s, r) => s + r.balance, 0), ''])
 		const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\r\n')
 		saveBlob(new Blob(['' + csv], { type: 'text/csv;charset=utf-8' }), '客户余额查询.csv')
 	} finally {
@@ -256,29 +262,20 @@ async function exportData() {
 
 onMounted(refresh)
 
-/* ---------- D-08 Tab2 品牌余额查询（独立状态，不与 Tab1 共用） ---------- */
-const brandOptions = MOCK_BRANDS
+/* ---------- Tab2 品牌余额查询（独立状态，不与 Tab1 共用） ---------- */
 const brandSearch = reactive({
 	brand: '',
 	keyword: '',
 })
+const brandRows = ref([])
 const brandLoading = ref(false)
 const brandExporting = ref(false)
 const brandPage = ref(1)
 const brandPageSize = ref(20)
 
-// TODO(api): 替换为 GET /api/finance/balances?dimension=brand（brand/keyword 作 query 参数）
-const brandFiltered = computed(() => {
-	let list = [...MOCK_BALANCE_BRAND]
-	if (brandSearch.brand) {
-		list = list.filter((r) => r.brand === brandSearch.brand)
-	}
-	const kw = brandSearch.keyword.trim().toLowerCase()
-	if (kw) {
-		list = list.filter((r) => r.unit.toLowerCase().includes(kw) || r.subject.toLowerCase().includes(kw))
-	}
-	return list
-})
+const brandOptions = computed(() => [...new Set(brandRows.value.map((r) => r.brand).filter(Boolean))])
+
+const brandFiltered = computed(() => brandRows.value)
 
 const brandTotal = computed(() => brandFiltered.value.length)
 const brandPagedList = computed(() => {
@@ -296,13 +293,21 @@ function brandSummaryMethod({ columns }) {
 	})
 }
 
-function refreshBrand() {
+const refreshBrand = async () => {
 	brandLoading.value = true
-	// TODO(api): GET /api/finance/balances?dimension=brand&brand=&keyword=
-	setTimeout(() => {
+	try {
+		const res = await businessApi.finance.balance.get({
+			dimension: 'brand',
+			brand: brandSearch.brand || undefined,
+			keyword: brandSearch.keyword || undefined,
+		})
+		const data = res?.data?.data ?? res?.data ?? {}
+		brandRows.value = data.list || []
+	} catch {
+		brandRows.value = []
+	} finally {
 		brandLoading.value = false
-		brandPage.value = 1
-	}, 200)
+	}
 }
 
 function resetBrandSearch() {
@@ -324,10 +329,10 @@ function onBrandSizeChange(s) {
 async function exportBrandData() {
 	brandExporting.value = true
 	try {
-		const rows = brandFiltered.value
+		const list = brandFiltered.value
 		const header = ['序号', '品牌', '类别', '往来单位', '科目', '预收款', '应收款', '合计']
-		const lines = rows.map((r, i) => [i + 1, r.brand, r.category, r.unit, r.subject, r.prepaid, r.receivable, r.total])
-		lines.push(['', '合计', '', '', '', rows.reduce((s, r) => s + r.prepaid, 0), rows.reduce((s, r) => s + r.receivable, 0), rows.reduce((s, r) => s + r.total, 0)])
+		const lines = list.map((r, i) => [i + 1, r.brand, r.category, r.unit, r.subject, r.prepaid, r.receivable, r.total])
+		lines.push(['', '合计', '', '', '', list.reduce((s, r) => s + r.prepaid, 0), list.reduce((s, r) => s + r.receivable, 0), list.reduce((s, r) => s + r.total, 0)])
 		const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\r\n')
 		saveBlob(new Blob(['' + csv], { type: 'text/csv;charset=utf-8' }), '品牌余额查询.csv')
 	} finally {
@@ -335,34 +340,22 @@ async function exportBrandData() {
 	}
 }
 
-
-/* ---------- D-28 Tab3 辅助单位余额查询（独立状态，与 Tab1/Tab2 互不影响） ---------- */
+/* ---------- Tab3 辅助单位余额查询（独立状态，与 Tab1/Tab2 互不影响） ---------- */
 const auxUnitTypes = ['门店', '部门', '其他']
 const auxSearch = reactive({
 	unitType: '',
 	subject: '',
 	keyword: '',
 })
+const auxRows = ref([])
 const auxLoading = ref(false)
 const auxExporting = ref(false)
 const auxPage = ref(1)
 const auxPageSize = ref(20)
 
-// TODO(api): 替换为 GET /api/finance/balances?dimension=aux（unitType/subject/keyword 作 query 参数）
-const auxFiltered = computed(() => {
-	let list = [...MOCK_BALANCE_AUX]
-	if (auxSearch.unitType) {
-		list = list.filter((r) => r.unitType === auxSearch.unitType)
-	}
-	if (auxSearch.subject) {
-		list = list.filter((r) => r.subject === auxSearch.subject)
-	}
-	const kw = auxSearch.keyword.trim().toLowerCase()
-	if (kw) {
-		list = list.filter((r) => r.unit.toLowerCase().includes(kw))
-	}
-	return list
-})
+const auxSubjects = computed(() => [...new Set(auxRows.value.map((r) => r.subject).filter(Boolean))])
+
+const auxFiltered = computed(() => auxRows.value)
 
 const auxTotal = computed(() => auxFiltered.value.length)
 const auxPagedList = computed(() => {
@@ -378,13 +371,22 @@ function auxSummaryMethod({ columns }) {
 	})
 }
 
-function refreshAux() {
+const refreshAux = async () => {
 	auxLoading.value = true
-	// TODO(api): GET /api/finance/balances?dimension=aux&unitType=&subject=&keyword=
-	setTimeout(() => {
+	try {
+		const res = await businessApi.finance.balance.get({
+			dimension: 'aux',
+			unitType: auxSearch.unitType || undefined,
+			subject: auxSearch.subject || undefined,
+			keyword: auxSearch.keyword || undefined,
+		})
+		const data = res?.data?.data ?? res?.data ?? {}
+		auxRows.value = data.list || []
+	} catch {
+		auxRows.value = []
+	} finally {
 		auxLoading.value = false
-		auxPage.value = 1
-	}, 200)
+	}
 }
 
 function resetAuxSearch() {
@@ -407,12 +409,12 @@ function onAuxSizeChange(s) {
 async function exportAuxData() {
 	auxExporting.value = true
 	try {
-		const rows = auxFiltered.value
+		const list = auxFiltered.value
 		const header = ['序号', '类别', '辅助单位', '科目', '余额', '日期']
-		const lines = rows.map((r, i) => [i + 1, r.category, r.unit, r.subject, r.balance, r.date])
-		lines.push(['', '合计', '', '', rows.reduce((s, r) => s + r.balance, 0), ''])
+		const lines = list.map((r, i) => [i + 1, r.category, r.unit, r.subject, r.balance, r.date])
+		lines.push(['', '合计', '', '', list.reduce((s, r) => s + r.balance, 0), ''])
 		const csv = [header, ...lines].map((r) => r.map((c) => `"${c}"`).join(',')).join('\r\n')
-		saveBlob(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }), '辅助单位余额查询.csv')
+		saveBlob(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), '辅助单位余额查询.csv')
 	} finally {
 		auxExporting.value = false
 	}

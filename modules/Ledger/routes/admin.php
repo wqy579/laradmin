@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Ledger\Http\Controllers\BalanceController;
+use Modules\Ledger\Http\Controllers\DashboardController;
 use Modules\Ledger\Http\Controllers\OpeningBalanceController;
 use Modules\Ledger\Http\Controllers\PeriodController;
 use Modules\Ledger\Http\Controllers\ReportController;
@@ -78,5 +79,11 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/income-statement', [ReportController::class, 'incomeStatement']);
         Route::get('/journal', [ReportController::class, 'journal']);
         Route::get('/export', [ReportController::class, 'export']);
+    });
+
+    // ===== 总账驾驶舱（A8 首页 dashboard，独立前缀无 {id} 冲突）=====
+    Route::prefix('ledger/dashboard')->group(function () {
+        Route::get('/overview', [DashboardController::class, 'overview']);
+        Route::get('/recent-vouchers', [DashboardController::class, 'recentVouchers']);
     });
 });

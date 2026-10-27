@@ -209,6 +209,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTable } from '@/hooks/useTable'
 import { usePermission } from '@/composables/usePermission'

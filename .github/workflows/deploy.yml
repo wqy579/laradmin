@@ -183,26 +183,28 @@ jobs:
               --exclude node_modules --exclude .git --exclude public/admin \
               /tmp/laradmin-deploy/source/ /www/wwwroot/laradmin/
 
-            # 2. 后端依赖：显式用 php8.5 执行 composer——部署 CLI 与 laravels worker 统一运行时
+            # 2. 后端依赖：显式用探测到的 PHP 执行 composer——部署 CLI 与 laravels worker 统一运行时
             #    （swoole/pcntl 需求已在 composer.json config.platform 伪造，解析不依赖执行 composer 的 PHP 是否带这些扩展）
+            #    探测顺序：php8.5（与 worker 同运行时）→ 默认 php → 兜底绝对路径；避免硬编码在重装/换版本后 command not found(exit 127)
+            PHP_BIN="$(command -v php8.5 || command -v php || echo /usr/bin/php8.5)"
             COMPOSER_BIN="$(command -v composer || echo composer)"
-            timeout 180 php8.5 "$COMPOSER_BIN" install --no-dev --no-interaction --optimize-autoloader || true
-            timeout 120 php8.5 "$COMPOSER_BIN" dump-autoload -o || true
+            timeout 180 "$PHP_BIN" "$COMPOSER_BIN" install --no-dev --no-interaction --optimize-autoloader || true
+            timeout 120 "$PHP_BIN" "$COMPOSER_BIN" dump-autoload -o || true
 
             # 2.5 硬性门槛：应用必须能完整 boot（package:discover 会加载全部包提供者）。
             #     此步失败说明 vendor/配置不一致（如残留已删除的包引用），此时继续部署
             #     只会全线 500 —— 立即中止，worker 未 reload 仍在跑旧代码，站点不受影响。
-            php8.5 artisan package:discover --ansi
+            "$PHP_BIN" artisan package:discover --ansi
 
             # 3. 迁移 + 清缓存
             # 注意：route:cache 在本环境被禁用——生成的缓存路由在 laravel-s worker
             # 内 dispatch 即 fatal（2026-09-13 生产 500 事故，/up 404 + 其余路由空
             # body 500），worker 的运行时与 CLI 不一致，未定位前不得开启
-            php8.5 artisan migrate --force
-            php8.5 artisan config:clear 2>/dev/null || true
-            php8.5 artisan route:clear 2>/dev/null || true
-            php8.5 artisan view:clear 2>/dev/null || true
-            php8.5 artisan cache:clear 2>/dev/null || true
+            "$PHP_BIN" artisan migrate --force
+            "$PHP_BIN" artisan config:clear 2>/dev/null || true
+            "$PHP_BIN" artisan route:clear 2>/dev/null || true
+            "$PHP_BIN" artisan view:clear 2>/dev/null || true
+            "$PHP_BIN" artisan cache:clear 2>/dev/null || true
 
             # 4. 原子替换前端产物（云端构建好的）
             #    先落 public/admin.new 并校验 index.html 存在，再 mv 切换：
@@ -226,19 +228,18 @@ jobs:
             #    子进程仍携带旧 autoloader，新加的 autoload files（如 mb_polyfill）永远
             #    不生效，且无任何报错。必须重启 master 才能拿到全新运行时。
             #    journal 实证 restart 为秒级操作，中断窗口可接受。
-            systemctl restart laravels || php8.5 bin/laravels restart
+            systemctl restart laravels || "$PHP_BIN" bin/laravels restart
 
-            # 5.5 部署后诊断：CLI 与 worker 已统一为 php8.5，此处验证 mb 兜底仍然生效
-            #     直接用 php8.5 验证 mb 兜底函数是否已随 autoload 生效
-            PHP85="$(command -v php8.5 || echo /usr/bin/php8.5)"
-            "$PHP85" -v 2>/dev/null | head -n 1 || echo "php8.5 not found"
-            "$PHP85" -m 2>/dev/null | grep -ci "^mbstring$" || echo "php8.5: mbstring NOT loaded"
-            "$PHP85" -r "require 'vendor/autoload.php'; var_dump(function_exists('mb_split'), function_exists('mb_strimwidth'), function_exists('mb_strlen'));" 2>&1 | tail -n 4
+            # 5.5 部署后诊断：CLI 与 worker 已统一为探测到的 PHP，此处验证 mb 兜底仍然生效
+            #     直接用同一 PHP_BIN 验证 mb 兜底函数是否已随 autoload 生效
+            "$PHP_BIN" -v 2>/dev/null | head -n 1 || echo "PHP_BIN not found"
+            "$PHP_BIN" -m 2>/dev/null | grep -ci "^mbstring$" || echo "mbstring NOT loaded"
+            "$PHP_BIN" -r "require 'vendor/autoload.php'; var_dump(function_exists('mb_split'), function_exists('mb_strimwidth'), function_exists('mb_strlen'));" 2>&1 | tail -n 4
             grep -c "mb_polyfill" vendor/composer/autoload_files.php 2>/dev/null || echo "shim NOT in autoload_files"
-            echo "--- php8.5 完整 boot 测试（真实 worker 环境）---"
-            "$PHP85" artisan route:list --path=api 2>&1 | head -n 15 || true
-            echo "--- php8.5 扩展清单 ---"
-            "$PHP85" -m 2>/dev/null | tr '\n' ' ' | head -c 800; echo
+            echo "--- PHP 完整 boot 测试（真实 worker 环境）---"
+            "$PHP_BIN" artisan route:list --path=api 2>&1 | head -n 15 || true
+            echo "--- PHP 扩展清单 ---"
+            "$PHP_BIN" -m 2>/dev/null | tr '\n' ' ' | head -c 800; echo
             echo "--- worker 配置来源 ---"
             grep -E "LARAVELS_WORKER_NUM|LARAVELS_TASK" .env 2>/dev/null || echo ".env 无 worker 配置"
             echo "--- systemd 日志中的 worker fatal ---"
@@ -266,7 +267,7 @@ jobs:
               echo "health: FAILED — 回滚前端产物并重启服务"
               rm -rf public/admin
               if [ -d storage/admin.prev ]; then mv storage/admin.prev public/admin; fi
-              php8.5 bin/laravels reload || systemctl restart laravels || true
+              "$PHP_BIN" bin/laravels reload || systemctl restart laravels || true
               exit 1
             fi
 
@@ -306,6 +307,6 @@ jobs:
               echo "route: FAILED — 回滚前端产物并重启服务"
               rm -rf public/admin
               if [ -d storage/admin.prev ]; then mv storage/admin.prev public/admin; fi
-              php8.5 bin/laravels reload || systemctl restart laravels || true
+              "$PHP_BIN" bin/laravels reload || systemctl restart laravels || true
               exit 1
             fi
