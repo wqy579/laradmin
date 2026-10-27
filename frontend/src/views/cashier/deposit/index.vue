@@ -140,6 +140,21 @@
 							<el-input-number v-model="form.fee" :min="0" :precision="2" :step="5" size="small" style="width: 100%" />
 						</el-form-item>
 					</el-col>
+					<el-col :span="24">
+						<el-form-item label="余额预览">
+							<div v-if="balancePreview" class="cash-balance-hint">
+								<span class="cash-balance-hint__label">当前余额</span>
+								<span class="cash-balance-hint__val">{{ fmtMoney(balancePreview.from) }}</span>
+								<span v-if="form.depositType === 'transfer' && balancePreview.to !== null" class="cash-balance-hint__arrow">→ 转入后 <span class="cash-balance-hint__val">{{ fmtMoney(balancePreview.to) }}</span> + <span class="cash-balance-hint__val">{{ fmtMoney(balancePreview.toDelta) }}</span> = <span class="cash-balance-hint__val">{{ fmtMoney(balancePreview.to + balancePreview.toDelta) }}</span></span>
+								<span class="cash-balance-hint__arrow">→ 预计</span>
+								<span :class="form.depositType === 'deposit' ? 'cash-up' : 'cash-down'">{{ fmtMoney(balancePreview.next) }}</span>
+								<span v-if="balancePreview.insufficient" class="cash-balance--neg">· 账户余额不足，无法保存</span>
+							</div>
+							<div v-else class="cash-balance-hint">
+								<span class="cash-balance-hint__label">选择资金账户后，金额变动将实时预览余额增减</span>
+							</div>
+						</el-form-item>
+					</el-col>
 					<el-col :span="12">
 						<el-form-item label="经手人" prop="handler">
 							<el-select v-model="form.handler" placeholder="选择员工" size="small" style="width: 100%">
@@ -213,6 +228,24 @@ const counterpartGroups = computed(() => [
 ])
 const toAccounts = computed(() => accounts.filter((a) => a.id !== form.account))
 const amountLabel = computed(() => (form.depositType === 'withdraw' ? '取款金额' : form.depositType === 'transfer' ? '互转金额' : '存款金额'))
+
+/* 录入弹窗：余额实时刷新提示（类型/账户/金额/手续费 任一变化即重算） */
+const balancePreview = computed(() => {
+	const aId = form.account
+	if (!aId) return null
+	const a = accountBalance(aId)
+	const amount = Number(form.amount) || 0
+	const fee = Number(form.fee) || 0
+	if (form.depositType === 'deposit') {
+		return { from: a, next: a + amount - fee, insufficient: false, to: null, toDelta: 0 }
+	}
+	if (form.depositType === 'withdraw') {
+		return { from: a, next: a - amount - fee, insufficient: amount + fee > a, to: null, toDelta: 0 }
+	}
+	// 互转：源账户扣减，转入账户入账
+	const tb = form.to_account ? accountBalance(form.to_account) : null
+	return { from: a, next: a - amount - fee, insufficient: amount + fee > a, to: tb, toDelta: amount }
+})
 
 const form = reactive({
 	depositType: 'deposit',
@@ -419,6 +452,6 @@ function printData() {
 onMounted(refresh)
 </script>
 
-<style scoped>
-/* _shared.css 共享页面样式：后端离线场景下非必供，由 ../_shared.css 引用 */
+<style>
+@import '../_shared.css';
 </style>

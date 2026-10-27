@@ -35,6 +35,14 @@
 	color: var(--text-regular);
 	font-weight: 600;
 	font-size: var(--font-base);
+	height: 44px;
+	padding: 0;
+}
+/* 表内 Tag：高 22 / 圆角 4（设计 Token） */
+.cash-table :deep(.el-tag) {
+	height: 22px;
+	line-height: 20px;
+	border-radius: 4px;
 }
 .cash-table :deep(.el-table td.el-table__cell) {
 	color: var(--text-primary);
@@ -73,6 +81,41 @@
 }
 .cash-balance--neg {
 	color: var(--color-danger);
+}
+/* 录入弹窗：余额实时刷新提示（方向增减：增=绿 / 减=红，不足=红加粗） */
+.cash-balance-hint {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 2px;
+	padding: 8px 12px;
+	background: var(--bg-hover);
+	border: 1px solid var(--border-lighter);
+	border-radius: 4px;
+	font-size: var(--font-base);
+	color: var(--text-regular);
+}
+.cash-balance-hint__label {
+	color: var(--text-secondary);
+}
+.cash-balance-hint__val {
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+.cash-balance-hint__arrow {
+	color: var(--text-secondary);
+	margin: 0 2px;
+}
+.cash-up {
+	color: var(--color-success);
+	font-weight: 600;
+}
+.cash-down {
+	color: var(--color-danger);
+	font-weight: 600;
 }
 .cash-link {
 	color: var(--color-primary);
