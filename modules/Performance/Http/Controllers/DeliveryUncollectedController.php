@@ -29,8 +29,8 @@ class DeliveryUncollectedController extends Controller
 
         // totals + 卡片：clone 换成聚合列。MySQL 同一 SELECT 内不能引用 select 别名，
         // 故把未收/天数表达式原样内联（与 query() 的 select 完全一致）。
-        $age = 'TIMESTAMPDIFF(DAY, dg.first_delivery_date, CURDATE())';
-        $unc = 'GREATEST(dg.delivery_amount - COALESCE(so.paid_amount, 0), 0)';
+        $age = $this->ageExpr();
+        $unc = $this->uncExpr();
 
         $t = $base->cloneWithout(['columns', 'orders', 'limit', 'offset'])
             ->selectRaw("COUNT(*) as cnt, COALESCE(SUM({$unc}), 0) as total_uncollected")
@@ -129,6 +129,28 @@ class DeliveryUncollectedController extends Controller
     }
 
     /**
+     * 跨方言「最早发货日距今」天数表达式。
+     *
+     * 生产走 MySQL 用 TIMESTAMPDIFF(DAY, col, CURDATE())；测试/轻量环境是 SQLite，
+     * 两者都缺失，改用 julianday 差值（结果同为整数天数，行为一致）。
+     */
+    private function ageExpr(): string
+    {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return "CAST(julianday(date('now')) - julianday(dg.first_delivery_date) AS INTEGER)";
+        }
+
+        return 'TIMESTAMPDIFF(DAY, dg.first_delivery_date, CURDATE())';
+    }
+
+    /** 未收 = 发货金额 - 已收，负值归零（GREATEST 为 MySQL 方言，跨库改用 CASE WHEN） */
+    private function uncExpr(): string
+    {
+        return 'CASE WHEN dg.delivery_amount - COALESCE(so.paid_amount, 0) > 0 '
+            .'THEN dg.delivery_amount - COALESCE(so.paid_amount, 0) ELSE 0 END';
+    }
+
+    /**
      * 按销售单聚合的未收发货查询（同一销售单一行）
      *
      * 派生表 dg 先把 deliveries 按 order_id 合并（最早发货日 + 发货金额合计），
@@ -136,7 +158,7 @@ class DeliveryUncollectedController extends Controller
      */
     private function query(array $f): Builder
     {
-        $age = 'TIMESTAMPDIFF(DAY, dg.first_delivery_date, CURDATE())';
+        $age = $this->ageExpr();
 
         return DB::table(DB::raw('(
             SELECT d.order_id, MIN(d.delivery_date) as first_delivery_date, SUM(d.total_amount) as delivery_amount
@@ -171,7 +193,7 @@ class DeliveryUncollectedController extends Controller
                 dg.first_delivery_date,
                 dg.delivery_amount as total_amount,
                 COALESCE(so.paid_amount, 0) as paid_amount,
-                GREATEST(dg.delivery_amount - COALESCE(so.paid_amount, 0), 0) as uncollected,
+                {$this->uncExpr()} as uncollected,
                 {$age} as age_days
             ")
             ->orderByDesc('dg.first_delivery_date')
