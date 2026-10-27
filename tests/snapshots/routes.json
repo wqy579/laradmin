@@ -4473,6 +4473,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/report/sales-analysis",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\SalesAnalysisController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/sales-analysis/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\SalesAnalysisController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/report/sales/drill",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\SalesReportController@drill",

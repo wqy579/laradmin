@@ -825,6 +825,12 @@ const businessApi = {
 			get: (params) => request.get('business/report/combined', { params }),
 			export: { get: (params) => request.get('business/report/combined/export', { params, responseType: 'blob' }) },
 		},
+
+		// 销售分析族报表（E3，7 个维度：业务员/商品/排行/特价/促销/品项销售/品项铺市）
+		salesAnalysis: {
+			get: (params) => request.get('business/report/sales-analysis', { params }),
+			export: { get: (params) => request.get('business/report/sales-analysis/export', { params, responseType: 'blob' }) },
+		},
 	},
 }
 
