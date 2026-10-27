@@ -29,7 +29,7 @@
 
 		<div class="perf-content">
 			<div class="table-wrap">
-				<el-table :data="data" border stripe height="100%" v-loading="loading" show-summary :summary-method="summaryMethod">
+				<el-table :data="data" border stripe height="100%" v-loading="loading" show-summary :summary-method="summaryMethod" @row-dblclick="drill">
 					<el-table-column v-for="c in columns" :key="c.prop" :prop="c.prop" :label="c.label" :min-width="c.minWidth" :width="c.width" :align="c.align">
 						<template #default="{ row }">
 							<template v-if="c.type === 'dim'">
@@ -67,7 +67,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
@@ -80,7 +80,10 @@ const fmtRate = (v) => Number(v || 0).toFixed(2) + '%' // 毛利率固定两位�
 const negClass = (v) => (Number(v) < 0 ? 'text-red' : '')
 
 const dimMap = { orders: '订单', customers: '客户', employees: '业务员', products: '商品', brands: '品牌/分类' }
+// 下钻参数：维度 → 订单列表查询键（对齐 ar-aging / delivery-uncollected 穿透约定）
+const dimQueryKey = { orders: 'order_id', customers: 'customer_id', employees: 'salesman_id', products: 'product_id', brands: 'brand_id' }
 const route = useRoute()
+const router = useRouter()
 
 const dateRange = ref([])
 const filter = reactive({ dimension: 'customers', start_date: '', end_date: '', apportion: true, only_profit: false, only_loss: false })
@@ -225,8 +228,12 @@ const summaryMethod = ({ columns: cols }) => {
 	})
 }
 
+// 双击/点击维度行穿透订单列表，携带该维度参数（C3 下钻）
 const drill = (row) => {
-	ElMessage.info(`下钻：${row.dim_name}`)
+	if (!row || !row.dim_id) return ElMessage.info('该行无下钻维度')
+	const query = { [dimQueryKey[filter.dimension] || 'keyword']: row.dim_id }
+	if (filter.dimension === 'orders') query.order_no = row.dim_name
+	router.push({ path: '/business/sales-order', query })
 }
 
 const exportData = async () => {
