@@ -307,6 +307,10 @@ onMounted(refresh)
 	align-items: center;
 	height: 100%;
 }
+.empty-state :deep(.el-empty__description p) {
+	font-size: 13px;
+	color: #909399;
+}
 .link {
 	color: var(--color-primary);
 	cursor: pointer;
