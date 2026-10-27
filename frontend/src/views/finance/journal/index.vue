@@ -1,6 +1,6 @@
 <template>
 	<div class="perf-list">
-		<!-- 筛选卡：日期类型/起止 + 科目(树选) + 凭证字号 + 摘要关键字 + 业务员/单据类型/红冲；动作右置 -->
+		<!-- 筛选卡：日期类型/起止 + 科目(树选) + 凭证字号 + 摘要关键字 + 业务员 + 含红冲；动作右置 -->
 		<div class="perf-filter">
 			<span class="label">日期类型</span>
 			<el-select v-model="search.date_type" style="width: 110px" size="small">
@@ -19,7 +19,7 @@
 			<el-tree-select
 				v-model="search.subject_id"
 				:data="subjectTree"
-				:props="{ label: 'label', children: 'children', value: 'id' }"
+				:props="{ label: 'label', children: 'children', value: 'value' }"
 				placeholder="全部科目"
 				clearable
 				filterable
@@ -32,16 +32,11 @@
 			<span class="label">摘要</span>
 			<el-input v-model="search.summary" placeholder="摘要关键字" clearable size="small" style="width: 150px" @keyup.enter="refresh" @clear="refresh" />
 			<span class="label">业务员</span>
-			<el-select v-model="search.salesman" placeholder="全部" clearable style="width: 110px" size="small">
-				<el-option v-for="s in salesmans" :key="s" :label="s" :value="s" />
-			</el-select>
-			<span class="label">单据类型</span>
-			<el-select v-model="search.doc_type" placeholder="全部" clearable style="width: 110px" size="small">
-				<el-option v-for="d in docTypes" :key="d" :label="d" :value="d" />
-			</el-select>
+			<el-input v-model="search.salesman" placeholder="经手人" clearable size="small" style="width: 110px" @keyup.enter="refresh" @clear="refresh" />
 			<el-checkbox v-model="search.include_red" class="red-check">包含红冲</el-checkbox>
 
 			<div class="filter-actions">
+				<el-button size="small" @click="openHistory">经营历程</el-button>
 				<el-button size="small" @click="reorderBalance">科目余额重排</el-button>
 				<el-button type="primary" size="small" @click="refresh">查询</el-button>
 				<el-button size="small" @click="resetSearch">重置</el-button>
@@ -105,7 +100,7 @@
 		</div>
 
 		<div class="perf-pager">
-			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="(p) => (page = p)" />
+			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="(p) => { page = p; load() }" />
 		</div>
 
 		<!-- 凭证穿透：只读（凭证头 + 分录），mock -->
@@ -132,7 +127,7 @@
 						<template #default="{ row }"><span class="tabular">{{ fmt(row.credit) }}</span></template>
 					</el-table-column>
 				</el-table>
-				<div class="v-foot">制单：系统（mock 演示数据）　附单据数：1　记账：—　审核：—</div>
+				<div class="v-foot">制单：{{ current.salesman }}　附单据数：1　记账：—　审核：—</div>
 			</div>
 		</el-drawer>
 	</div>
@@ -142,7 +137,14 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { saveBlob } from '@/utils/fileDownload'
-import { subjectTree, dateTypes, docTypes, salesmans, buildJournalRows, reorderBalances, buildEntries } from './mock'
+import { useRouter } from 'vue-router'
+import businessApi from '@/api/business'
+import ledgerApi from '@/api/ledger'
+
+const dateTypes = [
+	{ value: 'book', label: '记账日期' },
+	{ value: 'op', label: '操作日期' },
+]
 
 // 金额千分位 + 两位小数；负值着红由各列 class 控制
 const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -154,63 +156,103 @@ const defaultSearch = () => ({
 	voucher_no: '',
 	summary: '',
 	salesman: '',
-	doc_type: '',
 	include_red: false,
 })
 
 const search = reactive(defaultSearch()) // 待应用的筛选草稿
 const applied = ref(defaultSearch()) // 点「查询」后生效的筛选
-const rows = ref(buildJournalRows())
+const rows = ref([])
+const total = ref(0)
+const incomeTotal = ref(0)
+const outcomeTotal = ref(0)
 const loading = ref(false)
 const page = ref(1)
 const pageSize = 30
 const drawer = ref(false)
 const current = ref(null)
+const router = useRouter()
+const subjectTree = ref([])
 
-// —— 前端筛选（mock 数据一次到位）——
-const filteredList = computed(() => {
-	const f = applied.value
-	return rows.value.filter((r) => {
-		// 日期：按当前「日期类型」取 记账日期/操作日期
-		const d = f.date_type === 'op' ? r.op_date : r.date
-		if (f.daterange?.length === 2) {
-			if (d < f.daterange[0] || d > f.daterange[1]) return false
-		}
-		if (f.subject_id && !r.subject_id.startsWith(String(f.subject_id))) return false // 树选父节点匹配其子科目
-		if (f.voucher_no && !r.voucher_no.includes(f.voucher_no)) return false
-		if (f.summary && !r.summary.includes(f.summary)) return false
-		if (f.salesman && r.salesman !== f.salesman) return false
-		if (f.doc_type && r.doc_type !== f.doc_type) return false
-		if (!f.include_red && r.is_red) return false
-		return true
-	})
-})
-const total = computed(() => filteredList.value.length)
-const pagedList = computed(() => {
-	const start = (page.value - 1) * pageSize
-	return filteredList.value.slice(start, start + pageSize)
-})
+// 现金/银行科目前缀：只展示日记账涉及的这两类科目
+const CASH_BANK_PREFIXES = ['1001', '1002']
+const isCashBank = (code) => CASH_BANK_PREFIXES.some((p) => String(code || '').startsWith(p))
 
-const refresh = () => {
+// 把 ledger 科目树（{id,parent_id,code,name,category,...,children}）映射为树选择
+// {label, value: code, children}，并过滤到现金/银行两类。value 用编码，后端按编码前缀过滤。
+const mapSubjectTree = (nodes) =>
+	(nodes || []).filter((n) => isCashBank(n.code)).map((n) => ({
+		label: `${n.code} ${n.name}`,
+		value: n.code,
+		children: mapSubjectTree(n.children || []),
+	}))
+
+// 加载真实科目树（ledger，machine-a），仅现金/银行
+const loadSubjectTree = async () => {
+	try {
+		const res = await ledgerApi.subject.tree.get()
+		subjectTree.value = mapSubjectTree(res?.data?.tree || [])
+	} catch {
+		subjectTree.value = []
+	}
+}
+
+// —— 后端筛选分页（真实 ledger 数据）——
+const pagedList = computed(() => rows.value)
+
+const refresh = async () => {
 	applied.value = JSON.parse(JSON.stringify(search))
 	page.value = 1
+	await load()
 }
 const resetSearch = () => {
 	Object.assign(search, defaultSearch())
 	refresh()
 }
 
-// 合计：借方(收入)/贷方(支出) 对当前筛选全集求和（非仅当页）
-const summaryMethod = ({ columns }) => {
-	const incomeTotal = filteredList.value.reduce((s, r) => s + Number(r.income || 0), 0)
-	const outcomeTotal = filteredList.value.reduce((s, r) => s + Number(r.outcome || 0), 0)
-	return columns.map((col, i) => {
+// 查询日记账：把 6 项筛选 + 含红冲 传给后端，后端返回已算余额/合计的分页行
+const load = async () => {
+	const f = applied.value
+	const params = {
+		page: page.value,
+		page_size: pageSize,
+		date_type: f.date_type,
+		include_red: f.include_red ? 1 : 0,
+	}
+	if (f.daterange?.length === 2) {
+		params.start_date = f.daterange[0]
+		params.end_date = f.daterange[1]
+	}
+	if (f.subject_id) params.subject_id = f.subject_id
+	if (f.voucher_no) params.voucher_no = f.voucher_no
+	if (f.summary) params.summary = f.summary
+	if (f.salesman) params.salesman = f.salesman
+
+	loading.value = true
+	try {
+		const res = await businessApi.finance.journal.get(params)
+		const data = res?.data?.data ?? res?.data ?? {}
+		rows.value = data.list ?? []
+		total.value = data.total ?? 0
+		incomeTotal.value = Number(data.income_total ?? 0)
+		outcomeTotal.value = Number(data.outcome_total ?? 0)
+	} catch {
+		rows.value = []
+		total.value = 0
+		incomeTotal.value = 0
+		outcomeTotal.value = 0
+	} finally {
+		loading.value = false
+	}
+}
+
+// 合计：后端对当前筛选全集求和（跨页准确）；收入着红、支出着绿，整行白底加粗
+const summaryMethod = ({ columns }) =>
+	columns.map((col, i) => {
 		if (i === 0) return '合计'
-		if (col.property === 'income') return fmt(incomeTotal)
-		if (col.property === 'outcome') return fmt(outcomeTotal)
+		if (col.property === 'income') return `<span class="sum-red tabular">${fmt(incomeTotal.value)}</span>`
+		if (col.property === 'outcome') return `<span class="sum-green tabular">${fmt(outcomeTotal.value)}</span>`
 		return ''
 	})
-}
 const entrySummary = ({ columns }) =>
 	columns.map((col, i) => {
 		if (i === 0) return '合计'
@@ -219,25 +261,32 @@ const entrySummary = ({ columns }) =>
 		return ''
 	})
 
-// 「科目余额重排」：按当前筛选重算余额列并回写
+// 「科目余额重排」：后端已按记账日期逐行滚余额，重排即重新拉取（保证跨页连续）
 const reorderBalance = () => {
-	const map = new Map()
-	reorderBalances(filteredList.value).forEach((r) => map.set(r.id, r.balance))
-	rows.value = rows.value.map((r) => (map.has(r.id) ? { ...r, balance: map.get(r.id) } : r))
+	load()
 	ElMessage.success('余额已重排')
 }
 
-// 凭证穿透（双击行 / 单击单据号 / 查看）
-const entries = computed(() => (current.value ? buildEntries(current.value) : []))
+// 跳转经营历程（全业务资金流水视图）
+const openHistory = () => {
+	router.push('/business/history')
+}
+
+// 凭证穿透（双击行 / 单击单据号 / 查看）：单行流水即分录视图
+const entries = computed(() =>
+	current.value
+		? [{ summary: current.value.summary, subject: current.value.subject, debit: current.value.income, credit: current.value.outcome }]
+		: []
+)
 const openVoucher = (row) => {
 	if (!row) return
 	current.value = row
 	drawer.value = true
 }
 
-// 导出：前端 mock 数据生成 CSV（带 BOM，Excel 直开）
+// 导出：当前筛选全集（后端分页），前端导出当前页
 const exportData = () => {
-	const list = filteredList.value
+	const list = pagedList.value
 	if (!list.length) return ElMessage.warning('无数据')
 	const header = ['日期', '单据类型', '单据号', '科目', '摘要', '收入(借)', '支出(贷)', '余额', '业务员']
 	const esc = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"'
@@ -248,14 +297,17 @@ const exportData = () => {
 		)
 	})
 	lines.push(
-		['合计', '', '', '', '', fmt(list.reduce((s, r) => s + Number(r.income || 0), 0)), fmt(list.reduce((s, r) => s + Number(r.outcome || 0), 0)), '', ''].map(esc).join(',')
+		['合计', '', '', '', '', fmt(incomeTotal.value), fmt(outcomeTotal.value), '', ''].map(esc).join(',')
 	)
 	const range = applied.value.daterange?.length === 2 ? `${applied.value.daterange[0]}_${applied.value.daterange[1]}` : '全期'
 	saveBlob('﻿' + lines.join('\r\n'), `日记账_${range}.csv`)
 	ElMessage.success('导出成功')
 }
 
-onMounted(refresh)
+onMounted(() => {
+	loadSubjectTree()
+	refresh()
+})
 </script>
 
 <style scoped>
@@ -343,15 +395,21 @@ onMounted(refresh)
 :deep(.el-table th.el-table__cell) {
 	border-bottom-color: var(--border-lighter);
 }
-/* 合计行：背景 --bg-hover，13/600，「合计」左对齐 */
+/* 合计行：白底加粗，「合计」左对齐，收入红 / 支出绿 */
 :deep(.el-table__footer td) {
-	background: var(--bg-hover);
+	background: #fff;
 	color: var(--text-primary);
-	font-weight: 600;
+	font-weight: 700;
 	font-size: var(--font-base);
 }
 :deep(.el-table__footer td:first-child) {
 	text-align: left;
+}
+.sum-red {
+	color: var(--color-danger);
+}
+.sum-green {
+	color: var(--color-success);
 }
 /* 凭证穿透抽屉（640px 只读） */
 .v-wrap {
