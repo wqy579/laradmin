@@ -447,6 +447,129 @@ class ReportFeatureTest extends TestCase
         $this->assertSame(50, $covCol['danger_below'], '铺市率列未标记危险阈值 50');
     }
 
+    public function test_price_rank_every_dimension_runs(): void
+    {
+        // 造促销 + 促销明细，覆盖 4 个排行/价格维度
+        $promotionId = DB::table('promotions')->insertGetId([
+            'promotion_no' => 'JG202610010001', 'name' => '季末特卖', 'type' => 'special_price',
+            'start_time' => '2026-10-01 00:00:00', 'end_time' => '2026-10-31 23:59:59',
+            'customer_scope' => 'all', 'priority' => 1, 'status' => 'active',
+        ]);
+        DB::table('promotion_items')->insert([
+            'promotion_id' => $promotionId, 'product_id' => $this->ids['product'],
+            'product_name' => '季末特卖商品', 'original_price' => 12,
+            'discount_rate' => 8.5, 'special_price' => 8,
+        ]);
+        $this->makeOrder('2026-10-05', [['product_id' => $this->ids['product'], 'price' => 50, 'qty' => 4]]);
+
+        foreach (['sales_rank_total', 'product_price_list', 'customer_special_price', 'promotion_price_list'] as $dimension) {
+            $res = $this->getJson('admin/business/report/price-rank?dimension='.$dimension);
+            $res->assertOk("排行/价格维度 {$dimension} 查询失败");
+            $this->assertNotEmpty($res->json('data.columns'), "维度 {$dimension} 没有返回列定义");
+            $this->assertIsArray($res->json('data.list'));
+            $this->assertIsArray($res->json('data.summary'));
+        }
+
+        // 促销价格一览能带出上面造的促销
+        $res = $this->getJson('admin/business/report/price-rank?dimension=promotion_price_list');
+        $this->assertSame('季末特卖', $res->json('data.list.0.promotion_name'), '促销价格一览未带出促销方案');
+    }
+
+    public function test_price_rank_sales_rank_total_marks_rank(): void
+    {
+        $this->makeOrder('2026-10-02', [['product_id' => $this->ids['product'], 'price' => 100, 'qty' => 2]]);
+
+        $res = $this->getJson('admin/business/report/price-rank?dimension=sales_rank_total');
+
+        $res->assertOk();
+        $rankCol = collect($res->json('data.columns'))->firstWhere('prop', 'rank');
+        $this->assertSame('rank', $rankCol['type'], '排名列未标记为 rank 徽标类型');
+        $this->assertEquals(1, $res->json('data.list.0.rank'), 'TOP1 应标排名 1');
+        // 毛利 = 售价 100×2 - 成本 5×2 = 190
+        $this->assertEquals(190, round((float) $res->json('data.list.0.profit'), 2));
+        // 合计行应归集销售金额
+        $this->assertEquals(200, round((float) $res->json('data.summary.amount'), 2));
+    }
+
+    public function test_price_rank_customer_special_price_resolves_priority(): void
+    {
+        // 客户等级：默认折扣 9 折（code 避开迁移内置的 LV1~LV4/VIP，避免 UNIQUE 冲突）
+        $levelId = DB::table('customer_levels')->insertGetId([
+            'name' => 'VVIP', 'code' => 'VVIP', 'default_discount' => 9.0, 'status' => true,
+        ]);
+        // 客户挂该等级（默认价 12）
+        $customer = $this->makeCustomer(['level_id' => $levelId]);
+        $customerId = $customer->id;
+        // 等级价 9
+        DB::table('product_level_prices')->insert([
+            'product_id' => $this->ids['product'], 'level_id' => $levelId, 'price' => 9,
+        ]);
+        // 进行中的特价促销，特价 8
+        $promotionId = DB::table('promotions')->insertGetId([
+            'promotion_no' => 'TJ202610010001', 'name' => '国庆特价', 'type' => 'special_price',
+            'start_time' => '2026-10-01 00:00:00', 'end_time' => '2026-10-31 23:59:59',
+            'customer_scope' => 'all', 'priority' => 1, 'status' => 'active',
+        ]);
+        DB::table('promotion_items')->insert([
+            'promotion_id' => $promotionId, 'product_id' => $this->ids['product'],
+            'product_name' => '特价商品', 'original_price' => 12, 'special_price' => 8,
+        ]);
+
+        $res = $this->getJson('admin/business/report/price-rank?dimension=customer_special_price&customer_ids[]='.$customerId);
+
+        $res->assertOk();
+        $row = collect($res->json('data.list'))->firstWhere('customer_id', (int) $customerId);
+        $this->assertNotNull($row, '客户特价一览应返回该客户行');
+        // 特价 8 < 等级价 9 < 默认价 12 → 有效价取特价 8
+        $this->assertEquals(8, round((float) $row['effective_price'], 2), '特价 8 应优先于等级价 9 与默认价 12');
+        $this->assertSame('特价', $row['price_source'], '命中来源应为特价');
+        $this->assertTrue($row['rule_hit'], '命中特价应标记 rule_hit 供整行高亮');
+
+        // 价格来源列必须是 price_tag 类型并带 hit_type，前端据此染色 + 高亮
+        $srcCol = collect($res->json('data.columns'))->firstWhere('prop', 'price_source');
+        $this->assertSame('price_tag', $srcCol['type'], '价格来源列未标记为 price_tag 类型');
+        $this->assertSame('rule_hit', $srcCol['hit_type'], '价格来源列未标记命中字段');
+    }
+
+    public function test_price_rank_default_price_when_no_rules_hit(): void
+    {
+        // 客户不挂等级、无促销 → 有效价回落默认价 12，不标命中
+        $customer = $this->makeCustomer(['level_id' => null]);
+        $customerId = $customer->id;
+
+        $res = $this->getJson('admin/business/report/price-rank?dimension=customer_special_price&customer_ids[]='.$customerId);
+
+        $res->assertOk();
+        $row = collect($res->json('data.list'))->firstWhere('customer_id', (int) $customerId);
+        $this->assertNotNull($row, '客户特价一览应返回该客户行');
+        $this->assertEquals(12, round((float) $row['effective_price'], 2), '无命中应回落默认价 12');
+        $this->assertSame('默认价', $row['price_source']);
+        $this->assertFalse($row['rule_hit'], '默认价不应标记命中');
+    }
+
+    public function test_price_rank_customer_level_default_discount_falls_back(): void
+    {
+        // 客户挂等级（默认折扣 9 折），但商品没有单独等级价 → 等级价回落 price_small(12)×0.9=10.8
+        $levelId = DB::table('customer_levels')->insertGetId([
+            'name' => 'VVIP9', 'code' => 'VVIP9', 'default_discount' => 9.0, 'status' => true,
+        ]);
+        $customer = $this->makeCustomer(['level_id' => $levelId]);
+        $customerId = $customer->id;
+        // 不插 product_level_prices，让等级价走默认折扣计算
+        // 也不造促销，避免特价抢跑
+
+        $res = $this->getJson('admin/business/report/price-rank?dimension=customer_special_price&customer_ids[]='.$customerId);
+
+        $res->assertOk();
+        $row = collect($res->json('data.list'))->firstWhere('customer_id', (int) $customerId);
+        $this->assertNotNull($row, '客户特价一览应返回该客户行');
+        // 12 × 0.9 = 10.8
+        $this->assertEquals(10.8, round((float) $row['effective_price'], 2), '无单独等级价应回落等级默认折扣价');
+        $this->assertEquals(10.8, round((float) $row['level_price'], 2), '等级价列应展示折扣计算值');
+        $this->assertSame('等级价', $row['price_source'], '折扣派生价仍算等级价命中');
+        $this->assertTrue($row['rule_hit'], '等级价命中应整行高亮');
+    }
+
     private function makeReturn(string $date, float $amount): int
     {
         $id = DB::table('sales_returns')->insertGetId([

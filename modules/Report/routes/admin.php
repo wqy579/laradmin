@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Report\Http\Controllers\CombinedReportController;
 use Modules\Report\Http\Controllers\CustomerReportController;
+use Modules\Report\Http\Controllers\PriceRankController;
 use Modules\Report\Http\Controllers\RecentPriceController;
 use Modules\Report\Http\Controllers\ReportColumnController;
 use Modules\Report\Http\Controllers\ReportOptionController;
@@ -88,6 +89,12 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::prefix('sales-analysis')->group(function () {
             Route::get('/', [SalesAnalysisController::class, 'index']);
             Route::get('/export', [SalesAnalysisController::class, 'export']);
+        });
+
+        // 排行+价格类报表（E4，4 个维度：销售排行总表/商品价格/客户特价价格/促销价格）
+        Route::prefix('price-rank')->group(function () {
+            Route::get('/', [PriceRankController::class, 'index']);
+            Route::get('/export', [PriceRankController::class, 'export']);
         });
     });
 });

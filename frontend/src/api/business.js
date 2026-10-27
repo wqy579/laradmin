@@ -831,6 +831,12 @@ const businessApi = {
 			get: (params) => request.get('business/report/sales-analysis', { params }),
 			export: { get: (params) => request.get('business/report/sales-analysis/export', { params, responseType: 'blob' }) },
 		},
+
+		// 排行+价格类报表（E4，4 个维度：销售排行总表/商品价格/客户特价价格/促销价格）
+		priceRank: {
+			get: (params) => request.get('business/report/price-rank', { params }),
+			export: { get: (params) => request.get('business/report/price-rank/export', { params, responseType: 'blob' }) },
+		},
 	},
 }
 

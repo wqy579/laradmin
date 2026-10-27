@@ -430,6 +430,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'report.combined', 'title' => '综合报表', 'parent' => 'report', 'path' => '/business/report/combined', 'sort' => 4],
             ['name' => 'report.customer', 'title' => '客户报表', 'parent' => 'report', 'path' => '/business/report/customer', 'component' => 'business/report/customer/index', 'sort' => 5],
             ['name' => 'report.sales-analysis', 'title' => '销售分析', 'parent' => 'report', 'path' => '/business/report/sales-analysis', 'component' => 'business/report/sales-analysis/index', 'sort' => 7],
+            ['name' => 'report.price-rank', 'title' => '排行/价格', 'parent' => 'report', 'path' => '/business/report/price-rank', 'component' => 'business/report/price-rank/index', 'sort' => 8],
             ['name' => 'report.history', 'title' => '经营历程', 'parent' => 'report', 'path' => '/business/history', 'component' => 'business/history/index', 'sort' => 6],
         ];
 
@@ -440,6 +441,7 @@ class BusinessSeeder extends Seeder
                 'type' => 'menu',
                 'parent_id' => $parentId,
                 'path' => $menu['path'],
+                'component' => $menu['component'] ?? null,
                 'sort' => $menu['sort'],
                 'status' => 1,
             ]);
