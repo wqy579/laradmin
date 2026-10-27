@@ -46,6 +46,10 @@
 				<el-table-column prop="received_amount" label="回款金额" width="120" align="right">
 					<template #default="{ row }"><span :class="negCls(row.received_amount)">¥{{ fmt(row.received_amount) }}</span></template>
 				</el-table-column>
+				<el-table-column label="未回款" width="110" align="right">
+					<!-- 未回款不计提：灰色斜体提示 -->
+					<template #default="{ row }"><span class="uncollected">{{ fmt(uncollected(row)) }}</span></template>
+				</el-table-column>
 				<el-table-column prop="return_amount" label="退货金额" width="110" align="right">
 					<template #default="{ row }"><span :class="negCls(row.return_amount)">¥{{ fmt(row.return_amount) }}</span></template>
 				</el-table-column>
@@ -92,6 +96,8 @@ import { saveBlob } from '@/utils/fileDownload'
 
 const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const negCls = (v) => (Number(v || 0) < 0 ? 'text-red' : '')
+// 未回款 = 销售 - 回款，未回款部分不计提，灰色斜体提示
+const uncollected = (row) => Math.max(0, Number(row.sales_amount || 0) - Number(row.received_amount || 0))
 
 const employees = ref([])
 const rules = ref([])
@@ -182,6 +188,8 @@ onMounted(() => { loadEmployees(); loadRules() })
 .summary-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: #f5f7fa; font-size: 13px; color: #606266; margin-bottom: 12px; }
 .summary-bar .sep { color: #dcdfe6; }
 .text-red { color: #f56c6c; font-weight: 600; }
+/* 未回款不计提：灰字斜体提示 */
+.uncollected { color: #909399; font-style: italic; }
 .perf-toolbar { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 
 /* 主按钮统一 120×36 */

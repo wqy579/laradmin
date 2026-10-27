@@ -24,6 +24,7 @@
 				<el-button type="primary" link size="small" @click="handleView(row)">{{ row.bill_no }}</el-button>
 			</template>
 			<template #actual_default="{ row }">¥{{ fmt(row.actual_amount) }}</template>
+			<template #uncollected_default="{ row }"><span class="uncollected">¥{{ fmt(uncollected(row)) }}</span></template>
 			<template #status_default="{ row }">
 				<el-tag class="status-tag" :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
 			</template>
@@ -93,6 +94,8 @@ import perfApi from '@/api/perf'
 import { saveBlob } from '@/utils/fileDownload'
 
 const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// 未回款 = 销售 - 回款，未回款部分不计提，灰字斜体提示
+const uncollected = (row) => Math.max(0, Number(row.sales_amount || 0) - Number(row.received_amount || 0))
 const statusLabel = (s) => ({ pending: '待审核', audited: '已审核', paid: '已发放', rejected: '已驳回' }[s] || s)
 // 12px 状态标签：待审核橙 #E6A23E / 已审核绿 #67C23A / 已发放蓝 #409EFF / 已驳回红 #F56C6C
 const statusType = (s) => ({ pending: 'warning', audited: 'success', paid: 'primary', rejected: 'danger' }[s] || 'info')
@@ -115,6 +118,7 @@ const columns = [
 	{ prop: 'department_name', title: '部门', width: 120 },
 	{ prop: 'sales_amount', title: '销售额', width: 120, align: 'right', formatter: ({ row }) => fmt(row.sales_amount) },
 	{ prop: 'received_amount', title: '回款额', width: 120, align: 'right', formatter: ({ row }) => fmt(row.received_amount) },
+		{ prop: 'uncollected', title: '未回款', width: 110, align: 'right', slots: { default: 'uncollected_default' } },
 	{ prop: 'profit_amount', title: '毛利', width: 110, align: 'right', formatter: ({ row }) => fmt(row.profit_amount) },
 	{ prop: 'commission_amount', title: '应发提成', width: 110, align: 'right', formatter: ({ row }) => fmt(row.commission_amount) },
 	{ prop: 'deduction', title: '扣减', width: 100, align: 'right', formatter: ({ row }) => fmt(row.deduction) },
@@ -173,6 +177,8 @@ onMounted(() => refresh())
 :deep(.vxe-table .vxe-body--row.row--stripe) { background: #fafafa; }
 :deep(.col-actual .vxe-cell), :deep(td.col-actual .vxe-cell) { font-weight: bold; color: #f56c6c; }
 :deep(.status-tag) { font-size: 12px; }
+/* 未回款不计提：灰字斜体提示 */
+:deep(.uncollected) { color: #909399; font-style: italic; }
 
 /* 弹窗规格：标题栏 50px/16px 加粗，footer 60px，圆角 4px，浅底 #FAFAFA，边框 #DCDFE6 */
 :deep(.slip-dialog .el-dialog) { border-radius: 4px; }
