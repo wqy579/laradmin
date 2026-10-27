@@ -1,0 +1,150 @@
+/* 出纳资金单族（P0-8）共享页面样式
+ * 供 views/cashier/*/index.vue 以 <style scoped> 内 @import 复用。
+ * 仅引用 tokens.css 的 CSS 变量，禁私造色值/字号。 */
+.cash-page {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+.cash-filter {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	padding: 12px 16px;
+	background: var(--bg-card);
+	border-bottom: 1px solid var(--border-lighter);
+}
+.cash-filter__label {
+	font-size: var(--font-base);
+	color: var(--text-regular);
+	white-space: nowrap;
+}
+.cash-table {
+	flex: 1;
+	padding: 0 16px;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+.cash-table :deep(.el-table) {
+	flex: 1;
+}
+.cash-table :deep(.el-table th.el-table__cell) {
+	background: var(--bg-hover);
+	color: var(--text-regular);
+	font-weight: 600;
+	font-size: var(--font-base);
+	height: 44px;
+	padding: 0;
+}
+/* 表内 Tag：高 22 / 圆角 4（设计 Token） */
+.cash-table :deep(.el-tag) {
+	height: 22px;
+	line-height: 20px;
+	border-radius: 4px;
+}
+.cash-table :deep(.el-table td.el-table__cell) {
+	color: var(--text-primary);
+	font-size: var(--font-base);
+}
+.cash-table :deep(.el-table__row) {
+	height: 40px;
+}
+.cash-table :deep(.el-table__footer) {
+	background: var(--bg-hover);
+}
+.cash-table :deep(.el-table__footer td.el-table__cell) {
+	color: var(--text-primary);
+	font-weight: 600;
+	font-size: var(--font-base);
+}
+/* 收入红 / 支出绿（设计文档 8.1 通用表格列） */
+.cash-income {
+	color: var(--color-danger);
+	font-weight: 600;
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+}
+.cash-expense {
+	color: var(--color-success);
+	font-weight: 600;
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+}
+/* 余额：等宽，负值红 */
+.cash-balance {
+	color: var(--text-primary);
+	font-weight: 600;
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+}
+.cash-balance--neg {
+	color: var(--color-danger);
+}
+/* 录入弹窗：余额实时刷新提示（方向增减：增=绿 / 减=红，不足=红加粗） */
+.cash-balance-hint {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-top: 2px;
+	padding: 8px 12px;
+	background: var(--bg-hover);
+	border: 1px solid var(--border-lighter);
+	border-radius: 4px;
+	font-size: var(--font-base);
+	color: var(--text-regular);
+}
+.cash-balance-hint__label {
+	color: var(--text-secondary);
+}
+.cash-balance-hint__val {
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	color: var(--text-primary);
+}
+.cash-balance-hint__arrow {
+	color: var(--text-secondary);
+	margin: 0 2px;
+}
+.cash-up {
+	color: var(--color-success);
+	font-weight: 600;
+}
+.cash-down {
+	color: var(--color-danger);
+	font-weight: 600;
+}
+.cash-link {
+	color: var(--color-primary);
+	cursor: pointer;
+}
+.cash-link:hover {
+	text-decoration: underline;
+}
+.cash-pager {
+	display: flex;
+	justify-content: flex-end;
+	padding: 12px 16px 0;
+}
+.cash-hint {
+	margin-top: 8px;
+	font-size: var(--font-aux);
+	color: var(--text-secondary);
+}
+/* 单据头表单（弹窗内）：右对齐标签 */
+.cash-form :deep(.el-form-item__label) {
+	font-size: var(--font-base);
+	color: var(--text-regular);
+}
+.cash-form :deep(.el-form-item__content) {
+	font-size: var(--font-base);
+}
+/* 单据编号只读占位 */
+.cash-no {
+	font-family: var(--font-numeric);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-secondary);
+}
