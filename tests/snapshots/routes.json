@@ -2301,6 +2301,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/finance-balance",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceBalanceController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/finance-journal",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\FinanceJournalController@index",
@@ -2352,6 +2364,30 @@
         "uri": "admin/business/finance-month-close/reopen/{period}",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\FinanceMonthCloseController@reopen",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/finance-statement",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceStatementController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/finance-subject-change",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceSubjectChangeController@index",
         "middleware": [
             "api",
             "stock.snapshot",

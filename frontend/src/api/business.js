@@ -766,6 +766,12 @@ const businessApi = {
 			close: { post: (period) => request.post(`business/finance-month-close/close/${period}`) },
 			reopen: { post: (period) => request.post(`business/finance-month-close/reopen/${period}`) },
 		},
+		// 对账单（B3）：客户应收 / 供应商应付
+		statement: { get: (params) => request.get('business/finance-statement', { params }) },
+		// 余额查询（B3）：客户 / 品牌 / 辅助单位
+		balance: { get: (params) => request.get('business/finance-balance', { params }) },
+		// 科目变化明细（B3）：逐科目流水 + 滚动余额
+		subjectChange: { get: (params) => request.get('business/finance-subject-change', { params }) },
 	},
 
 	// 内部邮件（Office 模块）

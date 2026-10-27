@@ -4,8 +4,11 @@ use Illuminate\Support\Facades\Route;
 use Modules\Business\Http\Controllers\AttendanceController;
 use Modules\Business\Http\Controllers\EmployeeController;
 use Modules\Business\Http\Controllers\ExpenseController;
+use Modules\Business\Http\Controllers\FinanceBalanceController;
 use Modules\Business\Http\Controllers\FinanceJournalController;
 use Modules\Business\Http\Controllers\FinanceMonthCloseController;
+use Modules\Business\Http\Controllers\FinanceStatementController;
+use Modules\Business\Http\Controllers\FinanceSubjectChangeController;
 use Modules\Business\Http\Controllers\FinanceVoucherController;
 use Modules\Business\Http\Controllers\GeneralExpenseController;
 use Modules\Business\Http\Controllers\OtherIncomeController;
@@ -109,5 +112,17 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/check/{period}', [FinanceMonthCloseController::class, 'check']);
         Route::post('/close/{period}', [FinanceMonthCloseController::class, 'close']);
         Route::post('/reopen/{period}', [FinanceMonthCloseController::class, 'reopen']);
+    });
+    // 财务对账单（B3）：客户应收 / 供应商应付 对账单查询视图（读 ledger 往来科目）
+    Route::prefix('business/finance-statement')->group(function () {
+        Route::get('/', [FinanceStatementController::class, 'index']);
+    });
+    // 财务余额查询（B3）：客户 / 品牌 / 辅助单位 余额查询视图（读 ledger 分录聚合）
+    Route::prefix('business/finance-balance')->group(function () {
+        Route::get('/', [FinanceBalanceController::class, 'index']);
+    });
+    // 财务科目变化明细（B3）：逐科目流水与滚动余额（读 ledger 分录）
+    Route::prefix('business/finance-subject-change')->group(function () {
+        Route::get('/', [FinanceSubjectChangeController::class, 'index']);
     });
 });
