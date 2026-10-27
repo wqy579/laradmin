@@ -386,6 +386,8 @@ class BusinessSeeder extends Seeder
             ['name' => 'fin:journal:view', 'title' => '查看日记账', 'parent' => 'finance.journal', 'sort' => 1],
             // 月结向导 / 月结查询
             ['name' => 'fin:monthclose:view', 'title' => '查看月结', 'parent' => 'finance.month-close-query', 'sort' => 1],
+            ['name' => 'fin:monthclose:execute', 'title' => '执行月结', 'parent' => 'finance.month-close', 'sort' => 1],
+            ['name' => 'fin:monthclose:reverse', 'title' => '反月结', 'parent' => 'finance.month-close-query', 'sort' => 2],
             // 对账单
             ['name' => 'fin:statement:view', 'title' => '查看对账单', 'parent' => 'finance.statement', 'sort' => 1],
             // 科目变化明细
