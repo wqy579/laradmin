@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Modules\Business\Http\Controllers\AttendanceController;
 use Modules\Business\Http\Controllers\EmployeeController;
 use Modules\Business\Http\Controllers\ExpenseController;
+use Modules\Business\Http\Controllers\FinanceJournalController;
+use Modules\Business\Http\Controllers\FinanceVoucherController;
 use Modules\Business\Http\Controllers\GeneralExpenseController;
 use Modules\Business\Http\Controllers\OtherIncomeController;
 use Modules\Business\Http\Controllers\PayableController;
@@ -91,5 +93,13 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/price-batch')->group(function () {
         Route::get('/', [PriceBatchController::class, 'index']);
         Route::post('/batch', [PriceBatchController::class, 'batch']);
+    });
+    // 财务日记账（B1）：现金/银行日记账查询视图
+    Route::prefix('business/finance-journal')->group(function () {
+        Route::get('/', [FinanceJournalController::class, 'index']);
+    });
+    // 财务凭证（B1）：凭证查询视图（录入/审核走 ledger 视角）
+    Route::prefix('business/finance-voucher')->group(function () {
+        Route::get('/', [FinanceVoucherController::class, 'index']);
     });
 });

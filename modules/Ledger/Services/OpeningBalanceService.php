@@ -49,6 +49,43 @@ class OpeningBalanceService
         }
         unset($r);
 
+        // 非末级 = 末级下级自动汇总（A2 规范：非末级=末级之和，只读展示）
+        $rowById = collect($rows)->keyBy('subject_id');
+        $childrenByParent = $subjects->groupBy('parent_id');
+        $leafSumDebit = [];
+        $leafSumCredit = [];
+        $compute = function (int $id) use (&$compute, &$leafSumDebit, &$leafSumCredit, $childrenByParent, $rowById) {
+            if (array_key_exists($id, $leafSumDebit)) {
+                return;
+            }
+            $children = $childrenByParent->get($id, collect());
+            if ($children->isEmpty()) {
+                $leafSumDebit[$id] = (float) $rowById[$id]['current_debit'];
+                $leafSumCredit[$id] = (float) $rowById[$id]['current_credit'];
+
+                return;
+            }
+            $d = 0.0;
+            $c = 0.0;
+            foreach ($children as $child) {
+                $compute((int) $child->id);
+                $d += $leafSumDebit[$child->id];
+                $c += $leafSumCredit[$child->id];
+            }
+            $leafSumDebit[$id] = round($d, 2);
+            $leafSumCredit[$id] = round($c, 2);
+        };
+        foreach ($subjects as $s) {
+            $compute((int) $s->id);
+        }
+        foreach ($rows as &$r) {
+            if (! $r['is_leaf']) {
+                $r['current_debit'] = $leafSumDebit[$r['subject_id']];
+                $r['current_credit'] = $leafSumCredit[$r['subject_id']];
+            }
+        }
+        unset($r);
+
         return [
             'period' => $period,
             'period_closed' => $this->isPeriodClosed($period),
@@ -63,6 +100,20 @@ class OpeningBalanceService
         DB::transaction(function () use ($period, $items) {
             if ($this->isPeriodClosed($period)) {
                 throw new \DomainException('期间 '.$period.' 已月结，禁止修改期初');
+            }
+            // 试算平衡检查：只统计末级科目，借贷合计须相等（A2 红字禁存）
+            $sumDebit = 0.0;
+            $sumCredit = 0.0;
+            foreach ($items as $item) {
+                $chkSubject = Subject::find((int) ($item['subject_id'] ?? 0));
+                if (! $chkSubject || ! $chkSubject->is_leaf) {
+                    continue;
+                }
+                $sumDebit += (float) ($item['opening_debit'] ?? 0) + (float) ($item['year_debit'] ?? 0);
+                $sumCredit += (float) ($item['opening_credit'] ?? 0) + (float) ($item['year_credit'] ?? 0);
+            }
+            if (abs(round($sumDebit, 2) - round($sumCredit, 2)) >= 0.005) {
+                throw new \DomainException('试算不平衡，禁止保存期初余额');
             }
             foreach ($items as $item) {
                 $subjectId = (int) ($item['subject_id'] ?? 0);
@@ -114,6 +165,9 @@ class OpeningBalanceService
         $debit = 0;
         $credit = 0;
         foreach ($rows as $r) {
+            if (! $r['is_leaf']) {
+                continue;
+            }
             $debit += $r['current_debit'];
             $credit += $r['current_credit'];
         }

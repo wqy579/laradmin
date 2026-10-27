@@ -752,6 +752,15 @@ const businessApi = {
 		publish: { post: (id) => request.post(`business/notice/${id}/publish`) },
 	},
 
+	// ============ 财务管理（B1） ============
+	// finance/voucher 为查询视图：凭证录入/审核统一走 ledger 视角（BUG-10）
+	finance: {
+		// 日记账：现金/银行科目流水（收入红/支出绿/余额逐行重排）
+		journal: { get: (params) => request.get('business/finance-journal', { params }) },
+		// 凭证查询视图：分组展示（含红冲分组）
+		voucher: { get: (params) => request.get('business/finance-voucher', { params }) },
+	},
+
 	// 内部邮件（Office 模块）
 	mail: {
 		list: { get: (params) => request.get('business/mail', { params }) },

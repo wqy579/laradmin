@@ -8,7 +8,7 @@
 				<span class="lbl">会计期间：</span>
 				<el-date-picker v-model="period" type="month" placeholder="选择期间" value-format="YYYY-MM" style="width:140px" @change="load" />
 				<el-button type="primary" @click="trialBalance">试算平衡</el-button>
-				<el-button type="primary" @click="save">保存</el-button>
+				<el-button type="primary" :disabled="!total.balanced || periodClosed" @click="save">保存</el-button>
 				<div class="balance-hint" :class="total.balanced ? 'ok' : 'err'">
 					{{ total.message }}
 				</div>
@@ -79,8 +79,10 @@ const recompute = (row) => {
 }
 const round = (v) => Math.round((Number(v) || 0) * 100) / 100
 const recomputeTotal = () => {
-	const d = round(rows.value.reduce((s, r) => s + (r.current_debit || 0), 0))
-	const c = round(rows.value.reduce((s, r) => s + (r.current_credit || 0), 0))
+	// 只统计末级科目，避免非末级（汇总行）重复计入
+	const leafs = rows.value.filter(r => r.is_leaf)
+	const d = round(leafs.reduce((s, r) => s + (r.current_debit || 0), 0))
+	const c = round(leafs.reduce((s, r) => s + (r.current_credit || 0), 0))
 	const balanced = Math.abs(d - c) < 0.005
 	total.value = { balanced, message: balanced ? '试算平衡' : `借贷不平衡，差额 ${Math.abs(round(d - c)).toFixed(2)}`, total_debit: d, total_credit: c }
 }
@@ -106,6 +108,7 @@ const trialBalance = async () => {
 }
 const save = async () => {
 	if (periodClosed.value) return ElMessage.warning('该期间已月结，禁止修改期初')
+	if (!total.value.balanced) return ElMessage.warning('试算不平衡，禁止保存期初余额')
 	try {
 		await ledgerApi.opening.save.post({ period: period.value, items: rows.value.filter(r => r.is_leaf) })
 		ElMessage.success('保存成功')
