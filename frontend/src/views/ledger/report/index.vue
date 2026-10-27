@@ -11,7 +11,7 @@
 						<el-button @click="exportReport('balance_sheet', bsPeriod)">导出</el-button>
 						<el-button @click="printReport">打印</el-button>
 					</div>
-					<div v-if="balanceSheet.diff !== 0" class="warn-hint">资产负债表不平衡，请检查凭证与结转</div>
+					<div v-if="balanceSheet.diff !== 0" class="warn-hint err">资产负债表不平衡，请检查凭证与结转（差额 {{ fmt(Math.abs(balanceSheet.diff)) }}）</div>
 					<div class="bs-wrap" id="bsPrintArea">
 						<div class="rpt-title">资产负债表</div>
 						<div class="rpt-sub">{{ companyName }} 　编制日期：{{ balanceSheet.report_date }}</div>
@@ -182,4 +182,5 @@ onMounted(() => {
 .red { color: #f56c6c; }
 .green { color: #67c23a; }
 .warn-hint { color: #e6a23c; font-size: 14px; margin: 8px 0; padding: 8px 12px; background: #fdf6ec; border-radius: 4px; }
+.warn-hint.err { color: #f56c6c; background: #fef0f0; }
 </style>

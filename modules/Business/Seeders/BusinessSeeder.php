@@ -431,6 +431,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'report.salesman', 'title' => '业务员报表', 'parent' => 'report', 'path' => '/business/report/salesman', 'sort' => 3],
             ['name' => 'report.combined', 'title' => '综合报表', 'parent' => 'report', 'path' => '/business/report/combined', 'sort' => 4],
             ['name' => 'report.customer', 'title' => '客户报表', 'parent' => 'report', 'path' => '/business/report/customer', 'component' => 'business/report/customer/index', 'sort' => 5],
+            ['name' => 'report.sales-analysis', 'title' => '销售分析', 'parent' => 'report', 'path' => '/business/report/sales-analysis', 'component' => 'business/report/sales-analysis/index', 'sort' => 7],
             ['name' => 'report.history', 'title' => '经营历程', 'parent' => 'report', 'path' => '/business/history', 'component' => 'business/history/index', 'sort' => 6],
         ];
 

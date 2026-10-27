@@ -8,7 +8,7 @@
 				<span class="lbl">会计期间：</span>
 				<el-date-picker v-model="period" type="month" placeholder="选择期间" value-format="YYYY-MM" style="width:140px" @change="load" />
 				<el-button type="primary" @click="trialBalance">试算平衡</el-button>
-				<el-button type="primary" @click="save">保存</el-button>
+				<el-button type="primary" :disabled="!total.balanced || periodClosed" @click="save">保存</el-button>
 				<div class="balance-hint" :class="total.balanced ? 'ok' : 'err'">
 					{{ total.message }}
 				</div>
