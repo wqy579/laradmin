@@ -5,6 +5,7 @@ namespace Modules\Report\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Modules\Report\Support\ReportFilter;
 
@@ -100,7 +101,7 @@ class SalesAnalysisController extends Controller
         $total = $rows->count();
         $items = $rows->forPage($page, $pageSize)->values();
 
-        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+        $paginator = new LengthAwarePaginator(
             $items,
             $total,
             $pageSize,

@@ -2301,6 +2301,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/finance-journal",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceJournalController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/finance-voucher",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceVoucherController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/general-expense",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@index",
