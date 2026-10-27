@@ -156,6 +156,13 @@ function tagStyle(type) {
 		fontSize: '12px',
 	}
 }
+/** 价格来源 Tag 配色（price_tag 类型）：特价=危险红、等级价=警告橙、默认价=信息灰（E4 价格优先级 特价>等级价>默认价） */
+function priceTagStyle(source) {
+	const key = String(source ?? '')
+	if (key === '特价') return tagStyle('danger')
+	if (key === '等级价') return tagStyle('warning')
+	return tagStyle('info')
+}
 /** 达成率配色：≥100% 绿、80~99% 橙、<80% 红（模块八要求） */
 function rateClass(v) {
 	const n = Number(v || 0)
@@ -223,6 +230,10 @@ function renderCell(col, row) {
 		case 'tag':
 			node = h('span', { style: tagStyle(tagType(raw)) }, String(col.tag_map?.[raw] ?? raw ?? ''))
 			break
+		case 'price_tag':
+			// 价格来源 Tag：按命中类型染色（特价红/等级价橙/默认价灰），非默认价行由 rowStyle 高亮
+			node = h('span', { style: priceTagStyle(raw) }, String(raw ?? ''))
+			break
 		case 'rate':
 			node = h('span', { class: rateClass(raw) }, num(raw, 2) + '%')
 			break
@@ -285,7 +296,11 @@ const emit = defineEmits(['pageChange', 'pageSizeChange', 'refresh', 'rowDblclic
 
 // ================= 规范行高 / 表头 =================
 // 列表 48px / 明细 41px；表头 44px #F5F7FA 14px/500 #606266
-const rowStyle = () => ({ height: props.dense ? '41px' : '48px' })
+// 命中价格规则的行（客户特价价格一览，rule_hit=true）整行浅蓝高亮，与价格来源 Tag 呼应
+const rowStyle = ({ row }) => ({
+	height: props.dense ? '41px' : '48px',
+	background: row && row.rule_hit ? '#eef6ff' : '',
+})
 const headerCellStyle = () => ({ height: '44px', background: '#F5F7FA', color: '#606266', fontWeight: 500, fontSize: '14px' })
 
 // ================= 穿透抽屉 =================
