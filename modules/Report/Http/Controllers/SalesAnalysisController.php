@@ -216,7 +216,7 @@ class SalesAnalysisController extends Controller
                         DB::raw('SUM(soi.quantity * COALESCE(p.cost_price, 0)) as cost_amount'),
                     ])
                     ->groupBy('so.salesman_id', 'e.code', 'sm.real_name')
-                    ->orderByDesc('amount');
+                    ->orderByDesc(DB::raw(self::AMOUNT_EXPR));
 
             case 'product_sales':
                 return $this->baseQuery($params)
@@ -234,7 +234,7 @@ class SalesAnalysisController extends Controller
                         DB::raw('SUM(soi.quantity * COALESCE(p.cost_price, 0)) as cost_amount'),
                     ])
                     ->groupBy('p.id', 'p.code', 'p.name', 'p.spec', 'p.is_new', 'p.is_key')
-                    ->orderByDesc('amount');
+                    ->orderByDesc(DB::raw(self::AMOUNT_EXPR));
 
             case 'sale_rank':
                 return $this->baseQuery($params)
@@ -248,7 +248,7 @@ class SalesAnalysisController extends Controller
                         DB::raw(self::AMOUNT_EXPR.' as amount'),
                     ])
                     ->groupBy('p.id', 'p.code', 'p.name', 'p.spec')
-                    ->orderByDesc('amount')
+                    ->orderByDesc(DB::raw(self::AMOUNT_EXPR))
                     ->orderByDesc('qty')
                     ->limit(10);
 
@@ -272,7 +272,7 @@ class SalesAnalysisController extends Controller
                         DB::raw('AVG(soi.price) as avg_price'),
                     ])
                     ->groupBy('p.id', 'p.code', 'p.name', 'p.spec')
-                    ->orderByDesc('amount');
+                    ->orderByDesc(DB::raw('SUM(soi.amount)'));
 
             case 'promotion':
                 return $this->promotionQuery($params);
@@ -292,7 +292,7 @@ class SalesAnalysisController extends Controller
                         DB::raw(self::AMOUNT_EXPR.' as amount'),
                     ])
                     ->groupBy('so.salesman_id', 'e.code', 'sm.real_name', 'p.id', 'p.code', 'p.name', 'p.spec')
-                    ->orderByDesc('amount');
+                    ->orderByDesc(DB::raw(self::AMOUNT_EXPR));
 
             case 'salesman_item_coverage':
                 return $this->coverageQuery($params);
