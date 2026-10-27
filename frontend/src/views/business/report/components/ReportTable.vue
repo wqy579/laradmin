@@ -163,6 +163,26 @@ function rateClass(v) {
 	if (n >= 80) return 'rp-rate-mid'
 	return 'rp-rate-low'
 }
+/** 铺市率/覆盖达标配色：<阈值 红，≥阈值 蓝（E3 铺市率<50% 红） */
+function coverageClass(v, threshold) {
+	const n = Number(v || 0)
+	return n < Number(threshold || 50) ? 'rp-coverage-low' : 'rp-coverage-ok'
+}
+/** TOP10 徽标配色：金/银/铜小圆点（第 4 名起淡灰） */
+function rankColor(rank) {
+	const r = Number(rank || 0)
+	if (r === 1) return { bg: '#f7ba2a', text: '#fff' } // 金
+	if (r === 2) return { bg: '#c0c4cc', text: '#fff' } // 银
+	if (r === 3) return { bg: '#b87333', text: '#fff' } // 铜
+	return { bg: '#f4f4f5', text: '#909399' }
+}
+/** 完成率进度条配色：<60% 橙、≥100% 绿、其余蓝（E3 模块八要求） */
+function progressColor(v) {
+	const n = Number(v || 0)
+	if (n < 60) return '#e6a23c'
+	if (n >= 100) return '#67c23a'
+	return '#409eff'
+}
 
 /**
  * 单元格渲染器：按后端下发的列 type 决定格式化方式。
@@ -205,6 +225,31 @@ function renderCell(col, row) {
 			break
 		case 'rate':
 			node = h('span', { class: rateClass(raw) }, num(raw, 2) + '%')
+			break
+		case 'coverage':
+			// 铺市率/覆盖达标：<阈值 红、≥阈值 蓝（E3 铺市率<50% 红，阈值列级可配 danger_below）
+			node = h('span', { class: coverageClass(raw, col.danger_below) }, num(raw, 2) + '%')
+			break
+		case 'rank':
+			// TOP10 徽标：金/银/铜小圆点 + 名次，第 4 名起淡灰
+			node = h(
+				'span',
+				{ class: 'rp-rank' },
+				[
+					h('span', { class: 'rp-rank-dot', style: { background: rankColor(raw).bg, color: rankColor(raw).text } }, String(raw ?? '')),
+					h('span', { class: 'rp-rank-txt' }, col.rank_label || ''),
+				]
+			)
+			break
+		case 'progress':
+			// 完成率进度条：<60% 橙、≥100% 绿、其余蓝
+			node = h('span', { class: 'rp-progress' }, [
+				h('div', {
+					class: 'rp-progress-track',
+					style: { width: Math.min(100, Math.max(0, Number(raw || 0))) + '%', background: progressColor(raw) },
+				}),
+				h('span', { class: 'rp-progress-txt' }, num(raw, 2) + '%'),
+			])
 			break
 		default:
 			node = h('span', {}, raw === null || raw === undefined ? '' : String(raw))
@@ -348,12 +393,12 @@ function formatSummary(col) {
 	const v = props.summary[col.prop]
 	if (col.type === 'money') return '¥' + money(v)
 	if (col.type === 'int') return num(v, 0)
-	if (col.type === 'percent') return num(v, 2) + '%'
+	if (col.type === 'percent' || col.type === 'rate' || col.type === 'coverage') return num(v, 2) + '%'
 	return num(v, 2)
 }
 
 function alignOf(col) {
-	return ['money', 'number', 'int', 'percent', 'rate'].includes(col.type) ? 'right' : col.align || 'left'
+	return ['money', 'number', 'int', 'percent', 'rate', 'coverage', 'rank', 'progress'].includes(col.type) ? 'right' : col.align || 'left'
 }
 </script>
 
@@ -470,5 +515,57 @@ function alignOf(col) {
 	margin-top: 8px;
 	font-size: 12px;
 	color: #c0c4cc;
+}
+
+/* 达成率配色（rate 类型）：≥100% 绿、80~99% 橙、<80% 红 */
+.rp-rate-high { color: #67c23a; font-weight: 600; }
+.rp-rate-mid { color: #e6a23c; font-weight: 600; }
+.rp-rate-low { color: #f56c6c; font-weight: 600; }
+
+/* 铺市率/覆盖达标（coverage 类型）：<阈值 红、≥阈值 蓝 */
+.rp-coverage-low { color: #f56c6c; font-weight: 600; }
+.rp-coverage-ok { color: #409eff; font-weight: 600; }
+
+/* TOP10 徽标（rank 类型）：金/银/铜小圆点 + 名次文本 */
+.rp-rank {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+.rp-rank-dot {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1;
+	flex-shrink: 0;
+}
+.rp-rank-txt {
+	font-size: 12px;
+	color: #909399;
+}
+
+/* 完成率进度条（progress 类型）：<60% 橙、≥100% 绿、其余蓝 */
+.rp-progress {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+}
+.rp-progress-track {
+	height: 8px;
+	border-radius: 4px;
+	transition: width 0.3s;
+	flex-shrink: 0;
+	min-width: 2px;
+}
+.rp-progress-txt {
+	font-size: 12px;
+	color: #606266;
+	white-space: nowrap;
 }
 </style>

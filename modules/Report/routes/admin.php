@@ -7,6 +7,7 @@ use Modules\Report\Http\Controllers\RecentPriceController;
 use Modules\Report\Http\Controllers\ReportColumnController;
 use Modules\Report\Http\Controllers\ReportOptionController;
 use Modules\Report\Http\Controllers\ReportTemplateController;
+use Modules\Report\Http\Controllers\SalesAnalysisController;
 use Modules\Report\Http\Controllers\SalesmanReportController;
 use Modules\Report\Http\Controllers\SalesReportController;
 use Modules\Report\Http\Controllers\StockReportController;
@@ -81,6 +82,12 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::prefix('combined')->group(function () {
             Route::get('/', [CombinedReportController::class, 'index']);
             Route::get('/export', [CombinedReportController::class, 'export']);
+        });
+
+        // 销售分析族报表（E3，7 个维度：业务员/商品/排行/特价/促销/品项销售/品项铺市）
+        Route::prefix('sales-analysis')->group(function () {
+            Route::get('/', [SalesAnalysisController::class, 'index']);
+            Route::get('/export', [SalesAnalysisController::class, 'export']);
         });
     });
 });

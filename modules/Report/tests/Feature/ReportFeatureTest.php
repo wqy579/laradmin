@@ -371,6 +371,82 @@ class ReportFeatureTest extends TestCase
         return $orderId;
     }
 
+    public function test_sales_analysis_every_dimension_runs(): void
+    {
+        // 造业务员 + 促销，覆盖 7 个销售分析维度
+        $user = $this->makeAdmin();
+        DB::table('employees')->insert([
+            'code' => 'EMP'.rand(1000, 9999), 'name' => '业务员甲', 'salesman_code' => 'SM001',
+            'user_id' => $user->id, 'role' => 'salesman', 'is_active' => true,
+        ]);
+        $orderId = $this->makeOrder('2026-10-05', [['product_id' => $this->ids['product'], 'price' => 50, 'qty' => 4]]);
+        DB::table('sales_orders')->where('id', $orderId)->update(['salesman_id' => $user->id]);
+
+        $promotionId = DB::table('promotions')->insertGetId([
+            'promotion_no' => 'CX202610010001', 'name' => '国庆特惠', 'type' => 'discount',
+            'start_time' => '2026-10-01 00:00:00', 'end_time' => '2026-10-31 23:59:59',
+            'customer_scope' => 'all', 'priority' => 1, 'status' => 'active',
+        ]);
+        DB::table('promotion_orders')->insert([
+            'promotion_id' => $promotionId, 'order_id' => $orderId,
+            'order_no' => DB::table('sales_orders')->where('id', $orderId)->value('order_no'),
+            'customer_id' => $this->ids['customer'], 'discount_amount' => 20,
+        ]);
+
+        $dims = [
+            'salesman_sales', 'product_sales', 'sale_rank', 'special_price',
+            'promotion', 'salesman_item_sales', 'salesman_item_coverage',
+        ];
+        foreach ($dims as $dimension) {
+            $res = $this->getJson('admin/business/report/sales-analysis?dimension='.$dimension);
+            $res->assertOk("销售分析维度 {$dimension} 查询失败");
+            $this->assertNotEmpty($res->json('data.columns'), "维度 {$dimension} 没有返回列定义");
+            $this->assertIsArray($res->json('data.list'));
+            $this->assertIsArray($res->json('data.summary'));
+        }
+
+        // 促销分析能归集到上面造的促销
+        $res = $this->getJson('admin/business/report/sales-analysis?dimension=promotion');
+        $this->assertSame('国庆特惠', $res->json('data.list.0.promotion_name'), '促销分析未带出促销方案');
+    }
+
+    public function test_sales_analysis_sale_rank_marks_top_rank(): void
+    {
+        $this->makeOrder('2026-10-02', [['product_id' => $this->ids['product'], 'price' => 100, 'qty' => 2]]);
+
+        $res = $this->getJson('admin/business/report/sales-analysis?dimension=sale_rank');
+
+        $res->assertOk();
+        $rankCol = collect($res->json('data.columns'))->firstWhere('prop', 'rank');
+        $this->assertSame('rank', $rankCol['type'], '排名列未标记为 rank 徽标类型');
+        $this->assertEquals(1, $res->json('data.list.0.rank'), 'TOP1 应标排名 1');
+    }
+
+    public function test_sales_analysis_assigns_abc_and_coverage_danger(): void
+    {
+        $user = $this->makeAdmin();
+        DB::table('employees')->insert([
+            'code' => 'EMP'.rand(1000, 9999), 'name' => '业务员乙', 'salesman_code' => 'SM002',
+            'user_id' => $user->id, 'role' => 'salesman', 'is_active' => true,
+        ]);
+        $orderId = $this->makeOrder('2026-10-03', [['product_id' => $this->ids['product'], 'price' => 30, 'qty' => 10]]);
+        DB::table('sales_orders')->where('id', $orderId)->update(['salesman_id' => $user->id]);
+
+        $res = $this->getJson('admin/business/report/sales-analysis?dimension=product_sales');
+        $res->assertOk();
+        $abcCol = collect($res->json('data.columns'))->firstWhere('prop', 'abc');
+        $this->assertSame('tag', $abcCol['type'], 'ABC 列未标记为 tag 类型');
+        $this->assertArrayHasKey('tag_map', $abcCol, 'ABC 列缺少 tag_map');
+        $this->assertContains($res->json('data.list.0.abc'), ['A', 'B', 'C'], '商品 ABC 分类应在 A/B/C 中');
+
+        // 铺市率列必须带危险阈值，前端据此 <50% 染红
+        $res = $this->getJson('admin/business/report/sales-analysis?dimension=salesman_item_coverage');
+        $res->assertOk();
+        $covCol = collect($res->json('data.columns'))->firstWhere('prop', 'coverage');
+        $this->assertSame('coverage', $covCol['type'], '铺市率列未标记为 coverage 类型');
+        $this->assertSame(50, $covCol['danger_below'], '铺市率列未标记危险阈值 50');
+    }
+
     private function makeReturn(string $date, float $amount): int
     {
         $id = DB::table('sales_returns')->insertGetId([
