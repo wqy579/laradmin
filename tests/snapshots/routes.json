@@ -4413,6 +4413,42 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/report/customer",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\CustomerReportController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/customer/drill",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\CustomerReportController@drill",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/customer/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\CustomerReportController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/report/options",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\ReportOptionController@index",

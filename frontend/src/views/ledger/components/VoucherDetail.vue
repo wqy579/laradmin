@@ -101,6 +101,7 @@ const print = () => {
 		.vp-flags { display:flex; gap:8px; align-items:center; margin-bottom:12px; font-size:14px; }
 		.vp-flags .link { color:#409eff; cursor:pointer; text-decoration:underline; }
 		.vp-table { width:100%; border-collapse:collapse; }
+		.vp-table tr { page-break-inside: avoid; break-inside: avoid; }
 		.vp-table th, .vp-table td { border:1px solid #303133; padding:6px 8px; font-size:14px; text-align:center; }
 		.amt { text-align:right; }
 		.amt-red { color:#f56c6c; }

@@ -47,7 +47,7 @@
     <div class="voucher-toolbar">
       <span class="voucher-toolbar__title">财务凭证</span>
       <!-- 凭证录入/审核统一走 ledger 模块（BUG-10），本页为查询视图 -->
-      <el-button size="small" :disabled="!activeVoucher" @click="printActive">打印</el-button>
+<el-button size="small" v-permission="'fin:voucher:view'" :disabled="!activeVoucher" @click="printActive">打印</el-button>
     </div>
 
     <!-- ============ 凭证表（分录级，按凭证分组） ============ -->

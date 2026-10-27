@@ -802,6 +802,13 @@ const businessApi = {
 			export: { get: (params) => request.get('business/report/sales/export', { params, responseType: 'blob' }) },
 			// 穿透：双击行 → 源单明细抽屉（传 order_no 或 order_id）
 			drill: { get: (params) => request.get('business/report/sales/drill', { params }) },
+},
+
+		customer: {
+			get: (params) => request.get('business/report/customer', { params }),
+			export: { get: (params) => request.get('business/report/customer/export', { params, responseType: 'blob' }) },
+			// 穿透：客户维度双击 → 该客户订单列表抽屉（传 customer_id 或 customer_code）
+			drill: { get: (params) => request.get('business/report/customer/drill', { params }) },
 		},
 
 		stock: {
