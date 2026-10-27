@@ -223,6 +223,97 @@ class ReportFeatureTest extends TestCase
         $this->withHeaders(['Authorization' => ''])->getJson('admin/business/report/sales')->assertStatus(401);
     }
 
+    public function test_customer_report_every_dimension_runs(): void
+    {
+        // 造两笔销售：一笔 2026-09（2×100=200），一笔 2026-10（3×12=36）
+        $this->makeOrder('2026-09-05', [['product_id' => $this->ids['product'], 'price' => 100, 'qty' => 2]]);
+        $this->makeOrder('2026-10-02', [['product_id' => $this->ids['product'], 'price' => 12, 'qty' => 3]]);
+
+        foreach (['order_detail', 'shipped_uncollected', 'return_rate_mom', 'customer_sales', 'customer_order', 'return_summary'] as $dimension) {
+            $res = $this->getJson('admin/business/report/customer?dimension='.$dimension);
+            $res->assertOk("客户报表维度 {$dimension} 查询失败");
+            $this->assertNotEmpty($res->json('data.columns'), "维度 {$dimension} 没有返回列定义");
+            $this->assertIsArray($res->json('data.list'));
+            $this->assertIsArray($res->json('data.summary'));
+        }
+    }
+
+    public function test_customer_report_shipped_uncollected_marks_overdue(): void
+    {
+        // 已发货且未收齐的订单：金额 100，已收 0，发货日期 120 天前 → 未收天数 120（> 60 红）
+        $orderId = $this->makeOrder('2026-05-01', [['product_id' => $this->ids['product'], 'price' => 50, 'qty' => 2]]);
+        DB::table('sales_orders')->where('id', $orderId)->update([
+            'dispatch_date' => '2026-05-05',
+            'delivery_date' => '2026-05-06',
+            'total_amount' => 100,
+            'paid_amount' => 0,
+        ]);
+        DB::table('deliveries')->insert([
+            'order_id' => $orderId,
+            'status' => 1,
+            'delivery_no' => 'DEL'.$orderId.'20260505',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $res = $this->getJson('admin/business/report/customer?dimension=shipped_uncollected&as_of_date=2026-10-27');
+
+        $res->assertOk();
+        $row = $res->json('data.list.0');
+        $this->assertNotEmpty($row, '发货未收款应有数据');
+        $this->assertEquals(100, round((float) $row['unpaid_amount'], 2));
+        // 未收天数列定义必须带逾期阈值，前端据此染红
+        $ageCol = collect($res->json('data.columns'))->firstWhere('prop', 'age_days');
+        $this->assertSame(60, $ageCol['overdue_threshold'], '未收天数列未标记逾期阈值');
+        $this->assertGreaterThan(60, (float) $row['age_days'], '逾期订单未收天数应 > 60');
+        // 合计行应归集逾期未收
+        $this->assertEquals(100, round((float) $res->json('data.summary.overdue_unpaid_amount'), 2));
+    }
+
+    public function test_customer_report_return_rate_mom_computes_mom_change(): void
+    {
+        // 9 月销售 200，退货 0 → 退货率 0；10 月销售 100，退货 50 → 退货率 50，环比 +50
+        $this->makeOrder('2026-09-05', [['product_id' => $this->ids['product'], 'price' => 100, 'qty' => 2]]);
+        $this->makeOrder('2026-10-02', [['product_id' => $this->ids['product'], 'price' => 50, 'qty' => 2]]);
+        $this->makeReturn('2026-10-06', 50);
+
+        $res = $this->getJson('admin/business/report/customer?dimension=return_rate_mom&return_rate_threshold=5');
+
+        $res->assertOk();
+        $rows = collect($res->json('data.list'));
+        $oct = $rows->firstWhere('period', '2026-10');
+        $this->assertNotNull($oct, '缺少 2026-10 月份行');
+        $this->assertEquals(50, round((float) $oct['return_rate'], 2), '10 月退货率应为 50%');
+        $this->assertEquals(50, round((float) $oct['mom_change'], 2), '10 月环比应为 +50%');
+        // 退货率列定义需带阈值，环比列需带上涨箭头标记，前端据此标红 + 箭头
+        $rateCol = collect($res->json('data.columns'))->firstWhere('prop', 'return_rate');
+        $this->assertEquals(5, round((float) $rateCol['threshold']));
+        $momCol = collect($res->json('data.columns'))->firstWhere('prop', 'mom_change');
+        $this->assertTrue($momCol['arrow'] ?? false, '环比列应带上涨箭头标记');
+    }
+
+    public function test_customer_report_drill_returns_customer_orders(): void
+    {
+        $orderId = $this->makeOrder('2026-10-02', [['product_id' => $this->ids['product'], 'price' => 12, 'qty' => 3]]);
+
+        $res = $this->getJson('admin/business/report/customer/drill?customer_id='.$this->ids['customer']);
+
+        $res->assertOk();
+        $this->assertEquals($this->ids['customer'], (int) $res->json('data.header.customer_id'));
+        $orders = $res->json('data.items');
+        $this->assertNotEmpty($orders, '该客户应有订单');
+        $this->assertSame(
+            DB::table('sales_orders')->where('id', $orderId)->value('order_no'),
+            $orders[0]['order_no']
+        );
+        $this->assertNotEmpty($res->json('data.columns'), '穿透抽屉应返回列定义');
+    }
+
+    public function test_customer_report_drill_requires_identifier(): void
+    {
+        $this->getJson('admin/business/report/customer/drill')->assertStatus(422);
+    }
+
     // ==================== 数据准备 ====================
 
     private function seedReportData(): void
@@ -278,5 +369,25 @@ class ReportFeatureTest extends TestCase
         }
 
         return $orderId;
+    }
+
+    private function makeReturn(string $date, float $amount): int
+    {
+        $id = DB::table('sales_returns')->insertGetId([
+            'return_no' => 'TH'.str_replace('-', '', $date).rand(1000, 9999),
+            'order_id' => null,
+            'customer_id' => $this->ids['customer'],
+            'warehouse_id' => $this->ids['warehouse'],
+            'return_date' => $date,
+            'return_type' => 'quality',
+            'status' => 'approved',
+            'total_qty' => 1,
+            'total_amount' => $amount,
+            'refund_amount' => $amount,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return $id;
     }
 }

@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Report\Http\Controllers\CombinedReportController;
+use Modules\Report\Http\Controllers\CustomerReportController;
 use Modules\Report\Http\Controllers\RecentPriceController;
 use Modules\Report\Http\Controllers\ReportColumnController;
 use Modules\Report\Http\Controllers\ReportOptionController;
@@ -54,6 +55,14 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
             Route::get('/export', [SalesReportController::class, 'export']);
             // 穿透：双击行 → 源单明细抽屉
             Route::get('/drill', [SalesReportController::class, 'drill']);
+        });
+
+        // 客户报表（E2，6 个汇总维度）
+        Route::prefix('customer')->group(function () {
+            Route::get('/', [CustomerReportController::class, 'index']);
+            Route::get('/export', [CustomerReportController::class, 'export']);
+            // 穿透：客户维度双击 → 该客户订单列表抽屉
+            Route::get('/drill', [CustomerReportController::class, 'drill']);
         });
 
         // 库存报表（4 个汇总维度）
