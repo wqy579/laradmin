@@ -2313,6 +2313,54 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/finance-month-close",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceMonthCloseController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/finance-month-close/check/{period}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceMonthCloseController@check",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/finance-month-close/close/{period}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceMonthCloseController@close",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/finance-month-close/reopen/{period}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceMonthCloseController@reopen",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/finance-voucher",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\FinanceVoucherController@index",

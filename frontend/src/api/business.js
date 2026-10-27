@@ -759,6 +759,13 @@ const businessApi = {
 		journal: { get: (params) => request.get('business/finance-journal', { params }) },
 		// 凭证查询视图：分组展示（含红冲分组）
 		voucher: { get: (params) => request.get('business/finance-voucher', { params }) },
+		// 月结向导 + 月结查询（B2）：复用 ledger PeriodService
+		monthClose: {
+			periods: { get: (params) => request.get('business/finance-month-close', { params }) },
+			check: { get: (period) => request.get(`business/finance-month-close/check/${period}`) },
+			close: { post: (period) => request.post(`business/finance-month-close/close/${period}`) },
+			reopen: { post: (period) => request.post(`business/finance-month-close/reopen/${period}`) },
+		},
 	},
 
 	// 内部邮件（Office 模块）

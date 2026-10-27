@@ -5,6 +5,7 @@ use Modules\Business\Http\Controllers\AttendanceController;
 use Modules\Business\Http\Controllers\EmployeeController;
 use Modules\Business\Http\Controllers\ExpenseController;
 use Modules\Business\Http\Controllers\FinanceJournalController;
+use Modules\Business\Http\Controllers\FinanceMonthCloseController;
 use Modules\Business\Http\Controllers\FinanceVoucherController;
 use Modules\Business\Http\Controllers\GeneralExpenseController;
 use Modules\Business\Http\Controllers\OtherIncomeController;
@@ -101,5 +102,12 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 财务凭证（B1）：凭证查询视图（录入/审核走 ledger 视角）
     Route::prefix('business/finance-voucher')->group(function () {
         Route::get('/', [FinanceVoucherController::class, 'index']);
+    });
+    // 财务月结（B2）：月结向导 + 月结查询（复用 ledger PeriodService）
+    Route::prefix('business/finance-month-close')->group(function () {
+        Route::get('/', [FinanceMonthCloseController::class, 'index']);
+        Route::get('/check/{period}', [FinanceMonthCloseController::class, 'check']);
+        Route::post('/close/{period}', [FinanceMonthCloseController::class, 'close']);
+        Route::post('/reopen/{period}', [FinanceMonthCloseController::class, 'reopen']);
     });
 });
