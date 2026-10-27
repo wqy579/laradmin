@@ -51,7 +51,8 @@ class SalesAnalysisController extends Controller
 
         // 业务员销售分析 / 商品销售分析 / 销售类排行：整表取回后在 PHP 里算完成率 / ABC / 名次
         if (in_array($dimension, ['salesman_sales', 'product_sales', 'sale_rank'], true)) {
-            return $this->success($this->manuallyPaged($params, $dimension, $rows));
+            // aggregate() 返回 Query\Builder，enrich()/page() 需要 Collection，先 get() 物化
+            return $this->success($this->manuallyPaged($params, $dimension, $rows->get()));
         }
 
         $paginator = $rows->paginate($params['page_size'], ['*'], 'page', $params['page']);
@@ -73,13 +74,16 @@ class SalesAnalysisController extends Controller
 
         $rows = $this->aggregate($params, $dimension);
 
-        // 手工整形维度（含完成率/ABC/名次计算）统一走 collect 整形
+        // 手工整形维度（含完成率/ABC/名次计算）需先取回整表再 enrich，结果已是 Collection
         if (in_array($dimension, ['salesman_sales', 'product_sales', 'sale_rank'], true)) {
-            $rows = $this->enrich($rows, $dimension);
+            $rows = $this->enrich($rows->get(), $dimension);
+            $rowsForExcel = $rows->take(50000);
+        } else {
+            $rowsForExcel = $rows->limit(50000)->get();
         }
 
         return ReportFilter::excelResponse(
-            ReportFilter::excel('销售分析 - '.(self::DIMENSIONS[$dimension] ?? ''), $columns, $rows->limit(50000)->get()),
+            ReportFilter::excel('销售分析 - '.(self::DIMENSIONS[$dimension] ?? ''), $columns, $rowsForExcel),
             'sales_analysis_'.$dimension.'.xls'
         );
     }
