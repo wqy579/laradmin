@@ -2301,30 +2301,6 @@
     },
     {
         "method": "GET",
-        "uri": "admin/business/finance-journal",
-        "name": "admin.",
-        "action": "Modules\\Business\\Http\\Controllers\\FinanceJournalController@index",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/finance-voucher",
-        "name": "admin.",
-        "action": "Modules\\Business\\Http\\Controllers\\FinanceVoucherController@index",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
         "uri": "admin/business/general-expense",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@index",
@@ -4464,6 +4440,30 @@
         "uri": "admin/business/report/sales",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\SalesReportController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/sales-analysis",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\SalesAnalysisController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/sales-analysis/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\SalesAnalysisController@export",
         "middleware": [
             "api",
             "stock.snapshot",
