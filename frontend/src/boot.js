@@ -2,6 +2,8 @@ import router from './router'
 import pinia from './stores'
 import i18n from './locales'
 
+import { usePermission } from './composables/usePermission'
+
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 
@@ -61,6 +63,18 @@ export default function boot(app) {
 	}
 
 	app.use(pinia)
+
+	// v-permission 指令：按权限码控制按钮/元素显隐（无权限不渲染，非置灰）。
+	// 传入单个权限码或数组（任一命中即渲染）；仅前端体验优化，真实拦截在后端 authorizeContent。
+	app.directive('permission', {
+		mounted(el, binding) {
+			const { has, hasAny } = usePermission()
+			const code = binding.value
+			const ok = Array.isArray(code) ? hasAny(code) : has(code)
+			if (!ok) el.remove()
+		},
+	})
+
 	app.use(router)
 	app.use(i18n)
 	app.use(ElementPlus)

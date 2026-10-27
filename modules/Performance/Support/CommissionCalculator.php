@@ -286,6 +286,7 @@ class CommissionCalculator
             'rule_id' => $appliedRule->id,
             'rule_name' => $appliedRuleName,
             'calc_type' => $appliedRule->calc_type,
+            'rate' => (float) $appliedRule->rate, // generate 落库 perf_commission_orders.rate（NOT NULL）
             'detail_lines' => $detailLines,
         ];
     }

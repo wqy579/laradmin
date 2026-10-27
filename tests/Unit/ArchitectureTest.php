@@ -37,6 +37,9 @@ class ArchitectureTest extends TestCase
         'System->Auth',
         'Business->Stock',  // BusinessDataSeeder 写商品/单位/仓库/车辆主数据
         'Business->Order',  // BusinessDataSeeder 写客户/供应商/线路主数据
+        'Business->Ledger', // 财务查询视图（B1，BUG-10）只读引用 A 机 ledger 的凭证/分录，
+        // 凭证录入/审核统一走 ledger，finance/voucher 与日记账仅聚合展示，同库同事务、
+        // 跨模块只读主数据（与 Performance->Report、Order->Member 同理），抽契约收益低于耦合成本
         'Order->Stock',     // 订单/退货/发货引用 Stock 的商品与仓库主数据表，
         // 两侧同库同事务，抽契约要引入跨事务一致性负担，
         // 收益低于耦合成本，保留共享主数据引用

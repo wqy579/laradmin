@@ -4,6 +4,16 @@ use Illuminate\Support\Facades\Route;
 use Modules\Business\Http\Controllers\AttendanceController;
 use Modules\Business\Http\Controllers\EmployeeController;
 use Modules\Business\Http\Controllers\ExpenseController;
+use Modules\Business\Http\Controllers\FinanceJournalController;
+use Modules\Business\Http\Controllers\FinanceMonthCloseController;
+use Modules\Business\Http\Controllers\FinanceVoucherController;
+use Modules\Business\Http\Controllers\GeneralExpenseController;
+use Modules\Business\Http\Controllers\OtherIncomeController;
+use Modules\Business\Http\Controllers\PayableController;
+use Modules\Business\Http\Controllers\PaymentController;
+use Modules\Business\Http\Controllers\PriceBatchController;
+use Modules\Business\Http\Controllers\ReceivableController;
+use Modules\Business\Http\Controllers\SupplierPaymentController;
 
 // =============================================================================
 // 业务模块（Business）路由 —— 残部
@@ -47,5 +57,57 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::put('/{id}', [ExpenseController::class, 'update']);
         Route::post('/{id}/approve', [ExpenseController::class, 'approve']);
         Route::delete('/{id}', [ExpenseController::class, 'destroy']);
+    });
+    // 财务：应收余额
+    Route::prefix('business/receivable')->group(function () {
+        Route::get('/', [ReceivableController::class, 'index']);
+    });
+    // 财务：应付余额
+    Route::prefix('business/payable')->group(function () {
+        Route::get('/', [PayableController::class, 'index']);
+    });
+    // 财务：付款单
+    Route::prefix('business/payment')->group(function () {
+        Route::get('/', [PaymentController::class, 'index']);
+        Route::get('/statistics', [PaymentController::class, 'statistics']);
+    });
+    // 财务：供应商付款
+    Route::prefix('business/supplier-payment')->group(function () {
+        Route::get('/', [SupplierPaymentController::class, 'index']);
+        Route::get('/statistics', [SupplierPaymentController::class, 'statistics']);
+    });
+    // 财务：一般费用单
+    Route::prefix('business/general-expense')->group(function () {
+        Route::get('/', [GeneralExpenseController::class, 'index']);
+        Route::get('/statistics', [GeneralExpenseController::class, 'statistics']);
+    });
+    // 财务：其它收入单（兼容单复数两种前端路径）
+    Route::prefix('business/other-income')->group(function () {
+        Route::get('/', [OtherIncomeController::class, 'index']);
+        Route::get('/statistics', [OtherIncomeController::class, 'statistics']);
+    });
+    Route::prefix('business/other-incomes')->group(function () {
+        Route::get('/', [OtherIncomeController::class, 'index']);
+        Route::get('/statistics', [OtherIncomeController::class, 'statistics']);
+    });
+    // 财务：批量调价
+    Route::prefix('business/price-batch')->group(function () {
+        Route::get('/', [PriceBatchController::class, 'index']);
+        Route::post('/batch', [PriceBatchController::class, 'batch']);
+    });
+    // 财务日记账（B1）：现金/银行日记账查询视图
+    Route::prefix('business/finance-journal')->group(function () {
+        Route::get('/', [FinanceJournalController::class, 'index']);
+    });
+    // 财务凭证（B1）：凭证查询视图（录入/审核走 ledger 视角）
+    Route::prefix('business/finance-voucher')->group(function () {
+        Route::get('/', [FinanceVoucherController::class, 'index']);
+    });
+    // 财务月结（B2）：月结向导 + 月结查询（复用 ledger PeriodService）
+    Route::prefix('business/finance-month-close')->group(function () {
+        Route::get('/', [FinanceMonthCloseController::class, 'index']);
+        Route::get('/check/{period}', [FinanceMonthCloseController::class, 'check']);
+        Route::post('/close/{period}', [FinanceMonthCloseController::class, 'close']);
+        Route::post('/reopen/{period}', [FinanceMonthCloseController::class, 'reopen']);
     });
 });

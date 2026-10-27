@@ -22,11 +22,22 @@ class RecentPriceController extends Controller
     public function index(Request $request): JsonResponse
     {
         $params = ReportFilter::parse($request);
+        $columns = $this->columns();
         $query = $this->buildQuery($params);
+        $items = $query->limit(500)->get();
 
-        $paginator = $query->paginate($params['page_size'], ['*'], 'page', $params['page']);
+        $list = array_map(fn ($r) => (array) $r, $items->all());
+        $summary = [
+            'quantity' => ReportFilter::num($items->sum('quantity')),
+            'amount' => ReportFilter::num($items->sum('amount')),
+        ];
 
-        return $this->success(ReportFilter::page($paginator));
+        return $this->success([
+            'columns' => $columns,
+            'list' => $list,
+            'summary' => $summary,
+            'total' => $items->count(),
+        ]);
     }
 
     public function export(Request $request)
@@ -34,23 +45,28 @@ class RecentPriceController extends Controller
         $params = ReportFilter::parse($request);
         $rows = $this->buildQuery($params)->limit(50000)->get();
 
-        $headers = ['商品编码', '商品名称', '规格', '单位', '最近销售日期', '最近销售单号', '客户名称', '销售数量', '销售单价', '销售金额', '仓库'];
-        $body = [];
-        foreach ($rows as $r) {
-            $body[] = [
-                $r->product_code, $r->product_name, $r->spec, $r->unit,
-                $r->last_sale_date, $r->order_no, $r->customer_name,
-                number_format((float) $r->quantity, 2, '.', ''),
-                number_format((float) $r->price, 2, '.', ''),
-                number_format((float) $r->amount, 2, '.', ''),
-                $r->warehouse_name,
-            ];
-        }
-
-        return ReportFilter::csvResponse(
-            ReportFilter::csv('最近价格', $headers, $body),
-            'recent_prices.csv'
+        return ReportFilter::excelResponse(
+            ReportFilter::excel('最近价格', $this->columns(), $rows),
+            'recent_prices.xls'
         );
+    }
+
+    /** 列定义：与页面观感一致（宽度/类型/对齐），导出复用它保持列宽与表头底色一致 */
+    private function columns(): array
+    {
+        return [
+            ['prop' => 'product_code', 'label' => '商品编码', 'width' => 100],
+            ['prop' => 'product_name', 'label' => '商品名称', 'width' => 160],
+            ['prop' => 'spec', 'label' => '规格', 'width' => 120],
+            ['prop' => 'unit', 'label' => '单位', 'width' => 60],
+            ['prop' => 'last_sale_date', 'label' => '最近销售日期', 'width' => 120],
+            ['prop' => 'order_no', 'label' => '最近销售单号', 'width' => 140],
+            ['prop' => 'customer_name', 'label' => '客户名称', 'width' => 140],
+            ['prop' => 'quantity', 'label' => '销售数量', 'width' => 100, 'type' => 'number'],
+            ['prop' => 'price', 'label' => '销售单价', 'width' => 110, 'type' => 'money'],
+            ['prop' => 'amount', 'label' => '销售金额', 'width' => 120, 'type' => 'money'],
+            ['prop' => 'warehouse_name', 'label' => '仓库', 'width' => 120],
+        ];
     }
 
     /**

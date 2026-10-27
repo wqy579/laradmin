@@ -14,9 +14,9 @@
 					type="daterange"
 					value-format="YYYY-MM-DD"
 					range-separator="至"
-					start-placeholder="开始"
-					end-placeholder="结束"
-					style="width:250px"
+					start-placeholder="开始日期"
+					end-placeholder="结束日期"
+					style="width:240px"
 					@change="onDateChange"
 				/>
 				<el-select v-model="filters.customer" placeholder="客户" clearable filterable style="width:140px">
@@ -25,13 +25,12 @@
 				<el-select v-model="filters.salesman" placeholder="业务员" clearable style="width:120px">
 					<el-option v-for="s in SALESMEN" :key="s.value" :label="s.label" :value="s.value" />
 				</el-select>
-				<el-input v-model="filters.last4" placeholder="卡号后四位" clearable maxlength="4" style="width:110px" />
+				<el-input v-model="filters.last4" placeholder="卡号后四位" clearable maxlength="4" class="tabular-input" style="width:110px" />
 				<el-select v-model="filters.status" placeholder="状态" clearable style="width:110px">
 					<el-option label="成功" value="success" />
 					<el-option label="失败" value="fail" />
 					<el-option label="退款" value="refund" />
 				</el-select>
-				<el-input v-model="filters.keyword" placeholder="流水号 / 关联单号" clearable style="width:170px" />
 				<el-button type="primary" @click="onSearch">查询</el-button>
 				<el-button @click="onReset">重置</el-button>
 			</div>
@@ -61,7 +60,6 @@
 				stripe
 				show-summary
 				:summary-method="summaryMethod"
-				height="calc(100% - 150px)"
 				empty-text="暂无刷卡记录"
 			>
 				<el-table-column prop="serial_no" label="流水号" width="150">
@@ -87,7 +85,7 @@
 						<span class="tabular amt" :class="row.amount < 0 ? 'neg' : ''">{{ fmtMoney(row.amount) }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column label="手续费" width="76" align="right">
+				<el-table-column label="手续费" width="60" align="right">
 					<template #default="{ row }"><span class="tabular">{{ fmtMoney(row.fee) }}</span></template>
 				</el-table-column>
 				<el-table-column label="状态" width="90" align="center">
@@ -95,12 +93,6 @@
 						<el-tag :type="CARD_STATUS[row.status]?.tag || 'info'" size="small" effect="light">
 							{{ CARD_STATUS[row.status]?.label || row.status }}
 						</el-tag>
-					</template>
-				</el-table-column>
-				<el-table-column label="关联单号" min-width="130" show-overflow-tooltip>
-					<template #default="{ row }">
-						<span v-if="row.rel_no" class="tabular">{{ row.rel_no }}</span>
-						<span v-else class="dash">—</span>
 					</template>
 				</el-table-column>
 				<el-table-column label="操作" width="90" align="center" fixed="right">
@@ -127,16 +119,15 @@ import { Download } from '@element-plus/icons-vue'
 import {
 	CUSTOMERS, SALESMEN, CARD_STATUS, CARD_TYPE_LABEL,
 	fmtMoney, fmtCount, fmtDateTime, maskCard, today,
-} from '../shared'
-import { listCardTxns, refundCardTxn } from '../store'
+} from '@/mock/card'
+import { listCardTxns, refundCardTxn } from '@/mock/card'
 
-const filters = reactive({ customer: '', salesman: '', last4: '', status: '', keyword: '', start_date: '', end_date: '' })
+const filters = reactive({ customer: '', salesman: '', last4: '', status: '', start_date: '', end_date: '' })
 const dateRange = ref([])
 const rows = ref(listCardTxns())
 
 const filtered = computed(() => {
 	const last4 = filters.last4.trim()
-	const kw = filters.keyword.trim()
 	return rows.value.filter((r) => {
 		const d = String(r.txn_time).slice(0, 10)
 		if (filters.customer && r.customer !== filters.customer) return false
@@ -145,7 +136,6 @@ const filtered = computed(() => {
 		if (last4 && !String(r.card_last4).endsWith(last4)) return false
 		if (filters.start_date && d < filters.start_date) return false
 		if (filters.end_date && d > filters.end_date) return false
-		if (kw && !String(r.serial_no).includes(kw) && !String(r.rel_no || '').includes(kw)) return false
 		return true
 	})
 })
@@ -169,7 +159,7 @@ const summaryMethod = ({ columns, data }) =>
 
 const onSearch = () => ElMessage.success(`查询到 ${filtered.value.length} 笔，成功收款 ¥${fmtMoney(successAmount.value)}`)
 const onReset = () => {
-	Object.assign(filters, { customer: '', salesman: '', last4: '', status: '', keyword: '', start_date: '', end_date: '' })
+	Object.assign(filters, { customer: '', salesman: '', last4: '', status: '', start_date: '', end_date: '' })
 	dateRange.value = []
 }
 
@@ -192,18 +182,18 @@ const onRefund = (row) => {
 const onExport = () => {
 	const list = filtered.value
 	if (!list.length) return ElMessage.warning('当前无数据可导出')
-	const head = ['流水号', '刷卡日期时间', '客户', '业务员', '卡类型', '卡号后四位', '金额', '手续费', '状态', '关联单号']
+	const head = ['流水号', '刷卡日期时间', '客户', '业务员', '卡类型', '卡号后四位', '金额', '手续费', '状态']
 	const lines = [head.join('\t')]
 	list.forEach((r) =>
 		lines.push([
 			r.serial_no, fmtDateTime(r.txn_time), r.customer_name, r.salesman_name,
 			CARD_TYPE_LABEL[r.card_type] || '', maskCard(r.card_no || r.card_last4),
 			Number(r.amount).toFixed(2), Number(r.fee || 0).toFixed(2),
-			CARD_STATUS[r.status]?.label || r.status, r.rel_no || '',
+			CARD_STATUS[r.status]?.label || r.status,
 		].join('\t'))
 	)
-	lines.push(['合计', '', '', '', '', '', list.reduce((s, r) => s + Number(r.amount || 0), 0).toFixed(2), list.reduce((s, r) => s + Number(r.fee || 0), 0).toFixed(2), '', ''].join('\t'))
-	const blob = new Blob(['' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+	lines.push(['合计', '', '', '', '', '', list.reduce((s, r) => s + Number(r.amount || 0), 0).toFixed(2), list.reduce((s, r) => s + Number(r.fee || 0), 0).toFixed(2), ''].join('\t'))
+	const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
 	const url = URL.createObjectURL(blob)
 	const a = document.createElement('a')
 	a.href = url

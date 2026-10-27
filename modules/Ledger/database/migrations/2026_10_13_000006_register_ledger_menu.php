@@ -23,15 +23,16 @@ return new class extends Migration
         $menus = [
             // 顶级分组：path 指向第一个子菜单 /ledger/subject，component 为空
             ['name' => 'ledger', 'title' => '总账管理', 'parent_name' => null, 'path' => '/ledger/subject', 'component' => '', 'sort' => 13, 'icon' => 'ElIconNotebook'],
-            // 八个子菜单，顺序固定
-            ['name' => 'ledger.subject', 'title' => '会计科目', 'parent_name' => 'ledger', 'path' => '/ledger/subject', 'component' => 'ledger/subject/index', 'sort' => 1, 'icon' => null],
-            ['name' => 'ledger.opening', 'title' => '期初余额', 'parent_name' => 'ledger', 'path' => '/ledger/opening', 'component' => 'ledger/opening/index', 'sort' => 2, 'icon' => null],
-            ['name' => 'ledger.voucher', 'title' => '记账凭证', 'parent_name' => 'ledger', 'path' => '/ledger/voucher', 'component' => 'ledger/voucher/index', 'sort' => 3, 'icon' => null],
-            ['name' => 'ledger.voucher-query', 'title' => '凭证查询', 'parent_name' => 'ledger', 'path' => '/ledger/voucher-query', 'component' => 'ledger/voucher-query/index', 'sort' => 4, 'icon' => null],
-            ['name' => 'ledger.voucher-audit', 'title' => '凭证审核', 'parent_name' => 'ledger', 'path' => '/ledger/voucher-audit', 'component' => 'ledger/voucher-audit/index', 'sort' => 5, 'icon' => null],
-            ['name' => 'ledger.period', 'title' => '财务月结', 'parent_name' => 'ledger', 'path' => '/ledger/period', 'component' => 'ledger/period/index', 'sort' => 6, 'icon' => null],
-            ['name' => 'ledger.balance', 'title' => '科目余额表', 'parent_name' => 'ledger', 'path' => '/ledger/balance', 'component' => 'ledger/balance/index', 'sort' => 7, 'icon' => null],
-            ['name' => 'ledger.report', 'title' => '财务报表', 'parent_name' => 'ledger', 'path' => '/ledger/report', 'component' => 'ledger/report/index', 'sort' => 8, 'icon' => null],
+            // 总账驾驶舱排首（A8 首页 dashboard），其余九个子菜单顺序固定
+            ['name' => 'ledger.dashboard', 'title' => '总账驾驶舱', 'parent_name' => 'ledger', 'path' => '/ledger/dashboard', 'component' => 'ledger/dashboard/index', 'sort' => 1, 'icon' => null],
+            ['name' => 'ledger.subject', 'title' => '会计科目', 'parent_name' => 'ledger', 'path' => '/ledger/subject', 'component' => 'ledger/subject/index', 'sort' => 2, 'icon' => null],
+            ['name' => 'ledger.opening', 'title' => '期初余额', 'parent_name' => 'ledger', 'path' => '/ledger/opening', 'component' => 'ledger/opening/index', 'sort' => 3, 'icon' => null],
+            ['name' => 'ledger.voucher', 'title' => '记账凭证', 'parent_name' => 'ledger', 'path' => '/ledger/voucher', 'component' => 'ledger/voucher/index', 'sort' => 4, 'icon' => null],
+            ['name' => 'ledger.voucher-query', 'title' => '凭证查询', 'parent_name' => 'ledger', 'path' => '/ledger/voucher-query', 'component' => 'ledger/voucher-query/index', 'sort' => 5, 'icon' => null],
+            ['name' => 'ledger.voucher-audit', 'title' => '凭证审核', 'parent_name' => 'ledger', 'path' => '/ledger/voucher-audit', 'component' => 'ledger/voucher-audit/index', 'sort' => 6, 'icon' => null],
+            ['name' => 'ledger.period', 'title' => '财务月结', 'parent_name' => 'ledger', 'path' => '/ledger/period', 'component' => 'ledger/period/index', 'sort' => 7, 'icon' => null],
+            ['name' => 'ledger.balance', 'title' => '科目余额表', 'parent_name' => 'ledger', 'path' => '/ledger/balance', 'component' => 'ledger/balance/index', 'sort' => 8, 'icon' => null],
+            ['name' => 'ledger.report', 'title' => '财务报表', 'parent_name' => 'ledger', 'path' => '/ledger/report', 'component' => 'ledger/report/index', 'sort' => 9, 'icon' => null],
         ];
 
         $idMap = [];

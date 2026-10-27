@@ -3,7 +3,6 @@
 namespace Modules\Ledger\Services;
 
 use Illuminate\Support\Facades\DB;
-use Illuminate\Database\Eloquent\Builder;
 use Modules\Ledger\Models\Period;
 use Modules\Ledger\Models\Subject;
 use Modules\Ledger\Models\Voucher;
@@ -109,6 +108,7 @@ class VoucherService
             $voucher->voucher_date = $voucherDate;
             $voucher->period = $period;
             $voucher->attachments_count = (int) ($data['attachments_count'] ?? 0);
+            $voucher->attachments = $data['attachments'] ?? [];
             $voucher->total_debit = $totalDebit;
             $voucher->total_credit = $totalCredit;
             $voucher->status = $data['status'] ?? Voucher::STATUS_DRAFT;
@@ -166,6 +166,9 @@ class VoucherService
                 $voucher->total_credit = $totalCredit;
             }
             $voucher->attachments_count = (int) ($data['attachments_count'] ?? $voucher->attachments_count);
+            if (array_key_exists('attachments', $data)) {
+                $voucher->attachments = is_array($data['attachments']) ? $data['attachments'] : [];
+            }
             $voucher->remark = $data['remark'] ?? $voucher->remark;
 
             // 提交审核时校验平衡后转 submitted
@@ -295,6 +298,7 @@ class VoucherService
             $newVoucher->voucher_date = $voucher->voucher_date;
             $newVoucher->period = $voucher->period;
             $newVoucher->attachments_count = (int) $voucher->attachments_count;
+            $newVoucher->attachments = $voucher->attachments ?? [];
             $newVoucher->total_debit = $totalDebit;
             $newVoucher->total_credit = $totalCredit;
             $newVoucher->status = Voucher::STATUS_AUDITED;
@@ -610,6 +614,7 @@ class VoucherService
             'voucher_date' => $voucher->voucher_date?->format('Y-m-d'),
             'period' => $voucher->period,
             'attachments_count' => $voucher->attachments_count,
+            'attachments' => $voucher->attachments ?? [],
             'total_debit' => (float) $voucher->total_debit,
             'total_credit' => (float) $voucher->total_credit,
             'status' => $voucher->status,
@@ -649,4 +654,3 @@ class VoucherService
         return $data;
     }
 }
-
