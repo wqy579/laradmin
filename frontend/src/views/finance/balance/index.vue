@@ -1,31 +1,32 @@
 <template>
-	<div class="bal-page">
+	<div class="bal-page fin-page">
 		<el-tabs v-model="activeTab" class="bal-tabs">
 			<!-- Tab1：客户余额查询 -->
 			<el-tab-pane label="客户余额查询" name="customer">
 				<!-- 筛选 -->
-				<div class="bal-filter">
-					<span class="bal-filter__label">客户</span>
+				<div class="bal-filter fin-filter fin-toolbar">
+					<span class="label">客户</span>
 					<el-input v-model="search.keyword" placeholder="客户名称" clearable size="small" style="width: 200px" @keyup.enter="refresh" @clear="refresh" />
-					<span class="bal-filter__label">科目</span>
+					<span class="label">科目</span>
 					<el-select v-model="search.subject" clearable placeholder="全部科目" size="small" style="width: 180px" @change="refresh">
 						<el-option v-for="s in subjects" :key="s" :label="s" :value="s" />
 					</el-select>
-					<span class="bal-filter__label">往来单位类型</span>
+					<span class="label">往来单位类型</span>
 					<el-select v-model="search.unitType" clearable placeholder="全部类型" size="small" style="width: 160px" @change="refresh">
 						<el-option v-for="t in unitTypes" :key="t" :label="t" :value="t" />
 					</el-select>
-					<span class="bal-filter__label">余额日期</span>
+					<span class="label">余额日期</span>
 					<el-date-picker v-model="search.balanceDate" type="date" value-format="YYYY-MM-DD" size="small" style="width: 160px" @change="refresh" />
-					<el-button type="primary" size="small" @click="refresh">查询</el-button>
-					<el-button size="small" @click="resetSearch">重置</el-button>
+					<el-button type="primary" @click="refresh">查询</el-button>
+					<el-button @click="resetSearch">重置</el-button>
 					<div style="flex: 1" />
-					<el-button size="small" :loading="exporting" @click="exportData">导出</el-button>
+					<el-button :loading="exporting" @click="exportData">导出</el-button>
 				</div>
 
 				<!-- 表格 -->
 				<div class="bal-table">
-					<el-table :data="pagedList" border v-loading="loading" show-summary :summary-method="summaryMethod">
+					<el-table :data="pagedList" border stripe v-loading="loading" show-summary :summary-method="summaryMethod">
+						<template #empty><FinEmpty /></template>
 						<el-table-column type="index" label="序号" width="50" align="center" />
 						<el-table-column prop="category" label="类别" width="100" align="left" show-overflow-tooltip />
 						<el-table-column prop="unit" label="往来单位" min-width="180" show-overflow-tooltip />
@@ -54,7 +55,7 @@
 				</div>
 
 				<!-- 分页 -->
-				<div class="bal-pager">
+				<div class="bal-pager fin-pager">
 					<el-pagination background layout="total, prev, pager, next, sizes" :total="total" :page-size="pageSize" :current-page="page" :page-sizes="[10, 20, 50]" @current-change="onPageChange" @size-change="onSizeChange" />
 				</div>
 			</el-tab-pane>
@@ -62,22 +63,23 @@
 			<!-- Tab2：品牌余额查询（D-08 综合双视图：按品牌维度 + 合计行） -->
 			<el-tab-pane label="品牌余额查询" name="brand">
 				<!-- 筛选 -->
-				<div class="bal-filter">
-					<span class="bal-filter__label">品牌</span>
+				<div class="bal-filter fin-filter fin-toolbar">
+					<span class="label">品牌</span>
 					<el-select v-model="brandSearch.brand" clearable placeholder="全部品牌" size="small" style="width: 160px" @change="refreshBrand">
 						<el-option v-for="b in brandOptions" :key="b" :label="b" :value="b" />
 					</el-select>
-					<span class="bal-filter__label">关键字</span>
+					<span class="label">关键字</span>
 					<el-input v-model="brandSearch.keyword" placeholder="往来单位/科目" clearable size="small" style="width: 200px" @keyup.enter="refreshBrand" @clear="refreshBrand" />
-					<el-button type="primary" size="small" @click="refreshBrand">查询</el-button>
-					<el-button size="small" @click="resetBrandSearch">重置</el-button>
+					<el-button type="primary" @click="refreshBrand">查询</el-button>
+					<el-button @click="resetBrandSearch">重置</el-button>
 					<div style="flex: 1" />
-					<el-button size="small" :loading="brandExporting" @click="exportBrandData">导出</el-button>
+					<el-button :loading="brandExporting" @click="exportBrandData">导出</el-button>
 				</div>
 
 				<!-- 表格 -->
 				<div class="bal-table">
-					<el-table :data="brandPagedList" border v-loading="brandLoading" show-summary :summary-method="brandSummaryMethod">
+					<el-table :data="brandPagedList" border stripe v-loading="brandLoading" show-summary :summary-method="brandSummaryMethod">
+						<template #empty><FinEmpty /></template>
 						<el-table-column type="index" label="序号" width="50" align="center" />
 						<el-table-column prop="brand" label="品牌" width="110" align="left" show-overflow-tooltip />
 						<el-table-column prop="category" label="类别" width="90" align="left" show-overflow-tooltip />
@@ -102,7 +104,7 @@
 				</div>
 
 				<!-- 分页 -->
-				<div class="bal-pager">
+				<div class="bal-pager fin-pager">
 					<el-pagination background layout="total, prev, pager, next, sizes" :total="brandTotal" :page-size="brandPageSize" :current-page="brandPage" :page-sizes="[10, 20, 50]" @current-change="onBrandPageChange" @size-change="onBrandSizeChange" />
 				</div>
 			</el-tab-pane>
@@ -110,26 +112,27 @@
 							<!-- Tab3：辅助单位余额查询 -->
 				<el-tab-pane label="辅助单位余额查询" name="aux">
 					<!-- 筛选 -->
-					<div class="bal-filter">
-						<span class="bal-filter__label">辅助单位类型</span>
+					<div class="bal-filter fin-filter fin-toolbar">
+						<span class="label">辅助单位类型</span>
 						<el-select v-model="auxSearch.unitType" clearable placeholder="全部类型" size="small" style="width: 160px" @change="refreshAux">
 							<el-option v-for="t in auxUnitTypes" :key="t" :label="t" :value="t" />
 						</el-select>
-						<span class="bal-filter__label">科目</span>
+						<span class="label">科目</span>
 						<el-select v-model="auxSearch.subject" clearable placeholder="全部科目" size="small" style="width: 180px" @change="refreshAux">
 							<el-option v-for="s in auxSubjects" :key="s" :label="s" :value="s" />
 						</el-select>
-						<span class="bal-filter__label">关键字</span>
+						<span class="label">关键字</span>
 						<el-input v-model="auxSearch.keyword" placeholder="辅助单位名称" clearable size="small" style="width: 200px" @keyup.enter="refreshAux" @clear="refreshAux" />
-						<el-button type="primary" size="small" @click="refreshAux">查询</el-button>
-						<el-button size="small" @click="resetAuxSearch">重置</el-button>
+						<el-button type="primary" @click="refreshAux">查询</el-button>
+						<el-button @click="resetAuxSearch">重置</el-button>
 						<div style="flex: 1" />
-						<el-button size="small" :loading="auxExporting" @click="exportAuxData">导出</el-button>
+						<el-button :loading="auxExporting" @click="exportAuxData">导出</el-button>
 					</div>
 
 					<!-- 表格 -->
 					<div class="bal-table">
-						<el-table :data="auxPagedList" border v-loading="auxLoading" show-summary :summary-method="auxSummaryMethod">
+						<el-table :data="auxPagedList" border stripe v-loading="auxLoading" show-summary :summary-method="auxSummaryMethod">
+							<template #empty><FinEmpty /></template>
 							<el-table-column type="index" label="序号" width="50" align="center" />
 							<el-table-column prop="category" label="类别" width="100" align="left" show-overflow-tooltip />
 							<el-table-column prop="unit" label="辅助单位" min-width="180" show-overflow-tooltip />
@@ -148,7 +151,7 @@
 					</div>
 
 					<!-- 分页 -->
-					<div class="bal-pager">
+					<div class="bal-pager fin-pager">
 						<el-pagination background layout="total, prev, pager, next, sizes" :total="auxTotal" :page-size="auxPageSize" :current-page="auxPage" :page-sizes="[10, 20, 50]" @current-change="onAuxPageChange" @size-change="onAuxSizeChange" />
 					</div>
 				</el-tab-pane>
@@ -160,6 +163,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import businessApi from '@/api/business'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../_FinEmpty.vue'
 
 const activeTab = ref('customer')
 const unitTypes = ['客户', '业务员', '供应商']
@@ -195,7 +199,7 @@ const pagedList = computed(() => {
 })
 
 function fmt(v) {
-	return Number(v || 0).toLocaleString('en-US')
+	return Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function summaryMethod({ columns }) {
@@ -421,6 +425,10 @@ async function exportAuxData() {
 }
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .bal-page {
 	height: 100%;
@@ -451,14 +459,6 @@ async function exportAuxData() {
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
-	padding: 12px 16px;
-	background: var(--bg-card);
-	border-bottom: 1px solid var(--border-lighter);
-}
-.bal-filter__label {
-	font-size: var(--font-base);
-	color: var(--text-regular);
-	white-space: nowrap;
 }
 .bal-table {
 	flex: 1;
@@ -470,18 +470,9 @@ async function exportAuxData() {
 .bal-table :deep(.el-table) {
 	flex: 1;
 }
-.bal-table :deep(.el-table th.el-table__cell) {
-	background: var(--bg-hover);
-	color: var(--text-regular);
-	font-weight: 600;
-	font-size: var(--font-base);
-}
 .bal-table :deep(.el-table td.el-table__cell) {
 	color: var(--text-primary);
 	font-size: var(--font-base);
-}
-.bal-table :deep(.el-table__row) {
-	height: 40px;
 }
 .bal-table :deep(.el-table__footer) {
 	background: var(--bg-hover);
@@ -500,9 +491,7 @@ async function exportAuxData() {
 	font-weight: 600;
 }
 .bal-pager {
-	display: flex;
-	justify-content: flex-end;
-	padding: 12px 16px 0;
+	padding: 0 16px;
 }
 .bal-placeholder {
 	flex: 1;

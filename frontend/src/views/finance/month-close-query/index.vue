@@ -1,37 +1,37 @@
 <template>
-	<div class="mcq-page">
+	<div class="mcq-page fin-page">
 		<!-- 筛选卡 -->
-		<div class="mcq-filter">
+		<div class="mcq-filter fin-filter fin-toolbar">
 			<div class="mcq-filter__row">
 				<div class="mcq-filter__group">
-					<span class="mcq-filter__label">会计年</span>
+					<span class="label">会计年</span>
 					<el-select v-model="search.year" size="small" style="width: 120px" @change="refresh">
 						<el-option v-for="y in YEARS" :key="y.year" :label="y.year" :value="y.year" />
 					</el-select>
 
-					<span class="mcq-filter__label">会计月</span>
+					<span class="label">会计月</span>
 					<el-select v-model="search.month" size="small" style="width: 120px" @change="refresh">
 						<el-option v-for="m in MONTHS" :key="m" :label="`${m} 月`" :value="m" />
 					</el-select>
 				</div>
 
 				<div class="mcq-filter__actions">
-					<el-button size="small" @click="resetSearch">重置</el-button>
-					<el-button type="primary" size="small" @click="refresh">查询</el-button>
+					<el-button @click="resetSearch">重置</el-button>
+					<el-button type="primary" @click="refresh">查询</el-button>
 				</div>
 			</div>
 
 			<div class="mcq-filter__bar">
 				<div class="mcq-filter__count">共 {{ filtered.length }} 个期间</div>
 				<div class="mcq-filter__toolbar">
-					<el-button size="small" :disabled="filtered.length === 0" @click="exportExcel">导出Excel</el-button>
+					<el-button :disabled="filtered.length === 0" @click="exportExcel">导出Excel</el-button>
 				</div>
 			</div>
 		</div>
 
 		<!-- 期间表格 -->
 		<div class="mcq-body">
-			<el-table :data="paged" v-loading="loading" class="mcq-table" :empty-text="emptyText">
+			<el-table :data="paged" v-loading="loading" stripe class="mcq-table">
 				<el-table-column prop="period" label="会计期间" width="120" align="center">
 					<template #default="{ row }">
 						<span class="tabular">{{ row.period }}</span>
@@ -78,17 +78,11 @@
 
 				<!-- 空数据 -->
 				<template #empty>
-					<div class="mcq-empty">
-						<el-empty description="暂无数据" :image-size="90">
-							<template #description>
-								<span class="mcq-empty__text">暂无数据</span>
-							</template>
-						</el-empty>
-					</div>
+					<FinEmpty />
 				</template>
 			</el-table>
 
-			<div class="mcq-pager">
+			<div class="mcq-pager fin-pager">
 				<el-pagination
 					background
 					layout="total, sizes, prev, pager, next, jumper"
@@ -103,9 +97,9 @@
 		</div>
 
 		<!-- 结账快照弹窗 -->
-		<el-dialog v-model="snapshotVisible" :title="`结账快照 · ${snapshot.period}`" width="560px" :close-on-click-modal="false">
+		<el-dialog v-model="snapshotVisible" :title="`结账快照 · ${snapshot.period}`" width="560px" class="fin-dialog" :close-on-click-modal="false">
 			<div v-loading="snapshotLoading" class="snapshot-body">
-				<el-table :data="snapshot.checks" border size="small">
+				<el-table :data="snapshot.checks" border size="small" stripe class="fin-table--dense">
 					<el-table-column prop="title" label="检查项" min-width="180" />
 					<el-table-column label="结果" width="90" align="center">
 						<template #default="{ row }">
@@ -129,6 +123,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { usePermission } from '@/composables/usePermission'
 import { saveBlob } from '../../../utils/fileDownload'
 import businessApi from '@/api/business'
+import FinEmpty from '../_FinEmpty.vue'
 
 const { has: hasPerm } = usePermission()
 
@@ -142,8 +137,6 @@ const search = reactive({
 	year: new Date().getFullYear(),
 	month: null,
 })
-
-const emptyText = ref('')
 
 // 结账快照
 const snapshotVisible = ref(false)
@@ -244,6 +237,10 @@ function exportExcel() {
 onMounted(refresh)
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .mcq-page {
 	height: 100%;
@@ -256,10 +253,8 @@ onMounted(refresh)
 
 /* ---- 筛选卡 ---- */
 .mcq-filter {
-	background: var(--bg-card);
 	border-radius: var(--radius-md);
 	box-shadow: var(--shadow-card);
-	padding: 12px 16px;
 }
 
 .mcq-filter__row {
@@ -274,12 +269,6 @@ onMounted(refresh)
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
-}
-
-.mcq-filter__label {
-	font-size: var(--font-base, 13px);
-	color: var(--text-regular);
-	white-space: nowrap;
 }
 
 .mcq-filter__actions {
@@ -325,22 +314,9 @@ onMounted(refresh)
 	width: 100%;
 }
 
-.mcq-table :deep(th.el-table__cell) {
-	background: var(--bg-hover);
-	color: var(--text-regular);
-	font-weight: 600;
-	font-size: var(--font-base, 13px);
-	height: 44px;
-}
-
 .mcq-table :deep(td.el-table__cell) {
 	color: var(--text-primary);
-	font-size: var(--font-base, 13px);
-	height: 40px;
-}
-
-.mcq-table :deep(.el-table__row) {
-	height: 40px;
+	font-size: var(--font-base);
 }
 
 .mcq-closer {
@@ -355,26 +331,6 @@ onMounted(refresh)
 	height: 22px;
 	line-height: 20px;
 	border-radius: 4px;
-}
-
-/* ---- 空数据 ---- */
-.mcq-empty {
-	height: 200px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.mcq-empty__text {
-	font-size: var(--font-base, 13px);
-	color: var(--text-secondary);
-}
-
-/* ---- 分页 ---- */
-.mcq-pager {
-	display: flex;
-	justify-content: flex-end;
-	padding-top: 12px;
 }
 
 /* ---- 结账快照 ---- */

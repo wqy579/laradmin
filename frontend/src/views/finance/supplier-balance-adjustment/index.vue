@@ -1,7 +1,7 @@
 <template>
-	<div class="bal-page">
+	<div class="bal-page fin-page">
 		<!-- 筛选卡 -->
-		<div class="bal-filter">
+		<div class="bal-filter fin-filter">
 			<span class="label">供应商</span>
 			<el-select v-model="search.partner_id" clearable filterable placeholder="全部供应商" size="small" style="width: 180px" @change="onSearch">
 				<el-option v-for="p in partners" :key="p.value" :label="p.label" :value="p.value" />
@@ -24,21 +24,21 @@
 				value-format="YYYY-MM-DD"
 				@change="onSearch"
 			/>
-			<div class="filter-actions">
-				<el-button type="primary" size="small" @click="onSearch">查询</el-button>
-				<el-button size="small" @click="resetSearch">重置</el-button>
+			<div class="filter-actions fin-toolbar">
+				<el-button type="primary" @click="onSearch">查询</el-button>
+				<el-button @click="resetSearch">重置</el-button>
 			</div>
 		</div>
 
 		<!-- 工具条 -->
-		<div class="bal-toolbar">
+		<div class="bal-toolbar fin-toolbar">
 			<span class="toolbar-title">供应商余额调整单</span>
-			<el-button type="primary" size="small" v-permission="'fin:balance:adjust'" @click="openCreate">+ 新增调整单</el-button>
+			<el-button type="primary" v-permission="'fin:balance:adjust'" @click="openCreate">+ 新增调整单</el-button>
 		</div>
 
 		<!-- 表格区 -->
 		<div class="bal-content">
-			<el-table :data="rows" border height="100%" v-loading="loading" :show-summary="true" :summary-method="summaryMethod">
+			<el-table :data="rows" border stripe height="100%" v-loading="loading" :show-summary="true" :summary-method="summaryMethod">
 				<el-table-column prop="no" label="单据号" width="150" align="left">
 					<template #default="{ row }">
 						<span class="link tabular" @click="openView(row)">{{ row.no }}</span>
@@ -89,21 +89,19 @@
 					</template>
 				</el-table-column>
 				<template #empty>
-					<div class="empty-state">
-						<el-empty description="暂无数据" />
-					</div>
+					<FinEmpty />
 				</template>
 			</el-table>
 		</div>
 
 		<!-- 分页 -->
-		<div class="bal-pager">
+		<div class="bal-pager fin-pager">
 			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="onPageChange" />
 		</div>
 
 		<!-- 新增 Dialog -->
-		<el-dialog v-model="createVisible" title="新增供应商余额调整单" width="680px" :close-on-click-modal="false" destroy-on-close>
-			<el-form :model="createForm" label-width="90px" size="small">
+		<el-dialog v-model="createVisible" title="新增供应商余额调整单" width="680px" class="fin-dialog" :close-on-click-modal="false" destroy-on-close>
+			<el-form :model="createForm" label-width="110px">
 				<div class="dialog-body">
 					<el-form-item label="供应商" required>
 						<el-select v-model="createForm.partner_id" filterable placeholder="选择供应商" style="width: 100%" @change="onPartnerPick">
@@ -139,7 +137,7 @@
 		</el-dialog>
 
 		<!-- 查看 Dialog -->
-		<el-dialog v-model="viewVisible" title="供应商余额调整单详情" width="680px" :close-on-click-modal="false" destroy-on-close>
+		<el-dialog v-model="viewVisible" title="供应商余额调整单详情" width="680px" class="fin-dialog" :close-on-click-modal="false" destroy-on-close>
 			<template v-if="viewRow">
 				<!-- 三段展示：期初 → 当前 → 调整后 -->
 				<div class="balance-strip">
@@ -159,7 +157,7 @@
 					</div>
 				</div>
 
-				<el-form label-width="90px" size="small" class="view-form">
+				<el-form label-width="110px" class="view-form">
 					<div class="dialog-body">
 						<el-form-item label="单据号">
 							<span class="tabular">{{ viewRow.no }}</span>
@@ -198,6 +196,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import businessApi from '@/api/business'
+import FinEmpty from '../_FinEmpty.vue'
 
 const DOC_TYPE = 'supplier_balance'
 const PARTNER_TYPE = 'supplier'
@@ -407,6 +406,10 @@ onMounted(() => {
 })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .bal-page {
 	height: 100%;
@@ -419,13 +422,6 @@ onMounted(() => {
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
-	padding: 16px 20px;
-	background: var(--bg-card);
-	border-bottom: 1px solid var(--border-base);
-}
-.bal-filter .label {
-	font-size: var(--font-base);
-	color: var(--text-regular);
 }
 .filter-actions {
 	margin-left: auto;
@@ -437,10 +433,10 @@ onMounted(() => {
 	align-items: center;
 	justify-content: space-between;
 	padding: 12px 20px;
-	background: #fff;
+	background: var(--bg-card);
 }
 .toolbar-title {
-	font-size: 15px;
+	font-size: var(--font-h3);
 	font-weight: 600;
 	color: var(--text-primary);
 }
@@ -450,19 +446,7 @@ onMounted(() => {
 	padding: 0 12px;
 }
 .bal-pager {
-	display: flex;
-	justify-content: flex-end;
-	padding: 10px 12px;
-}
-.empty-state {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	height: 100%;
-}
-.empty-state :deep(.el-empty__description p) {
-	font-size: 13px;
-	color: var(--text-secondary);
+	padding: 0 12px;
 }
 .link {
 	color: var(--color-primary);
@@ -475,19 +459,10 @@ onMounted(() => {
 	color: var(--color-primary);
 }
 
-/* 表格样式对齐卷00 */
+/* 表格样式对齐卷00（表头/行高/斑马纹由 _shared.css 提供） */
 :deep(.el-table) {
 	font-size: var(--font-base);
 	color: var(--text-primary);
-}
-:deep(.el-table th.el-table__cell) {
-	background: var(--bg-hover);
-	height: 44px;
-	color: var(--text-regular);
-	font-weight: 600;
-}
-:deep(.el-table .el-table__row) {
-	height: 40px;
 }
 :deep(.el-table td.el-table__cell),
 :deep(.el-table th.el-table__cell) {
@@ -497,11 +472,6 @@ onMounted(() => {
 	background: var(--bg-hover);
 	color: var(--text-primary);
 	font-weight: 600;
-}
-
-/* 金额等宽对齐 */
-.tabular {
-	font-variant-numeric: tabular-nums;
 }
 
 /* 三段余额展示条 */
@@ -520,11 +490,11 @@ onMounted(() => {
 }
 .strip-cell.is-up {
 	background: var(--color-primary-light);
-	border-color: #d9ecff;
+	border-color: var(--color-primary-light);
 }
 .strip-cell.is-down {
 	background: #fef0f0;
-	border-color: #fde2e2;
+	border-color: #fef0f0;
 }
 .strip-label {
 	font-size: 14px;

@@ -1,10 +1,10 @@
 <template>
-  <div class="voucher-page">
+  <div class="voucher-page fin-page">
     <!-- ============ 筛选卡 ============ -->
-    <div class="voucher-filter">
-      <span class="voucher-filter__label">凭证号</span>
+    <div class="voucher-filter fin-filter">
+      <span class="label">凭证号</span>
       <el-input v-model="search.no" placeholder="模糊匹配" clearable size="small" style="width: 180px" @keyup.enter="refresh" @clear="refresh" />
-      <span class="voucher-filter__label">日期</span>
+      <span class="label">日期</span>
       <el-date-picker
         v-model="search.dateRange"
         type="daterange"
@@ -16,7 +16,7 @@
         style="width: 230px"
         @change="refresh"
       />
-      <span class="voucher-filter__label">科目</span>
+      <span class="label">科目</span>
       <el-tree-select
         v-model="search.subject"
         :data="subjectTree"
@@ -30,31 +30,35 @@
         style="width: 180px"
         @change="refresh"
       />
-      <span class="voucher-filter__label">经手人</span>
+      <span class="label">经手人</span>
       <el-input v-model="search.employee" placeholder="制单人" clearable size="small" style="width: 130px" @keyup.enter="refresh" @clear="refresh" />
-      <span class="voucher-filter__label">状态</span>
+      <span class="label">状态</span>
       <el-select v-model="search.status" clearable placeholder="全部" size="small" style="width: 110px" @change="refresh">
         <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
       </el-select>
       <el-checkbox v-model="search.includeReversed" @change="refresh">含红冲</el-checkbox>
-      <el-button type="primary" size="small" @click="refresh">查询</el-button>
-      <el-button size="small" @click="resetSearch">重置</el-button>
+      <div class="voucher-actions fin-toolbar">
+        <el-button type="primary" @click="refresh">查询</el-button>
+        <el-button @click="resetSearch">重置</el-button>
+      </div>
       <div style="flex: 1" />
-      <el-button size="small" v-permission="'fin:voucher:export'" @click="exportData">导出</el-button>
+      <div class="voucher-actions fin-toolbar">
+        <el-button v-permission="'fin:voucher:export'" @click="exportData">导出</el-button>
+      </div>
     </div>
 
     <!-- ============ 工具条 ============ -->
-    <div class="voucher-toolbar">
+    <div class="voucher-toolbar fin-toolbar">
       <span class="voucher-toolbar__title">财务凭证</span>
       <!-- 凭证录入/审核统一走 ledger 模块（BUG-10），本页为查询视图 -->
-<el-button size="small" v-permission="'fin:voucher:view'" :disabled="!activeVoucher" @click="printActive">打印</el-button>
+      <el-button v-permission="'fin:voucher:view'" :disabled="!activeVoucher" @click="printActive">打印</el-button>
     </div>
 
     <!-- ============ 凭证表（分录级，按凭证分组） ============ -->
     <div class="voucher-table" v-loading="loading">
-      <el-table :data="entryRows" border :row-class-name="rowClassName" @row-click="onRowClick" show-summary :summary-method="summaryMethod">
+      <el-table :data="entryRows" border stripe :row-class-name="rowClassName" @row-click="onRowClick" show-summary :summary-method="summaryMethod">
         <el-table-column type="index" label="序号" width="50" align="center">
-          <template #default="{ $index }"><span style="color: #909399">{{ $index + 1 }}</span></template>
+          <template #default="{ $index }"><span style="color: var(--text-secondary)">{{ $index + 1 }}</span></template>
         </el-table-column>
         <el-table-column prop="no" label="凭证号" width="160" align="left" show-overflow-tooltip>
           <template #default="{ row }">
@@ -98,6 +102,9 @@
             </template>
           </template>
         </el-table-column>
+        <template #empty>
+          <FinEmpty />
+        </template>
       </el-table>
     </div>
 
@@ -111,7 +118,7 @@
           <span>附单据：{{ view.attachment_count }} 张</span>
           <span>状态：{{ view.status_label }}</span>
         </div>
-        <el-table :data="view.items" border size="small" :show-summary="true" :summary-method="viewSummary">
+        <el-table :data="view.items" border stripe class="fin-table--dense" size="small" :show-summary="true" :summary-method="viewSummary">
           <el-table-column type="index" label="序号" width="52" align="center" />
           <el-table-column label="科目" min-width="150" align="left">
             <template #default="{ row }"><span class="tabular">{{ row.subject }} {{ row.subject_name }}</span></template>
@@ -141,6 +148,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import ledgerApi from '@/api/ledger'
+import FinEmpty from '../_FinEmpty.vue'
 
 /* ---------- 金额格式化 ---------- */
 function fmtMoney(v) {
@@ -369,7 +377,7 @@ function voucherPrintHtml(v) {
   return (
     '<html><head><meta charset="utf-8"><title>' +
     v.no +
-    '</title><style>body{font-family:SimSun,serif;padding:24px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #333;padding:6px 10px;font-size:13px}th{background:#f5f7fa}h2{text-align:center}.meta{margin:8px 0 16px}.meta span{margin-right:24px}</style></head><body>' +
+    '</title><style>body{font-family:SimSun,serif;padding:24px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #303133;padding:6px 10px;font-size:13px}th{background:#f5f7fa}h2{text-align:center}.meta{margin:8px 0 16px}.meta span{margin-right:24px}</style></head><body>' +
     '<h2>记账凭证</h2>' +
     '<div class="meta"><span>凭证号：' +
     v.no +
@@ -414,25 +422,24 @@ function printActive() {
 }
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .voucher-page {
   padding: 12px;
 }
 
-/* 筛选卡 */
+/* 筛选卡（白底/padding/标签由 _shared.css .fin-filter 提供） */
 .voucher-filter {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
-  background: #fff;
-  border-radius: 4px;
   margin-bottom: 12px;
 }
-.voucher-filter__label {
-  font-size: 13px;
-  color: #606266;
+.voucher-filter .label {
   margin-left: 4px;
 }
 
@@ -444,42 +451,31 @@ function printActive() {
   margin-bottom: 12px;
 }
 .voucher-toolbar__title {
-  font-size: 15px;
+  font-size: var(--font-h3);
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   margin-right: 8px;
 }
 
-/* 表格 */
-.voucher-table :deep(.el-table__header th) {
-  background: #f5f7fa !important;
-  height: 44px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #606266;
-}
+/* 表格（表头 44px/500、行高 48、斑马纹由 _shared.css 提供） */
 .voucher-table :deep(.el-table__body td) {
-  height: 40px;
-  font-size: 13px;
-  color: #303133;
+  font-size: var(--font-base);
+  color: var(--text-primary);
 }
 .voucher-table :deep(.el-table__footer td) {
-  background: #f5f7fa;
-  font-size: 13px;
+  background: var(--bg-hover);
+  font-size: var(--font-base);
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
 }
 .voucher-table :deep(.voucher-row--group td) {
-  border-top: 1px solid #dcdfe6 !important;
-}
-.tabular {
-  font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--border-base) !important;
 }
 .voucher-no--red {
-  color: #f56c6c;
+  color: var(--color-danger);
 }
 .voucher-amt--red {
-  color: #f56c6c;
+  color: var(--color-danger);
 }
 
 /* 只读查看抽屉 */
@@ -488,33 +484,34 @@ function printActive() {
   margin-bottom: 8px;
   padding-top: 0;
   padding-bottom: 0;
-  border-bottom: 1px solid #ebeeF5;
+  border-bottom: 1px solid var(--border-lighter);
 }
 :deep(.el-drawer__title) {
-  font-size: 16px;
+  font-size: var(--font-h2);
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary);
   height: 50px;
   line-height: 50px;
+  padding-left: 20px;
 }
 .v-view {
-  font-size: 13px;
-  color: #303133;
+  font-size: var(--font-base);
+  color: var(--text-primary);
 }
 .v-view__meta {
   display: flex;
   flex-wrap: wrap;
   gap: 6px 24px;
   padding: 14px 16px;
-  background: #f5f7fa;
-  border: 1px solid #ebeeF5;
-  border-radius: 4px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-lighter);
+  border-radius: var(--radius-md);
   margin-bottom: 16px;
-  color: #606266;
+  color: var(--text-regular);
 }
 .v-view__remark {
   margin-top: 16px;
-  color: #606266;
-  font-size: 13px;
+  color: var(--text-regular);
+  font-size: var(--font-base);
 }
 </style>

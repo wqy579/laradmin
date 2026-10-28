@@ -1,31 +1,35 @@
 <template>
-	<div class="st-page">
+	<div class="st-page fin-page">
 		<!-- 筛选区 -->
-		<div class="st-filter">
-			<span class="st-filter__label">往来类型</span>
+		<div class="st-filter fin-filter">
+			<span class="label">往来类型</span>
 			<el-radio-group v-model="kind" size="small" @change="onKindChange">
 				<el-radio-button value="customer">客户应收</el-radio-button>
 				<el-radio-button value="supplier">供应商应付</el-radio-button>
 			</el-radio-group>
 
-			<span class="st-filter__label">往来单位</span>
+			<span class="label">往来单位</span>
 			<el-select v-model="search.unitId" clearable filterable placeholder="全部单位" size="small" style="width: 220px" @change="refresh">
 				<el-option v-for="u in unitOptions" :key="u.id" :label="u.name" :value="u.id" />
 			</el-select>
 
-			<span class="st-filter__label">期间</span>
+			<span class="label">期间</span>
 			<el-date-picker v-model="search.month" type="month" value-format="YYYY-MM" placeholder="全部月份" size="small" style="width: 140px" @change="refresh" />
 
-			<span class="st-filter__label">对账状态</span>
+			<span class="label">对账状态</span>
 			<el-select v-model="search.reconStatus" clearable placeholder="全部状态" size="small" style="width: 140px" @change="refresh">
 				<el-option v-for="(s, k) in MOCK_RECON_STATUS" :key="k" :label="s.label" :value="k" />
 			</el-select>
 
-			<el-button type="primary" size="small" @click="refresh">查询</el-button>
-			<el-button size="small" @click="resetSearch">重置</el-button>
+			<div class="st-actions fin-toolbar">
+				<el-button type="primary" @click="refresh">查询</el-button>
+				<el-button @click="resetSearch">重置</el-button>
+			</div>
 			<div style="flex: 1" />
-			<el-button size="small" :disabled="periods.length === 0" @click="exportPeriods">导出汇总</el-button>
-			<el-button size="small" :disabled="details.length === 0" @click="exportDetails">导出明细</el-button>
+			<div class="st-actions fin-toolbar">
+				<el-button :disabled="periods.length === 0" @click="exportPeriods">导出汇总</el-button>
+				<el-button :disabled="details.length === 0" @click="exportDetails">导出明细</el-button>
+			</div>
 		</div>
 
 		<!-- 汇总统计卡 -->
@@ -51,7 +55,7 @@
 		<!-- 期间汇总表 -->
 		<div class="st-section">
 			<h3 class="st-section__title">期间汇总（{{ kindLabel }}发生额与余额）</h3>
-			<el-table :data="periods" border v-loading="loading" show-summary :summary-method="periodSummary" highlight-current-row @current-change="onPeriodRowChange" class="st-table">
+			<el-table :data="periods" border stripe v-loading="loading" show-summary :summary-method="periodSummary" highlight-current-row @current-change="onPeriodRowChange" class="st-table">
 				<el-table-column prop="period" label="期间" width="110" align="center">
 					<template #default="{ row }">
 						<span class="tabular">{{ row.period }}</span>
@@ -94,6 +98,9 @@
 						<el-button v-else link size="small" @click="markUnsettled(row)">取消对账</el-button>
 					</template>
 				</el-table-column>
+				<template #empty>
+					<FinEmpty />
+				</template>
 			</el-table>
 		</div>
 
@@ -103,7 +110,7 @@
 				往来明细
 				<span class="st-section__sub">选择一条期间汇总行查看该期明细；未选择时展示全部明细</span>
 			</h3>
-			<el-table :data="details" border v-loading="loading" highlight-current-row @current-change="onDetailRowChange" class="st-table">
+			<el-table :data="details" border stripe class="st-table fin-table--dense" v-loading="loading" highlight-current-row @current-change="onDetailRowChange">
 				<el-table-column type="index" label="序号" width="60" align="center" />
 				<el-table-column prop="unitName" label="往来单位" min-width="150" show-overflow-tooltip />
 				<el-table-column prop="period" label="期间" width="90" align="center">
@@ -134,6 +141,9 @@
 						<el-tag :type="row.matched ? 'success' : 'info'" size="small" effect="plain">{{ row.matched ? '已核对' : '未核对' }}</el-tag>
 					</template>
 				</el-table-column>
+				<template #empty>
+					<FinEmpty />
+				</template>
 			</el-table>
 		</div>
 	</div>
@@ -144,6 +154,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../_FinEmpty.vue'
 
 // 对账状态字典（非数据，仅标签/颜色）
 const MOCK_RECON_STATUS = {
@@ -299,6 +310,10 @@ function exportDetails() {
 onMounted(refresh)
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .st-page {
 	height: 100%;
@@ -312,15 +327,6 @@ onMounted(refresh)
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
-	padding: 12px 16px;
-	background: var(--bg-card);
-	border-bottom: 1px solid var(--border-lighter);
-}
-
-.st-filter__label {
-	font-size: var(--font-base);
-	color: var(--text-regular);
-	white-space: nowrap;
 }
 
 .st-stat {
@@ -375,13 +381,6 @@ onMounted(refresh)
 
 .st-table {
 	width: 100%;
-}
-
-.st-table :deep(th.el-table__cell) {
-	background: var(--bg-hover);
-	color: var(--text-regular);
-	font-weight: 600;
-	font-size: var(--font-base);
 }
 
 .st-table :deep(td.el-table__cell) {
