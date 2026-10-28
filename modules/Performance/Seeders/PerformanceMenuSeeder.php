@@ -102,7 +102,7 @@ class PerformanceMenuSeeder extends Seeder
             'parent_id' => $reportParentId,
             'path' => '/report/salesman-order',
             'component' => 'report/salesman-order/index',
-            'sort' => 6,
+            'sort' => 10,
             'status' => 1,
         ]);
 

@@ -113,7 +113,7 @@ return new class extends Migration
                     ?? 0,
                 'path' => '/report/salesman-order',
                 'component' => 'report/salesman-order/index',
-                'sort' => 6,
+                'sort' => 10,
                 'status' => 1,
                 'created_at' => now(),
                 'updated_at' => now(),

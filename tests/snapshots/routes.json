@@ -8853,6 +8853,54 @@
     },
     {
         "method": "GET",
+        "uri": "admin/perf/salesman-order/customer-item",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesmanOrderSummaryController@customerItem",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/salesman-order/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesmanOrderSummaryController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/salesman-order/items",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesmanOrderSummaryController@items",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/salesman-order/salesman",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesmanOrderSummaryController@salesman",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/perf/warning",
         "name": "admin.",
         "action": "Modules\\Performance\\Http\\Controllers\\StockWarningController@index",
