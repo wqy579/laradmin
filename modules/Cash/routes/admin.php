@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Cash\Http\Controllers\CashAccountController;
 use Modules\Cash\Http\Controllers\CashCardController;
+use Modules\Cash\Http\Controllers\CashHandoverController;
 
 /**
  * 出纳资金模块（Cash）路由
@@ -25,5 +26,17 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [CashCardController::class, 'index']);
         Route::get('/export', [CashCardController::class, 'export']);
         Route::post('/{id}/refund', [CashCardController::class, 'refund']);
+    });
+
+    // ===== 收入上交款 + 上交款查询（D2）=====
+    Route::prefix('cash/handover')->group(function () {
+        Route::get('/options', [CashHandoverController::class, 'options']);
+        Route::get('/orders', [CashHandoverController::class, 'orders']);
+        Route::get('/export', [CashHandoverController::class, 'export']);
+        Route::get('/', [CashHandoverController::class, 'index']);
+        Route::post('/', [CashHandoverController::class, 'store']);
+        Route::post('/batch-confirm', [CashHandoverController::class, 'batchConfirm']);
+        Route::get('/{id}', [CashHandoverController::class, 'show']);
+        Route::post('/{id}/confirm', [CashHandoverController::class, 'confirm']);
     });
 });

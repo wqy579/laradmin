@@ -19,6 +19,17 @@ const cashApi = {
 		refund: { post: (id) => request.post(`cash/card-txns/${id}/refund`) },
 		export: (params) => request.get('cash/card-txns/export', { params, responseType: 'blob' }),
 	},
+	// 收入上交款 + 上交款查询
+	handover: {
+		options: { get: (params) => request.get('cash/handover/options', { params }) },
+		list: { get: (params) => request.get('cash/handover', { params }) },
+		detail: { get: (id) => request.get(`cash/handover/${id}`) },
+		create: (data) => request.post('cash/handover', data),
+		orders: { get: (params) => request.get('cash/handover/orders', { params }) },
+		confirm: { post: (id) => request.post(`cash/handover/${id}/confirm`) },
+		batchConfirm: (ids) => request.post('cash/handover/batch-confirm', { ids }),
+		export: (params) => request.get('cash/handover/export', { params, responseType: 'blob' }),
+	},
 }
 
 export default cashApi

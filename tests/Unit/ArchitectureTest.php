@@ -79,6 +79,12 @@ class ArchitectureTest extends TestCase
         //   同库只读、抽契约收益低于耦合成本
         'Performance->Auth',    // 绩效菜单 Seeder 写 Auth 的 Permission 与角色授权（与 Business->Auth、
         //   System->Auth 完全同因：菜单数据本就落在 Auth 的权限表上）
+        'Cash->Order',      // 收入上交款（D2）要把业务员代收的客户货款回写到销售订单：
+        //   明细关联 sales_orders 并累加 paid_amount、重算 payment_status，
+        //   同库同事务（确认动作与订单收款回写必须原子），与 BorrowReturn->Order（借货转销售）同理；
+        //   客户/订单名是冗余快照，跨模块只读主数据，抽契约收益低于耦合成本
+        'Cash->Auth',       // 上交款单确认人落 confirmed_by，belongsTo Auth 的用户表回显姓名
+        //   （与 Ledger->Auth、Order->Auth 同理）；出纳域不维护人员主数据，内核亦无 User 契约
     ];
 
     /**
