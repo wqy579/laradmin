@@ -235,11 +235,13 @@ function renderCell(col, row) {
 			node = h('span', { class: 'rp-money' }, '¥' + money(raw))
 			break
 		case 'number':
+			negative = Number(raw || 0) < 0
 			node = raw === null || raw === undefined
 				? h('span', { class: 'rp-cell-dash' }, '—')
 				: h('span', { class: dangerBelow(col, raw) ? 'rp-num rp-danger' : 'rp-num' }, num(raw, 2))
 			break
 		case 'int':
+			negative = Number(raw || 0) < 0
 			node = raw === null || raw === undefined
 				? h('span', { class: 'rp-cell-dash' }, '—')
 				: h('span', { class: dangerBelow(col, raw) ? 'rp-num rp-danger' : 'rp-num' }, num(raw, 0))
@@ -483,6 +485,12 @@ function alignOf(col) {
 .rp-loss {
 	color: #529b2e;
 	font-weight: 600;
+}
+/* 零值既挂方向色又配 zero_gray 时（盘盈/盘亏列），灰显优先：0 不是盈也不是亏 */
+.rp-cell-zero.rp-gain,
+.rp-cell-zero.rp-loss {
+	color: #c0c4cc;
+	font-weight: 400;
 }
 
 /* 空态：纸箱插图 + 14px #C0C4CC */

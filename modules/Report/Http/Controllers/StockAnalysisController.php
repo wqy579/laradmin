@@ -676,7 +676,6 @@ class StockAnalysisController extends Controller
                 ];
             case 'assembly':
                 return [
-                    'order_count' => (int) $rows->count(),
                     'quantity' => ReportFilter::num($rows->sum('quantity')),
                     'total_cost' => ReportFilter::num($rows->sum('total_cost')),
                 ];
