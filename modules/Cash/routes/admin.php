@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Cash\Http\Controllers\CashAccountController;
 use Modules\Cash\Http\Controllers\CashCardController;
+use Modules\Cash\Http\Controllers\CashHandoverController;
 use Modules\Cash\Http\Controllers\CashIntegralGrantController;
 use Modules\Cash\Http\Controllers\CashIntegralRuleController;
 
@@ -50,5 +51,17 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/submit', [CashIntegralGrantController::class, 'submit'])->whereNumber('id');
         Route::post('/{id}/audit', [CashIntegralGrantController::class, 'audit'])->whereNumber('id');
         Route::post('/{id}/void', [CashIntegralGrantController::class, 'void'])->whereNumber('id');
+    });
+
+    // ===== 收入上交款 + 上交款查询（D2）=====
+    Route::prefix('cash/handover')->group(function () {
+        Route::get('/options', [CashHandoverController::class, 'options']);
+        Route::get('/orders', [CashHandoverController::class, 'orders']);
+        Route::get('/export', [CashHandoverController::class, 'export']);
+        Route::get('/', [CashHandoverController::class, 'index']);
+        Route::post('/', [CashHandoverController::class, 'store']);
+        Route::post('/batch-confirm', [CashHandoverController::class, 'batchConfirm']);
+        Route::get('/{id}', [CashHandoverController::class, 'show']);
+        Route::post('/{id}/confirm', [CashHandoverController::class, 'confirm']);
     });
 });

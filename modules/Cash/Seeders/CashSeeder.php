@@ -29,8 +29,10 @@ class CashSeeder extends Seeder
             ['name' => 'cash', 'title' => '出纳管理', 'parent_name' => null, 'path' => '/cash/account-flow', 'component' => null, 'sort' => 14, 'icon' => 'ElIconMoney'],
             ['name' => 'cash.account-flow', 'title' => '现金账户', 'parent_name' => 'cash', 'path' => '/cash/account-flow', 'component' => 'cash/account-flow/index', 'sort' => 1, 'icon' => null],
             ['name' => 'cash.card', 'title' => '刷卡记录', 'parent_name' => 'cash', 'path' => '/cashier/card', 'component' => 'cashier/card/index', 'sort' => 2, 'icon' => null],
-            ['name' => 'cash.integral-rule', 'title' => '积分规则', 'parent_name' => 'cash', 'path' => '/points/rule', 'component' => 'points/rule/index', 'sort' => 3, 'icon' => null],
-            ['name' => 'cash.integral-grant', 'title' => '积分发放', 'parent_name' => 'cash', 'path' => '/points/grant', 'component' => 'points/grant/index', 'sort' => 4, 'icon' => null],
+            ['name' => 'cash.handover', 'title' => '收入上交款', 'parent_name' => 'cash', 'path' => '/cash/handover', 'component' => 'cash/handover/index', 'sort' => 3, 'icon' => null],
+            ['name' => 'cash.handover-query', 'title' => '上交款查询', 'parent_name' => 'cash', 'path' => '/cash/handover-query', 'component' => 'cash/handover-query/index', 'sort' => 4, 'icon' => null],
+            ['name' => 'cash.integral-rule', 'title' => '积分规则', 'parent_name' => 'cash', 'path' => '/points/rule', 'component' => 'points/rule/index', 'sort' => 5, 'icon' => null],
+            ['name' => 'cash.integral-grant', 'title' => '积分发放', 'parent_name' => 'cash', 'path' => '/points/grant', 'component' => 'points/grant/index', 'sort' => 6, 'icon' => null],
         ];
 
         foreach ($menus as $menu) {
@@ -52,6 +54,9 @@ class CashSeeder extends Seeder
             ['name' => 'cash.card.view', 'alias' => 'cash:card:view', 'title' => '查看刷卡记录', 'parent_name' => 'cash.card', 'sort' => 1],
             ['name' => 'cash.card.refund', 'alias' => null, 'title' => '刷卡退款', 'parent_name' => 'cash.card', 'sort' => 2],
             ['name' => 'cash.card.export', 'alias' => null, 'title' => '导出刷卡记录', 'parent_name' => 'cash.card', 'sort' => 3],
+            ['name' => 'cash.handover.view', 'alias' => 'cash:handover:view', 'title' => '查询上交款单', 'parent_name' => 'cash.handover', 'sort' => 1],
+            ['name' => 'cash.handover.create', 'alias' => 'cash:handover:create', 'title' => '新建上交款单', 'parent_name' => 'cash.handover', 'sort' => 2],
+            ['name' => 'cash.handover.confirm', 'alias' => 'cash:handover:confirm', 'title' => '确认上交款单', 'parent_name' => 'cash.handover-query', 'sort' => 3],
         ];
 
         $buttons = array_merge($buttons, $this->integralButtons());

@@ -20,8 +20,8 @@ return new class extends Migration
     public function up(): void
     {
         $menus = [
-            ['name' => 'cash.integral-rule', 'title' => '积分规则', 'parent_name' => 'cash', 'path' => '/points/rule', 'component' => 'points/rule/index', 'sort' => 3, 'icon' => null],
-            ['name' => 'cash.integral-grant', 'title' => '积分发放', 'parent_name' => 'cash', 'path' => '/points/grant', 'component' => 'points/grant/index', 'sort' => 4, 'icon' => null],
+            ['name' => 'cash.integral-rule', 'title' => '积分规则', 'parent_name' => 'cash', 'path' => '/points/rule', 'component' => 'points/rule/index', 'sort' => 5, 'icon' => null],
+            ['name' => 'cash.integral-grant', 'title' => '积分发放', 'parent_name' => 'cash', 'path' => '/points/grant', 'component' => 'points/grant/index', 'sort' => 6, 'icon' => null],
         ];
 
         $idMap = [];

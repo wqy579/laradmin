@@ -7713,6 +7713,102 @@
     },
     {
         "method": "GET",
+        "uri": "admin/cash/handover",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/handover",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/handover/batch-confirm",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@batchConfirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover/options",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover/orders",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@orders",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/handover/{id}/confirm",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/cash/integral/grants",
         "name": "admin.",
         "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@index",
