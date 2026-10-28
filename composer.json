@@ -50,7 +50,8 @@
             "Tests\\Exchange\\": "modules/Exchange/tests/",
             "Tests\\Dashboard\\": "modules/Dashboard/tests/",
             "Tests\\Member\\": "modules/Member/tests/",
-            "Tests\\Ledger\\": "modules/Ledger/tests/"
+            "Tests\\Ledger\\": "modules/Ledger/tests/",
+            "Tests\\Cash\\": "modules/Cash/tests/"
         }
     },
   "scripts": {
