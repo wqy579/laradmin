@@ -7569,6 +7569,90 @@
     },
     {
         "method": "GET",
+        "uri": "admin/cash/accounts/options",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashAccountController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/accounts/{id}/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashAccountController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/accounts/{id}/flows",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashAccountController@flows",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/card-txns",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashCardController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/card-txns/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashCardController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/card-txns/options",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashCardController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/card-txns/{id}/refund",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashCardController@refund",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/dashboard/brand-proportion",
         "name": "admin.",
         "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@brandProportion",
