@@ -91,7 +91,7 @@ class OrderCheckFeatureTest extends TestCase
 
     public function test_show_returns_order_summary_and_operation_history(): void
     {
-        $res = $this->getJson('admin/business/order-check/1');
+        $res = $this->getJson('admin/business/order-check/'.$this->orderId);
 
         $res->assertOk();
         $this->assertSame('SO-CHECK-0001', $res->json('data.order_no'));
@@ -203,6 +203,8 @@ class OrderCheckFeatureTest extends TestCase
             'created_at' => $now,
             'updated_at' => $now,
         ]);
+
+        $this->orderId = $orderId;
 
         // 操作历史（detail 接口时间线）
         DB::table('order_operation_logs')->insert([
