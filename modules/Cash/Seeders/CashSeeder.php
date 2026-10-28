@@ -31,6 +31,7 @@ class CashSeeder extends Seeder
             ['name' => 'cash.card', 'title' => '刷卡记录', 'parent_name' => 'cash', 'path' => '/cashier/card', 'component' => 'cashier/card/index', 'sort' => 2, 'icon' => null],
             ['name' => 'cash.handover', 'title' => '收入上交款', 'parent_name' => 'cash', 'path' => '/cash/handover', 'component' => 'cash/handover/index', 'sort' => 3, 'icon' => null],
             ['name' => 'cash.handover-query', 'title' => '上交款查询', 'parent_name' => 'cash', 'path' => '/cash/handover-query', 'component' => 'cash/handover-query/index', 'sort' => 4, 'icon' => null],
+            ['name' => 'cash.workbench', 'title' => '出纳工作台', 'parent_name' => 'cash', 'path' => '/cash/workbench', 'component' => 'cash/workbench/index', 'sort' => 5, 'icon' => null],
         ];
 
         foreach ($menus as $menu) {
@@ -55,6 +56,7 @@ class CashSeeder extends Seeder
             ['name' => 'cash.handover.view', 'alias' => 'cash:handover:view', 'title' => '查询上交款单', 'parent_name' => 'cash.handover', 'sort' => 1],
             ['name' => 'cash.handover.create', 'alias' => 'cash:handover:create', 'title' => '新建上交款单', 'parent_name' => 'cash.handover', 'sort' => 2],
             ['name' => 'cash.handover.confirm', 'alias' => 'cash:handover:confirm', 'title' => '确认上交款单', 'parent_name' => 'cash.handover-query', 'sort' => 3],
+            ['name' => 'cash.workbench.view', 'alias' => 'cash:workbench:view', 'title' => '查看出纳工作台', 'parent_name' => 'cash.workbench', 'sort' => 1],
         ];
 
         foreach ($buttons as $btn) {

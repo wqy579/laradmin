@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Cash\Http\Controllers\CashAccountController;
 use Modules\Cash\Http\Controllers\CashCardController;
+use Modules\Cash\Http\Controllers\CashDashboardController;
 use Modules\Cash\Http\Controllers\CashHandoverController;
 
 /**
@@ -38,5 +39,11 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/batch-confirm', [CashHandoverController::class, 'batchConfirm']);
         Route::get('/{id}', [CashHandoverController::class, 'show']);
         Route::post('/{id}/confirm', [CashHandoverController::class, 'confirm']);
+    });
+
+    // ===== 出纳工作台（D8，只读聚合）=====
+    Route::prefix('cash/dashboard')->group(function () {
+        Route::get('/summary', [CashDashboardController::class, 'summary']);
+        Route::get('/trend', [CashDashboardController::class, 'trend']);
     });
 });
