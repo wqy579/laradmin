@@ -2528,10 +2528,70 @@
         ]
     },
     {
+        "method": "POST",
+        "uri": "admin/business/general-expense",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "GET",
         "uri": "admin/business/general-expense/statistics",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/general-expense/{id}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/general-expense/{id}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/general-expense/{id}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/general-expense/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3430,30 +3490,6 @@
     {
         "method": "GET",
         "uri": "admin/business/other-income/statistics",
-        "name": "admin.",
-        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@statistics",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/other-incomes",
-        "name": "admin.",
-        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@index",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/other-incomes/statistics",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@statistics",
         "middleware": [
