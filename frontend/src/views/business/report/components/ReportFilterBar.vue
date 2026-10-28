@@ -160,6 +160,37 @@
 							<el-input v-model="model.product_name" size="small" placeholder="商品名称" clearable />
 						</div>
 					</div>
+					<div class="rp-field" v-else-if="key === 'product_keyword'">
+						<span class="rp-label">商品编码/名称</span>
+						<div class="rp-control">
+							<el-input v-model="model.product_keyword" size="small" placeholder="商品编码/名称" clearable />
+						</div>
+					</div>
+
+					<!-- 库存报表族（E5）专属参数：阈值与统计窗口，留空走后端默认值 -->
+					<div class="rp-field" v-else-if="key === 'near_days'">
+						<span class="rp-label">临期天数</span>
+						<div class="rp-control">
+							<el-input v-model="model.near_days" size="small" placeholder="默认 30" clearable />
+						</div>
+					</div>
+					<div class="rp-field" v-else-if="key === 'severe_days'">
+						<span class="rp-label">严重超期天数</span>
+						<div class="rp-control">
+							<el-input v-model="model.severe_days" size="small" placeholder="默认 30" clearable />
+						</div>
+					</div>
+					<div class="rp-field" v-else-if="key === 'window'">
+						<span class="rp-label">日均销量窗口</span>
+						<div class="rp-control">
+							<el-select v-model="model.window" size="small" style="width: 100%">
+								<el-option v-for="d in WINDOW_DAYS" :key="d" :label="`近 ${d} 天`" :value="d" />
+							</el-select>
+						</div>
+					</div>
+					<div class="rp-field is-check" v-else-if="key === 'only_warning'">
+						<el-checkbox v-model="model.only_warning" size="small">只看预警商品</el-checkbox>
+					</div>
 
 					<!-- 单据 -->
 					<div class="rp-field" v-else-if="key === 'sale_types'">
@@ -327,6 +358,9 @@ const model = props.modelValue
 const expanded = ref(false)
 const dateRange = ref(null)
 
+/** 日均销量统计窗口候选（后端 clamp 到 7..365，默认 30） */
+const WINDOW_DAYS = [7, 15, 30, 60, 90]
+
 /**
  * 选项数据做成模块级缓存：销售 / 库存 / 业务员三个报表页都会拉同一份 options，
  * 不做缓存就是进一次页面打三次接口，而这些都是字典级数据，分钟级一致足够。
@@ -411,6 +445,12 @@ function onReset() {
 	// 重置后回到设计默认值：默认按申报日期、默认显示单价
 	model.date_type = 'declare'
 	model.with_price = true
+	// 窗口/阈值是数字：上面的清空逻辑会把它们抹成 ''，而 '' 到了后端是 0（等于关掉预警），抹回数值默认。
+	// 只处理本页真实用到的 key，免得给别的报表凭空塞参数
+	;['window', 'near_days', 'severe_days'].forEach((k) => {
+		if (props.fields.includes(k) && model[k] !== undefined) model[k] = 30
+	})
+	if (props.fields.includes('only_warning')) model.only_warning = false
 	dateRange.value = null
 	currentTemplate.value = null
 	emit('reset')

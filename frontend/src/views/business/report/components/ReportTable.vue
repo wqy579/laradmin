@@ -143,6 +143,10 @@ function tagStyle(type) {
 		warning: { color: '#e6a23c', background: '#fdf6ec', borderColor: '#faecd8' },
 		danger: { color: '#f56c6c', background: '#fef0f0', borderColor: '#fde2e2' },
 		info: { color: '#909399', background: '#f4f4f5', borderColor: '#e9e9eb' },
+		// 严重超期：比 danger 更深一档，四级预警里要一眼分辨出最严重的一档
+		severe: { color: '#8e1a1a', background: '#f9e4e4', borderColor: '#f0bcbc' },
+		// 盘亏绿：E5 库存差异语义（盘盈红 / 盘亏绿），与「增加=绿」的常规金额语义相反
+		loss: { color: '#529b2e', background: '#f2f9ec', borderColor: '#d9edc2' },
 	}
 	return {
 		...map[type],
@@ -191,6 +195,18 @@ function progressColor(v) {
 	return '#409eff'
 }
 
+/** 分级 Tag：后端 tag_map[值] 给出 {label,color}，color 直接取 tagStyle 的调色板 key */
+function levelColor(col, raw) {
+	return col.tag_map?.[raw]?.color || 'info'
+}
+function levelLabel(col, raw) {
+	return col.tag_map?.[raw]?.label ?? raw ?? ''
+}
+/** 低于阈值染色（可销天数 <7 红）；null 不参与，交给空态显示 */
+function dangerBelow(col, raw) {
+	return col.danger_below !== undefined && col.danger_below !== null && Number(raw) < Number(col.danger_below)
+}
+
 /**
  * 单元格渲染器：按后端下发的列 type 决定格式化方式。
  * 单独抽成普通对象（不用 <template>）是为了能在 v-for 里直接当组件用，
@@ -219,16 +235,26 @@ function renderCell(col, row) {
 			node = h('span', { class: 'rp-money' }, '¥' + money(raw))
 			break
 		case 'number':
-			node = h('span', { class: 'rp-num' }, num(raw, 2))
+			negative = Number(raw || 0) < 0
+			node = raw === null || raw === undefined
+				? h('span', { class: 'rp-cell-dash' }, '—')
+				: h('span', { class: dangerBelow(col, raw) ? 'rp-num rp-danger' : 'rp-num' }, num(raw, 2))
 			break
 		case 'int':
-			node = h('span', { class: 'rp-num' }, num(raw, 0))
+			negative = Number(raw || 0) < 0
+			node = raw === null || raw === undefined
+				? h('span', { class: 'rp-cell-dash' }, '—')
+				: h('span', { class: dangerBelow(col, raw) ? 'rp-num rp-danger' : 'rp-num' }, num(raw, 0))
 			break
 		case 'percent':
 			node = h('span', { class: 'rp-num' }, num(raw, 2) + '%')
 			break
 		case 'tag':
 			node = h('span', { style: tagStyle(tagType(raw)) }, String(col.tag_map?.[raw] ?? raw ?? ''))
+			break
+		case 'level':
+			// 分级 Tag：颜色由后端列定义 tag_map[值].color 决定（超期四级、安全库存三档、变动类型…）
+			node = h('span', { style: tagStyle(levelColor(col, raw)) }, String(levelLabel(col, raw)))
 			break
 		case 'price_tag':
 			// 价格来源 Tag：按命中类型染色（特价红/等级价橙/默认价灰），非默认价行由 rowStyle 高亮
@@ -441,6 +467,30 @@ function alignOf(col) {
 }
 .rp-cell-zero {
 	color: #c0c4cc;
+}
+/* 告警/风险色：sign_color 负数、danger_below 低于阈值共用 */
+.rp-danger {
+	color: #f56c6c;
+	font-weight: 600;
+}
+/* 无值（如日均出库为 0 → 可销天数无定义）显示短横，避免被当成 0 天告急 */
+.rp-cell-dash {
+	color: #c0c4cc;
+}
+/* 盘盈红 / 盘亏绿：账实不符两端都按风险染色，方向语义与常规金额相反（E5） */
+.rp-gain {
+	color: #f56c6c;
+	font-weight: 600;
+}
+.rp-loss {
+	color: #529b2e;
+	font-weight: 600;
+}
+/* 零值既挂方向色又配 zero_gray 时（盘盈/盘亏列），灰显优先：0 不是盈也不是亏 */
+.rp-cell-zero.rp-gain,
+.rp-cell-zero.rp-loss {
+	color: #c0c4cc;
+	font-weight: 400;
 }
 
 /* 空态：纸箱插图 + 14px #C0C4CC */
