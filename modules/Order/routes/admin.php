@@ -24,6 +24,7 @@ use Modules\Order\Http\Controllers\SplitController;
 use Modules\Order\Http\Controllers\StatementController;
 use Modules\Order\Http\Controllers\SupplierController;
 use Modules\Order\Http\Controllers\VisitLogController;
+use Modules\Order\Http\Controllers\VisitReminderController;
 
 // =============================================================================
 // 订单模块（Order）路由
@@ -286,5 +287,13 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [OrderTransferController::class, 'index']);
         Route::post('/', [OrderTransferController::class, 'store']);
         Route::get('/{id}', [OrderTransferController::class, 'show']);
+    });
+    // 订货闭环 T5.4 业务员拜访提醒（订货中心）—— 发送后置为「已提醒」，全程留痕
+    Route::prefix('business/visit-reminder')->group(function () {
+        Route::get('/', [VisitReminderController::class, 'index']);
+        Route::post('/', [VisitReminderController::class, 'store']);
+        Route::get('/{id}', [VisitReminderController::class, 'show']);
+        Route::post('/{id}/send', [VisitReminderController::class, 'send']);
+        Route::delete('/{id}', [VisitReminderController::class, 'destroy']);
     });
 });

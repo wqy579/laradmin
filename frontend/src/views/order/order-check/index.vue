@@ -35,7 +35,7 @@
 		<!-- 列表 -->
 		<el-table
 			v-loading="loading"
-			:data="rows"
+			:data="list"
 			class="perf-table"
 			height="100%"
 			:header-cell-style="{ background: '#F5F7FA', color: '#606266', fontWeight: 600 }"

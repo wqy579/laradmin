@@ -7,7 +7,6 @@ use App\Traits\ResponseTrait;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Modules\Order\Models\SalesOrder;
 
 /**
  * T5.2 订货调整（订货中心）
@@ -291,6 +290,7 @@ class OrderAdjustController extends Controller
             // 源订单补一条留痕（日志在事务提交后写不回滚，这里同事务直接写即可）
             $this->logSourceOrder((int) $adjustment->order_id, '订货调整', $admin, '订货调整单 '.$adjustment->adjust_no.' 审核通过并落地', 'approved', $toStatus ?? null);
         });
+
         return $this->success(['id' => $id]);
     }
 

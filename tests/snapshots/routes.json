@@ -7221,6 +7221,66 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/visit-reminder",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\VisitReminderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/visit-reminder",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\VisitReminderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/visit-reminder/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\VisitReminderController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/visit-reminder/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\VisitReminderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/visit-reminder/{id}/send",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\VisitReminderController@send",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/visit/achievement",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@achievement",

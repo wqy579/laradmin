@@ -519,6 +519,12 @@ const systemRoutes = [
 		component: () => import('../views/order/order-check/index.vue'),
 		meta: { title: '客户订货核对' },
 	},
+	{
+		path: '/order/visit-reminder',
+		name: 'VisitReminder',
+		component: () => import('../views/order/visit-reminder/index.vue'),
+		meta: { title: '业务员拜访提醒' },
+	},
 ]
 
 systemRoutes.push(...moduleRoutes)
