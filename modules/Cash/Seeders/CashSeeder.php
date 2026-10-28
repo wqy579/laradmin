@@ -33,6 +33,8 @@ class CashSeeder extends Seeder
             ['name' => 'cash.handover-query', 'title' => '上交款查询', 'parent_name' => 'cash', 'path' => '/cash/handover-query', 'component' => 'cash/handover-query/index', 'sort' => 4, 'icon' => null],
             ['name' => 'cash.integral-rule', 'title' => '积分规则', 'parent_name' => 'cash', 'path' => '/points/rule', 'component' => 'points/rule/index', 'sort' => 5, 'icon' => null],
             ['name' => 'cash.integral-grant', 'title' => '积分发放', 'parent_name' => 'cash', 'path' => '/points/grant', 'component' => 'points/grant/index', 'sort' => 6, 'icon' => null],
+            ['name' => 'cash.integral-use', 'title' => '积分核销', 'parent_name' => 'cash', 'path' => '/points/use', 'component' => 'points/use/index', 'sort' => 7, 'icon' => null],
+            ['name' => 'cash.integral-query', 'title' => '积分查询', 'parent_name' => 'cash', 'path' => '/points/query', 'component' => 'points/query/index', 'sort' => 8, 'icon' => null],
         ];
 
         foreach ($menus as $menu) {
@@ -60,6 +62,7 @@ class CashSeeder extends Seeder
         ];
 
         $buttons = array_merge($buttons, $this->integralButtons());
+        $buttons = array_merge($buttons, $this->integralVerifyButtons(), $this->integralQueryButtons());
 
         foreach ($buttons as $btn) {
             $pid = $this->menuIds[$btn['parent_name']] ?? 0;
@@ -85,6 +88,40 @@ class CashSeeder extends Seeder
             foreach ($verbs as $verb => $verbTitle) {
                 $buttons[] = ['name' => 'cash.integral.'.$domain.'.'.$verb, 'alias' => 'cash:integral:'.$domain.':'.$verb, 'title' => $verbTitle.$info['title'], 'parent_name' => $info['menu'], 'sort' => $sort++];
             }
+        }
+
+        return $buttons;
+    }
+
+    /**
+     * 积分核销权限节点，与 2026_10_31_000102_register_cash_integral_verify_menu 保持一致：
+     * 动词齐全（核销是审核类单据），name 点号 + alias 冒号双写。
+     *
+     * @return array<int, array{name: string, alias: ?string, title: string, parent_name: string, sort: int}>
+     */
+    private function integralVerifyButtons(): array
+    {
+        $verbs = ['view' => '查询', 'create' => '新增', 'edit' => '编辑', 'delete' => '删除', 'audit' => '审核', 'export' => '导出'];
+        $buttons = [['name' => 'cash:integral:use', 'alias' => null, 'title' => '查看积分核销', 'parent_name' => 'cash.integral-use', 'sort' => 0]];
+        $sort = 1;
+        foreach ($verbs as $verb => $verbTitle) {
+            $buttons[] = ['name' => 'cash.integral.use.'.$verb, 'alias' => 'cash:integral:use:'.$verb, 'title' => $verbTitle.'积分核销', 'parent_name' => 'cash.integral-use', 'sort' => $sort++];
+        }
+
+        return $buttons;
+    }
+
+    /**
+     * 积分查询权限节点（只读页，只有查询与导出两个动词）。
+     *
+     * @return array<int, array{name: string, alias: ?string, title: string, parent_name: string, sort: int}>
+     */
+    private function integralQueryButtons(): array
+    {
+        $buttons = [['name' => 'cash:integral:query', 'alias' => null, 'title' => '查看积分查询', 'parent_name' => 'cash.integral-query', 'sort' => 0]];
+        $sort = 1;
+        foreach (['view' => '查询', 'export' => '导出'] as $verb => $verbTitle) {
+            $buttons[] = ['name' => 'cash.integral.query.'.$verb, 'alias' => 'cash:integral:query:'.$verb, 'title' => $verbTitle.'积分查询', 'parent_name' => 'cash.integral-query', 'sort' => $sort++];
         }
 
         return $buttons;

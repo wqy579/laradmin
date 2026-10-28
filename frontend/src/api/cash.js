@@ -40,6 +40,24 @@ const cashApi = {
 			void: { post: (id) => request.post(`cash/integral/grants/${id}/void`) },
 			export: (params) => request.get('cash/integral/grants/export', { params, responseType: 'blob' }),
 		},
+		// 核销（D6）
+		verify: {
+			list: { get: (params) => request.get('cash/integral/verifies', { params }) },
+			detail: { get: (id) => request.get(`cash/integral/verifies/${id}`) },
+			add: { post: (data) => request.post('cash/integral/verifies', data) },
+			edit: { put: (id, data) => request.put(`cash/integral/verifies/${id}`, data) },
+			submit: { post: (id) => request.post(`cash/integral/verifies/${id}/submit`) },
+			audit: { post: (id) => request.post(`cash/integral/verifies/${id}/audit`) },
+			void: { post: (id) => request.post(`cash/integral/verifies/${id}/void`) },
+			memberSummary: { get: (params) => request.get('cash/integral/verifies/member-summary', { params }) },
+			export: (params) => request.get('cash/integral/verifies/export', { params, responseType: 'blob' }),
+		},
+		// 积分查询（D6，只读）
+		ledger: {
+			members: { get: (params) => request.get('cash/integral/ledger/members', { params }) },
+			flows: { get: (params) => request.get('cash/integral/ledger/flows', { params }) },
+			export: (params) => request.get('cash/integral/ledger/export', { params, responseType: 'blob' }),
+		},
 	},
 
 	// 收入上交款 + 上交款查询

@@ -9,22 +9,22 @@ use Illuminate\Support\Facades\DB;
 use Modules\Cash\Models\CashIntegralGrant;
 use Modules\Cash\Models\CashIntegralGrantItem;
 use Modules\Cash\Models\CashIntegralRule;
+use Modules\Cash\Models\CashIntegralVerify;
 use Modules\Member\Models\Member;
 use Modules\Member\Models\MemberConsumeLog;
 use Modules\Member\Services\MemberService;
 
 /**
- * 积分规则 + 积分发放业务（D 域 D5）。
+ * 积分规则 + 积分发放（D5）+ 积分核销 + 积分查询（D6）业务。
  *
- * 审核是本模块唯一的资金/积分副作用点：同一事务内完成
- *   单据状态流转 → members.points 累加 → member_consume_logs 入账流水，
+ * 审核是发放/核销两单共同的唯一积分副作用点：同一事务内完成
+ *   单据状态流转 → members.points 增减 → member_consume_logs 台账流水，
  * 任一步失败整体回滚（TASKBOOK §二.2 审核类接口口径）。
  *
- * 幂等：status 守卫（只允许 待审核 → 已审核）+ 明细 settled_at 已处理标记
- * 双层防护，重复审核既不重复加分也不会重复写流水。
+ * 幂等：status 守卫（只允许 待审核 → 已审核）+ settled_at 已处理标记
+ * 双层防护，重复审核既不重复变动积分也不会重复写流水。
  *
- * D6 核销预留（本批不实现，仅留字段/注释）：
- *   - member_consume_logs 的 consume_type='points_use' 分支与 use_points 写入；
+ * 仍未实现（超出 D6 范围）：
  *   - point_orders / point_products 兑换联动；
  *   - 规则侧 deduct_ratio / threshold / limit 抵扣计算。
  */
@@ -33,7 +33,7 @@ class CashIntegralService
     /** 发放入账写会员流水时的业务类型（Member 模块常量不含此项，本模块侧约定） */
     public const CONSUME_TYPE_GRANT = 'points_grant';
 
-    /** D6 预留：核销侧 consume_type，本批不写入 */
+    /** 核销出账写会员流水时的业务类型（D6 使用） */
     public const CONSUME_TYPE_USE = 'points_use';
 
     // ==================== 积分规则 ====================
@@ -315,5 +315,335 @@ class CashIntegralService
     private function pageSize(array $params, int $default = 30): int
     {
         return min(200, max(1, (int) ($params['page_size'] ?? $default)));
+    }
+
+    // ==================== 积分核销单（D6）====================
+
+    /** @return LengthAwarePaginator<int, CashIntegralVerify> */
+    public function verifyList(array $params): LengthAwarePaginator
+    {
+        return $this->verifyQuery($params)->paginate($this->pageSize($params));
+    }
+
+    /** @return Collection<int, CashIntegralVerify> 导出用（带上限） */
+    public function verifyRows(array $params, int $limit = 10000): Collection
+    {
+        return $this->verifyQuery($params)->limit($limit)->get();
+    }
+
+    private function verifyQuery(array $params): Builder
+    {
+        $query = CashIntegralVerify::query()->with(['member', 'operator'])->orderByDesc('id');
+
+        if (! empty($params['verify_no'])) {
+            $query->where('verify_no', 'like', '%'.$params['verify_no'].'%');
+        }
+        if (! empty($params['member_id'])) {
+            $query->where('member_id', (int) $params['member_id']);
+        }
+        if (! empty($params['keyword'])) {
+            $keyword = $params['keyword'];
+            $query->where(function ($q) use ($keyword) {
+                $q->where('verify_no', 'like', '%'.$keyword.'%')
+                    ->orWhereHas('member', fn ($m) => $m->where('name', 'like', '%'.$keyword.'%')
+                        ->orWhere('member_no', 'like', '%'.$keyword.'%'));
+            });
+        }
+        if (isset($params['status']) && $params['status'] !== '') {
+            $query->where('status', (int) $params['status']);
+        }
+        if (! empty($params['date_start'])) {
+            $query->where('verify_date', '>=', $params['date_start']);
+        }
+        if (! empty($params['date_end'])) {
+            $query->where('verify_date', '<=', $params['date_end']);
+        }
+
+        return $query;
+    }
+
+    public function verifyDetail(int $id): CashIntegralVerify
+    {
+        return CashIntegralVerify::query()->with(['member', 'operator'])->findOrFail($id);
+    }
+
+    public function verifySave(array $data, ?CashIntegralVerify $verify, int $operatorId): CashIntegralVerify
+    {
+        $payload = [
+            'verify_date' => $data['verify_date'],
+            'member_id' => (int) $data['member_id'],
+            'points' => (int) $data['points'],
+            'verify_type' => $data['verify_type'] ?? CashIntegralVerify::TYPE_CONSUME,
+            'related_order_no' => $data['related_order_no'] ?? null,
+            'remark' => $data['remark'] ?? null,
+        ];
+
+        if ($verify) {
+            $verify->fill($payload)->save();
+
+            return $verify;
+        }
+
+        return CashIntegralVerify::create($payload + [
+            'verify_no' => MemberService::generateNo('HX', 'cash_integral_verify', 'verify_no'),
+            'status' => CashIntegralVerify::STATUS_DRAFT,
+            'operator_id' => $operatorId,
+            'created_by' => $operatorId,
+        ]);
+    }
+
+    public function verifySubmit(CashIntegralVerify $verify): CashIntegralVerify
+    {
+        if ((int) $verify->status !== CashIntegralVerify::STATUS_DRAFT) {
+            throw new \DomainException('只有草稿状态的核销单可以提交');
+        }
+
+        $verify->status = CashIntegralVerify::STATUS_PENDING;
+        $verify->save();
+
+        return $verify;
+    }
+
+    public function verifyVoid(CashIntegralVerify $verify): CashIntegralVerify
+    {
+        if (! in_array((int) $verify->status, [CashIntegralVerify::STATUS_DRAFT, CashIntegralVerify::STATUS_PENDING], true)) {
+            throw new \DomainException('已审核或已作废的核销单不能作废');
+        }
+
+        $verify->status = CashIntegralVerify::STATUS_VOID;
+        $verify->save();
+
+        return $verify;
+    }
+
+    /**
+     * 审核核销单：状态流转 + 会员积分扣减 + 会员消费流水，单事务。
+     *
+     * 幂等两层（与 grantAudit 同骨架）：
+     *  1) 行锁 + status 必须为待审核（重复审核第二次直接抛错）；
+     *  2) settled_at 非空即跳过扣减（状态被外部改回时仍不会二次扣分/二次写流水）。
+     *
+     * 积分不足在扣减前判定并抛错，整单回滚，不留半条流水。
+     */
+    public function verifyAudit(int $id, int $operatorId): CashIntegralVerify
+    {
+        return DB::transaction(function () use ($id, $operatorId) {
+            $verify = CashIntegralVerify::query()->lockForUpdate()->findOrFail($id);
+
+            if ((int) $verify->status !== CashIntegralVerify::STATUS_PENDING) {
+                throw new \DomainException('只有待审核的核销单可以审核，当前状态：'
+                    .CashIntegralVerify::statusLabel((int) $verify->status));
+            }
+
+            $points = (int) $verify->points;
+
+            if ($verify->settled_at !== null) {
+                $verify->status = CashIntegralVerify::STATUS_AUDITED;
+                $verify->audited_by = $operatorId;
+                $verify->audited_at = now();
+                $verify->save();
+
+                return $verify;
+            }
+
+            $member = Member::query()->lockForUpdate()->findOrFail($verify->member_id);
+            $pointsBefore = (int) $member->points;
+
+            if ($pointsBefore < $points) {
+                throw new \DomainException('会员可用积分不足，当前 '.$pointsBefore.'，本次核销 '.$points);
+            }
+
+            // 原子扣减：不读改写覆盖，避免与并发发放互相吞掉变更
+            Member::query()->whereKey($member->id)->decrement('points', $points);
+            $pointsAfter = $pointsBefore - $points;
+
+            $this->writeVerifyLog($verify, $member, $pointsAfter, $operatorId);
+
+            $verify->points_before = $pointsBefore;
+            $verify->points_after = $pointsAfter;
+            $verify->settled_at = now();
+            $verify->status = CashIntegralVerify::STATUS_AUDITED;
+            $verify->audited_by = $operatorId;
+            $verify->audited_at = now();
+            $verify->save();
+
+            return $verify;
+        });
+    }
+
+    /**
+     * 核销出账流水（direction=out）——同 append-only 台账，只追加不修改。
+     */
+    private function writeVerifyLog(CashIntegralVerify $verify, Member $member, int $pointsAfter, int $operatorId): void
+    {
+        MemberConsumeLog::create([
+            'log_no' => MemberService::generateNo('consume', 'member_consume_logs', 'log_no'),
+            'member_id' => $member->id,
+            'member_no' => $member->member_no,
+            'member_name' => $member->name,
+            'related_order_no' => $verify->related_order_no ?: $verify->verify_no,
+            'consume_type' => self::CONSUME_TYPE_USE,
+            'direction' => MemberConsumeLog::DIRECTION_OUT,
+            'consume_amount' => 0,
+            'use_balance' => 0,
+            'use_points' => (int) $verify->points,
+            'earn_points' => 0,
+            'balance_after' => $member->balance,
+            'points_after' => $pointsAfter,
+            'total_consume_after' => $member->total_consume,
+            'operator_id' => $operatorId,
+            'operator_name' => optional($verify->operator)->real_name,
+            'remark' => $verify->remark ?: ('积分核销 '.$verify->verify_no),
+        ]);
+    }
+
+    /**
+     * 核销弹窗用：某会员的当前可用积分 + 累计发放/累计核销。
+     *
+     * @return array{member_id:int,member_no:?string,member_name:?string,points_current:int,points_grant:int,points_verify:int}
+     */
+    public function verifyMemberSummary(int $memberId): array
+    {
+        $member = Member::query()->findOrFail($memberId);
+
+        $row = MemberConsumeLog::query()
+            ->where('member_id', $member->id)
+            ->where($this->pointsChangedScope())
+            ->selectRaw('COALESCE(SUM(earn_points), 0) as points_grant, COALESCE(SUM(use_points), 0) as points_verify')
+            ->first();
+
+        return [
+            'member_id' => (int) $member->id,
+            'member_no' => $member->member_no,
+            'member_name' => $member->name,
+            'points_current' => (int) $member->points,
+            'points_grant' => (int) ($row->points_grant ?? 0),
+            'points_verify' => (int) ($row->points_verify ?? 0),
+        ];
+    }
+
+    // ==================== 积分查询（D6，只读）====================
+    //
+    // 积分流水的唯一数据源是 member_consume_logs 中产生过积分变动的行
+    // （发放 D5 写 earn_points、核销 D6 写 use_points）。
+    // **绝不能再 union cash_integral_grant_item**，否则发放会被重复计数。
+
+    /**
+     * 会员积分汇总（期初 / 本期发放 / 本期核销 / 期末 / 实时）。
+     *
+     * 口径：期初 = start_date 之前所有积分变动的有符号累加；
+     *      期末 = 期初 + 本期发放 − 本期核销（在同一行 SQL 内算出，保证恒等式成立）。
+     * 单条 leftJoinSub 聚合 + 一次分页，不 N+1、不把整表拉进 PHP 再 sum。
+     *
+     * @return LengthAwarePaginator<int, Member>
+     */
+    public function ledgerMembers(array $params): LengthAwarePaginator
+    {
+        return $this->ledgerMembersQuery($params)->paginate($this->pageSize($params));
+    }
+
+    /** @return array<int, Member> 汇总导出用（带上限，不走 pageSize 的 200 上限） */
+    public function ledgerMemberRows(array $params, int $limit = 10000): array
+    {
+        return $this->ledgerMembersQuery($params)->limit($limit)->get()->all();
+    }
+
+    private function ledgerMembersQuery(array $params): Builder
+    {
+        [$from, $to] = $this->ledgerWindow($params);
+
+        $agg = MemberConsumeLog::query()
+            ->selectRaw('member_id')
+            ->selectRaw('COALESCE(SUM(CASE WHEN created_at < ? THEN earn_points - use_points ELSE 0 END), 0) as agg_open', [$from])
+            ->selectRaw('COALESCE(SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN earn_points ELSE 0 END), 0) as agg_grant', [$from, $to])
+            ->selectRaw('COALESCE(SUM(CASE WHEN created_at >= ? AND created_at <= ? THEN use_points ELSE 0 END), 0) as agg_verify', [$from, $to])
+            ->where('created_at', '<=', $to)
+            ->where($this->pointsChangedScope())
+            ->groupBy('member_id');
+
+        $query = Member::query()
+            ->select([
+                'members.id',
+                'members.member_no',
+                'members.name as member_name',
+                'members.points as points_current',
+            ])
+            ->selectRaw('COALESCE(agg.agg_open, 0) as points_open')
+            ->selectRaw('COALESCE(agg.agg_grant, 0) as points_grant')
+            ->selectRaw('COALESCE(agg.agg_verify, 0) as points_verify')
+            ->selectRaw('COALESCE(agg.agg_open, 0) + COALESCE(agg.agg_grant, 0) - COALESCE(agg.agg_verify, 0) as points_close')
+            ->leftJoinSub($agg, 'agg', 'agg.member_id', '=', 'members.id')
+            ->whereNotNull('agg.member_id')
+            ->orderBy('members.id');
+
+        if (! empty($params['keyword'])) {
+            $keyword = $params['keyword'];
+            $query->where(function ($q) use ($keyword) {
+                $q->where('members.name', 'like', '%'.$keyword.'%')
+                    ->orWhere('members.member_no', 'like', '%'.$keyword.'%');
+            });
+        }
+        if (! empty($params['member_id'])) {
+            $query->where('members.id', (int) $params['member_id']);
+        }
+
+        return $query;
+    }
+
+    /** @return LengthAwarePaginator<int, MemberConsumeLog> 单会员积分流水（points 有符号） */
+    public function ledgerFlows(array $params): LengthAwarePaginator
+    {
+        return $this->ledgerFlowsQuery($params)->paginate($this->pageSize($params));
+    }
+
+    private function ledgerFlowsQuery(array $params): Builder
+    {
+        [$from, $to] = $this->ledgerWindow($params);
+
+        $query = MemberConsumeLog::query()
+            ->select([
+                'id', 'log_no', 'member_id', 'member_name', 'consume_type', 'direction',
+                'earn_points', 'use_points', 'points_after', 'related_order_no', 'remark', 'created_at',
+            ])
+            ->selectRaw('(earn_points - use_points) as points')
+            ->where('created_at', '>=', $from)
+            ->where('created_at', '<=', $to)
+            ->where($this->pointsChangedScope())
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+
+        if (! empty($params['member_id'])) {
+            $query->where('member_id', (int) $params['member_id']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * 积分变动行的判定，必须整体加括号：
+     * 裸 orWhere 会与本方法外的 where 条件产生 AND/OR 优先级串味（漏掉 member_id 约束）。
+     *
+     * @return callable|\Closure
+     */
+    private function pointsChangedScope(): \Closure
+    {
+        return fn ($q) => $q->where('earn_points', '>', 0)->orWhere('use_points', '>', 0);
+    }
+
+    /**
+     * 日期窗口归一化为闭区间秒。created_at 是 timestamp，
+     * 故起始补 00:00:00、结束补 23:59:59，未传时取全域。
+     *
+     * @return array{0:string,1:string}
+     */
+    private function ledgerWindow(array $params): array
+    {
+        $start = $params['start_date'] ?? ($params['date_start'] ?? '');
+        $end = $params['end_date'] ?? ($params['date_end'] ?? '');
+
+        $from = $start !== '' ? substr($start, 0, 10).' 00:00:00' : '1970-01-01 00:00:00';
+        $to = $end !== '' ? substr($end, 0, 10).' 23:59:59' : '2999-12-31 23:59:59';
+
+        return [$from, $to];
     }
 }

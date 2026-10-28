@@ -5,7 +5,9 @@ use Modules\Cash\Http\Controllers\CashAccountController;
 use Modules\Cash\Http\Controllers\CashCardController;
 use Modules\Cash\Http\Controllers\CashHandoverController;
 use Modules\Cash\Http\Controllers\CashIntegralGrantController;
+use Modules\Cash\Http\Controllers\CashIntegralLedgerController;
 use Modules\Cash\Http\Controllers\CashIntegralRuleController;
+use Modules\Cash\Http\Controllers\CashIntegralVerifyController;
 
 /**
  * 出纳资金模块（Cash）路由
@@ -51,6 +53,26 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{id}/submit', [CashIntegralGrantController::class, 'submit'])->whereNumber('id');
         Route::post('/{id}/audit', [CashIntegralGrantController::class, 'audit'])->whereNumber('id');
         Route::post('/{id}/void', [CashIntegralGrantController::class, 'void'])->whereNumber('id');
+    });
+
+    // ===== 积分核销（D6）=====
+    Route::prefix('cash/integral/verifies')->group(function () {
+        Route::get('/', [CashIntegralVerifyController::class, 'index']);
+        Route::get('/export', [CashIntegralVerifyController::class, 'export']);
+        Route::get('/member-summary', [CashIntegralVerifyController::class, 'memberSummary']);
+        Route::get('/{id}', [CashIntegralVerifyController::class, 'show'])->whereNumber('id');
+        Route::post('/', [CashIntegralVerifyController::class, 'store']);
+        Route::put('/{id}', [CashIntegralVerifyController::class, 'update'])->whereNumber('id');
+        Route::post('/{id}/submit', [CashIntegralVerifyController::class, 'submit'])->whereNumber('id');
+        Route::post('/{id}/audit', [CashIntegralVerifyController::class, 'audit'])->whereNumber('id');
+        Route::post('/{id}/void', [CashIntegralVerifyController::class, 'void'])->whereNumber('id');
+    });
+
+    // ===== 积分查询（D6，只读）=====
+    Route::prefix('cash/integral/ledger')->group(function () {
+        Route::get('/members', [CashIntegralLedgerController::class, 'members']);
+        Route::get('/flows', [CashIntegralLedgerController::class, 'flows']);
+        Route::get('/export', [CashIntegralLedgerController::class, 'export']);
     });
 
     // ===== 收入上交款 + 上交款查询（D2）=====
