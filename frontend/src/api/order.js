@@ -10,6 +10,22 @@ export default {
 		list: (params) => request.get('business/order-check', { params }),
 		detail: (orderId) => request.get(`business/order-check/${orderId}`),
 	},
+	// T5.2 订货调整
+	adjust: {
+		list: (params) => request.get('business/order-adjustment', { params }),
+		detail: (id) => request.get(`business/order-adjustment/${id}`),
+		create: (data) => request.post('business/order-adjustment', data),
+		update: (id, data) => request.put(`business/order-adjustment/${id}`, data),
+		void: (id) => request.delete(`business/order-adjustment/${id}`),
+		approve: (id) => request.post(`business/order-adjustment/${id}/approve`),
+		reject: (id) => request.post(`business/order-adjustment/${id}/reject`),
+	},
+	// T5.3 订单移库
+	transfer: {
+		list: (params) => request.get('business/order-transfer', { params }),
+		detail: (id) => request.get(`business/order-transfer/${id}`),
+		create: (data) => request.post('business/order-transfer', data),
+	},
 	// T5.4 业务员拜访提醒
 	visitReminder: {
 		list: (params) => request.get('business/visit-reminder', { params }),

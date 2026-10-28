@@ -520,6 +520,18 @@ const systemRoutes = [
 		meta: { title: '客户订货核对' },
 	},
 	{
+		path: '/order/order-adjust',
+		name: 'OrderAdjust',
+		component: () => import('../views/order/order-adjust/index.vue'),
+		meta: { title: '订货调整' },
+	},
+	{
+		path: '/order/order-transfer',
+		name: 'OrderTransfer',
+		component: () => import('../views/order/order-transfer/index.vue'),
+		meta: { title: '订单移库' },
+	},
+	{
 		path: '/order/visit-reminder',
 		name: 'VisitReminder',
 		component: () => import('../views/order/visit-reminder/index.vue'),
