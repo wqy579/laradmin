@@ -4665,6 +4665,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/report/stock-analysis",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\StockAnalysisController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/stock-analysis/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\StockAnalysisController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/report/stock/export",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\StockReportController@export",
