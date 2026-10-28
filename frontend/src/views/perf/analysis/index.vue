@@ -1,5 +1,5 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<div class="perf-filter">
 			<span class="label">日期范围</span>
 			<el-date-picker v-model="dateRange" type="daterange" value-format="YYYY-MM-DD" size="small" style="width: 240px" @change="onDate" />
@@ -14,7 +14,7 @@
 		<el-tabs v-model="activeTab" @tab-change="refresh">
 			<!-- 商品销售分析 -->
 			<el-tab-pane label="商品销售分析" name="products">
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%">
 					<el-table-column prop="product_code" label="商品编码" width="120" />
 					<el-table-column prop="product_name" label="商品" min-width="180" />
 					<el-table-column prop="brand_name" label="品牌" width="100" />
@@ -43,12 +43,13 @@
 						<template #default="{ row }"><span class="text-red">{{ pct1(row.return_rate) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="customer_count" label="铺市客户数" width="110" align="right" />
+					<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 				</el-table>
 			</el-tab-pane>
 
 			<!-- 客户销售汇总 -->
 			<el-tab-pane label="客户销售汇总" name="customers">
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%">
 					<el-table-column prop="customer_name" label="客户" min-width="160" />
 					<el-table-column prop="salesman_name" label="业务员" width="100" />
 					<el-table-column prop="level_name" label="等级" width="100" />
@@ -83,12 +84,13 @@
 					<el-table-column v-if="hasAnyCol(['repurchase_rate', 'rebuy_rate', 'return_buy_rate', 'purchase_rate'])" label="回购率" width="100" align="right">
 						<template #default="{ row }">{{ pct1(row.repurchase_rate ?? row.rebuy_rate ?? row.return_buy_rate ?? row.purchase_rate) }}</template>
 					</el-table-column>
+					<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 				</el-table>
 			</el-tab-pane>
 
 			<!-- 业务员销售分析（双击行查看销售走势） -->
 			<el-tab-pane label="业务员销售分析" name="employees">
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据" @row-dblclick="openTrend">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" @row-dblclick="openTrend">
 					<el-table-column prop="salesman_name" label="业务员" width="120" />
 					<el-table-column prop="department" label="部门" width="120" />
 					<el-table-column prop="visit_count" label="拜访客户数" width="110" align="right" />
@@ -131,12 +133,13 @@
 					<el-table-column v-if="hasCol('mom')" prop="mom" label="环比" width="90" align="right">
 						<template #default="{ row }"><span :class="rateCls(row.mom)">{{ rateText(row.mom) }}</span></template>
 					</el-table-column>
+					<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 				</el-table>
 			</el-tab-pane>
 
 			<!-- 增长与退货率 -->
 			<el-tab-pane label="增长与退货率" name="growthReturn">
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%">
 					<el-table-column prop="month" label="月份" width="120" align="center" />
 					<el-table-column prop="sale" label="销售额" width="150" align="right">
 						<template #default="{ row }"><span :class="moneyCls(row.sale)">{{ fmtMoney(row.sale) }}</span></template>
@@ -153,12 +156,13 @@
 					<el-table-column v-if="hasCol('mom')" prop="mom" label="环比" width="90" align="right">
 						<template #default="{ row }"><span :class="rateCls(row.mom)">{{ rateText(row.mom) }}</span></template>
 					</el-table-column>
+					<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 				</el-table>
 			</el-tab-pane>
 		</el-tabs>
 
 		<!-- 业务员销售走势弹窗 -->
-		<el-dialog v-model="trendVisible" class="trend-dialog" :title="`${trendName} 销售走势`" width="760px" :close-on-click-modal="false" @closed="closeTrend">
+		<el-dialog v-model="trendVisible" class="trend-dialog perf-dialog" :title="`${trendName} 销售走势`" width="760px" :close-on-click-modal="false" @closed="closeTrend">
 			<div class="trend-head">
 				<el-radio-group v-model="trendMode" size="small" @change="loadTrend">
 					<el-radio-button value="month">月度</el-radio-button>
@@ -171,7 +175,7 @@
 			</div>
 		</el-dialog>
 
-		<div class="perf-toolbar">
+		<div class="perf-toolbar perf-pager">
 			<span class="pager-total">共 {{ total }} 条</span>
 			<el-pagination small layout="prev, pager, next, jumper" :page-size="30" :total="total" :current-page="page" @current-change="onPage" />
 		</div>
@@ -184,21 +188,21 @@ import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import perfApi from '@/api/perf'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../../finance/_FinEmpty.vue'
+import { toNum, isNilNum, fmtMoney as fmtThousand } from '../_fmt.js'
 
-// 金额千分位（两位小数），负数红色由 moneyCls 控制
+// 金额千分位（两位小数 + ¥ 前缀），负数红色由 moneyCls 控制；非数值经 toNum 归零
 const fmtMoney = (v) => {
-	const n = Number(v || 0)
-	const neg = n < 0
-	const s = Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-	return (neg ? '-' : '') + '¥' + s
+	const n = toNum(v)
+	return (n < 0 ? '-¥' : '¥') + fmtThousand(Math.abs(n))
 }
-const moneyCls = (v) => (Number(v || 0) < 0 ? 'text-red' : '')
+const moneyCls = (v) => (toNum(v) < 0 ? 'text-red' : '')
 // 百分比一位小数 / 毛利率两位小数
-const pct1 = (v) => (v === null || v === undefined || v === '' ? '—' : Number(v).toFixed(1) + '%')
-const pct2 = (v) => (v === null || v === undefined || v === '' ? '—' : Number(v).toFixed(2) + '%')
+const pct1 = (v) => (isNilNum(v) ? '—' : toNum(v).toFixed(1) + '%')
+const pct2 = (v) => (isNilNum(v) ? '—' : toNum(v).toFixed(2) + '%')
 // 涨红跌绿（与看板一致：升红降绿）
-const rateText = (v) => (v === null || v === undefined || v === '' ? '—' : `${Number(v) >= 0 ? '↑' : '↓'} ${Math.abs(Number(v)).toFixed(1)}%`)
-const rateCls = (v) => (v === null || v === undefined || v === '' ? 'text-nil' : Number(v) >= 0 ? 'text-up' : 'text-down')
+const rateText = (v) => (isNilNum(v) ? '—' : `${toNum(v) >= 0 ? '↑' : '↓'} ${Math.abs(toNum(v)).toFixed(1)}%`)
+const rateCls = (v) => (isNilNum(v) ? 'text-nil' : toNum(v) >= 0 ? 'text-up' : 'text-down')
 
 const riskLabel = (s) => ({ normal: '正常', medium: '关注', high: '高风险', lost: '流失' }[s] || s)
 const riskType = (s) => ({ normal: 'success', medium: 'info', high: 'warning', lost: 'danger' }[s] || 'info')
@@ -227,11 +231,12 @@ const pagedList = computed(() => {
 	return list.value.slice(start, start + PAGE_SIZE)
 })
 
-const totalSale = computed(() => list.value.reduce((s, r) => s + Math.abs(Number(r.sale_amount || 0)), 0))
+const totalSale = computed(() => list.value.reduce((s, r) => s + Math.abs(toNum(r.sale_amount)), 0))
 const sharePct = (row) => {
 	const t = totalSale.value
-	if (!t) return '0.00'
-	return ((Math.abs(Number(row.sale_amount || 0)) / t) * 100).toFixed(2)
+	if (!Number.isFinite(t) || t <= 0) return '0.00'
+	const pct = (Math.abs(toNum(row.sale_amount)) / t) * 100
+	return Number.isFinite(pct) ? pct.toFixed(2) : '0.00'
 }
 const hasCol = (key) => list.value.some((r) => r[key] !== undefined && r[key] !== null && r[key] !== '')
 const hasAnyCol = (keys) => keys.some(hasCol)
@@ -312,7 +317,7 @@ const groupTrend = (points) => {
 		.sort((a, b) => a.month.localeCompare(b.month))
 }
 const shortMoney = (v) => {
-	const n = Number(v || 0)
+	const n = toNum(v)
 	return Math.abs(n) >= 10000 ? `${(n / 10000).toFixed(1)}万` : String(Math.round(n))
 }
 const drawTrend = () => {
@@ -386,23 +391,25 @@ onUnmounted(() => {
 })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; overflow: auto; }
-.perf-filter { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #fff; border-bottom: 1px solid #ebeef5; }
-.perf-filter .label { font-size: 14px; color: #606266; }
-.perf-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 12px 20px; }
-.pager-total { font-size: 14px; color: #606266; }
-.text-green { color: #67C23A; }
-.text-red { color: #F56C6C; font-weight: 600; }
-.text-up { color: #F56C6C; }
-.text-down { color: #67C23A; }
-.text-nil { color: #909399; }
-/* 走势弹窗：标题栏 50px / 16px 加粗 #303133，圆角 4px（与站内弹窗一致） */
-:deep(.trend-dialog .el-dialog) { border-radius: 4px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1); }
-:deep(.trend-dialog .el-dialog__header) { margin: 0; padding: 0 20px; height: 50px; line-height: 50px; border-bottom: 1px solid #ebeef5; }
-:deep(.trend-dialog .el-dialog__title) { font-size: 16px; font-weight: 600; color: #303133; line-height: 50px; }
+/* 筛选栏底色/内距/下边框与标签字号见 _shared.css(.perf-filter) */
+.perf-filter { display: flex; align-items: center; gap: 12px; }
+.perf-toolbar { display: flex; align-items: center; gap: 12px; margin: 12px 20px; }
+.pager-total { font-size: var(--font-h3); color: var(--text-regular); }
+.el-tabs { font-size: var(--font-base); }
+.text-green { color: var(--color-success); }
+.text-red { color: var(--color-danger); font-weight: 600; }
+.text-up { color: var(--color-danger); }
+.text-down { color: var(--color-success); }
+.text-nil { color: var(--text-secondary); }
+/* 走势弹窗尺寸规范见 _shared.css(.perf-dialog)，此处只留图表排版 */
 .trend-head { padding: 12px 20px 0; }
 .trend-box { position: relative; height: 360px; padding: 4px 12px 12px; }
 .trend-chart { width: 100%; height: 100%; }
-.trend-empty { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #909399; }
+.trend-empty { height: 100%; display: flex; align-items: center; justify-content: center; font-size: var(--font-base); color: var(--text-secondary); }
 </style>
