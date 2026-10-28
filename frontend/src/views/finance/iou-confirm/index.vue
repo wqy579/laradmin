@@ -3,11 +3,11 @@
 		<!-- 筛选卡 -->
 		<div class="iou-filter">
 			<span class="label">欠款人</span>
-			<el-select v-model="search.partner" clearable filterable placeholder="全部单位" size="small" style="width: 180px" @change="refresh">
-				<el-option v-for="p in PARTNERS" :key="p.value" :label="p.label" :value="p.value" />
+			<el-select v-model="search.partner_id" clearable filterable placeholder="全部单位" size="small" style="width: 180px" @change="onSearch">
+				<el-option v-for="p in partners" :key="p.value" :label="p.label" :value="p.value" />
 			</el-select>
 			<span class="label">状态</span>
-			<el-select v-model="search.status" clearable placeholder="全部状态" size="small" style="width: 130px" @change="refresh">
+			<el-select v-model="search.status" clearable placeholder="全部状态" size="small" style="width: 130px" @change="onSearch">
 				<el-option value="">全部</el-option>
 				<el-option v-for="(v, k) in IOU_STATUS" :key="k" :label="v.label" :value="k" />
 			</el-select>
@@ -20,10 +20,10 @@
 				start-placeholder="开始日期"
 				end-placeholder="结束日期"
 				value-format="YYYY-MM-DD"
-				@change="refresh"
+				@change="onSearch"
 			/>
 			<div class="filter-actions">
-				<el-button type="primary" size="small" @click="refresh">查询</el-button>
+				<el-button type="primary" size="small" @click="onSearch">查询</el-button>
 				<el-button size="small" @click="resetSearch">重置</el-button>
 			</div>
 		</div>
@@ -36,19 +36,14 @@
 
 		<!-- 表格区 -->
 		<div class="iou-content">
-			<el-table
-				:data="pagedList"
-				border
-				height="100%"
-				v-loading="loading"
-			>
+			<el-table :data="rows" border height="100%" v-loading="loading">
 				<el-table-column prop="no" label="欠条编号" width="150" align="left">
 					<template #default="{ row }">
 						<span class="link tabular" @click="openView(row)">{{ row.no }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="partner" label="欠款人" width="180" align="left">
-					<template #default="{ row }">{{ PARTNER_LABEL[row.partner] || '-' }}</template>
+				<el-table-column prop="partner_name" label="欠款人" min-width="180" align="left">
+					<template #default="{ row }">{{ row.partner_name || '-' }}</template>
 				</el-table-column>
 				<el-table-column prop="amount" label="欠款金额" width="130" align="right">
 					<template #default="{ row }">
@@ -60,9 +55,10 @@
 						<span class="tabular">{{ row.date }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="due_date" label="约定还款日" width="120" align="center">
+				<el-table-column prop="due_date" label="约定还款日" width="130" align="center">
 					<template #default="{ row }">
-						<span class="tabular">{{ row.due_date || '-' }}</span>
+						<span class="tabular" :class="{ 'text-danger': row.is_overdue }">{{ row.due_date || '-' }}</span>
+						<el-tag v-if="row.is_overdue" size="small" type="danger" class="overdue-tag">已逾期</el-tag>
 					</template>
 				</el-table-column>
 				<el-table-column prop="status" label="状态" width="100" align="center">
@@ -73,12 +69,14 @@
 				<el-table-column label="签字图" width="100" align="center">
 					<template #default="{ row }">
 						<el-image
+							v-if="row.signature_url"
 							style="width: 40px; height: 30px; object-fit: contain; cursor: zoom-in; border: 1px solid #eee"
 							:src="row.signature_url"
 							:preview-src="row.signature_url"
 							preview-teleported
 							fit="contain"
 						/>
+						<span v-else>-</span>
 					</template>
 				</el-table-column>
 				<el-table-column label="操作" width="180" align="center" fixed="right">
@@ -100,29 +98,37 @@
 
 		<!-- 分页 -->
 		<div class="iou-pager">
-			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="page = $event" />
+			<el-pagination
+				background
+				layout="total, prev, pager, next"
+				:total="total"
+				:page-size="pageSize"
+				:current-page="page"
+				@current-change="onPageChange"
+			/>
 		</div>
 
 		<!-- 新增 Dialog -->
-		<el-dialog
-			v-model="createVisible"
-			title="新增欠条"
-			width="600px"
-			:close-on-click-modal="false"
-			destroy-on-close
-		>
+		<el-dialog v-model="createVisible" title="新增欠条" width="680px" :close-on-click-modal="false" destroy-on-close>
 			<el-form :model="createForm" label-width="90px" size="small">
 				<div class="dialog-body">
 					<el-form-item label="欠款人" required>
-						<el-select v-model="createForm.partner" filterable placeholder="选择欠款人" style="width: 100%">
-							<el-option v-for="p in PARTNERS" :key="p.value" :label="p.label" :value="p.value" />
+						<el-select v-model="createForm.partner_id" filterable placeholder="选择欠款人" style="width: 100%" @change="onPartnerPick">
+							<el-option v-for="p in partners" :key="p.value" :label="p.label" :value="p.value" />
 						</el-select>
 					</el-form-item>
 					<el-form-item label="欠款金额" required>
-						<el-input-number v-model="createForm.amount" :min="0.01" :precision="2" :controls="false" style="width: 100%" />
+						<el-input-number
+							v-model="createForm.amount"
+							:min="0.01"
+							:step="100"
+							:precision="2"
+							:controls-position="'right'"
+							style="width: 100%"
+						/>
 					</el-form-item>
 					<el-form-item label="立据日期" required>
-						<el-date-picker v-model="createForm.date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+						<el-date-picker v-model="createForm.doc_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
 					</el-form-item>
 					<el-form-item label="约定还款日" required>
 						<el-date-picker v-model="createForm.due_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
@@ -130,14 +136,8 @@
 					<el-form-item label="摘要" class="full-width">
 						<el-input v-model="createForm.abstract" placeholder="请输入摘要" style="width: 100%" />
 					</el-form-item>
-					<el-form-item label="签字图" class="full-width">
-						<el-upload
-							action="#"
-							list-type="picture-card"
-							:auto-upload="false"
-							:on-change="handleSignatureChange"
-							accept="image/*"
-						>
+					<el-form-item label="签字图" required class="full-width">
+						<el-upload action="#" list-type="picture-card" :auto-upload="false" :on-change="handleSignatureChange" accept="image/*">
 							<el-icon><Plus /></el-icon>
 							<template #tip>
 								<div class="el-upload__tip">请上传欠款人签字图片</div>
@@ -148,25 +148,19 @@
 			</el-form>
 			<template #footer>
 				<el-button size="small" @click="createVisible = false">取消</el-button>
-				<el-button type="primary" size="small" @click="saveCreate">保存</el-button>
+				<el-button type="primary" size="small" :loading="saving" @click="saveCreate">保存</el-button>
 			</template>
 		</el-dialog>
 
 		<!-- 查看 Dialog -->
-		<el-dialog
-			v-model="viewVisible"
-			title="欠条详情"
-			width="640px"
-			:close-on-click-modal="false"
-			destroy-on-close
-		>
+		<el-dialog v-model="viewVisible" title="欠条详情" width="680px" :close-on-click-modal="false" destroy-on-close>
 			<template v-if="viewRow">
 				<el-form label-width="90px" size="small" class="view-form">
 					<div class="dialog-body">
 						<el-form-item label="欠条编号">
 							<span class="tabular">{{ viewRow.no }}</span>
 						</el-form-item>
-						<el-form-item label="欠款人">{{ PARTNER_LABEL[viewRow.partner] || '-' }}</el-form-item>
+						<el-form-item label="欠款人">{{ viewRow.partner_name || '-' }}</el-form-item>
 						<el-form-item label="欠款金额">
 							<span class="tabular">{{ fmtMoney(viewRow.amount) }}</span>
 						</el-form-item>
@@ -174,22 +168,24 @@
 							<span class="tabular">{{ viewRow.date }}</span>
 						</el-form-item>
 						<el-form-item label="约定还款日">
-							<span class="tabular">{{ viewRow.due_date || '-' }}</span>
+							<span class="tabular" :class="{ 'text-danger': viewRow.is_overdue }">{{ viewRow.due_date || '-' }}</span>
+							<el-tag v-if="viewRow.is_overdue" size="small" type="danger" class="overdue-tag">已逾期</el-tag>
 						</el-form-item>
 						<el-form-item label="状态">
-							<el-tag size="small" :type="IOU_STATUS[viewRow.status]?.tag || 'info'">{{ IOU_STATUS[viewRow.status]?.label || viewRow.status }}</el-tag>
+							<el-tag size="small" :type="IOU_STATUS[viewRow.status]?.tag || 'info'">{{
+								IOU_STATUS[viewRow.status]?.label || viewRow.status
+							}}</el-tag>
 						</el-form-item>
-						<el-form-item label="制单人">{{ viewRow.creator }}</el-form-item>
+						<el-form-item label="资金流水">
+							<span class="tabular">{{ viewRow.cash_flow_no || '-' }}</span>
+						</el-form-item>
 						<el-form-item label="摘要" class="full-width">{{ viewRow.abstract || '-' }}</el-form-item>
 						<el-form-item label="驳回原因" v-if="viewRow.status === 'rejected'" class="full-width">
 							<span class="text-danger">{{ viewRow.reject_reason || '-' }}</span>
 						</el-form-item>
 						<el-form-item label="签字图" class="full-width" align="center">
-							<el-image
-								style="max-width: 300px; border: 1px solid #eee; padding: 4px"
-								:src="viewRow.signature_url"
-								fit="contain"
-							/>
+							<el-image v-if="viewRow.signature_url" style="max-width: 300px; border: 1px solid #eee; padding: 4px" :src="viewRow.signature_url" fit="contain" />
+							<span v-else>-</span>
 						</el-form-item>
 					</div>
 				</el-form>
@@ -202,145 +198,203 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import {
-	PARTNERS,
-	PARTNER_LABEL,
-	IOU_STATUS,
-	IOU_STATUS_LABEL,
-	fmtMoney,
-	today,
-	mockIous,
-	genIouNo,
-} from '@/mock/iou-confirm'
+import businessApi from '@/api/business'
+
+const DOC_TYPE = 'iou'
+const IOU_STATUS = {
+	pending: { label: '待确认', tag: 'warning' },
+	confirmed: { label: '已确认', tag: 'success' },
+	rejected: { label: '已驳回', tag: 'danger' },
+}
+
+// 金额千分位 + 两位小数（DS：金额右对齐 tabular-nums）
+const fmtMoney = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const today = () => new Date().toISOString().slice(0, 10)
 
 const loading = ref(false)
+const saving = ref(false)
 const page = ref(1)
 const pageSize = 20
 const rows = ref([])
+const total = ref(0)
+const partners = ref([])
 
 const search = reactive({
-	partner: '',
+	partner_id: '',
 	status: '',
 	daterange: [],
 })
 
-const refresh = () => {
-	loading.value = true
-	// TODO(api): GET /api/finance/ious
-	setTimeout(() => {
-		rows.value = mockIous()
-		loading.value = false
-	}, 300)
+// 欠款人下拉：欠条挂在客户往来上，取真实客户档案
+const loadPartners = async () => {
+	try {
+		const res = await businessApi.customer.list.get({ page_size: 200 })
+		const list = res?.data?.list ?? res?.data?.data?.list ?? []
+		partners.value = list.map((c) => ({ value: c.id, label: c.name }))
+	} catch {
+		partners.value = []
+	}
 }
 
-const resetSearch = () => {
-	search.partner = ''
-	search.status = ''
-	search.daterange = []
+// 分页 / 筛选全部下传后端，前端不再本地过滤
+const refresh = async () => {
+	loading.value = true
+	try {
+		const params = {
+			status: search.status || undefined,
+			partner_id: search.partner_id || undefined,
+			page: page.value,
+			page_size: pageSize,
+		}
+		if (search.daterange?.length === 2) {
+			params.start_date = search.daterange[0]
+			params.end_date = search.daterange[1]
+		}
+		const res = await businessApi.finance.fundOrder.list.get(DOC_TYPE, params)
+		const data = res?.data?.data ?? res?.data ?? {}
+		rows.value = data.list || []
+		total.value = data.total || 0
+	} catch {
+		rows.value = []
+		total.value = 0
+	} finally {
+		loading.value = false
+	}
+}
+
+const onSearch = () => {
+	page.value = 1
 	refresh()
 }
-
-const filteredList = computed(() => {
-	return rows.value.filter((r) => {
-		if (search.partner && r.partner !== search.partner) return false
-		if (search.status && r.status !== search.status) return false
-		if (search.daterange?.length === 2) {
-			if (r.date < search.daterange[0] || r.date > search.daterange[1]) return false
-		}
-		return true
-	})
-})
-
-const total = computed(() => filteredList.value.length)
-const pagedList = computed(() => {
-	const start = (page.value - 1) * pageSize
-	return filteredList.value.slice(start, start + pageSize)
-})
+const onPageChange = (p) => {
+	page.value = p
+	refresh()
+}
+const resetSearch = () => {
+	search.partner_id = ''
+	search.status = ''
+	search.daterange = []
+	onSearch()
+}
 
 /* ---------- 交互逻辑 ---------- */
 
 const handleConfirm = async (row) => {
 	try {
 		await ElMessageBox.confirm(`确认欠条 ${row.no} 为正确无误？`, '确认确认', { type: 'warning' })
-		// TODO(api): POST /api/finance/ious/{id}/confirm
-		row.status = 'confirmed'
+	} catch {
+		return
+	}
+	try {
+		await businessApi.finance.fundOrder.confirm.post(DOC_TYPE, row.id)
 		ElMessage.success('确认成功')
-	} catch (e) {}
+		refresh()
+	} catch (e) {
+		if (e?.message) ElMessage.error(e.message)
+	}
 }
 
 const handleReject = async (row) => {
+	let reason
 	try {
-		const { value: reason } = await ElMessageBox.prompt('请输入驳回原因', '驳回确认', {
+		const { value } = await ElMessageBox.prompt('请输入驳回原因', '驳回确认', {
 			confirmButtonText: '确定',
 			cancelButtonText: '取消',
 			inputValue: '',
 		})
-		if (!reason) return ElMessage.warning('请填写驳回原因')
-		// TODO(api): POST /api/finance/ious/{id}/reject
-		row.status = 'rejected'
-		row.reject_reason = reason
+		reason = value
+	} catch {
+		return
+	}
+	if (!reason) return ElMessage.warning('请填写驳回原因')
+	try {
+		await businessApi.finance.fundOrder.reject.post(DOC_TYPE, row.id, { reason })
 		ElMessage.success('已驳回')
-	} catch (e) {}
+		refresh()
+	} catch (e) {
+		if (e?.message) ElMessage.error(e.message)
+	}
 }
 
 /* ---------- 新增 Dialog ---------- */
 const createVisible = ref(false)
-const createForm = reactive({
-	partner: '',
+const emptyForm = () => ({
+	partner_id: '',
+	partner_name: '',
 	amount: 0,
-	date: today(),
+	doc_date: today(),
 	due_date: '',
 	abstract: '',
-	signature_file: '',
 	signature_url: '',
 })
+const createForm = reactive(emptyForm())
 
 const openCreate = () => {
-	Object.assign(createForm, {
-		partner: '',
-		amount: 0,
-		date: today(),
-		due_date: '',
-		abstract: '',
-		signature_file: '',
-		signature_url: '',
-	})
+	Object.assign(createForm, emptyForm())
 	createVisible.value = true
 }
 
+const onPartnerPick = (id) => {
+	createForm.partner_name = partners.value.find((p) => p.value === id)?.label || ''
+}
+
 const handleSignatureChange = (file) => {
-	// 纯前端 mock：使用 URL.createObjectURL 预览
-	createForm.signature_file = file.name
+	// 签字图仅前端预览（本域无上传端点，勿跨界新增）；建单只提交预览地址
 	createForm.signature_url = URL.createObjectURL(file.raw)
 }
 
-const saveCreate = () => {
-	if (!createForm.partner || !createForm.amount || !createForm.date || !createForm.due_date) {
+const saveCreate = async () => {
+	if (!createForm.partner_id || !createForm.amount || !createForm.doc_date || !createForm.due_date) {
 		return ElMessage.error('请填写必填项')
 	}
 	if (!createForm.signature_url) {
 		return ElMessage.error('请上传签字图')
 	}
-	// TODO(api): POST /api/finance/ious
-	ElMessage.success(`保存成功，欠条编号：${genIouNo(createForm.date)}，状态：待确认`)
-	createVisible.value = false
-	refresh()
+	saving.value = true
+	try {
+		const res = await businessApi.finance.fundOrder.add.post(DOC_TYPE, {
+			partner_type: 'customer',
+			partner_id: createForm.partner_id,
+			partner_name: createForm.partner_name,
+			amount: createForm.amount,
+			doc_date: createForm.doc_date,
+			due_date: createForm.due_date,
+			abstract: createForm.abstract,
+			signature_url: createForm.signature_url,
+		})
+		const no = res?.data?.data?.no || ''
+		ElMessage.success(`保存成功，欠条编号：${no}，状态：待确认`)
+		createVisible.value = false
+		onSearch()
+	} catch (e) {
+		if (e?.message) ElMessage.error(e.message)
+	} finally {
+		saving.value = false
+	}
 }
 
 /* ---------- 查看 Dialog ---------- */
 const viewVisible = ref(false)
 const viewRow = ref(null)
 
-const openView = (row) => {
-	// TODO(api): GET /api/finance/ious/{id}
+const openView = async (row) => {
 	viewRow.value = row
 	viewVisible.value = true
+	try {
+		const res = await businessApi.finance.fundOrder.detail.get(DOC_TYPE, row.id)
+		viewRow.value = res?.data?.data ?? row
+	} catch {
+		// 列表行已有主体字段，详情失败不影响展示
+	}
 }
 
-onMounted(refresh)
+onMounted(() => {
+	loadPartners()
+	refresh()
+})
 </script>
 
 <style scoped>
@@ -407,6 +461,9 @@ onMounted(refresh)
 .text-danger {
 	color: var(--color-danger);
 }
+.overdue-tag {
+	margin-left: 6px;
+}
 
 /* 表格样式对齐卷00 */
 :deep(.el-table) {
@@ -427,14 +484,19 @@ onMounted(refresh)
 	border-bottom-color: var(--border-lighter);
 }
 
-/* Dialog 样式 */
+/* 金额等宽对齐 */
+.tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Dialog 样式：一行 3 列（B4 统一弹窗规范） */
 .dialog-body {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: repeat(3, 1fr);
 	gap: 16px;
 }
 .full-width {
-	grid-column: span 2;
+	grid-column: span 3;
 }
 .view-form :deep(.el-form-item__label) {
 	color: var(--text-secondary);

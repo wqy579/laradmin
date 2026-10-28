@@ -2313,6 +2313,90 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/finance-fund-orders/{type}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/finance-fund-orders/{type}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/finance-fund-orders/{type}/{id}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/finance-fund-orders/{type}/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundOrderController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/finance-fund-orders/{type}/{id}/confirm",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundOrderController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/finance-fund-orders/{type}/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundOrderController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/finance-fund-orders/{type}/{id}/repay",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundOrderController@repay",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/finance-journal",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\FinanceJournalController@index",

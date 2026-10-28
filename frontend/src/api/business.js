@@ -772,6 +772,18 @@ const businessApi = {
 		balance: { get: (params) => request.get('business/finance-balance', { params }) },
 		// 科目变化明细（B3）：逐科目流水 + 滚动余额
 		subjectChange: { get: (params) => request.get('business/finance-subject-change', { params }) },
+		// 资金单族（B4）：6 类单据共用一套接口，type 判别
+		// iou 欠条确认 / borrow_repay 借款还款 / fund_io 资金增减 /
+		// arap_adjust 应收应付调整 / customer_balance 客户余额调整 / supplier_balance 供应商余额调整
+		fundOrder: {
+			list: { get: (type, params) => request.get(`business/finance-fund-orders/${type}`, { params }) },
+			detail: { get: (type, id) => request.get(`business/finance-fund-orders/${type}/${id}`) },
+			add: { post: (type, params) => request.post(`business/finance-fund-orders/${type}`, params) },
+			confirm: { post: (type, id) => request.post(`business/finance-fund-orders/${type}/${id}/confirm`) },
+			approve: { post: (type, id) => request.post(`business/finance-fund-orders/${type}/${id}/approve`) },
+			reject: { post: (type, id, params) => request.post(`business/finance-fund-orders/${type}/${id}/reject`, params) },
+			repay: { post: (type, id, params) => request.post(`business/finance-fund-orders/${type}/${id}/repay`, params) },
+		},
 	},
 
 	// 内部邮件（Office 模块）
