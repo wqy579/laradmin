@@ -103,9 +103,14 @@
 					<el-table-column v-if="hasCol('target')" prop="target" label="目标" width="130" align="right">
 						<template #default="{ row }">{{ fmtMoney(row.target) }}</template>
 					</el-table-column>
-					<el-table-column v-if="showAchieve" prop="achieve_rate" label="达成率" width="100" align="right">
+					<el-table-column v-if="showAchieve" prop="achieve_rate" label="目标进度" width="150" align="left">
 						<template #default="{ row }">
-							<span :class="row.achieve_rate >= 100 ? 'text-green' : 'text-red'">{{ pct1(row.achieve_rate) }}</span>
+							<div class="target-bar">
+								<div class="target-track">
+									<div class="target-fill" :style="{ width: targetWidth(row.achieve_rate) + '%', background: targetColor(row.achieve_rate) }" />
+								</div>
+								<span :style="{ color: targetColor(row.achieve_rate) }">{{ pct1(row.achieve_rate) }}</span>
+							</div>
 						</template>
 					</el-table-column>
 					<el-table-column prop="payment_amount" label="回款" width="130" align="right">
