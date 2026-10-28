@@ -38,7 +38,7 @@ class FinanceB4FundOrderFeatureTest extends TestCase
         $voucherId = DB::table('ledger_vouchers')->insertGetId([
             'voucher_no' => '记-TEST-'.$auxId.'-'.uniqid(),
             'voucher_date' => now()->toDateString(),
-            'period' => now()->toDateString(),
+            'period' => now()->format('Y-m'),
             'attachments_count' => 0,
             'total_debit' => $amount,
             'total_credit' => $amount,
