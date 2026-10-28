@@ -4629,6 +4629,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/report/price-rank",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\PriceRankController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/price-rank/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\PriceRankController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/report/sales",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\SalesReportController@index",
