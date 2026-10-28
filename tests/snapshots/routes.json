@@ -3165,6 +3165,90 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/order-adjustment",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderAdjustController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/order-adjustment",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderAdjustController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/order-adjustment/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderAdjustController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/order-adjustment/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderAdjustController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/order-adjustment/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderAdjustController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/order-adjustment/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderAdjustController@approve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/order-adjustment/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderAdjustController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/order-check",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\OrderCheckController@index",
@@ -3180,6 +3264,42 @@
         "uri": "admin/business/order-check/{orderId}",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\OrderCheckController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/order-transfer",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderTransferController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/order-transfer",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderTransferController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/order-transfer/{id}",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\OrderTransferController@show",
         "middleware": [
             "api",
             "stock.snapshot",

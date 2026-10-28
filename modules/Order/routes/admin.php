@@ -6,7 +6,9 @@ use Modules\Order\Http\Controllers\BusinessHistoryController;
 use Modules\Order\Http\Controllers\CashFlowController;
 use Modules\Order\Http\Controllers\CustomerController;
 use Modules\Order\Http\Controllers\DeliveryController;
+use Modules\Order\Http\Controllers\OrderAdjustController;
 use Modules\Order\Http\Controllers\OrderCheckController;
+use Modules\Order\Http\Controllers\OrderTransferController;
 use Modules\Order\Http\Controllers\PayController;
 use Modules\Order\Http\Controllers\ProductBomController;
 use Modules\Order\Http\Controllers\ProfitController;
@@ -268,5 +270,21 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/order-check')->group(function () {
         Route::get('/', [OrderCheckController::class, 'index']);
         Route::get('/{orderId}', [OrderCheckController::class, 'show']);
+    });
+    // 订货闭环 T5.2 订货调整（订货中心）
+    Route::prefix('business/order-adjustment')->group(function () {
+        Route::get('/', [OrderAdjustController::class, 'index']);
+        Route::post('/', [OrderAdjustController::class, 'store']);
+        Route::get('/{id}', [OrderAdjustController::class, 'show']);
+        Route::put('/{id}', [OrderAdjustController::class, 'update']);
+        Route::delete('/{id}', [OrderAdjustController::class, 'destroy']);
+        Route::post('/{id}/approve', [OrderAdjustController::class, 'approve']);
+        Route::post('/{id}/reject', [OrderAdjustController::class, 'reject']);
+    });
+    // 订货闭环 T5.3 订单移库（订货中心）—— 强约束：移库量 ≤ 订货量
+    Route::prefix('business/order-transfer')->group(function () {
+        Route::get('/', [OrderTransferController::class, 'index']);
+        Route::post('/', [OrderTransferController::class, 'store']);
+        Route::get('/{id}', [OrderTransferController::class, 'show']);
     });
 });
