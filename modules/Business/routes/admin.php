@@ -5,6 +5,7 @@ use Modules\Business\Http\Controllers\AttendanceController;
 use Modules\Business\Http\Controllers\EmployeeController;
 use Modules\Business\Http\Controllers\ExpenseController;
 use Modules\Business\Http\Controllers\FinanceBalanceController;
+use Modules\Business\Http\Controllers\FinanceFundOrderController;
 use Modules\Business\Http\Controllers\FinanceJournalController;
 use Modules\Business\Http\Controllers\FinanceMonthCloseController;
 use Modules\Business\Http\Controllers\FinanceStatementController;
@@ -124,5 +125,16 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 财务科目变化明细（B3）：逐科目流水与滚动余额（读 ledger 分录）
     Route::prefix('business/finance-subject-change')->group(function () {
         Route::get('/', [FinanceSubjectChangeController::class, 'index']);
+    });
+    // 财务资金单族（B4）：6 类资金单据统一 CRUD + 确认/审核/驳回/还款
+    // {type} = iou|borrow_repay|fund_io|arap_adjust|customer_balance|supplier_balance
+    Route::prefix('business/finance-fund-orders')->group(function () {
+        Route::get('/{type}', [FinanceFundOrderController::class, 'index']);
+        Route::post('/{type}', [FinanceFundOrderController::class, 'store']);
+        Route::get('/{type}/{id}', [FinanceFundOrderController::class, 'show']);
+        Route::post('/{type}/{id}/confirm', [FinanceFundOrderController::class, 'confirm']);
+        Route::post('/{type}/{id}/approve', [FinanceFundOrderController::class, 'approve']);
+        Route::post('/{type}/{id}/reject', [FinanceFundOrderController::class, 'reject']);
+        Route::post('/{type}/{id}/repay', [FinanceFundOrderController::class, 'repay']);
     });
 });

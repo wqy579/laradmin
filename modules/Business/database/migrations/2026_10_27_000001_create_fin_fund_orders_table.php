@@ -26,7 +26,8 @@ return new class extends Migration
             $table->string('partner_type', 20)->nullable()->comment('往来方类型：customer/supplier/employee');
             $table->unsignedBigInteger('partner_id')->nullable()->comment('往来方ID');
             $table->string('partner_name', 100)->nullable()->comment('往来方名称（冗余快照）');
-            $table->decimal('amount', 14, 2)->default(0)->comment('金额，调整类/资金类可正可负（正=收/增，负=付/减）');
+            $table->decimal('amount', 14, 2)->default(0)->comment('金额，调整类/资金类可正可负（正=收/增，负=付/减）；借款还款单存剩余未还');
+            $table->decimal('original_amount', 14, 2)->nullable()->comment('原始借款额（借款还款单用于判定部分偿还）');
             $table->date('doc_date')->comment('单据日期');
             $table->date('due_date')->nullable()->comment('约定还款日（欠条/借款）');
             $table->string('status', 20)->default('pending')->comment('状态：pending/confirmed/approved/rejected/settled');

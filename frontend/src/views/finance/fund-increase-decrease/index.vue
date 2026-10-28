@@ -3,13 +3,19 @@
 		<!-- 筛选卡 -->
 		<div class="fund-filter">
 			<span class="label">增减类型</span>
-			<el-select v-model="search.type" clearable placeholder="全部类型" size="small" style="width: 150px" @change="refresh">
-				<el-option v-for="t in FUND_TYPES" :key="t.value" :label="t.label" :value="t.value" />
+			<el-select v-model="search.direction" clearable placeholder="全部类型" size="small" style="width: 150px" @change="onSearch">
+				<el-option v-for="t in FUND_DIRECTIONS" :key="t.value" :label="t.label" :value="t.value" />
 			</el-select>
-			<span class="label">资金账户</span>
-			<el-select v-model="search.account" clearable placeholder="全部账户" size="small" style="width: 180px" @change="refresh">
-				<el-option v-for="a in FUND_ACCOUNTS" :key="a.value" :label="a.label" :value="a.value" />
-			</el-select>
+			<span class="label">关键字</span>
+			<el-input
+				v-model="search.keyword"
+				clearable
+				placeholder="单据号/往来单位"
+				size="small"
+				style="width: 180px"
+				@keyup.enter="onSearch"
+				@clear="onSearch"
+			/>
 			<span class="label">日期范围</span>
 			<el-date-picker
 				v-model="search.daterange"
@@ -19,10 +25,10 @@
 				start-placeholder="开始日期"
 				end-placeholder="结束日期"
 				value-format="YYYY-MM-DD"
-				@change="refresh"
+				@change="onSearch"
 			/>
 			<div class="filter-actions">
-				<el-button type="primary" size="small" @click="refresh">查询</el-button>
+				<el-button type="primary" size="small" @click="onSearch">查询</el-button>
 				<el-button size="small" @click="resetSearch">重置</el-button>
 			</div>
 		</div>
@@ -30,22 +36,17 @@
 		<!-- 工具条 -->
 		<div class="fund-toolbar">
 			<span class="toolbar-title">资金增减单</span>
-			<el-button type="primary" size="small" @click="openCreate">+ 新增资金增减单</el-button>
+			<el-button type="primary" size="small" v-permission="'fin:fund:adjust'" @click="openCreate">+ 新增资金增减单</el-button>
 		</div>
 
 		<!-- 表格区 -->
 		<div class="fund-content">
-			<el-table
-				:data="pagedList"
-				border
-				height="100%"
-				v-loading="loading"
-				:show-summary="true"
-				:summary-method="summaryMethod"
-			>
-				<el-table-column prop="type" label="增减类型" width="120" align="left">
+			<el-table :data="rows" border height="100%" v-loading="loading" :show-summary="true" :summary-method="summaryMethod">
+				<el-table-column prop="direction" label="增减类型" width="120" align="left">
 					<template #default="{ row }">
-						<el-tag size="small" effect="light" :type="typeTag(row.type)">{{ FUND_TYPE_LABEL[row.type] }}</el-tag>
+						<el-tag size="small" effect="light" :type="row.direction === 'increase' ? 'success' : 'danger'">
+							{{ FUND_DIRECTION_LABEL[row.direction] || row.direction }}
+						</el-tag>
 					</template>
 				</el-table-column>
 				<el-table-column prop="no" label="单据号" width="150" align="left">
@@ -54,22 +55,36 @@
 					</template>
 				</el-table-column>
 				<el-table-column prop="account" label="资金账户" width="150" align="left">
-					<template #default="{ row }">{{ FUND_ACCOUNT_LABEL[row.account] }}</template>
+					<template #default="{ row }">{{ row.account || '-' }}</template>
 				</el-table-column>
-				<el-table-column prop="partner" label="往来单位" width="180" align="left">
-					<template #default="{ row }">{{ PARTNER_LABEL[row.partner] || '-' }}</template>
+				<el-table-column prop="partner_name" label="往来单位" width="180" align="left">
+					<template #default="{ row }">{{ row.partner_name || '-' }}</template>
 				</el-table-column>
 				<el-table-column prop="amount" label="金额" width="130" align="right">
 					<template #default="{ row }">
-						<span class="tabular">{{ fmtMoney(row.amount) }}</span>
+						<span class="tabular" :class="{ 'text-danger': row.amount < 0 }">{{ fmtMoney(row.amount) }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="abstract" label="摘要" min-width="200" align="left" show-overflow-tooltip />
-				<el-table-column prop="creator" label="制单人" width="100" align="center" />
-				<el-table-column prop="created_at" label="制单日期" width="110" align="center">
-					<template #default="{ row }"><span class="tabular">{{ row.created_at }}</span></template>
+				<el-table-column prop="payment_method" label="付款方式" width="100" align="center">
+					<template #default="{ row }">{{ row.payment_method || '-' }}</template>
 				</el-table-column>
-				<el-table-column label="操作" width="100" align="center">
+				<el-table-column prop="abstract" label="摘要" min-width="180" align="left" show-overflow-tooltip />
+				<el-table-column prop="cash_flow_no" label="资金流水号" width="170" align="left">
+					<template #default="{ row }">
+						<span class="tabular">{{ row.cash_flow_no || '-' }}</span>
+					</template>
+				</el-table-column>
+				<el-table-column prop="status" label="状态" width="90" align="center">
+					<template #default="{ row }">
+						<el-tag size="small" :type="FUND_STATUS[row.status]?.tag || 'info'">{{ FUND_STATUS[row.status]?.label || row.status }}</el-tag>
+					</template>
+				</el-table-column>
+				<el-table-column prop="date" label="发生日期" width="110" align="center">
+					<template #default="{ row }"
+						><span class="tabular">{{ row.date }}</span></template
+					>
+				</el-table-column>
+				<el-table-column label="操作" width="80" align="center" fixed="right">
 					<template #default="{ row }">
 						<el-button link type="primary" size="small" @click="openView(row)">查看</el-button>
 					</template>
@@ -84,119 +99,185 @@
 
 		<!-- 分页 -->
 		<div class="fund-pager">
-			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="page = $event" />
+			<el-pagination
+				background
+				layout="total, prev, pager, next"
+				:total="total"
+				:page-size="pageSize"
+				:current-page="page"
+				@current-change="onPageChange"
+			/>
 		</div>
 
-		<!-- 新增/查看 Dialog -->
-		<el-dialog
-			v-model="dialogVisible"
-			:title="dialogTitle"
-			width="600px"
-			:close-on-click-modal="false"
-			destroy-on-close
-		>
-			<el-form :model="form" label-width="90px" size="small" :disabled="mode === 'view'">
+		<!-- 新增 Dialog -->
+		<el-dialog v-model="createVisible" title="新增资金增减单" width="680px" :close-on-click-modal="false" destroy-on-close>
+			<el-form :model="createForm" label-width="90px" size="small">
 				<div class="dialog-body">
-					<el-form-item label="资金账户" required>
-						<el-select v-model="form.account" style="width: 100%">
-							<el-option v-for="a in FUND_ACCOUNTS" :key="a.value" :label="a.label" :value="a.value" />
-						</el-select>
-					</el-form-item>
 					<el-form-item label="增减类型" required>
-						<el-radio-group v-model="form.type" size="small">
-							<el-radio-button label="increase" value="increase">资金增加</el-radio-button>
-							<el-radio-button label="decrease" value="decrease">资金减少</el-radio-button>
+						<el-radio-group v-model="createForm.direction" size="small">
+							<el-radio-button value="increase">资金增加</el-radio-button>
+							<el-radio-button value="decrease">资金减少</el-radio-button>
 						</el-radio-group>
 					</el-form-item>
 					<el-form-item label="金额" required>
-						<el-input-number v-model="form.amount" :min="0" :precision="2" style="width: 100%" />
+						<el-input-number
+							v-model="createForm.amount"
+							:min="0.01"
+							:step="100"
+							:precision="2"
+							:controls-position="'right'"
+							style="width: 100%"
+						/>
 					</el-form-item>
 					<el-form-item label="发生日期" required>
-						<el-date-picker v-model="form.date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+						<el-date-picker v-model="createForm.doc_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
 					</el-form-item>
-					<el-form-item label="往来单位">
-						<el-select v-model="form.partner" clearable filterable placeholder="选择或输入往来单位" style="width: 100%">
-							<el-option v-for="p in PARTNERS" :key="p.value" :label="p.label" :value="p.value" />
+					<el-form-item label="资金账户" required>
+						<el-select v-model="createForm.account" placeholder="选择资金账户" style="width: 100%">
+							<el-option v-for="a in FUND_ACCOUNTS" :key="a" :label="a" :value="a" />
 						</el-select>
 					</el-form-item>
+					<el-form-item label="付款方式">
+						<el-select v-model="createForm.payment_method" style="width: 100%">
+							<el-option label="现金" value="现金" />
+							<el-option label="银行" value="银行" />
+						</el-select>
+					</el-form-item>
+					<el-form-item label="往来单位">
+						<el-input v-model="createForm.partner_name" placeholder="选填" style="width: 100%" />
+					</el-form-item>
 					<el-form-item label="摘要" class="full-width">
-						<el-input v-model="form.abstract" placeholder="请输入摘要" style="width: 100%" />
+						<el-input v-model="createForm.abstract" placeholder="请输入摘要" style="width: 100%" />
 					</el-form-item>
 				</div>
 			</el-form>
 			<template #footer>
-				<el-button size="small" @click="dialogVisible = false">取消</el-button>
-				<template v-if="mode !== 'view'">
-					<el-button type="primary" size="small" @click="saveForm">保存</el-button>
-				</template>
+				<el-button size="small" @click="createVisible = false">取消</el-button>
+				<el-button type="primary" size="small" :loading="saving" @click="saveCreate">保存</el-button>
+			</template>
+		</el-dialog>
+
+		<!-- 查看 Dialog -->
+		<el-dialog v-model="viewVisible" title="资金增减单详情" width="680px" :close-on-click-modal="false" destroy-on-close>
+			<template v-if="viewRow">
+				<el-form label-width="90px" size="small" class="view-form">
+					<div class="dialog-body">
+						<el-form-item label="单据号">
+							<span class="tabular">{{ viewRow.no }}</span>
+						</el-form-item>
+						<el-form-item label="增减类型">
+							<el-tag size="small" effect="light" :type="viewRow.direction === 'increase' ? 'success' : 'danger'">
+								{{ FUND_DIRECTION_LABEL[viewRow.direction] || viewRow.direction }}
+							</el-tag>
+						</el-form-item>
+						<el-form-item label="金额">
+							<span class="tabular" :class="{ 'text-danger': viewRow.amount < 0 }">{{ fmtMoney(viewRow.amount) }}</span>
+						</el-form-item>
+						<el-form-item label="资金账户">{{ viewRow.account || '-' }}</el-form-item>
+						<el-form-item label="付款方式">{{ viewRow.payment_method || '-' }}</el-form-item>
+						<el-form-item label="发生日期">
+							<span class="tabular">{{ viewRow.date }}</span>
+						</el-form-item>
+						<el-form-item label="往来单位">{{ viewRow.partner_name || '-' }}</el-form-item>
+						<el-form-item label="状态">
+							<el-tag size="small" :type="FUND_STATUS[viewRow.status]?.tag || 'info'">{{
+								FUND_STATUS[viewRow.status]?.label || viewRow.status
+							}}</el-tag>
+						</el-form-item>
+						<el-form-item label="资金流水">
+							<span class="tabular">{{ viewRow.cash_flow_no || '-' }}</span>
+						</el-form-item>
+						<el-form-item label="摘要" class="full-width">{{ viewRow.abstract || '-' }}</el-form-item>
+					</div>
+				</el-form>
+			</template>
+			<template #footer>
+				<el-button size="small" @click="viewVisible = false">关闭</el-button>
 			</template>
 		</el-dialog>
 	</div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import {
-	FUND_TYPES,
-	FUND_TYPE_LABEL,
-	FUND_ACCOUNTS,
-	FUND_ACCOUNT_LABEL,
-	PARTNERS,
-	PARTNER_LABEL,
-	fmtMoney,
-	mockFundIncreaseDecreaseOrders,
-} from '@/mock/fund-increase-decrease'
+import businessApi from '@/api/business'
+
+const DOC_TYPE = 'fund_io'
+const FUND_DIRECTIONS = [
+	{ value: 'increase', label: '资金增加' },
+	{ value: 'decrease', label: '资金减少' },
+]
+const FUND_DIRECTION_LABEL = Object.fromEntries(FUND_DIRECTIONS.map((t) => [t.value, t.label]))
+const FUND_ACCOUNTS = ['现金', '工商银行', '招商银行', '建设银行']
+// 建单即生效并写资金流水，无审核流
+const FUND_STATUS = { confirmed: { label: '已入账', tag: 'success' } }
+
+// 金额千分位 + 两位小数（DS：金额右对齐 tabular-nums）
+const fmtMoney = (v) =>
+	Number(v || 0).toLocaleString('zh-CN', {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	})
+const today = () => new Date().toISOString().slice(0, 10)
 
 const loading = ref(false)
+const saving = ref(false)
 const page = ref(1)
 const pageSize = 20
 const rows = ref([])
+const total = ref(0)
 
 const search = reactive({
-	type: '',
-	account: '',
+	direction: '',
+	keyword: '',
 	daterange: [],
 })
 
-const refresh = () => {
+// 分页 / 筛选全部下传后端，前端不再本地过滤
+const refresh = async () => {
 	loading.value = true
-	// TODO(api): GET /api/finance/fund-increase-decrease-orders
-	setTimeout(() => {
-		rows.value = mockFundIncreaseDecreaseOrders()
+	try {
+		const params = {
+			direction: search.direction || undefined,
+			keyword: search.keyword || undefined,
+			page: page.value,
+			page_size: pageSize,
+		}
+		if (search.daterange?.length === 2) {
+			params.start_date = search.daterange[0]
+			params.end_date = search.daterange[1]
+		}
+		const res = await businessApi.finance.fundOrder.list.get(DOC_TYPE, params)
+		const data = res?.data?.data ?? res?.data ?? {}
+		rows.value = data.list || []
+		total.value = data.total || 0
+	} catch {
+		rows.value = []
+		total.value = 0
+	} finally {
 		loading.value = false
-	}, 300)
+	}
 }
 
-const resetSearch = () => {
-	search.type = ''
-	search.account = ''
-	search.daterange = []
+const onSearch = () => {
+	page.value = 1
 	refresh()
 }
+const onPageChange = (p) => {
+	page.value = p
+	refresh()
+}
+const resetSearch = () => {
+	search.direction = ''
+	search.keyword = ''
+	search.daterange = []
+	onSearch()
+}
 
-const filteredList = computed(() => {
-	return rows.value.filter((r) => {
-		if (search.type && r.type !== search.type) return false
-		if (search.account && r.account !== search.account) return false
-		if (search.daterange?.length === 2) {
-			if (r.created_at < search.daterange[0] || r.created_at > search.daterange[1]) return false
-		}
-		return true
-	})
-})
-
-const total = computed(() => filteredList.value.length)
-const pagedList = computed(() => {
-	const start = (page.value - 1) * pageSize
-	return filteredList.value.slice(start, start + pageSize)
-})
-
+// 净增减：本页有符号金额合计（减少方向后端存负额）
 const summaryMethod = ({ columns }) => {
-	const sum = filteredList.value.reduce((s, r) => {
-		const amt = Number(r.amount || 0)
-		return r.type === 'increase' ? s + amt : s - amt
-	}, 0)
+	const sum = rows.value.reduce((s, r) => s + Number(r.amount || 0), 0)
 	return columns.map((col, i) => {
 		if (i === 0) return '净增减'
 		if (col.property === 'amount') return fmtMoney(sum)
@@ -204,51 +285,65 @@ const summaryMethod = ({ columns }) => {
 	})
 }
 
-const typeTag = (type) => {
-	return type === 'increase' ? 'success' : 'danger'
-}
-
-// Dialog 逻辑
-const dialogVisible = ref(false)
-const mode = ref('create') // create | view
-const dialogTitle = computed(() => (mode.value === 'create' ? '新增资金增减单' : '查看资金增减单'))
-
-const form = reactive({
-	type: 'increase',
-	account: '',
+/* ---------- 新增 Dialog ---------- */
+const createVisible = ref(false)
+const emptyForm = () => ({
+	direction: 'increase',
 	amount: 0,
-	date: '',
-	partner: '',
+	doc_date: today(),
+	account: '',
+	payment_method: '现金',
+	partner_name: '',
 	abstract: '',
 })
+const createForm = reactive(emptyForm())
 
 const openCreate = () => {
-	mode.value = 'create'
-	Object.assign(form, {
-		type: 'increase',
-		account: '',
-		amount: 0,
-		date: new Date().toISOString().split('T')[0],
-		partner: '',
-		abstract: '',
-	})
-	dialogVisible.value = true
+	Object.assign(createForm, emptyForm())
+	createVisible.value = true
 }
 
-const openView = (row) => {
-	mode.value = 'view'
-	Object.assign(form, { ...row })
-	dialogVisible.value = true
-}
-
-const saveForm = () => {
-	if (!form.type || !form.account || !form.amount || !form.date) {
+const saveCreate = async () => {
+	if (!createForm.account || !createForm.amount || !createForm.doc_date) {
 		return ElMessage.error('请填写必填项')
 	}
-	// TODO(api): POST /api/finance/fund-increase-decrease-orders
-	ElMessage.success('保存成功，资金已实时生效')
-	dialogVisible.value = false
-	refresh()
+	saving.value = true
+	try {
+		// 资金流水按金额正负号判定收付：减少方向提交负额
+		const signed = createForm.direction === 'decrease' ? -Math.abs(createForm.amount) : Math.abs(createForm.amount)
+		const res = await businessApi.finance.fundOrder.add.post(DOC_TYPE, {
+			direction: createForm.direction,
+			amount: signed,
+			doc_date: createForm.doc_date,
+			account: createForm.account,
+			payment_method: createForm.payment_method,
+			partner_name: createForm.partner_name || undefined,
+			abstract: createForm.abstract,
+		})
+		const no = res?.data?.data?.no || ''
+		ElMessage.success(`保存成功，单据号：${no}，资金已实时生效`)
+		createVisible.value = false
+		onSearch()
+	} catch (e) {
+		if (e?.message) ElMessage.error(e.message)
+	} finally {
+		saving.value = false
+	}
+}
+
+/* ---------- 查看 Dialog ---------- */
+const viewVisible = ref(false)
+const viewRow = ref(null)
+
+const openView = async (row) => {
+	viewRow.value = row
+	viewVisible.value = true
+	try {
+		const res = await businessApi.finance.fundOrder.detail.get(DOC_TYPE, row.id)
+		viewRow.value = res?.data?.data ?? row
+	} catch {
+		// 列表行已有主体字段，详情失败不影响展示
+	}
 }
 
 onMounted(refresh)
@@ -307,9 +402,16 @@ onMounted(refresh)
 	align-items: center;
 	height: 100%;
 }
+.empty-state :deep(.el-empty__description p) {
+	font-size: 13px;
+	color: #909399;
+}
 .link {
 	color: var(--color-primary);
 	cursor: pointer;
+}
+.text-danger {
+	color: var(--color-danger);
 }
 
 /* 表格样式对齐卷00 */
@@ -336,13 +438,21 @@ onMounted(refresh)
 	font-weight: 600;
 }
 
-/* Dialog 样式 */
+/* 金额等宽对齐 */
+.tabular {
+	font-variant-numeric: tabular-nums;
+}
+
+/* Dialog 样式：一行 3 列（B4 统一弹窗规范） */
 .dialog-body {
 	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	grid-template-columns: repeat(3, 1fr);
 	gap: 16px;
 }
 .full-width {
-	grid-column: span 2;
+	grid-column: span 3;
+}
+.view-form :deep(.el-form-item__label) {
+	color: var(--text-secondary);
 }
 </style>
