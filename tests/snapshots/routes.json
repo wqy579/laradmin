@@ -7833,6 +7833,186 @@
     },
     {
         "method": "GET",
+        "uri": "admin/cash/integral/grants",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/grants",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/grants/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/grants/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/cash/integral/grants/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/grants/{id}/audit",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@audit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/grants/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/grants/{id}/void",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@void",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/rules",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/rules",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/rules/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/cash/integral/rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/cash/integral/rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/rules/{id}/toggle",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@toggle",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/dashboard/brand-proportion",
         "name": "admin.",
         "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@brandProportion",

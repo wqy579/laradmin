@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
  *  - 顶级 cash 菜单在这里也登记一次（存在即复用），使本迁移不依赖前一个迁移是否跑过。
  *  - 权限点同时登记点号名与冒号别名，前端 v-permission 与后端授权各命中一种写法。
  *  - CashSeeder 里有一份完全一致的数组，供全新安装重建（AuthSeeder 会 truncate 权限表）。
- *  - sort=5 排在现有 cash 子菜单（1~4）之后，不动已有条目的 sort。
+ *  - sort=7 排在 cash 子菜单（1~6，含 D5 积分两项）之后，不动已有条目的 sort。
  */
 return new class extends Migration
 {
@@ -19,7 +19,7 @@ return new class extends Migration
     {
         $menus = [
             ['name' => 'cash', 'title' => '出纳管理', 'parent_name' => null, 'path' => '/cash/account-flow', 'component' => '', 'sort' => 14, 'icon' => 'ElIconMoney'],
-            ['name' => 'cash.workbench', 'title' => '出纳工作台', 'parent_name' => 'cash', 'path' => '/cash/workbench', 'component' => 'cash/workbench/index', 'sort' => 5, 'icon' => null],
+            ['name' => 'cash.workbench', 'title' => '出纳工作台', 'parent_name' => 'cash', 'path' => '/cash/workbench', 'component' => 'cash/workbench/index', 'sort' => 7, 'icon' => null],
         ];
 
         $idMap = [];
