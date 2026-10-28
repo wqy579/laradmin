@@ -5,6 +5,7 @@ use Modules\Business\Http\Controllers\AttendanceController;
 use Modules\Business\Http\Controllers\EmployeeController;
 use Modules\Business\Http\Controllers\ExpenseController;
 use Modules\Business\Http\Controllers\FinanceBalanceController;
+use Modules\Business\Http\Controllers\FinanceFundDashboardController;
 use Modules\Business\Http\Controllers\FinanceFundOrderController;
 use Modules\Business\Http\Controllers\FinanceJournalController;
 use Modules\Business\Http\Controllers\FinanceMonthCloseController;
@@ -136,5 +137,10 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/{type}/{id}/approve', [FinanceFundOrderController::class, 'approve']);
         Route::post('/{type}/{id}/reject', [FinanceFundOrderController::class, 'reject']);
         Route::post('/{type}/{id}/repay', [FinanceFundOrderController::class, 'repay']);
+    });
+    // 资金看板（B8）：4 卡 + 近 7 日收支折线 + 待确认上交款（与资金流水同源实时一致）
+    Route::prefix('business/finance-fund-dashboard')->group(function () {
+        Route::get('/', [FinanceFundDashboardController::class, 'index']);
+        Route::get('/pending-handover', [FinanceFundDashboardController::class, 'pendingHandover']);
     });
 });
