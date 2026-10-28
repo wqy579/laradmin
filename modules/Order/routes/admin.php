@@ -6,6 +6,9 @@ use Modules\Order\Http\Controllers\BusinessHistoryController;
 use Modules\Order\Http\Controllers\CashFlowController;
 use Modules\Order\Http\Controllers\CustomerController;
 use Modules\Order\Http\Controllers\DeliveryController;
+use Modules\Order\Http\Controllers\OrderAdjustController;
+use Modules\Order\Http\Controllers\OrderCheckController;
+use Modules\Order\Http\Controllers\OrderTransferController;
 use Modules\Order\Http\Controllers\PayController;
 use Modules\Order\Http\Controllers\ProductBomController;
 use Modules\Order\Http\Controllers\ProfitController;
@@ -21,6 +24,7 @@ use Modules\Order\Http\Controllers\SplitController;
 use Modules\Order\Http\Controllers\StatementController;
 use Modules\Order\Http\Controllers\SupplierController;
 use Modules\Order\Http\Controllers\VisitLogController;
+use Modules\Order\Http\Controllers\VisitReminderController;
 
 // =============================================================================
 // 订单模块（Order）路由
@@ -263,4 +267,33 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::get('business/profit', [ProfitController::class, 'index']);
     // 往来对账
     Route::get('business/statement', [ReceiveController::class, 'statement']);
+    // 订货闭环 T5.1 客户订货核对（订货中心）
+    Route::prefix('business/order-check')->group(function () {
+        Route::get('/', [OrderCheckController::class, 'index']);
+        Route::get('/{orderId}', [OrderCheckController::class, 'show']);
+    });
+    // 订货闭环 T5.2 订货调整（订货中心）
+    Route::prefix('business/order-adjustment')->group(function () {
+        Route::get('/', [OrderAdjustController::class, 'index']);
+        Route::post('/', [OrderAdjustController::class, 'store']);
+        Route::get('/{id}', [OrderAdjustController::class, 'show']);
+        Route::put('/{id}', [OrderAdjustController::class, 'update']);
+        Route::delete('/{id}', [OrderAdjustController::class, 'destroy']);
+        Route::post('/{id}/approve', [OrderAdjustController::class, 'approve']);
+        Route::post('/{id}/reject', [OrderAdjustController::class, 'reject']);
+    });
+    // 订货闭环 T5.3 订单移库（订货中心）—— 强约束：移库量 ≤ 订货量
+    Route::prefix('business/order-transfer')->group(function () {
+        Route::get('/', [OrderTransferController::class, 'index']);
+        Route::post('/', [OrderTransferController::class, 'store']);
+        Route::get('/{id}', [OrderTransferController::class, 'show']);
+    });
+    // 订货闭环 T5.4 业务员拜访提醒（订货中心）—— 发送后置为「已提醒」，全程留痕
+    Route::prefix('business/visit-reminder')->group(function () {
+        Route::get('/', [VisitReminderController::class, 'index']);
+        Route::post('/', [VisitReminderController::class, 'store']);
+        Route::get('/{id}', [VisitReminderController::class, 'show']);
+        Route::post('/{id}/send', [VisitReminderController::class, 'send']);
+        Route::delete('/{id}', [VisitReminderController::class, 'destroy']);
+    });
 });

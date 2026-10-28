@@ -513,6 +513,30 @@ const systemRoutes = [
 		component: () => import('../views/perf/return-summary/index.vue'),
 		meta: { title: '退货汇总单' },
 	},
+	{
+		path: '/order/order-check',
+		name: 'OrderCheck',
+		component: () => import('../views/order/order-check/index.vue'),
+		meta: { title: '客户订货核对' },
+	},
+	{
+		path: '/order/order-adjust',
+		name: 'OrderAdjust',
+		component: () => import('../views/order/order-adjust/index.vue'),
+		meta: { title: '订货调整' },
+	},
+	{
+		path: '/order/order-transfer',
+		name: 'OrderTransfer',
+		component: () => import('../views/order/order-transfer/index.vue'),
+		meta: { title: '订单移库' },
+	},
+	{
+		path: '/order/visit-reminder',
+		name: 'VisitReminder',
+		component: () => import('../views/order/visit-reminder/index.vue'),
+		meta: { title: '业务员拜访提醒' },
+	},
 ]
 
 systemRoutes.push(...moduleRoutes)
