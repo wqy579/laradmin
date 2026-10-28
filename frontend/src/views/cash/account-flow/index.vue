@@ -6,7 +6,7 @@
 
 		<el-card shadow="never" class="card">
 			<div class="filter">
-				<el-select v-model="filters.accId" placeholder="资金账户" clearable style="width:160px" @change="onAccChange">
+				<el-select v-model="filters.accId" placeholder="资金账户" style="width:160px" @change="onAccChange">
 					<el-option v-for="a in accounts" :key="a.id" :label="a.name" :value="a.id" />
 				</el-select>
 				<el-date-picker
@@ -19,24 +19,24 @@
 					style="width:250px"
 					@change="onDateChange"
 				/>
-				<el-select v-model="filters.type" placeholder="收支类型" clearable style="width:120px">
-					<el-option label="全部" value="" />
+				<el-select v-model="filters.direction" placeholder="收支类型" clearable style="width:120px">
 					<el-option label="收入" value="income" />
 					<el-option label="支出" value="expense" />
 				</el-select>
-				<el-button type="primary" @click="onSearch">查询</el-button>
+				<el-button type="primary" :loading="loading" @click="onSearch">查询</el-button>
 				<el-button @click="onReset">重置</el-button>
-				<el-button @click="onExport">
+				<el-button :disabled="!total" @click="onExport">
 					<el-icon><Download /></el-icon><span>导出 Excel</span>
 				</el-button>
 			</div>
 
 			<el-table
-				:data="filtered"
+				v-loading="loading"
+				:data="rows"
 				border
 				show-summary
 				:summary-method="summaryMethod"
-				height="calc(100% - 150px)"
+				height="calc(100% - 195px)"
 				empty-text="暂无流水数据"
 			>
 				<el-table-column prop="date" label="日期" width="110" align="center">
@@ -46,14 +46,21 @@
 					<template #default="{ row }"><span class="tabular">{{ row.no }}</span></template>
 				</el-table-column>
 				<el-table-column prop="summary" label="摘要" min-width="200" show-overflow-tooltip />
+				<el-table-column label="方向" width="80" align="center">
+					<template #default="{ row }">
+						<span class="dir-tag" :class="row.direction === 'income' ? 'dir-in' : 'dir-out'">
+							{{ row.direction === 'income' ? '收入' : '支出' }}
+						</span>
+					</template>
+				</el-table-column>
 				<el-table-column prop="income" label="收入" width="130" align="right">
 					<template #default="{ row }">
-						<span class="tabular amt-ok">{{ fmtMoney(row.income) }}</span>
+						<span class="tabular amt-ok">{{ row.income ? fmtMoney(row.income) : '' }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column prop="expense" label="支出" width="130" align="right">
 					<template #default="{ row }">
-						<span class="tabular amt-warn">{{ fmtMoney(row.expense) }}</span>
+						<span class="tabular amt-warn">{{ row.expense ? fmtMoney(row.expense) : '' }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column prop="balance" label="余额" width="130" align="right">
@@ -62,21 +69,40 @@
 					</template>
 				</el-table-column>
 			</el-table>
+
+			<div class="pager">
+				<el-pagination
+					v-model:current-page="page"
+					v-model:page-size="pageSize"
+					:page-sizes="[20, 50, 100]"
+					:total="total"
+					layout="total, sizes, prev, pager, next, jumper"
+					@size-change="load"
+					@current-change="load"
+				/>
+			</div>
 		</el-card>
 	</div>
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
-import { MOCK_CASH_ACCOUNTS, MOCK_ACCOUNT_FLOWS, MOCK_ACCOUNT_OPENING } from '../../../mock/cash-account-flow'
+import cashApi from '@/api/cash'
+import { saveBlob } from '@/utils/fileDownload'
 import { fmtMoney } from '../shared'
 
-const accounts = MOCK_CASH_ACCOUNTS
-const filters = reactive({ accId: '', type: '', start_date: '', end_date: '' })
+const accounts = ref([])
+const filters = reactive({ accId: '', direction: '', start_date: '', end_date: '' })
 const dateRange = ref([])
 const rows = ref([])
+const total = ref(0)
+const incomeTotal = ref(0)
+const expenseTotal = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
+const loading = ref(false)
 
 const onDateChange = (val) => {
 	filters.start_date = val?.[0] || ''
@@ -84,80 +110,83 @@ const onDateChange = (val) => {
 }
 
 const onAccChange = () => {
-	refresh()
+	page.value = 1
+	load()
 }
 
-const filtered = computed(() => {
-	let list = rows.value.filter(r => r.accId === filters.accId)
-	
-	if (filters.start_date) list = list.filter(r => r.date >= filters.start_date)
-	if (filters.end_date) list = list.filter(r => r.date <= filters.end_date)
-	if (filters.type === 'income') list = list.filter(r => r.income > 0)
-	if (filters.type === 'expense') list = list.filter(r => r.expense > 0)
-	
-	return list
-})
-
-const summaryMethod = ({ columns, data }) =>
+// 合计行取服务端全窗口口径（不受分页影响），余额列不合计
+const summaryMethod = ({ columns }) =>
 	columns.map((col, i) => {
-		if (i === 0) return `合计（${data.length} 条）`
-		if (col.property === 'income') return '¥' + fmtMoney(data.reduce((s, r) => s + Number(r.income || 0), 0))
-		if (col.property === 'expense') return '¥' + fmtMoney(data.reduce((s, r) => s + Number(r.expense || 0), 0))
+		if (i === 0) return `合计（${total.value} 条）`
+		if (col.property === 'income') return '¥' + fmtMoney(incomeTotal.value)
+		if (col.property === 'expense') return '¥' + fmtMoney(expenseTotal.value)
 		return ''
 	})
 
-function refresh() {
+async function load() {
 	if (!filters.accId) {
 		rows.value = []
+		total.value = 0
 		return
 	}
-	
-	// 模拟 API: GET /api/cash/accounts/{id}/flows
-	const accFlows = MOCK_ACCOUNT_FLOWS.filter(f => f.accId === filters.accId)
-		.sort((a, b) => a.date.localeCompare(b.date))
-	
-	// 滚动计算余额
-	let currentBal = MOCK_ACCOUNT_OPENING[filters.accId] || 0
-	const result = accFlows.map(f => {
-		currentBal += (f.income || 0) - (f.expense || 0)
-		return { ...f, balance: currentBal }
-	})
-	
-	rows.value = result
+	loading.value = true
+	try {
+		const res = await cashApi.account.flows.get(filters.accId, {
+			start_date: filters.start_date,
+			end_date: filters.end_date,
+			direction: filters.direction,
+			page: page.value,
+			page_size: pageSize.value,
+		})
+		const data = res.data || {}
+		rows.value = data.list || []
+		total.value = data.total || 0
+		incomeTotal.value = data.income_total || 0
+		expenseTotal.value = data.expense_total || 0
+	} catch (e) {
+		ElMessage.error(e.message || '查询失败')
+	} finally {
+		loading.value = false
+	}
 }
 
 const onSearch = () => {
-	refresh()
-	ElMessage.success(`查询到 ${filtered.value.length} 条流水`)
+	page.value = 1
+	load()
 }
 
 const onReset = () => {
-	Object.assign(filters, { accId: '', type: '', start_date: '', end_date: '' })
+	Object.assign(filters, { direction: '', start_date: '', end_date: '' })
 	dateRange.value = []
-	refresh()
+	page.value = 1
+	load()
 }
 
-const onExport = () => {
-	const list = filtered.value
-	if (!list.length) return ElMessage.warning('当前无数据可导出')
-	const head = ['日期', '单据号', '摘要', '收入', '支出', '余额']
-	const lines = [head.join('\t')]
-	list.forEach(r => {
-		lines.push([r.date, r.no, r.summary, r.income, r.expense, r.balance].join('\t'))
-	})
-	const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
-	const url = URL.createObjectURL(blob)
-	const a = document.createElement('a')
-	a.href = url
-	a.download = `账户流水_${Date.now()}.csv`
-	a.click()
-	setTimeout(() => URL.revokeObjectURL(url), 1000)
-	ElMessage.success('导出成功')
+const onExport = async () => {
+	try {
+		const blob = await cashApi.account.export(filters.accId, {
+			start_date: filters.start_date,
+			end_date: filters.end_date,
+			direction: filters.direction,
+		})
+		saveBlob(blob, `账户流水_${Date.now()}.csv`)
+		ElMessage.success('导出成功')
+	} catch (e) {
+		ElMessage.error(e.message || '导出失败')
+	}
 }
 
-onMounted(() => {
-	filters.accId = accounts[0].id
-	refresh()
+onMounted(async () => {
+	try {
+		const res = await cashApi.account.options.get()
+		accounts.value = res.data?.list || []
+		if (accounts.value.length) {
+			filters.accId = accounts.value[0].id
+			load()
+		}
+	} catch (e) {
+		ElMessage.error(e.message || '账户加载失败')
+	}
 })
 </script>
 
@@ -167,6 +196,11 @@ onMounted(() => {
 .title { font-size: var(--font-h1); font-weight: 600; color: var(--text-primary); }
 .card { flex: 1; margin: var(--space-lg) var(--space-xl); display: flex; flex-direction: column; }
 .filter { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-bottom: var(--space-md); }
+.pager { display: flex; justify-content: flex-end; padding-top: var(--space-md); }
 .amt-ok { color: var(--color-success); font-weight: 500; }
 .amt-warn { color: var(--color-danger); font-weight: 500; }
+/* 连凯对标：方向 Tag 收入红 #F56C6C / 支出绿 #67C23A，自绘以锁精确色值 */
+.dir-tag { display: inline-block; padding: 0 8px; height: 22px; line-height: 22px; font-size: 12px; border-radius: 3px; color: #fff; }
+.dir-in { background: #F56C6C; }
+.dir-out { background: #67C23A; }
 </style>
