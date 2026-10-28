@@ -1,7 +1,7 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list fin-page">
 		<!-- 筛选卡：日期起止 + 科目(树选) + 单据类型 + 不含开账前数据；动作右置 -->
-		<div class="perf-filter">
+		<div class="perf-filter fin-filter">
 			<span class="label">日期起止</span>
 			<el-date-picker
 				v-model="search.daterange"
@@ -30,15 +30,15 @@
 			</el-select>
 			<el-checkbox v-model="search.exclude_before_open" class="open-check">不含开账前数据</el-checkbox>
 
-			<div class="filter-actions">
-				<el-button type="primary" size="small" @click="refresh">查询</el-button>
-				<el-button size="small" @click="resetSearch">重置</el-button>
-				<el-button size="small" @click="exportData">导出</el-button>
+			<div class="filter-actions fin-toolbar">
+				<el-button type="primary" @click="refresh">查询</el-button>
+				<el-button @click="resetSearch">重置</el-button>
+				<el-button @click="exportData">导出</el-button>
 			</div>
 		</div>
 
 		<div class="perf-content">
-			<el-table :data="pagedList" border height="100%" v-loading="loading" @row-dblclick="openDoc">
+			<el-table :data="pagedList" border stripe height="100%" v-loading="loading" @row-dblclick="openDoc">
 				<el-table-column prop="date" label="日期" width="110" align="center">
 					<template #default="{ row }"><span class="tabular">{{ row.date }}</span></template>
 				</el-table-column>
@@ -75,17 +75,17 @@
 					</template>
 				</el-table-column>
 				<template #empty>
-					<span class="empty-text">暂无数据</span>
+					<FinEmpty />
 				</template>
 			</el-table>
 		</div>
 
-		<div class="perf-pager">
+		<div class="perf-pager fin-pager">
 			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="onPageChange" />
 		</div>
 
 		<!-- 业务单据穿透：只读（单据头 + 该单据科目变动），mock -->
-		<el-drawer v-model="drawer" size="640px" :title="current ? `单据详情 ${current.doc_no}` : '单据详情'" destroy-on-close>
+		<el-drawer v-model="drawer" size="360px" :title="current ? `单据详情 ${current.doc_no}` : '单据详情'" destroy-on-close>
 			<div v-if="current" class="v-wrap">
 				<div class="v-head">
 					<div class="v-item"><span class="v-label">单据号</span><span class="v-value tabular">{{ current.doc_no }}</span></div>
@@ -95,7 +95,7 @@
 					<div class="v-item v-item--wide"><span class="v-label">摘要</span><span class="v-value">{{ current.summary }}</span></div>
 				</div>
 				<div class="v-section-title">单据科目变动</div>
-				<el-table :data="docEntries" border size="small" :show-summary="true" :summary-method="entrySummary">
+				<el-table :data="docEntries" border stripe size="small" class="fin-table--dense" :show-summary="true" :summary-method="entrySummary">
 					<el-table-column prop="subject" label="科目" width="160" align="left" />
 					<el-table-column prop="summary" label="摘要" min-width="160" align="left" />
 					<el-table-column prop="debit" label="借方" width="110" align="right">
@@ -116,6 +116,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { saveBlob } from '@/utils/fileDownload'
 import businessApi from '@/api/business'
+import FinEmpty from '../_FinEmpty.vue'
 import { subjectTree } from './mock'
 
 // 金额千分位 + 两位小数；负值着红由 class 控制
@@ -225,6 +226,10 @@ const exportData = () => {
 onMounted(refresh)
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list {
 	height: 100%;
@@ -237,13 +242,6 @@ onMounted(refresh)
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
-	padding: 16px 20px;
-	background: var(--bg-card);
-	border-bottom: 1px solid var(--border-base);
-}
-.perf-filter .label {
-	font-size: var(--font-base);
-	color: var(--text-regular);
 }
 .filter-actions {
 	margin-left: auto;
@@ -260,9 +258,7 @@ onMounted(refresh)
 	padding: 0 12px;
 }
 .perf-pager {
-	display: flex;
-	justify-content: flex-end;
-	padding: 10px 12px;
+	padding: 0 12px;
 }
 .cell-regular {
 	color: var(--text-regular);
@@ -282,23 +278,10 @@ onMounted(refresh)
 	color: var(--color-primary);
 	cursor: pointer;
 }
-.empty-text {
-	color: var(--text-secondary);
-	font-size: var(--font-base);
-}
-/* 表格：表头 13/600 #606266 背景 #F5F7FA、行高 40、正文 13 #303133、斑马纹关闭 */
+/* 表格样式对齐卷00（表头/行高/斑马纹由 _shared.css 提供） */
 :deep(.el-table) {
 	font-size: var(--font-base);
 	color: var(--text-primary);
-}
-:deep(.el-table th.el-table__cell) {
-	background: var(--bg-hover);
-	height: 44px;
-	color: var(--text-regular);
-	font-weight: 600;
-}
-:deep(.el-table .el-table__row) {
-	height: 40px;
 }
 :deep(.el-table td.el-table__cell),
 :deep(.el-table th.el-table__cell) {
@@ -314,7 +297,7 @@ onMounted(refresh)
 :deep(.el-table__footer td:first-child) {
 	text-align: left;
 }
-/* 单据穿透抽屉（640px 只读） */
+/* 单据穿透抽屉（360px 只读） */
 .v-wrap {
 	font-size: var(--font-base);
 	color: var(--text-primary);

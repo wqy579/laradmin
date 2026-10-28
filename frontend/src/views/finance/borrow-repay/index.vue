@@ -1,7 +1,7 @@
 <template>
-	<div class="br-page">
+	<div class="br-page fin-page">
 		<!-- 筛选卡 -->
-		<div class="br-filter">
+		<div class="br-filter fin-filter">
 			<span class="label">往来单位</span>
 			<el-select
 				v-model="search.partner_id"
@@ -39,9 +39,9 @@
 				value-format="YYYY-MM-DD"
 				@change="onSearch"
 			/>
-			<div class="filter-actions">
-				<el-button type="primary" size="small" @click="onSearch">查询</el-button>
-				<el-button size="small" @click="resetSearch">重置</el-button>
+			<div class="filter-actions fin-toolbar">
+				<el-button type="primary" @click="onSearch">查询</el-button>
+				<el-button @click="resetSearch">重置</el-button>
 			</div>
 		</div>
 
@@ -56,14 +56,14 @@
 		/>
 
 		<!-- 工具条 -->
-		<div class="br-toolbar">
+		<div class="br-toolbar fin-toolbar">
 			<span class="toolbar-title">借款还款</span>
-			<el-button type="primary" size="small" v-permission="'fin:borrow:manage'" @click="openCreate">+ 新增借款单</el-button>
+			<el-button type="primary" v-permission="'fin:borrow:manage'" @click="openCreate">+ 新增借款单</el-button>
 		</div>
 
 		<!-- 表格区 -->
 		<div class="br-content">
-			<el-table :data="rows" border height="100%" v-loading="loading" :show-summary="true" :summary-method="summaryMethod">
+			<el-table :data="rows" border stripe height="100%" v-loading="loading" :show-summary="true" :summary-method="summaryMethod">
 				<el-table-column prop="no" label="单据号" width="150" align="left">
 					<template #default="{ row }">
 						<span class="link tabular" @click="openView(row)">{{ row.no }}</span>
@@ -118,15 +118,13 @@
 					</template>
 				</el-table-column>
 				<template #empty>
-					<div class="empty-state">
-						<el-empty description="暂无数据" />
-					</div>
+					<FinEmpty />
 				</template>
 			</el-table>
 		</div>
 
 		<!-- 分页 -->
-		<div class="br-pager">
+		<div class="br-pager fin-pager">
 			<el-pagination
 				background
 				layout="total, prev, pager, next"
@@ -138,8 +136,8 @@
 		</div>
 
 		<!-- 新增 Dialog -->
-		<el-dialog v-model="createVisible" title="新增借款单" width="680px" :close-on-click-modal="false" destroy-on-close>
-			<el-form :model="createForm" label-width="90px" size="small">
+		<el-dialog v-model="createVisible" title="新增借款单" width="680px" class="fin-dialog" :close-on-click-modal="false" destroy-on-close>
+			<el-form :model="createForm" label-width="110px">
 				<div class="dialog-body">
 					<el-form-item label="往来单位" required>
 						<el-select v-model="createForm.partner_id" filterable placeholder="选择往来单位" style="width: 100%" @change="onPartnerPick">
@@ -149,7 +147,7 @@
 					<el-form-item label="借款金额" required>
 						<el-input-number
 							v-model="createForm.amount"
-							:min="0.01"
+							:min="0"
 							:step="100"
 							:precision="2"
 							:controls-position="'right'"
@@ -179,9 +177,9 @@
 		</el-dialog>
 
 		<!-- 查看 Dialog -->
-		<el-dialog v-model="viewVisible" title="借款单详情" width="680px" :close-on-click-modal="false" destroy-on-close>
+		<el-dialog v-model="viewVisible" title="借款单详情" width="680px" class="fin-dialog" :close-on-click-modal="false" destroy-on-close>
 			<template v-if="viewRow">
-				<el-form label-width="90px" size="small" class="view-form">
+				<el-form label-width="110px" class="view-form">
 					<div class="dialog-body">
 						<el-form-item label="单据号">
 							<span class="tabular">{{ viewRow.no }}</span>
@@ -225,9 +223,9 @@
 		</el-dialog>
 
 		<!-- 登记还款 Dialog -->
-		<el-dialog v-model="repayVisible" title="登记还款" width="680px" :close-on-click-modal="false" destroy-on-close>
+		<el-dialog v-model="repayVisible" title="登记还款" width="680px" class="fin-dialog" :close-on-click-modal="false" destroy-on-close>
 			<template v-if="repayRow">
-				<el-form :model="repayForm" label-width="90px" size="small">
+				<el-form :model="repayForm" label-width="110px">
 					<div class="dialog-body">
 						<el-form-item label="单据号">
 							<span class="tabular">{{ repayRow.no }}</span>
@@ -239,7 +237,7 @@
 						<el-form-item label="还款金额" required>
 							<el-input-number
 								v-model="repayForm.amount"
-								:min="0.01"
+								:min="0"
 								:max="repayRow.unpaid"
 								:step="100"
 								:precision="2"
@@ -273,6 +271,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
+import FinEmpty from '../_FinEmpty.vue'
 
 const DOC_TYPE = 'borrow_repay'
 // 后端状态：confirmed/unsettled 未结清，partial 部分还款，settled 已结清，rejected 已驳回
@@ -359,7 +358,7 @@ const resetSearch = () => {
 }
 
 const summaryMethod = ({ columns }) => {
-	const sum = rows.value.reduce((s, r) => s + Number(r.paid + r.unpaid || 0), 0)
+	const sum = rows.value.reduce((s, r) => s + Number(r.paid || 0) + Number(r.unpaid || 0), 0)
 	return columns.map((col, i) => {
 		if (i === 0) return '合计'
 		if (i === 2) return fmtMoney(sum)
@@ -496,6 +495,10 @@ onMounted(() => {
 })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .br-page {
 	height: 100%;
@@ -508,13 +511,6 @@ onMounted(() => {
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
-	padding: 16px 20px;
-	background: var(--bg-card);
-	border-bottom: 1px solid var(--border-base);
-}
-.br-filter .label {
-	font-size: var(--font-base);
-	color: var(--text-regular);
 }
 .filter-actions {
 	margin-left: auto;
@@ -529,10 +525,10 @@ onMounted(() => {
 	align-items: center;
 	justify-content: space-between;
 	padding: 12px 20px;
-	background: #fff;
+	background: var(--bg-card);
 }
 .toolbar-title {
-	font-size: 15px;
+	font-size: var(--font-h3);
 	font-weight: 600;
 	color: var(--text-primary);
 }
@@ -542,19 +538,7 @@ onMounted(() => {
 	padding: 0 12px;
 }
 .br-pager {
-	display: flex;
-	justify-content: flex-end;
-	padding: 10px 12px;
-}
-.empty-state {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	height: 100%;
-}
-.empty-state :deep(.el-empty__description p) {
-	font-size: 13px;
-	color: #909399;
+	padding: 0 12px;
 }
 .link {
 	color: var(--color-primary);
@@ -566,20 +550,9 @@ onMounted(() => {
 .overdue-tag {
 	margin-left: 6px;
 }
-
-/* 表格样式对齐卷00 */
 :deep(.el-table) {
 	font-size: var(--font-base);
 	color: var(--text-primary);
-}
-:deep(.el-table th.el-table__cell) {
-	background: var(--bg-hover);
-	height: 44px;
-	color: var(--text-regular);
-	font-weight: 600;
-}
-:deep(.el-table .el-table__row) {
-	height: 40px;
 }
 :deep(.el-table td.el-table__cell),
 :deep(.el-table th.el-table__cell) {
@@ -590,8 +563,6 @@ onMounted(() => {
 	color: var(--text-primary);
 	font-weight: 600;
 }
-
-/* 金额等宽对齐 */
 .tabular {
 	font-variant-numeric: tabular-nums;
 }
@@ -601,9 +572,6 @@ onMounted(() => {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 16px;
-}
-.dialog-body :deep(.el-input-number .el-input__inner) {
-	text-align: right;
 }
 .full-width {
 	grid-column: span 3;

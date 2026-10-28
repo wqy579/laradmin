@@ -1,7 +1,7 @@
 <template>
-	<div class="iou-page">
+	<div class="iou-page fin-page">
 		<!-- 筛选卡 -->
-		<div class="iou-filter">
+		<div class="iou-filter fin-filter">
 			<span class="label">欠款人</span>
 			<el-select v-model="search.partner_id" clearable filterable placeholder="全部单位" size="small" style="width: 180px" @change="onSearch">
 				<el-option v-for="p in partners" :key="p.value" :label="p.label" :value="p.value" />
@@ -22,21 +22,21 @@
 				value-format="YYYY-MM-DD"
 				@change="onSearch"
 			/>
-			<div class="filter-actions">
-				<el-button type="primary" size="small" @click="onSearch">查询</el-button>
-				<el-button size="small" @click="resetSearch">重置</el-button>
+			<div class="filter-actions fin-toolbar">
+				<el-button type="primary" @click="onSearch">查询</el-button>
+				<el-button @click="resetSearch">重置</el-button>
 			</div>
 		</div>
 
 		<!-- 工具条 -->
-		<div class="iou-toolbar">
+		<div class="iou-toolbar fin-toolbar">
 			<span class="toolbar-title">欠条确认</span>
-			<el-button type="primary" size="small" v-permission="'fin:iou:confirm'" @click="openCreate">+ 新增欠条</el-button>
+			<el-button type="primary" v-permission="'fin:iou:confirm'" @click="openCreate">+ 新增欠条</el-button>
 		</div>
 
 		<!-- 表格区 -->
 		<div class="iou-content">
-			<el-table :data="rows" border height="100%" v-loading="loading">
+			<el-table :data="rows" border height="100%" v-loading="loading" stripe>
 				<el-table-column prop="no" label="欠条编号" width="150" align="left">
 					<template #default="{ row }">
 						<span class="link tabular" @click="openView(row)">{{ row.no }}</span>
@@ -70,7 +70,7 @@
 					<template #default="{ row }">
 						<el-image
 							v-if="row.signature_url"
-							style="width: 40px; height: 30px; object-fit: contain; cursor: zoom-in; border: 1px solid #eee"
+							style="width: 40px; height: 30px; object-fit: contain; cursor: zoom-in; border: 1px solid var(--border-lighter)"
 							:src="row.signature_url"
 							:preview-src="row.signature_url"
 							preview-teleported
@@ -89,15 +89,13 @@
 					</template>
 				</el-table-column>
 				<template #empty>
-					<div class="empty-state">
-						<el-empty description="暂无数据" />
-					</div>
+					<FinEmpty />
 				</template>
 			</el-table>
 		</div>
 
 		<!-- 分页 -->
-		<div class="iou-pager">
+		<div class="fin-pager">
 			<el-pagination
 				background
 				layout="total, prev, pager, next"
@@ -109,8 +107,8 @@
 		</div>
 
 		<!-- 新增 Dialog -->
-		<el-dialog v-model="createVisible" title="新增欠条" width="680px" :close-on-click-modal="false" destroy-on-close>
-			<el-form :model="createForm" label-width="90px" size="small">
+		<el-dialog v-model="createVisible" title="新增欠条" width="680px" class="fin-dialog" :close-on-click-modal="false" destroy-on-close>
+			<el-form :model="createForm" label-width="110px">
 				<div class="dialog-body">
 					<el-form-item label="欠款人" required>
 						<el-select v-model="createForm.partner_id" filterable placeholder="选择欠款人" style="width: 100%" @change="onPartnerPick">
@@ -120,7 +118,7 @@
 					<el-form-item label="欠款金额" required>
 						<el-input-number
 							v-model="createForm.amount"
-							:min="0.01"
+							:min="0"
 							:step="100"
 							:precision="2"
 							:controls-position="'right'"
@@ -153,9 +151,9 @@
 		</el-dialog>
 
 		<!-- 查看 Dialog -->
-		<el-dialog v-model="viewVisible" title="欠条详情" width="680px" :close-on-click-modal="false" destroy-on-close>
+		<el-dialog v-model="viewVisible" title="欠条详情" width="680px" class="fin-dialog" :close-on-click-modal="false" destroy-on-close>
 			<template v-if="viewRow">
-				<el-form label-width="90px" size="small" class="view-form">
+				<el-form label-width="110px" class="view-form">
 					<div class="dialog-body">
 						<el-form-item label="欠条编号">
 							<span class="tabular">{{ viewRow.no }}</span>
@@ -184,7 +182,7 @@
 							<span class="text-danger">{{ viewRow.reject_reason || '-' }}</span>
 						</el-form-item>
 						<el-form-item label="签字图" class="full-width" align="center">
-							<el-image v-if="viewRow.signature_url" style="max-width: 300px; border: 1px solid #eee; padding: 4px" :src="viewRow.signature_url" fit="contain" />
+							<el-image v-if="viewRow.signature_url" style="max-width: 300px; border: 1px solid var(--border-lighter); padding: 4px" :src="viewRow.signature_url" fit="contain" />
 							<span v-else>-</span>
 						</el-form-item>
 					</div>
@@ -202,6 +200,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import businessApi from '@/api/business'
+import FinEmpty from '../_FinEmpty.vue'
 
 const DOC_TYPE = 'iou'
 const IOU_STATUS = {
@@ -397,6 +396,10 @@ onMounted(() => {
 })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .iou-page {
 	height: 100%;
@@ -409,13 +412,6 @@ onMounted(() => {
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
-	padding: 16px 20px;
-	background: var(--bg-card);
-	border-bottom: 1px solid var(--border-base);
-}
-.iou-filter .label {
-	font-size: var(--font-base);
-	color: var(--text-regular);
 }
 .filter-actions {
 	margin-left: auto;
@@ -427,10 +423,10 @@ onMounted(() => {
 	align-items: center;
 	justify-content: space-between;
 	padding: 12px 20px;
-	background: #fff;
+	background: var(--bg-card);
 }
 .toolbar-title {
-	font-size: 15px;
+	font-size: var(--font-h3);
 	font-weight: 600;
 	color: var(--text-primary);
 }
@@ -438,21 +434,6 @@ onMounted(() => {
 	flex: 1;
 	min-height: 0;
 	padding: 0 12px;
-}
-.iou-pager {
-	display: flex;
-	justify-content: flex-end;
-	padding: 10px 12px;
-}
-.empty-state {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	height: 100%;
-}
-.empty-state :deep(.el-empty__description p) {
-	font-size: 13px;
-	color: #909399;
 }
 .link {
 	color: var(--color-primary);
@@ -464,27 +445,10 @@ onMounted(() => {
 .overdue-tag {
 	margin-left: 6px;
 }
-
-/* 表格样式对齐卷00 */
 :deep(.el-table) {
 	font-size: var(--font-base);
 	color: var(--text-primary);
 }
-:deep(.el-table th.el-table__cell) {
-	background: var(--bg-hover);
-	height: 44px;
-	color: var(--text-regular);
-	font-weight: 600;
-}
-:deep(.el-table .el-table__row) {
-	height: 40px;
-}
-:deep(.el-table td.el-table__cell),
-:deep(.el-table th.el-table__cell) {
-	border-bottom-color: var(--border-lighter);
-}
-
-/* 金额等宽对齐 */
 .tabular {
 	font-variant-numeric: tabular-nums;
 }
@@ -494,9 +458,6 @@ onMounted(() => {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: 16px;
-}
-.dialog-body :deep(.el-input-number .el-input__inner) {
-	text-align: right;
 }
 .full-width {
 	grid-column: span 3;
