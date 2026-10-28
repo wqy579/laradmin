@@ -2313,6 +2313,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/finance-fund-dashboard",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundDashboardController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/finance-fund-dashboard/pending-handover",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\FinanceFundDashboardController@pendingHandover",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/finance-fund-orders/{type}",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\FinanceFundOrderController@index",

@@ -360,6 +360,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'finance.iou-confirm', 'title' => '欠条确认', 'path' => '/finance/iou-confirm', 'component' => 'finance/iou-confirm/index', 'sort' => 22],
             ['name' => 'finance.supplier-balance-adjustment', 'title' => '供应商余额调整', 'path' => '/finance/supplier-balance-adjustment', 'component' => 'finance/supplier-balance-adjustment/index', 'sort' => 23],
             ['name' => 'finance.voucher', 'title' => '财务凭证', 'path' => '/finance/voucher', 'component' => 'finance/voucher/index', 'sort' => 24],
+            ['name' => 'finance.fund-dashboard', 'title' => '资金看板', 'path' => '/finance/fund-dashboard', 'component' => 'finance/fund-dashboard/index', 'sort' => 25],
         ];
 
         foreach ($financeModuleMenus as $menu) {
@@ -402,6 +403,8 @@ class BusinessSeeder extends Seeder
             ['name' => 'fin:fund:adjust', 'title' => '资金增减', 'parent' => 'finance.fund-increase-decrease', 'sort' => 1],
             // 欠条确认
             ['name' => 'fin:iou:confirm', 'title' => '欠条确认', 'parent' => 'finance.iou-confirm', 'sort' => 1],
+            // 资金看板（B8）
+            ['name' => 'fin:fund-dashboard:view', 'title' => '查看资金看板', 'parent' => 'finance.fund-dashboard', 'sort' => 1],
         ];
 
         $superRoleId = DB::table('auth_role')->where('code', 'super_admin')->value('id');
