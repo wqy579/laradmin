@@ -11,6 +11,7 @@ use Modules\Report\Http\Controllers\ReportTemplateController;
 use Modules\Report\Http\Controllers\SalesAnalysisController;
 use Modules\Report\Http\Controllers\SalesmanReportController;
 use Modules\Report\Http\Controllers\SalesReportController;
+use Modules\Report\Http\Controllers\StockAnalysisController;
 use Modules\Report\Http\Controllers\StockReportController;
 
 // =============================================================================
@@ -95,6 +96,12 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::prefix('price-rank')->group(function () {
             Route::get('/', [PriceRankController::class, 'index']);
             Route::get('/export', [PriceRankController::class, 'export']);
+        });
+
+        // 库存报表族（E5，8 个维度：超期/安全库存/可销天数/变动/明细/盘盈盘亏/拆装/库存分析）
+        Route::prefix('stock-analysis')->group(function () {
+            Route::get('/', [StockAnalysisController::class, 'index']);
+            Route::get('/export', [StockAnalysisController::class, 'export']);
         });
     });
 });

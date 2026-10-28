@@ -850,6 +850,12 @@ const businessApi = {
 			get: (params) => request.get('business/report/price-rank', { params }),
 			export: { get: (params) => request.get('business/report/price-rank/export', { params, responseType: 'blob' }) },
 		},
+
+		// 库存报表族（E5，8 个维度：超期/安全库存/可销天数/变动/明细/盘盈盘亏/拆装/库存分析）
+		stockAnalysis: {
+			get: (params) => request.get('business/report/stock-analysis', { params }),
+			export: { get: (params) => request.get('business/report/stock-analysis/export', { params, responseType: 'blob' }) },
+		},
 	},
 }
 

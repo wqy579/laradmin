@@ -570,6 +570,270 @@ class ReportFeatureTest extends TestCase
         $this->assertTrue($row['rule_hit'], '等级价命中应整行高亮');
     }
 
+    public function test_stock_analysis_every_dimension_runs(): void
+    {
+        // 各维度按需补数据：盘点单 + 拆装单（其余维度基线商品已能出结果）
+        $this->seedStockCheck();
+        $this->seedAssemblyAndSplit();
+
+        $dimensions = ['expiry', 'safety', 'sellable', 'change', 'detail', 'gain_loss', 'assembly', 'analysis'];
+
+        foreach ($dimensions as $dimension) {
+            $res = $this->getJson('admin/business/report/stock-analysis?dimension='.$dimension);
+            $res->assertOk("库存分析维度 {$dimension} 查询失败");
+            $this->assertNotEmpty($res->json('data.columns'), "维度 {$dimension} 没有返回列定义");
+            $this->assertIsArray($res->json('data.list'));
+            $this->assertIsArray($res->json('data.summary'));
+        }
+    }
+
+    public function test_stock_analysis_expiry_assigns_four_levels(): void
+    {
+        // 严重超期 / 超期 / 临期 各一行（阈值默认 near=30、severe=30）
+        $this->makeStockedProduct('EXP_SEV', 100, ['expiry_days' => -100]);
+        $this->makeStockedProduct('EXP_OVER', 100, ['expiry_days' => -5]);
+        $this->makeStockedProduct('EXP_NEAR', 100, ['expiry_days' => 10]);
+
+        $res = $this->getJson('admin/business/report/stock-analysis?dimension=expiry');
+
+        $res->assertOk();
+        $levels = collect($res->json('data.list'))->pluck('level', 'product_code');
+        $this->assertSame('严重超期', $levels['EXP_SEV']);
+        $this->assertSame('超期', $levels['EXP_OVER']);
+        $this->assertSame('临期', $levels['EXP_NEAR']);
+
+        // 级别列必须是 level 类型并带四级 tag_map（前端据此染色）
+        $levelCol = collect($res->json('data.columns'))->firstWhere('prop', 'level');
+        $this->assertSame('level', $levelCol['type']);
+        $this->assertSame('severe', $levelCol['tag_map']['严重超期']['color'], '严重超期应映射到深色 severe');
+        $this->assertSame('warning', $levelCol['tag_map']['临期']['color']);
+    }
+
+    public function test_stock_analysis_expiry_thresholds_are_configurable(): void
+    {
+        $this->makeStockedProduct('EXP_CFG', 100, ['expiry_days' => -40]);
+
+        // 默认 severe=30 → -40 属严重超期；放宽到 60 后只剩「超期」
+        $strict = $this->getJson('admin/business/report/stock-analysis?dimension=expiry&product_keyword=EXP_CFG');
+        $loose = $this->getJson('admin/business/report/stock-analysis?dimension=expiry&product_keyword=EXP_CFG&severe_days=60');
+
+        $this->assertSame('严重超期', $strict->json('data.list.0.level'));
+        $this->assertSame('超期', $loose->json('data.list.0.level'), 'severe_days=60 后 -40 不应再判严重超期');
+    }
+
+    public function test_stock_analysis_safety_status_and_suggest(): void
+    {
+        // 现库存 10 < 安全线 50 → 预警；建议补货 = 50×2 − 10 = 90
+        $product = $this->makeStockedProduct('SAF_LOW', 10, ['safety_stock' => 50]);
+        // 库存高于安全线的对照行 → 正常
+        $this->makeStockedProduct('SAF_OK', 100, ['safety_stock' => 20]);
+
+        $res = $this->getJson('admin/business/report/stock-analysis?dimension=safety&product_keyword=SAF_LOW');
+
+        $res->assertOk();
+        $row = $res->json('data.list.0');
+        $this->assertSame('预警', $row['status']);
+        $this->assertEquals(-40, round((float) $row['gap'], 2), '差额 = 现库存 10 − 安全线 50');
+        $this->assertEquals(90, (int) $row['suggest_qty']);
+
+        // 「只看预警」应过滤掉正常行（基线商品库存 50 > 安全线，默认不预警）
+        $baseline = $this->getJson('admin/business/report/stock-analysis?dimension=safety');
+        $this->assertContains('正常', collect($baseline->json('data.list'))->pluck('status'));
+
+        $filtered = $this->getJson('admin/business/report/stock-analysis?dimension=safety&only_warning=1');
+        $this->assertNotContains('正常', collect($filtered->json('data.list'))->pluck('status'));
+    }
+
+    public function test_stock_analysis_sellable_days_below_seven_is_danger(): void
+    {
+        // 现库存 100，近 30 天日均出库 20（窗口内共出库 600）→ 可销 5 天，告急
+        $product = $this->makeStockedProduct('SELL_DANGER', 100);
+        $this->makeStockOuts($product->id, 600, 30);
+
+        // 现库存 400，同流速 → 20 天，正常
+        $safe = $this->makeStockedProduct('SELL_SAFE', 400);
+        $this->makeStockOuts($safe->id, 600, 30);
+
+        // 有库存、零出库 → 可销天数无定义（null），显示「充足」而非 0 天告急
+        $idle = $this->makeStockedProduct('SELL_IDLE', 300);
+
+        $res = $this->getJson('admin/business/report/stock-analysis?dimension=sellable');
+
+        $res->assertOk();
+        $rows = collect($res->json('data.list'))->keyBy('product_code');
+
+        $this->assertSame('告急', $rows['SELL_DANGER']['level']);
+        $this->assertEquals(5, round((float) $rows['SELL_DANGER']['sellable_days'], 2));
+        $this->assertSame('正常', $rows['SELL_SAFE']['level']);
+        $this->assertEquals(20, round((float) $rows['SELL_SAFE']['sellable_days'], 2));
+        $this->assertNull($rows['SELL_IDLE']['sellable_days'], '零出库商品的平均天数无定义，应为 null');
+        $this->assertSame('充足', $rows['SELL_IDLE']['level']);
+
+        // 告急行排最前（升序、null 沉底）
+        $codes = collect($res->json('data.list'))->pluck('product_code')->all();
+        $this->assertSame('SELL_DANGER', $codes[0]);
+        $this->assertGreaterThan(array_search('SELL_SAFE', $codes), array_search('SELL_IDLE', $codes));
+
+        // 列定义带 danger_below 阈值，前端据此染色
+        $daysCol = collect($res->json('data.columns'))->firstWhere('prop', 'sellable_days');
+        $this->assertEquals(7, $daysCol['danger_below']);
+    }
+
+    public function test_stock_analysis_gain_loss_direction_colors(): void
+    {
+        $this->seedStockCheck();
+
+        $res = $this->getJson('admin/business/report/stock-analysis?dimension=gain_loss');
+
+        $res->assertOk();
+        $rows = collect($res->json('data.list'))->keyBy('product_code');
+
+        // 盘盈商品：diff_qty>0 → gain_qty 记正、loss_qty 为 0
+        $this->assertEquals(5, round((float) $rows['GL_GAIN']['gain_qty'], 2));
+        $this->assertEquals(0, round((float) $rows['GL_GAIN']['loss_qty'], 2));
+        // 盘亏商品：diff_qty<0 → loss_qty 记绝对值
+        $this->assertEquals(3, round((float) $rows['GL_LOSS']['loss_qty'], 2));
+        $this->assertEquals(0, round((float) $rows['GL_LOSS']['gain_qty'], 2));
+
+        // 方向色：盘盈红(ru-gain) / 盘亏绿(rp-loss)，与「增加=绿」常规语义相反（E5 规范）
+        $gainCol = collect($res->json('data.columns'))->firstWhere('prop', 'gain_qty');
+        $lossCol = collect($res->json('data.columns'))->firstWhere('prop', 'loss_qty');
+        $this->assertSame('rp-gain', $gainCol['cell_class']);
+        $this->assertSame('rp-loss', $lossCol['cell_class']);
+
+        // 净差异 = +5 −3 = +2
+        $this->assertEquals(2, round((float) $res->json('data.summary.net_qty'), 2));
+    }
+
+    public function test_stock_analysis_assembly_unions_both_order_types(): void
+    {
+        $this->seedAssemblyAndSplit();
+
+        $res = $this->getJson('admin/business/report/stock-analysis?dimension=assembly');
+
+        $res->assertOk();
+        $types = collect($res->json('data.list'))->pluck('biz_type');
+        $this->assertContains('组装', $types);
+        $this->assertContains('拆分', $types);
+        $this->assertNotEmpty($res->json('data.list.0.order_no'), '拆装单应带出单据号');
+    }
+
+    public function test_stock_analysis_detail_amounts_and_export(): void
+    {
+        $res = $this->getJson('admin/business/report/stock-analysis?dimension=detail');
+
+        $res->assertOk();
+        $row = collect($res->json('data.list'))->firstWhere('product_code', $this->ids['product_code']);
+        $this->assertNotNull($row, '库存明细应带出基线商品');
+        // 数量 50 × 成本 5 = 250；零售 50 × 12 = 600
+        $this->assertEquals(250, round((float) $row['cost_amount'], 2));
+        $this->assertEquals(600, round((float) $row['retail_amount'], 2));
+
+        $export = $this->get('admin/business/report/stock-analysis/export?dimension=detail');
+        $export->assertOk();
+        $this->assertStringContainsString('ms-excel', strtolower($export->headers->get('content-type') ?? ''));
+        $this->assertStringContainsString('商品名称', $export->getContent());
+    }
+
+    /** 建一个带库存的商品：expiry_days 为相对今天的有效期偏移（负=已过期） */
+    private function makeStockedProduct(string $code, int $stockQty, array $attrs = []): object
+    {
+        $expiryDays = $attrs['expiry_days'] ?? null;
+        unset($attrs['expiry_days']);
+        // safety_stock / expiry_date 不在 Product fillable 里，单独走 DB 更新
+        $safetyStock = $attrs['safety_stock'] ?? null;
+        unset($attrs['safety_stock']);
+
+        $product = $this->makeProduct(array_merge([
+            'code' => $code,
+            'cost_price' => 5,
+            'price_small' => 12,
+            'price_unit_small' => '瓶',
+        ], $attrs));
+
+        $update = [];
+        if ($expiryDays !== null) {
+            $update['expiry_date'] = now()->addDays($expiryDays)->toDateString();
+            $update['shelf_life_days'] = 180;
+        }
+        if ($safetyStock !== null) {
+            $update['safety_stock'] = $safetyStock;
+        }
+        if ($update) {
+            DB::table('products')->where('id', $product->id)->update($update);
+        }
+
+        DB::table('stocks')->insert([
+            'product_id' => $product->id, 'warehouse_id' => $this->ids['warehouse'],
+            'quantity' => $stockQty, 'frozen_qty' => 0, 'cost_price' => 5,
+            'total_amount' => $stockQty * 5, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        return $product;
+    }
+
+    /** 造 window 天前的负向出库流水，累计 outQty，喂给可销天数 */
+    private function makeStockOuts(int $productId, int $outQty, int $window): void
+    {
+        DB::table('stocks_history')->insert([
+            'product_id' => $productId, 'warehouse_id' => $this->ids['warehouse'],
+            'change_type' => 'sale', 'change_qty' => -$outQty,
+            'before_qty' => $outQty, 'after_qty' => 0,
+            'created_at' => now()->subDays(max(1, (int) floor($window / 2))),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /** 一张已审核盘点单 + 一盈一亏两行明细 */
+    private function seedStockCheck(): void
+    {
+        $checkId = DB::table('stock_checks')->insertGetId([
+            'check_no' => 'PD'.date('Ymd').rand(1000, 9999),
+            'warehouse_id' => $this->ids['warehouse'],
+            'check_date' => now()->toDateString(),
+            'check_type' => 'full', 'status' => 'approved',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        foreach ([['GL_GAIN', 5], ['GL_LOSS', -3]] as [$code, $diff]) {
+            $product = $this->makeStockedProduct($code, 100);
+            DB::table('stock_check_items')->insert([
+                'check_id' => $checkId, 'product_id' => $product->id,
+                'product_code' => $code, 'product_name' => $code,
+                'spec' => '1*1', 'unit' => '瓶',
+                'book_qty' => 100, 'actual_qty' => 100 + $diff,
+                'diff_qty' => $diff, 'cost_price' => 5, 'diff_amount' => $diff * 5,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+    }
+
+    /** 已审核组装单 + 拆分单各一张 */
+    private function seedAssemblyAndSplit(): void
+    {
+        $parent = $this->makeStockedProduct('ASM_PARENT', 10);
+
+        DB::table('assembly_orders')->insert([
+            'assembly_no' => 'ZC'.date('Ymd').rand(1000, 9999),
+            'parent_product_id' => $parent->id,
+            'parent_product_code' => 'ASM_PARENT', 'parent_product_name' => 'ASM_PARENT',
+            'warehouse_id' => $this->ids['warehouse'],
+            'quantity' => 10, 'total_cost' => 50, 'unit_cost' => 5,
+            'status' => 'approved', 'assembly_date' => now()->toDateString(),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        DB::table('split_orders')->insert([
+            'split_no' => 'CF'.date('Ymd').rand(1000, 9999),
+            'parent_product_id' => $parent->id,
+            'parent_product_code' => 'ASM_PARENT', 'parent_product_name' => 'ASM_PARENT',
+            'warehouse_id' => $this->ids['warehouse'],
+            'quantity' => 5, 'total_cost' => 25,
+            'status' => 'approved', 'split_date' => now()->toDateString(),
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
     private function makeReturn(string $date, float $amount): int
     {
         $id = DB::table('sales_returns')->insertGetId([
