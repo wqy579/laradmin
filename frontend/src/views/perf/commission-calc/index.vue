@@ -1,5 +1,5 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<div class="perf-filter">
 			<span class="label">计算月份</span>
 			<el-date-picker v-model="filter.period" type="month" value-format="YYYY-MM" placeholder="选择月份" size="small" style="width: 140px" />
@@ -15,11 +15,11 @@
 			<div class="summary-bar">
 				<span>业务员数：<b>{{ result.groups.length }}</b></span>
 				<span class="sep">|</span>
-				<span>销售总额：<span :class="negCls(result.totals.sales_amount)">¥{{ fmt(result.totals.sales_amount) }}</span></span>
+				<span>销售总额：<span :class="negCls(result.totals.sales_amount)">¥{{ fmtMoney(result.totals.sales_amount) }}</span></span>
 				<span class="sep">|</span>
-				<span>回款总额：<span :class="negCls(result.totals.received_amount)">¥{{ fmt(result.totals.received_amount) }}</span></span>
+				<span>回款总额：<span :class="negCls(result.totals.received_amount)">¥{{ fmtMoney(result.totals.received_amount) }}</span></span>
 				<span class="sep">|</span>
-				<span>实发提成：<b class="text-red">¥{{ fmt(result.totals.actual_amount) }}</b></span>
+				<span>实发提成：<b class="text-red">¥{{ fmtMoney(result.totals.actual_amount) }}</b></span>
 			</div>
 
 			<el-table :data="result.groups" border stripe height="100%" :default-expand-all="false">
@@ -30,10 +30,10 @@
 							<el-table-column prop="rule_name" label="方案" width="140" />
 							<el-table-column prop="rate_or_unit" label="比例/单额" width="120" />
 							<el-table-column prop="base_amount" label="基数" width="120" align="right">
-								<template #default="{ row: r }"><span :class="negCls(r.base_amount)">¥{{ fmt(r.base_amount) }}</span></template>
+								<template #default="{ row: r }"><span :class="negCls(r.base_amount)">¥{{ fmtMoney(r.base_amount) }}</span></template>
 							</el-table-column>
 							<el-table-column prop="amount" label="提成" width="120" align="right">
-								<template #default="{ row: r }"><span :class="negCls(r.amount)">¥{{ fmt(r.amount) }}</span></template>
+								<template #default="{ row: r }"><span :class="negCls(r.amount)">¥{{ fmtMoney(r.amount) }}</span></template>
 							</el-table-column>
 						</el-table>
 					</template>
@@ -41,20 +41,20 @@
 				<el-table-column prop="employee_name" label="业务员" width="120" />
 				<el-table-column prop="department_name" label="部门" width="110" />
 				<el-table-column prop="sales_amount" label="销售金额" width="120" align="right">
-					<template #default="{ row }"><span :class="negCls(row.sales_amount)">¥{{ fmt(row.sales_amount) }}</span></template>
+					<template #default="{ row }"><span :class="negCls(row.sales_amount)">¥{{ fmtMoney(row.sales_amount) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="received_amount" label="回款金额" width="120" align="right">
-					<template #default="{ row }"><span :class="negCls(row.received_amount)">¥{{ fmt(row.received_amount) }}</span></template>
+					<template #default="{ row }"><span :class="negCls(row.received_amount)">¥{{ fmtMoney(row.received_amount) }}</span></template>
 				</el-table-column>
 				<el-table-column label="未回款" width="110" align="right">
 					<!-- 未回款不计提：灰色斜体提示 -->
-					<template #default="{ row }"><span class="uncollected">{{ fmt(uncollected(row)) }}</span></template>
+					<template #default="{ row }"><span class="uncollected">{{ fmtMoney(uncollected(row)) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="return_amount" label="退货金额" width="110" align="right">
-					<template #default="{ row }"><span :class="negCls(row.return_amount)">¥{{ fmt(row.return_amount) }}</span></template>
+					<template #default="{ row }"><span :class="negCls(row.return_amount)">¥{{ fmtMoney(row.return_amount) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="profit_amount" label="毛利" width="120" align="right">
-					<template #default="{ row }"><span :class="negCls(row.profit_amount)">¥{{ fmt(row.profit_amount) }}</span></template>
+					<template #default="{ row }"><span :class="negCls(row.profit_amount)">¥{{ fmtMoney(row.profit_amount) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="rule_name" label="命中方案" width="150" show-overflow-tooltip />
 				<el-table-column label="提成比例" width="100" align="right">
@@ -64,16 +64,16 @@
 					<template #default="{ row }">{{ unitText(row) }}</template>
 				</el-table-column>
 				<el-table-column prop="base_amount" label="提成基数" width="120" align="right">
-					<template #default="{ row }"><span :class="negCls(row.base_amount)">¥{{ fmt(row.base_amount) }}</span></template>
+					<template #default="{ row }"><span :class="negCls(row.base_amount)">¥{{ fmtMoney(row.base_amount) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="commission_amount" label="应发提成" width="120" align="right">
-					<template #default="{ row }"><span :class="negCls(row.commission_amount)">¥{{ fmt(row.commission_amount) }}</span></template>
+					<template #default="{ row }"><span :class="negCls(row.commission_amount)">¥{{ fmtMoney(row.commission_amount) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="deduction" label="扣减" width="100" align="right">
-					<template #default="{ row }"><span :class="negCls(row.deduction)">¥{{ fmt(row.deduction) }}</span></template>
+					<template #default="{ row }"><span :class="negCls(row.deduction)">¥{{ fmtMoney(row.deduction) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="actual_amount" label="实发提成" width="130" align="right" fixed="right">
-					<template #default="{ row }"><b class="text-red">¥{{ fmt(row.actual_amount) }}</b></template>
+					<template #default="{ row }"><b class="text-red">¥{{ fmtMoney(row.actual_amount) }}</b></template>
 				</el-table-column>
 			</el-table>
 
@@ -83,7 +83,7 @@
 				<el-button type="primary" class="btn-120" :loading="generating" @click="doGenerate">确认生成提成单</el-button>
 			</div>
 		</div>
-		<el-empty v-else description="当前筛选条件下暂无数据" />
+		<FinEmpty v-else text="当前筛选条件下暂无数据" />
 	</div>
 </template>
 
@@ -93,11 +93,13 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import perfApi from '@/api/perf'
 import businessApi from '@/api/business'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../../finance/_FinEmpty.vue'
+import { fmtMoney, toNum } from '../_fmt.js'
 
-const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const negCls = (v) => (Number(v || 0) < 0 ? 'text-red' : '')
+// 金额格式化统一走 _fmt.js（内部 Number.isFinite 兜底，不输出 NaN）
+const negCls = (v) => (toNum(v) < 0 ? 'text-red' : '')
 // 未回款 = 销售 - 回款，未回款部分不计提，灰色斜体提示
-const uncollected = (row) => Math.max(0, Number(row.sales_amount || 0) - Number(row.received_amount || 0))
+const uncollected = (row) => Math.max(0, toNum(row.sales_amount) - toNum(row.received_amount))
 
 const employees = ref([])
 const rules = ref([])
@@ -180,26 +182,28 @@ const exportDetail = async () => {
 onMounted(() => { loadEmployees(); loadRules() })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; }
-.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; background: #fff; border-bottom: 1px solid #ebeef5; }
-.perf-filter .label { font-size: 14px; color: #606266; }
+/* 排版（flex）留在本页，白底/内边距/下边框/标签字号由 _shared.css .perf-filter 提供 */
+.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .perf-content { flex: 1; display: flex; flex-direction: column; overflow: auto; padding: 12px; }
-.summary-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: #f5f7fa; font-size: 13px; color: #606266; margin-bottom: 12px; }
-.summary-bar .sep { color: #dcdfe6; }
-.text-red { color: #f56c6c; font-weight: 600; }
+.summary-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: var(--bg-hover); font-size: var(--font-base); color: var(--text-regular); margin-bottom: 12px; }
+.summary-bar .sep { color: var(--border-base); }
+.text-red { color: var(--color-danger); font-weight: 600; }
 /* 未回款不计提：灰字斜体提示 */
-.uncollected { color: #909399; font-style: italic; }
+.uncollected { color: var(--text-secondary); font-style: italic; }
 .perf-toolbar { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 
 /* 主按钮统一 120×36 */
 .btn-120 { width: 120px; height: 36px; margin-left: 0; }
 /* 「重新试算」白底蓝描边 */
-.btn-outline { background: #fff; border: 1px solid #409eff; color: #409eff; }
-.btn-outline:hover, .btn-outline:focus { background: #ecf5ff; border-color: #409eff; color: #409eff; }
+.btn-outline { background: var(--bg-card); border: 1px solid var(--color-primary); color: var(--color-primary); }
+.btn-outline:hover, .btn-outline:focus { background: var(--color-primary-light); border-color: var(--color-primary); color: var(--color-primary); }
 
-/* 表格：表头 #F5F7FA 14px/500，表体 14px #606266，行高 48px，斑马 #FAFAFA */
-:deep(.el-table th.el-table__cell) { background: #f5f7fa; color: #303133; font-size: 14px; font-weight: 500; height: 48px; }
-:deep(.el-table td.el-table__cell) { color: #606266; font-size: 14px; height: 48px; }
-:deep(.el-table .el-table__row--striped td.el-table__cell) { background: #fafafa; }
+/* 表头底色/字号/行高/斑马纹/hover 均由 _shared.css 提供，这里只留正文色 */
+:deep(.el-table) { color: var(--text-regular); }
 </style>

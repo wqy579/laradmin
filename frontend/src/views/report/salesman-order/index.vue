@@ -1,5 +1,5 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<div class="perf-head">
 			<div class="perf-title">业务员订单汇总</div>
 			<div class="perf-filter">
@@ -39,7 +39,6 @@
 						v-loading="items.loading"
 						show-summary
 						:summary-method="summaryItems"
-						empty-text="暂无数据"
 					>
 						<el-table-column type="index" label="序号" width="60" align="center" :index="indexOf" />
 						<el-table-column prop="apply_date" label="申报日期" width="110" align="center" />
@@ -61,6 +60,9 @@
 						<el-table-column prop="status" label="订单状态" width="100" align="center">
 							<template #default="{ row }">{{ statusText(row.status) }}</template>
 						</el-table-column>
+						<template #empty>
+							<FinEmpty text="当前筛选条件下暂无数据" />
+						</template>
 					</el-table>
 				</div>
 			</el-tab-pane>
@@ -76,7 +78,6 @@
 						v-loading="customerItem.loading"
 						show-summary
 						:summary-method="summaryCustomerItem"
-						empty-text="暂无数据"
 					>
 						<el-table-column type="index" label="序号" width="60" align="center" :index="indexOf" />
 						<el-table-column prop="salesman" label="业务员" width="120" />
@@ -91,6 +92,9 @@
 						<el-table-column prop="order_count" label="订单数" width="100" align="right">
 							<template #default="{ row }">{{ fmtQty(row.order_count) }}</template>
 						</el-table-column>
+						<template #empty>
+							<FinEmpty text="当前筛选条件下暂无数据" />
+						</template>
 					</el-table>
 				</div>
 			</el-tab-pane>
@@ -107,7 +111,6 @@
 						v-loading="salesman.loading"
 						show-summary
 						:summary-method="summarySalesman"
-						empty-text="暂无数据"
 						@row-dblclick="openDetail"
 					>
 						<el-table-column type="index" label="序号" width="60" align="center" />
@@ -123,10 +126,13 @@
 						</el-table-column>
 						<el-table-column prop="revenue" label="占比" width="180">
 							<template #default="{ row }">
-								<el-progress :percentage="Number(row.revenue || 0)" :stroke-width="10" color="#409EFF" />
+								<el-progress :percentage="toNum(row.revenue)" :stroke-width="10" color="#409EFF" />
 							</template>
 						</el-table-column>
 						<el-table-column prop="rank" label="排名" width="90" align="center" />
+						<template #empty>
+							<FinEmpty text="当前筛选条件下暂无数据" />
+						</template>
 					</el-table>
 					<div v-show="viewMode === '图表'" class="chart-box" v-loading="salesman.loading">
 						<div ref="chartRef" class="chart"></div>
@@ -135,7 +141,7 @@
 			</el-tab-pane>
 		</el-tabs>
 
-		<div class="perf-toolbar">
+		<div class="perf-toolbar perf-pager">
 			<template v-if="activeTab === 'salesman'">
 				<el-radio-group v-model="viewMode" size="small" @change="onViewModeChange">
 					<el-radio-button value="列表">列表</el-radio-button>
@@ -158,7 +164,7 @@
 		</div>
 
 		<!-- 双击业务员 → 该业务员的订单明细 -->
-		<el-dialog v-model="detailVisible" :title="`${detailName} · 订单明细`" width="80%">
+		<el-dialog v-model="detailVisible" class="perf-dialog" :title="`${detailName} · 订单明细`" width="80%">
 			<el-table :data="detail.list" border stripe max-height="420" v-loading="detail.loading" empty-text="暂无数据">
 				<el-table-column type="index" label="序号" width="60" align="center" />
 				<el-table-column prop="apply_date" label="申报日期" width="110" align="center" />
@@ -190,12 +196,13 @@ import * as echarts from 'echarts'
 import perfApi from '@/api/perf'
 import businessApi from '@/api/business'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../../finance/_FinEmpty.vue'
+import { toNum, fmtMoney, fmtRate } from '../../perf/_fmt.js'
 
 const STATUS_TEXT = { approved: '已审核', completed: '已完成' }
 const statusText = (v) => STATUS_TEXT[v] || v || '—'
 // 金额/数量一律服务端 round 过，这里只做千分位展示，不再做二次运算
-const fmtMoney = (v) => Number(v || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-const fmtQty = (v) => String(Math.round(Number(v || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+const fmtQty = (v) => String(Math.round(toNum(v))).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
 const activeTab = ref('items')
 const dateRange = ref([])
@@ -326,7 +333,7 @@ const summaryCustomerItem = ({ columns: cols }) =>
 		if (i === 0) return '合计'
 		if (c.property === 'qty') return fmtQty(customerItem.totals.qty)
 		if (c.property === 'amount') return fmtMoney(customerItem.totals.amount)
-		if (c.property === 'order_count') return fmtQty(customerItem.list.reduce((s, r) => s + Number(r.order_count || 0), 0))
+		if (c.property === 'order_count') return fmtQty(customerItem.list.reduce((s, r) => s + toNum(r.order_count), 0))
 		return ''
 	})
 
@@ -336,7 +343,7 @@ const summarySalesman = ({ columns: cols }) =>
 		if (c.property === 'order_count') return fmtQty(salesman.totals.order_count)
 		if (c.property === 'goods_item_count') return fmtQty(salesman.totals.goods_item_count)
 		if (c.property === 'order_amount') return fmtMoney(salesman.totals.order_amount)
-		if (c.property === 'revenue') return `${Number(salesman.totals.revenue || 0).toFixed(2)}%`
+		if (c.property === 'revenue') return `${fmtRate(salesman.totals.revenue, 2)}%`
 		return ''
 	})
 
@@ -435,35 +442,32 @@ onBeforeUnmount(() => {
 })
 </script>
 
+<style>
+@import '../../perf/_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; overflow: auto; }
-/* 白底查询区：标题 18px 加粗 #303133，下边框 1px #EBEEF5，字段间距 12px，标签 14px #606266 */
-.perf-head { background: #fff; border-bottom: 1px solid #EBEEF5; }
-.perf-title { padding: 16px 20px 0; font-size: 18px; font-weight: 700; color: #303133; }
-.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; }
-.perf-filter .label { font-size: 14px; color: #606266; }
-.perf-filter .el-button { height: 36px; padding: 0 20px; font-size: 14px; border-radius: 4px; }
-.perf-filter .el-button--primary { background: #409EFF; border-color: #409EFF; color: #fff; }
-.perf-filter .el-button:not(.el-button--primary) { background: #fff; border: 1px solid #DCDFE6; color: #606266; }
+/* 白底/内边距/下边框/标签字号由 _shared.css .perf-filter 提供，这里只留排版 */
+.perf-head { background: var(--bg-card); }
+.perf-title { padding: 16px 20px 0; font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.perf-filter .el-button { height: 36px; padding: 0 20px; font-size: var(--font-h3); border-radius: var(--radius-md); }
+.perf-filter .el-button--primary { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.perf-filter .el-button:not(.el-button--primary) { background: var(--bg-card); border: 1px solid var(--border-base); color: var(--text-regular); }
 
-.perf-tabs { flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 12px 20px 0; padding: 0 16px; background: #fff; }
+.perf-tabs { flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 12px 20px 0; padding: 0 16px; background: var(--bg-card); }
 .perf-tabs :deep(.el-tabs__content) { flex: 1; min-height: 0; }
 .perf-tabs :deep(.el-tab-pane) { height: 100%; }
 .perf-table { height: 100%; min-height: 320px; }
 .chart-box { height: 100%; min-height: 320px; }
 .chart { width: 100%; height: 100%; min-height: 320px; }
 
-/* 表头 #F5F7FA 14px 500 #606266 行高 48px；表体 14px #606266 行高 48px；斑马偶数 #FAFAFA；悬停 #F5F7FA */
-:deep(.el-table th.el-table__cell) { background: #F5F7FA !important; height: 48px; padding-top: 0; padding-bottom: 0; }
-:deep(.el-table th.el-table__cell .cell) { color: #606266; font-size: 14px; font-weight: 500; line-height: 24px; padding-top: 0; padding-bottom: 0; }
-:deep(.el-table td.el-table__cell) { height: 48px; padding-top: 0; padding-bottom: 0; }
-:deep(.el-table td.el-table__cell .cell) { color: #606266; font-size: 14px; line-height: 24px; padding-top: 0; padding-bottom: 0; }
-:deep(.el-table .el-table__body tr.el-table__row--striped td.el-table__cell) { background: #FAFAFA; }
-:deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) { background: #F5F7FA !important; }
+/* 表头底色/字号、行高、斑马纹、hover、空态文案均由 _shared.css 提供 */
 /* 合计行加粗 */
 :deep(.el-table__footer td.el-table__cell .cell) { font-weight: 700; }
 
-.perf-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 12px 20px; }
-.pager-total { font-size: 14px; color: #606266; }
-:deep(.perf-toolbar .el-pagination) { font-size: 14px; color: #606266; --el-pagination-text-color: #606266; --el-pagination-button-color: #606266; }
+.perf-toolbar { gap: 12px; margin: 0 20px; }
+.pager-total { font-size: var(--font-h3); color: var(--text-regular); }
+:deep(.perf-toolbar .el-pagination) { font-size: var(--font-h3); color: var(--text-regular); --el-pagination-text-color: var(--text-regular); --el-pagination-button-color: var(--text-regular); }
 </style>

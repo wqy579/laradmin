@@ -1,5 +1,5 @@
 <template>
-	<el-dialog v-model="visible" :title="record ? '编辑方案' : '新增方案'" width="900px" class="perf-rule-dialog" header-class="perf-rule-dialog__header"
+	<el-dialog v-model="visible" :title="record ? '编辑方案' : '新增方案'" width="900px" class="perf-rule-dialog perf-dialog" header-class="perf-rule-dialog__header"
 		:close-on-click-modal="false" @open="initForm">
 		<el-form ref="formRef" :model="form" :rules="rules" label-width="110px" size="default">
 			<!-- 基础信息 -->
@@ -179,6 +179,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import perfApi from '@/api/perf'
 import businessApi from '@/api/business'
+import { fmtMoney, toNum } from '../_fmt.js'
 
 const props = defineProps({ visible: Boolean, record: Object })
 const emit = defineEmits(['update:visible', 'success'])
@@ -203,13 +204,6 @@ const products = ref([])
 const sampleAmount = ref(100000)
 const estimateText = ref('0.00')
 const saving = ref(false)
-
-// 金额：千分位 + 2 位小数；负数场景由调用处 class 上色
-const fmtMoney = (n) => {
-	const num = Number(n || 0)
-	const s = Math.abs(num).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-	return (num < 0 ? '-' : '') + s
-}
 
 const defaultForm = () => ({
 	name: '', type: 'sales', calc_type: 'sale_rate',
@@ -238,19 +232,26 @@ const rules = {
 }
 const formRef = ref(null)
 
+// 脏 tier_data（编辑历史脏数据时 min/max/rate 可能是非数值）：先给明确文案，禁止把 NaN 拼进红字
+const tierInvalid = (v) => v !== null && v !== undefined && v !== '' && !Number.isFinite(Number(v))
+
 // 阶梯区间连续且不重叠（首档从 0 起）
 const tierError = computed(() => {
 	if (form.type !== 'ladder') return ''
-	const tiers = [...(form.tier_data || [])].sort((a, b) => Number(a.min) - Number(b.min))
+	const tiers = [...(form.tier_data || [])].sort((a, b) => toNum(a.min) - toNum(b.min))
 	if (!tiers.length) return '请至少添加一档阶梯'
-	if (Number(tiers[0].min) !== 0) return '第一档下限必须为 0'
 	for (let i = 0; i < tiers.length; i++) {
 		const t = tiers[i]
-		const min = Number(t.min)
-		const max = t.max === null || t.max === undefined || t.max === '' ? null : Number(t.max)
+		if (tierInvalid(t.min) || tierInvalid(t.max) || tierInvalid(t.rate)) return `第 ${i + 1} 档数值非法，请重新填写`
+	}
+	if (toNum(tiers[0].min) !== 0) return '第一档下限必须为 0'
+	for (let i = 0; i < tiers.length; i++) {
+		const t = tiers[i]
+		const min = toNum(t.min)
+		const max = t.max === null || t.max === undefined || t.max === '' ? null : toNum(t.max)
 		if (max !== null && max <= min) return `第 ${i + 1} 档上限必须大于下限`
 		if (i < tiers.length - 1) {
-			const nextMin = Number(tiers[i + 1].min)
+			const nextMin = toNum(tiers[i + 1].min)
 			if (max === null) return `第 ${i + 1} 档设为无上限后不能再有后续阶梯`
 			if (nextMin < max) return `第 ${i + 1} 档与第 ${i + 2} 档区间重叠`
 			if (nextMin > max) return `第 ${i + 1} 档与第 ${i + 2} 档之间有空隙（应为 ${max} 起）`
@@ -317,31 +318,34 @@ const loadOptions = async () => {
 // 换类型时同步 calc_type 并清理不相关字段
 watch(() => form.type, (t) => { form.calc_type = typeToCalc[t] || 'sale_rate' })
 
-// 本地估算：月销 sampleAmount 元预计提成
+// 本地估算：月销 sampleAmount 元预计提成（出口统一 finite 兜底，绝不返回 NaN/Infinity）
 const localEstimate = () => {
-	const amt = Number(sampleAmount.value || 0)
-	if (form.type === 'sales' || form.type === 'profit') return amt * (Number(form.rate || 0) / 100)
-	if (form.type === 'piece') return Number(form.unit_amount || 0) // 单量未知，仅示意单件值
+	const amt = toNum(sampleAmount.value)
+	const settle = (v) => (Number.isFinite(v) ? v : 0)
+	if (form.type === 'sales' || form.type === 'profit') return settle(amt * (toNum(form.rate) / 100))
+	if (form.type === 'piece') return toNum(form.unit_amount) // 单量未知，仅示意单件值
 	if (form.type === 'ladder') {
 		// 阶梯为分段（全额按档）：落入哪档按该档比例整额计算
-		const tiers = [...(form.tier_data || [])].sort((a, b) => Number(a.min) - Number(b.min))
+		const tiers = [...(form.tier_data || [])].sort((a, b) => toNum(a.min) - toNum(b.min))
 		for (const t of tiers) {
-			const min = Number(t.min)
-			const max = t.max === null || t.max === undefined || t.max === '' ? Infinity : Number(t.max)
-			if (amt >= min && amt <= max) return amt * (Number(t.rate || 0) / 100)
+			const min = toNum(t.min)
+			const max = t.max === null || t.max === undefined || t.max === '' ? Infinity : toNum(t.max)
+			if (amt >= min && amt <= max) return settle(amt * (toNum(t.rate) / 100))
 		}
 		return 0
 	}
 	if (form.type === 'single') {
 		// 单品方案按命中商品比例估算取最高档（数量未知仅示意）
-		const rates = (form.product_rules || []).filter((r) => r.mode === 'rate').map((r) => Number(r.value || 0))
-		return rates.length ? amt * (Math.max(...rates) / 100) : 0
+		const rates = (form.product_rules || []).filter((r) => r.mode === 'rate').map((r) => toNum(r.value))
+		return rates.length ? settle(amt * (Math.max(...rates) / 100)) : 0
 	}
 	return 0
 }
 
+const setEstimate = (v) => { estimateText.value = Number.isFinite(v) ? v.toFixed(2) : '0.00' }
+
 const calcEstimate = async () => {
-	if (form.type === 'ladder' && tierError.value) { estimateText.value = localEstimate().toFixed(2); return }
+	if (form.type === 'ladder' && tierError.value) { setEstimate(localEstimate()); return }
 	try {
 		const params = {
 			type: form.type, calc_type: form.calc_type,
@@ -355,9 +359,9 @@ const calcEstimate = async () => {
 			base_on_payment: form.base_on_payment, sample_amount: sampleAmount.value,
 		}
 		const res = await perfApi.rule.estimate.get(params)
-		if (res.code === 200) estimateText.value = Number(res.data?.amount || 0).toFixed(2)
-		else estimateText.value = localEstimate().toFixed(2)
-	} catch { estimateText.value = localEstimate().toFixed(2) }
+		if (res.code === 200) setEstimate(toNum(res.data?.amount))
+		else setEstimate(localEstimate())
+	} catch { setEstimate(localEstimate()) }
 }
 
 watch(() => [form.type, form.calc_type, form.rate, form.unit_amount, form.tier_data, form.product_rules, sampleAmount.value], calcEstimate, { deep: true })
@@ -406,57 +410,48 @@ onMounted(() => { loadOptions(); initForm(); calcEstimate() })
 </script>
 
 <style scoped>
-/* 弹窗：宽 900、标题栏 50px、footer 60px、圆角 4px（scoped :deep 自身弹层） */
-:deep(.perf-rule-dialog) { border-radius: 4px; }
-:deep(.perf-rule-dialog .el-dialog__header) {
-	height: 50px; margin: 0; padding: 0 20px; display: flex; align-items: center;
-	border-bottom: 1px solid #DCDFE6; line-height: 50px;
-}
-:deep(.perf-rule-dialog .el-dialog__title) { font-size: 16px; font-weight: 700; color: #303133; }
-:deep(.perf-rule-dialog .el-dialog__body) { padding: 16px 20px; }
-:deep(.perf-rule-dialog .el-dialog__footer) {
-	height: 60px; padding: 0 20px; display: flex; align-items: center; justify-content: flex-end;
-	border-top: 1px solid #DCDFE6; box-sizing: border-box;
-}
+/* 弹窗骨架（圆角/标题栏 50px/标题 16px·600/正文 20px/footer 60px/标签 14px/输入 36px）
+ * 由 _shared.css .perf-dialog 提供（父页面 commission-rule/index.vue 全局导入），
+ * 这里只留本页独有排版。 */
 :deep(.perf-rule-dialog .el-dialog__headerbtn) { top: 10px; }
-:deep(.perf-rule-dialog .el-dialog__body .el-form-item__label) { color: #606266; justify-content: flex-end; }
+:deep(.perf-rule-dialog .el-dialog__body .el-form-item__label) { color: var(--text-regular); justify-content: flex-end; }
 :deep(.perf-rule-dialog .el-dialog__body .el-input__inner),
 :deep(.perf-rule-dialog .el-dialog__body .el-select__wrapper) { min-height: 36px; }
 :deep(.perf-rule-dialog .el-dialog__body .el-input-number) { --el-input-height: 36px; }
 :deep(.perf-rule-dialog .el-dialog__body .el-radio-group) { min-height: 36px; align-items: center; }
 
 .section-title {
-	font-size: 14px; font-weight: 700; color: #303133;
-	padding: 4px 0 8px; margin-top: 4px; border-left: 3px solid #409EFF; padding-left: 8px;
+	font-size: var(--font-h3); font-weight: 700; color: var(--text-primary);
+	padding: 4px 0 8px; margin-top: 4px; border-left: 3px solid var(--color-primary); padding-left: 8px;
 }
 .section-title:first-child { margin-top: 0; }
-.section-body { background: #FAFAFA; border: 1px solid #DCDFE6; border-radius: 4px; padding: 14px 16px 6px; margin-bottom: 14px; }
+.section-body { background: #FAFAFA; border: 1px solid var(--border-base); border-radius: var(--radius-md); padding: 14px 16px 6px; margin-bottom: 14px; }
 .form-row { display: flex; flex-wrap: wrap; gap: 0 24px; }
-.date-sep { margin: 0 8px; color: #909399; }
+.date-sep { margin: 0 8px; color: var(--text-secondary); }
 
 .calc-cards { margin-bottom: 16px; }
-.calc-params { background: #FAFAFA; padding: 16px; border: 1px solid #DCDFE6; border-radius: 4px; margin-bottom: 12px; }
-.hint { color: #909399; font-size: 12px; margin-left: 8px; }
-.hint-block { color: #909399; font-size: 12px; padding: 4px 0 12px; }
-.suffix { margin-left: 6px; color: #606266; }
-.prefix { margin-right: 6px; color: #606266; }
-.estimate-box { margin-top: 12px; padding: 10px 16px; background: #FAFAFA; border: 1px solid #DCDFE6; border-radius: 4px; color: #606266; font-size: 13px; }
-.text-red { color: #F56C6C; font-size: 16px; margin-left: 8px; }
-.tier-error { color: #F56C6C; font-size: 12px; margin-bottom: 8px; }
-.tier-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; border: 1px solid #DCDFE6; }
+.calc-params { background: #FAFAFA; padding: 16px; border: 1px solid var(--border-base); border-radius: var(--radius-md); margin-bottom: 12px; }
+.hint { color: var(--text-secondary); font-size: var(--font-aux); margin-left: 8px; }
+.hint-block { color: var(--text-secondary); font-size: var(--font-aux); padding: 4px 0 12px; }
+.suffix { margin-left: 6px; color: var(--text-regular); }
+.prefix { margin-right: 6px; color: var(--text-regular); }
+.estimate-box { margin-top: 12px; padding: 10px 16px; background: #FAFAFA; border: 1px solid var(--border-base); border-radius: var(--radius-md); color: var(--text-regular); font-size: var(--font-base); }
+.text-red { color: var(--color-danger); font-size: var(--font-h2); margin-left: 8px; }
+.tier-error { color: var(--color-danger); font-size: var(--font-aux); margin-bottom: 8px; }
+.tier-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; border: 1px solid var(--border-base); }
 .tier-table th {
-	background: #F5F7FA; color: #606266; font-size: 14px; font-weight: 500;
-	height: 36px; text-align: left; padding: 0 8px; border: 1px solid #DCDFE6;
+	background: var(--bg-hover); color: var(--text-regular); font-size: var(--font-h3); font-weight: 500;
+	height: 36px; text-align: left; padding: 0 8px; border: 1px solid var(--border-base);
 }
-.tier-table td { padding: 4px 8px; border: 1px solid #DCDFE6; }
-.adv-collapse { margin-bottom: 8px; border-top: 1px solid #DCDFE6; }
+.tier-table td { padding: 4px 8px; border: 1px solid var(--border-base); }
+.adv-collapse { margin-bottom: 8px; border-top: 1px solid var(--border-base); }
 .adv-collapse :deep(.el-collapse-item__header) {
-	height: 44px; line-height: 44px; font-size: 14px; font-weight: 700; color: #303133;
-	background: #FAFAFA; padding: 0 12px; border: 1px solid #DCDFE6;
+	height: 44px; line-height: 44px; font-size: var(--font-h3); font-weight: 700; color: var(--text-primary);
+	background: #FAFAFA; padding: 0 12px; border: 1px solid var(--border-base);
 }
-.adv-collapse :deep(.el-collapse-item__wrap) { border: 1px solid #DCDFE6; border-top: none; }
-.adv-collapse :deep(.el-collapse-item__body) { padding: 14px 16px 6px; background: #fff; }
-.adv-collapse :deep(.el-collapse-item__content) { color: #303133; }
+.adv-collapse :deep(.el-collapse-item__wrap) { border: 1px solid var(--border-base); border-top: none; }
+.adv-collapse :deep(.el-collapse-item__body) { padding: 14px 16px 6px; background: var(--bg-card); }
+.adv-collapse :deep(.el-collapse-item__content) { color: var(--text-primary); }
 .dialog-footer { text-align: right; width: 100%; }
 /* Element 输入控件高度收敛到 36px（含 input-number 内部） */
 :deep(.el-input-number__decrease),

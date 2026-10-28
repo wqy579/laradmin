@@ -1,5 +1,5 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<!-- 六指标卡：同比 yoy + 环比 mom，涨红跌绿 -->
 		<div class="metric-cards" v-if="data?.cards">
 			<div class="metric-card" v-for="c in data.cards" :key="c.key">
@@ -25,7 +25,7 @@
 						<el-radio-button value="30d">近30天</el-radio-button>
 					</el-radio-group>
 				</div>
-				<div v-if="!hasTrend" class="chart-empty">当前筛选条件下暂无数据</div>
+				<div v-if="!hasTrend" class="chart-empty perf-empty">当前筛选条件下暂无数据</div>
 				<div v-else ref="trendEl" style="height: 300px"></div>
 			</div>
 			<div class="chart-box">
@@ -57,8 +57,9 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import * as echarts from 'echarts'
 import perfApi from '@/api/perf'
 import businessApi from '@/api/business'
+import { toNum, isNilNum } from '../_fmt.js'
 
-const fmt = (v) => Number(v || 0).toFixed(2)
+const fmt = (v) => toNum(v).toFixed(2)
 const data = ref(null)
 const range = ref('12m')
 const salesmanIds = ref([])
@@ -67,11 +68,11 @@ const rankType = ref('product')
 const trendEl = ref(null), composeEl = ref(null), rankEl = ref(null), growthEl = ref(null)
 let trendChart, composeChart, rankChart, growthChart
 
-// 比率一位小数；null/undefined 显示 —
-const fmtRate = (v) => (v === null || v === undefined || v === '' ? '—' : Number(v).toFixed(1))
-const rateText = (v) => (v === null || v === undefined || v === '' ? '—' : `${Number(v) >= 0 ? '↑' : '↓'} ${Math.abs(Number(v)).toFixed(1)}%`)
+// 比率一位小数；空值或非有限值（NaN/Infinity/脏字符串）一律显示 —
+const fmtRate = (v) => (isNilNum(v) ? '—' : toNum(v).toFixed(1))
+const rateText = (v) => (isNilNum(v) ? '—' : `${toNum(v) >= 0 ? '↑' : '↓'} ${Math.abs(toNum(v)).toFixed(1)}%`)
 // 涨红跌绿（看板专用）：升 → .up 红，降 → .down 绿
-const rateCls = (v) => (v === null || v === undefined || v === '' ? 'nil' : Number(v) >= 0 ? 'up' : 'down')
+const rateCls = (v) => (isNilNum(v) ? 'nil' : toNum(v) >= 0 ? 'up' : 'down')
 // 卡值：有 rate 用 rate（退货率/利率类），百分比一位小数
 const cardValue = (c) => {
 	const raw = c.rate !== null && c.rate !== undefined ? c.rate : c.value
@@ -195,23 +196,27 @@ onMounted(async () => {
 })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; overflow: auto; }
 .metric-cards { display: flex; gap: 12px; padding: 16px 20px 12px; }
-.metric-card { flex: 1; background: #fff; border: 1px solid #DCDFE6; border-radius: 4px; padding: 16px; text-align: center; }
-.metric-label { font-size: 13px; color: #909399; }
-.metric-value { font-size: 24px; font-weight: bold; color: #303133; margin: 4px 0; }
-.metric-stat { display: flex; justify-content: center; gap: 6px; font-size: 12px; line-height: 20px; }
-.ms-label { color: #909399; }
+.metric-card { flex: 1; background: var(--bg-card); border: 1px solid var(--border-base); border-radius: var(--radius-md); padding: 16px; text-align: center; }
+.metric-label { font-size: var(--font-base); color: var(--text-secondary); }
+.metric-value { font-size: var(--font-stat); font-weight: 600; color: var(--text-primary); margin: 4px 0; font-family: var(--font-numeric); }
+.metric-stat { display: flex; justify-content: center; gap: 6px; font-size: var(--font-aux); line-height: 20px; }
+.ms-label { color: var(--text-secondary); }
 .ms-val { font-variant-numeric: tabular-nums; }
 /* 看板专用：涨红跌绿 */
-.ms-val.up { color: #F56C6C; }
-.ms-val.down { color: #67C23A; }
-.ms-val.nil { color: #909399; }
+.ms-val.up { color: var(--color-danger); }
+.ms-val.down { color: var(--color-success); }
+.ms-val.nil { color: var(--text-secondary); }
 .chart-row { display: flex; gap: 12px; padding: 0 20px 12px; }
-.chart-box { flex: 1; background: #fff; border: 1px solid #DCDFE6; border-radius: 4px; padding: 12px; }
+.chart-box { flex: 1; background: var(--bg-card); border: 1px solid var(--border-base); border-radius: var(--radius-md); padding: 12px; }
 .chart-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.chart-title { font-size: 14px; font-weight: 600; color: #303133; margin-bottom: 8px; }
+.chart-title { font-size: var(--font-h3); font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
 .chart-head .chart-title { margin-bottom: 0; }
-.chart-empty { height: 300px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #909399; background: #FAFAFA; border: 1px dashed #DCDFE6; border-radius: 4px; }
+.chart-empty { height: 300px; display: flex; align-items: center; justify-content: center; background: #FAFAFA; border: 1px dashed var(--border-base); border-radius: var(--radius-md); }
 </style>

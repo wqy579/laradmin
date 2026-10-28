@@ -1,5 +1,5 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<div class="perf-filter">
 			<span class="label">维度</span>
 			<el-radio-group v-model="filter.dimension" size="small" @change="onDimensionChange">
@@ -18,7 +18,7 @@
 			<el-button size="small" @click="resetSearch">重置</el-button>
 			<el-button size="small" :loading="exporting" @click="exportData">导出</el-button>
 			<el-tooltip content="毛利=销售金额−销售成本−退货金额−分摊费用；净毛利=销售额−成本−退货额（未扣费用）；未扣除固定开支与税" placement="bottom">
-				<el-icon style="color: #909399; cursor: help"><QuestionFilled /></el-icon>
+				<el-icon style="color: var(--text-secondary); cursor: help"><QuestionFilled /></el-icon>
 			</el-tooltip>
 		</div>
 
@@ -37,10 +37,10 @@
 							</template>
 							<template v-else-if="c.type === 'qty'">{{ Number(row.qty || 0).toFixed(3) }}</template>
 							<template v-else-if="c.type === 'net'">
-								<span :class="negClass(netProfit(row))">¥{{ fmt(netProfit(row)) }}</span>
+								<span :class="negClass(netProfit(row))">¥{{ fmtMoney(netProfit(row)) }}</span>
 							</template>
 							<template v-else-if="c.type === 'money'">
-								<span :class="negClass(row[c.prop])">¥{{ fmt(row[c.prop]) }}</span>
+								<span :class="negClass(row[c.prop])">¥{{ fmtMoney(row[c.prop]) }}</span>
 							</template>
 							<template v-else-if="c.type === 'rate'">
 								<div class="rate-bar">
@@ -54,7 +54,7 @@
 						</template>
 					</el-table-column>
 					<template #empty>
-						<span class="empty-text">当前筛选条件下暂无数据</span>
+						<FinEmpty text="当前筛选条件下暂无数据" />
 					</template>
 				</el-table>
 			</div>
@@ -73,11 +73,12 @@ import { QuestionFilled } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import perfApi from '@/api/perf'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../../finance/_FinEmpty.vue'
+import { toNum, fmtMoney } from '../_fmt.js'
 
-// 金额千分位 + 两位小数；负数由 negClass 上 #F56C6C
-const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const fmtRate = (v) => Number(v || 0).toFixed(2) + '%' // 毛利率固定两位小数
-const negClass = (v) => (Number(v) < 0 ? 'text-red' : '')
+// 金额千分位 + 两位小数见 _fmt.js(fmtMoney)；负数由 negClass 上红
+const fmtRate = (v) => toNum(v).toFixed(2) + '%' // 毛利率固定两位小数
+const negClass = (v) => (toNum(v) < 0 ? 'text-red' : '')
 
 const dimMap = { orders: '订单', customers: '客户', employees: '业务员', products: '商品', brands: '品牌/分类' }
 // 下钻参数：维度 → 订单列表查询键（对齐 ar-aging / delivery-uncollected 穿透约定）
@@ -97,18 +98,24 @@ const exporting = ref(false)
 const trendEl = ref(null)
 let trendChart = null
 
-// 全体平均毛利率：后端全量聚合 summary.profit_rate（非当前页均值）
-const avgRate = computed(() => (summary.value && summary.value.profit_rate !== undefined && summary.value.profit_rate !== null ? Number(summary.value.profit_rate) : null))
+// 全体平均毛利率：后端全量聚合 summary.profit_rate（非当前页均值）；非数值视为无均值
+const avgRate = computed(() => {
+	const raw = summary.value?.profit_rate
+	if (raw === undefined || raw === null || raw === '') return null
+	const n = Number(String(raw).replace(/[,%\s]/g, ''))
+	return Number.isFinite(n) ? n : null
+})
 // 利润口径绿好红差：高于/等于平均绿 #67C23A，低于平均红 #F56C6C；无均值时退回按正负
 const rateColor = (v) => {
-	const r = Number(v) || 0
+	const r = toNum(v)
 	if (avgRate.value === null) return r >= 0 ? '#67C23A' : '#F56C6C'
 	return r >= avgRate.value ? '#67C23A' : '#F56C6C'
 }
-// 净毛利 = 销售额 − 成本 − 退货额（后端有 net_profit 则直接用）
+// 净毛利 = 销售额 − 成本 − 退货额（后端有可用的 net_profit 则直接用）
 const netProfit = (row) => {
-	if (row.net_profit !== undefined && row.net_profit !== null) return Number(row.net_profit)
-	return Number(row.sale_amount || 0) - Number(row.cost_amount || 0) - Number(row.return_amount || 0)
+	const raw = row.net_profit
+	if (raw !== undefined && raw !== null && raw !== '' && Number.isFinite(Number(String(raw).replace(/[,%\s]/g, '')))) return toNum(raw)
+	return toNum(row.sale_amount) - toNum(row.cost_amount) - toNum(row.return_amount)
 }
 
 // 列头按当前维度动态生成（维度名列随 dimension 变化，度量列与后端返回字段对齐）
@@ -217,14 +224,14 @@ const summaryMethod = ({ columns: cols }) => {
 		const s = summary.value
 		if (!s) return ''
 		if (c.prop === 'net_profit') {
-			const v = Number(s.sale_amount || 0) - Number(s.cost_amount || 0) - Number(s.return_amount || 0)
-			return '¥' + fmt(v)
+			const v = toNum(s.sale_amount) - toNum(s.cost_amount) - toNum(s.return_amount)
+			return '¥' + fmtMoney(v)
 		}
 		if (c.prop === 'profit_rate') return fmtRate(s.profit_rate)
 		if (c.prop === 'qty' || c.prop === 'dim_name') return ''
 		if (c.prop === 'uncollected_amount') return ''
 		const v = s[c.prop]
-		return v !== undefined && v !== null ? '¥' + fmt(v) : ''
+		return v !== undefined && v !== null ? '¥' + fmtMoney(v) : ''
 	})
 }
 
@@ -264,23 +271,22 @@ onMounted(() => {
 })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; overflow: auto; }
-.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; background: #fff; border-bottom: 1px solid #ebeef5; }
-.perf-filter .label { font-size: 14px; color: #606266; }
-.trend-card { background: #fff; margin: 12px 0; border: 1px solid #DCDFE6; border-radius: 4px; }
+/* 筛选栏底色/内距/下边框、标签字号，以及表头 44px/列表行 48px/斑马纹均见 _shared.css */
+.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.trend-card { background: var(--bg-card); margin: 12px 0; border: 1px solid var(--border-base); border-radius: var(--radius-md); }
 .perf-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
 .table-wrap { flex: 1; min-height: 0; overflow: hidden; }
-.perf-pager { display: flex; justify-content: flex-end; padding: 10px 0; background: #fff; }
-.link { color: #409EFF; cursor: pointer; }
-.text-green { color: #67C23A; }
-.text-red { color: #F56C6C; }
-.empty-text { color: #909399; font-size: 14px; }
+.perf-pager { background: var(--bg-card); }
+.link { color: var(--color-primary); cursor: pointer; }
+.text-green { color: var(--color-success); }
+.text-red { color: var(--color-danger); }
 .rate-bar { display: flex; align-items: center; gap: 8px; }
-.rate-track { flex: 1; height: 6px; background: #F5F7FA; border-radius: 3px; overflow: hidden; }
+.rate-track { flex: 1; height: 6px; background: var(--bg-hover); border-radius: 3px; overflow: hidden; }
 .rate-fill { height: 100%; border-radius: 3px; }
-:deep(.el-table) { font-size: 14px; color: #606266; }
-:deep(.el-table th.el-table__cell) { background: #F5F7FA; }
-:deep(.el-table .el-table__row) { height: 48px; }
-:deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) { background: #FAFAFA; }
 </style>
