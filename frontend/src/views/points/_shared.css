@@ -1,0 +1,159 @@
+/* 积分域（D5 视觉统一，口径同 C8）共享页面样式 — 全局非 scoped，选择器以 pts- 前缀隔离。
+ * 供 points 各页面在全局 style 块中导入复用
+ * （先于页面自身 <style scoped> 引入，页面级规则天然覆盖本文件）。
+ * 仅引用 tokens.css 变量，禁私造色值/字号（结构照搬 perf/_shared.css，跨域不互相 import）。 */
+
+.pts-page {
+	--el-table-row-hover-bg-color: var(--bg-hover);
+	min-height: 0;
+}
+
+/* 查询区：白底，padding 16px 20px，下边框 #EBEEF5，标签 12px #606266，字段间距 12px */
+.pts-filter {
+	background: var(--bg-card);
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--border-lighter);
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+.pts-filter .label,
+.pts-filter .el-form-item__label {
+	font-size: var(--font-aux);
+	color: var(--text-regular);
+	white-space: nowrap;
+}
+
+/* 列表区按钮：高 36px、圆角 4px（弹窗内按钮归 .pts-dialog，32px） */
+.pts-toolbar .el-button:not(.is-link) {
+	height: 36px;
+	border-radius: var(--radius-md);
+}
+
+/* 表格：表体 14px #606266；表头 #F5F7FA 14px/500 #606266；列表行 48px。
+ * 斑马纹（stripe 属性）#FAFAFA、hover #F5F7FA 由 EP 变量默认+上方覆盖提供，
+ * 页面内禁止再给 td/th 铺背景色或改行高，否则斑马纹被盖住。 */
+.pts-page .el-table {
+	font-size: var(--font-h3);
+	color: var(--text-regular);
+}
+.pts-page .el-table th.el-table__cell {
+	background: var(--bg-hover);
+	color: var(--text-regular);
+	font-weight: 500;
+	font-size: var(--font-h3);
+	height: 44px;
+}
+.pts-page .el-table .el-table__body .el-table__row {
+	height: 48px;
+}
+/* 明细类表格行高 41px：<el-table class="pts-table--dense"> */
+.pts-page .el-table.pts-table--dense .el-table__body .el-table__row {
+	height: 41px;
+}
+/* 合计行数字等宽 */
+.pts-page .el-table__footer .cell {
+	font-variant-numeric: tabular-nums;
+	font-family: var(--font-numeric);
+}
+
+/* 数字/编号输入（el-input-number）右对齐 */
+.pts-page .el-input-number .el-input__inner {
+	text-align: right;
+}
+
+/* 状态 Tag：12px，草稿灰 #909399 / 待审核 #E6A23C / 已审核 #67C23A / 作废 #F56C6C */
+.pts-tag {
+	display: inline-block;
+	padding: 0 8px;
+	height: 22px;
+	line-height: 22px;
+	font-size: var(--font-aux);
+	border-radius: 3px;
+	color: #fff;
+}
+.pts-tag--draft {
+	background: #909399;
+}
+.pts-tag--pending {
+	background: #e6a23c;
+}
+.pts-tag--audited {
+	background: #67c23a;
+}
+.pts-tag--void {
+	background: #f56c6c;
+}
+
+/* 分页条：高 52px，右对齐 */
+.pts-pager {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	height: 52px;
+	flex-shrink: 0;
+}
+
+/* 空态：13px #909399 */
+.pts-empty {
+	font-size: var(--font-base);
+	color: var(--text-secondary);
+}
+.pts-page .el-table__empty-text {
+	font-size: var(--font-base);
+	color: var(--text-secondary);
+	line-height: 1.6;
+}
+
+/* 弹窗：圆角 4px、阴影 0 2px 12px；标题栏高 50px 下边框 #EBEEF5，
+ * 标题 16px/700 #303133 左内边距 20px；底部按钮栏 60px；
+ * 表单标签 14px #606266 右对齐宽 100~120px；输入框高 36px；弹窗按钮 32px。
+ * el-dialog 加 class="pts-dialog" 生效。 */
+.pts-dialog.el-dialog {
+	border-radius: var(--radius-md);
+	box-shadow: var(--shadow-pop);
+}
+.pts-dialog .el-dialog__header {
+	display: flex;
+	align-items: center;
+	height: 50px;
+	margin: 0;
+	padding: 0 20px;
+	box-sizing: border-box;
+	border-bottom: 1px solid var(--border-lighter);
+}
+.pts-dialog .el-dialog__title {
+	font-size: var(--font-h2);
+	font-weight: 700;
+	color: var(--text-primary);
+	line-height: 1;
+}
+.pts-dialog .el-dialog__body {
+	padding: 20px;
+}
+.pts-dialog .el-dialog__footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	height: 60px;
+	padding: 0 20px;
+	box-sizing: border-box;
+}
+.pts-dialog .el-dialog__footer .el-button {
+	height: 32px;
+	border-radius: var(--radius-md);
+}
+.pts-dialog .el-form-item__label {
+	font-size: var(--font-h3);
+	color: var(--text-regular);
+}
+.pts-dialog .el-input__wrapper,
+.pts-dialog .el-select__wrapper {
+	min-height: 36px;
+}
+/* 弹窗 teleport 到 body，页面级选择器够不到，弹窗内数字输入单独声明 */
+.pts-dialog .el-input-number .el-input__inner {
+	text-align: right;
+}

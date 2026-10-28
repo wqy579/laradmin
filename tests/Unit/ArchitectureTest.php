@@ -79,6 +79,11 @@ class ArchitectureTest extends TestCase
         //   同库只读、抽契约收益低于耦合成本
         'Performance->Auth',    // 绩效菜单 Seeder 写 Auth 的 Permission 与角色授权（与 Business->Auth、
         //   System->Auth 完全同因：菜单数据本就落在 Auth 的权限表上）
+        'Cash->Member',   // 积分发放审核要同事务加 members.points 并写 member_consume_logs 流水，
+        //   与 Order->Member 同理：同一会员-单据关系的两端操作，同库同事务，
+        //   app/Contracts 无 Member 内核契约，抽契约要引入跨事务一致性负担
+        'Cash->Auth',     // 发放单制单人/审核人落 operator_id/audited_by，belongsTo Auth 的
+        //   用户表取 real_name 回显（与 Ledger->Auth、Order->Auth 同理）；Cash 自身不维护人员主数据
     ];
 
     /**
