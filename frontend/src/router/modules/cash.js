@@ -15,4 +15,10 @@ export default [
 		component: () => import('../../views/cash/handover-query/index.vue'),
 		meta: { title: '上交款查询', perm: 'cash:handover:view' },
 	},
+	{
+		path: '/cash/workbench',
+		name: 'CashWorkbench',
+		component: () => import('../../views/cash/workbench/index.vue'),
+		meta: { title: '出纳工作台', perm: 'cash:workbench:view' },
+	},
 ]

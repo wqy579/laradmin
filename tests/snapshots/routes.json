@@ -7713,6 +7713,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/cash/dashboard/summary",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDashboardController@summary",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/dashboard/trend",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDashboardController@trend",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/cash/handover",
         "name": "admin.",
         "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@index",

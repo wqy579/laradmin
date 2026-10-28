@@ -53,6 +53,11 @@ const cashApi = {
 		batchConfirm: (ids) => request.post('cash/handover/batch-confirm', { ids }),
 		export: (params) => request.get('cash/handover/export', { params, responseType: 'blob' }),
 	},
+	// 出纳工作台（只读聚合）
+	dashboard: {
+		summary: { get: () => request.get('cash/dashboard/summary') },
+		trend: { get: (params) => request.get('cash/dashboard/trend', { params }) },
+	},
 }
 
 export default cashApi
