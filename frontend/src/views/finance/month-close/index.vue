@@ -1,5 +1,5 @@
 <template>
-	<div class="page">
+	<div class="page fin-page">
 		<!-- 页面头：标题 + 期间状态 -->
 		<div class="page-header">
 			<div class="ph-left">
@@ -108,7 +108,7 @@
 				<div class="ft-btns">
 					<el-button v-if="step > 0" @click="prev">上一步</el-button>
 					<el-button v-if="step === 0 && !isClosed && canClose" type="primary" @click="next">下一步</el-button>
-					<el-button v-if="step === 1" type="danger" v-permission="'fin:monthclose:execute'" :loading="executing" @click="execute">一键月结</el-button>
+					<el-button v-if="step === 1" type="primary" v-permission="'fin:monthclose:execute'" :loading="executing" @click="execute">一键月结</el-button>
 					<el-button v-if="step === 2" @click="reset">重新开始</el-button>
 				</div>
 			</div>
@@ -247,6 +247,10 @@ onMounted(() => {
 	loadPeriods()
 })
 </script>
+
+<style>
+@import '../_shared.css';
+</style>
 
 <style scoped>
 /* ===== 页面骨架 ===== */
@@ -410,8 +414,8 @@ onMounted(() => {
 .pc-warn {
 	margin-top: var(--space-md);
 	padding: var(--space-sm) var(--space-md);
-	background: var(--bg-active);
-	color: var(--color-primary);
+	background: #fdf6ec;
+	color: var(--color-warning);
 	border-radius: var(--radius-sm);
 	font-size: var(--font-base);
 }

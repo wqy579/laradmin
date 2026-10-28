@@ -1,7 +1,7 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list fin-page">
 		<!-- 筛选卡：日期类型/起止 + 科目(树选) + 凭证字号 + 摘要关键字 + 业务员 + 含红冲；动作右置 -->
-		<div class="perf-filter">
+		<div class="perf-filter fin-filter">
 			<span class="label">日期类型</span>
 			<el-select v-model="search.date_type" style="width: 110px" size="small">
 				<el-option v-for="t in dateTypes" :key="t.value" :label="t.label" :value="t.value" />
@@ -35,12 +35,12 @@
 			<el-input v-model="search.salesman" placeholder="经手人" clearable size="small" style="width: 110px" @keyup.enter="refresh" @clear="refresh" />
 			<el-checkbox v-model="search.include_red" class="red-check">包含红冲</el-checkbox>
 
-			<div class="filter-actions">
-				<el-button size="small" @click="openHistory">经营历程</el-button>
-				<el-button size="small" @click="reorderBalance">科目余额重排</el-button>
-				<el-button type="primary" size="small" @click="refresh">查询</el-button>
-				<el-button size="small" @click="resetSearch">重置</el-button>
-				<el-button size="small" @click="exportData">导出</el-button>
+			<div class="filter-actions fin-toolbar">
+				<el-button @click="openHistory">经营历程</el-button>
+				<el-button @click="reorderBalance">科目余额重排</el-button>
+				<el-button type="primary" @click="refresh">查询</el-button>
+				<el-button @click="resetSearch">重置</el-button>
+				<el-button @click="exportData">导出</el-button>
 			</div>
 		</div>
 
@@ -48,6 +48,7 @@
 			<el-table
 				:data="pagedList"
 				border
+				stripe
 				height="100%"
 				v-loading="loading"
 				:show-summary="true"
@@ -94,12 +95,12 @@
 					</template>
 				</el-table-column>
 				<template #empty>
-					<span class="empty-text">暂无数据</span>
+					<FinEmpty />
 				</template>
 			</el-table>
 		</div>
 
-		<div class="perf-pager">
+		<div class="perf-pager fin-pager">
 			<el-pagination background layout="total, prev, pager, next" :total="total" :page-size="pageSize" :current-page="page" @current-change="(p) => { page = p; load() }" />
 		</div>
 
@@ -117,7 +118,7 @@
 					<div class="v-item v-item--wide"><span class="v-label">状态</span><span class="v-value"><el-tag size="small" :type="current.is_red ? 'danger' : 'success'">{{ current.is_red ? '红冲' : '正常' }}</el-tag></span></div>
 				</div>
 				<div class="v-section-title">凭证分录</div>
-				<el-table :data="entries" border size="small" :show-summary="true" :summary-method="entrySummary">
+				<el-table :data="entries" border stripe class="fin-table--dense" size="small" :show-summary="true" :summary-method="entrySummary">
 					<el-table-column prop="summary" label="摘要" min-width="180" align="left" />
 					<el-table-column prop="subject" label="科目" width="140" align="left" />
 					<el-table-column prop="debit" label="借方" width="110" align="right">
@@ -140,6 +141,7 @@ import { saveBlob } from '@/utils/fileDownload'
 import { useRouter } from 'vue-router'
 import businessApi from '@/api/business'
 import ledgerApi from '@/api/ledger'
+import FinEmpty from '../_FinEmpty.vue'
 
 const dateTypes = [
 	{ value: 'book', label: '记账日期' },
@@ -245,12 +247,13 @@ const load = async () => {
 	}
 }
 
-// 合计：后端对当前筛选全集求和（跨页准确）；收入着红、支出着绿，整行白底加粗
+// 合计：后端对当前筛选全集求和（跨页准确）；summary 输出会被 EP 转义，只能返回纯文本，
+// 收入红/支出绿由合计行 nth-child 着色（见样式）
 const summaryMethod = ({ columns }) =>
 	columns.map((col, i) => {
 		if (i === 0) return '合计'
-		if (col.property === 'income') return `<span class="sum-red tabular">${fmt(incomeTotal.value)}</span>`
-		if (col.property === 'outcome') return `<span class="sum-green tabular">${fmt(outcomeTotal.value)}</span>`
+		if (col.property === 'income') return fmt(incomeTotal.value)
+		if (col.property === 'outcome') return fmt(outcomeTotal.value)
 		return ''
 	})
 const entrySummary = ({ columns }) =>
@@ -310,6 +313,10 @@ onMounted(() => {
 })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list {
 	height: 100%;
@@ -322,13 +329,6 @@ onMounted(() => {
 	align-items: center;
 	gap: 12px;
 	flex-wrap: wrap;
-	padding: 16px 20px;
-	background: var(--bg-card);
-	border-bottom: 1px solid var(--border-base);
-}
-.perf-filter .label {
-	font-size: var(--font-base);
-	color: var(--text-regular);
 }
 .filter-actions {
 	margin-left: auto;
@@ -345,9 +345,7 @@ onMounted(() => {
 	padding: 0 12px;
 }
 .perf-pager {
-	display: flex;
-	justify-content: flex-end;
-	padding: 10px 12px;
+	padding: 0 12px;
 }
 .cell-regular {
 	color: var(--text-regular);
@@ -365,39 +363,26 @@ onMounted(() => {
 	font-weight: 600;
 }
 .num-dim {
-	color: var(--text-primary);
+	color: var(--text-placeholder);
 	font-weight: 600;
-	opacity: 0.35;
 }
 .link {
 	color: var(--color-primary);
 	cursor: pointer;
 }
-.empty-text {
-	color: var(--text-secondary);
-	font-size: var(--font-base);
-}
-/* 表格：表头 13/600 #606266 背景 #F5F7FA、行高 40、正文 13 #303133、斑马纹关闭 */
+/* 表格：正文 13px；表头/行高/斑马纹由 _shared.css 提供 */
 :deep(.el-table) {
 	font-size: var(--font-base);
 	color: var(--text-primary);
-}
-:deep(.el-table th.el-table__cell) {
-	background: var(--bg-hover);
-	height: 44px;
-	color: var(--text-regular);
-	font-weight: 600;
-}
-:deep(.el-table .el-table__row) {
-	height: 40px;
 }
 :deep(.el-table td.el-table__cell),
 :deep(.el-table th.el-table__cell) {
 	border-bottom-color: var(--border-lighter);
 }
-/* 合计行：白底加粗，「合计」左对齐，收入红 / 支出绿 */
+/* 合计行：白底加粗，「合计」左对齐；收入(第6列)红 / 支出(第7列)绿 ——
+ * summary-method 输出经 EP 转义无法带 class，故按列位着色 */
 :deep(.el-table__footer td) {
-	background: #fff;
+	background: var(--bg-card);
 	color: var(--text-primary);
 	font-weight: 700;
 	font-size: var(--font-base);
@@ -405,10 +390,10 @@ onMounted(() => {
 :deep(.el-table__footer td:first-child) {
 	text-align: left;
 }
-.sum-red {
+:deep(.perf-content .el-table__footer td:nth-child(6)) {
 	color: var(--color-danger);
 }
-.sum-green {
+:deep(.perf-content .el-table__footer td:nth-child(7)) {
 	color: var(--color-success);
 }
 /* 凭证穿透抽屉（640px 只读） */
