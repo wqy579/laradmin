@@ -19,47 +19,49 @@
 					style="width:240px"
 					@change="onDateChange"
 				/>
-				<el-select v-model="filters.customer" placeholder="客户" clearable filterable style="width:140px">
-					<el-option v-for="c in CUSTOMERS" :key="c.value" :label="c.label" :value="c.value" />
+				<el-select v-model="filters.customer_id" placeholder="客户" clearable filterable style="width:160px">
+					<el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
 				</el-select>
-				<el-select v-model="filters.salesman" placeholder="业务员" clearable style="width:120px">
-					<el-option v-for="s in SALESMEN" :key="s.value" :label="s.label" :value="s.value" />
+				<el-select v-model="filters.salesman_id" placeholder="业务员" clearable filterable style="width:130px">
+					<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
 				</el-select>
-				<el-input v-model="filters.last4" placeholder="卡号后四位" clearable maxlength="4" class="tabular-input" style="width:110px" />
+				<el-input v-model="filters.card_last4" placeholder="卡号后四位" clearable maxlength="4" style="width:110px" />
 				<el-select v-model="filters.status" placeholder="状态" clearable style="width:110px">
 					<el-option label="成功" value="success" />
 					<el-option label="失败" value="fail" />
-					<el-option label="退款" value="refund" />
+					<el-option label="已退款" value="refund" />
 				</el-select>
-				<el-button type="primary" @click="onSearch">查询</el-button>
+				<el-button type="primary" :loading="loading" @click="onSearch">查询</el-button>
 				<el-button @click="onReset">重置</el-button>
 			</div>
 
 			<div class="stat-strip">
 				<div class="stat">
 					<div class="stat-label">记录数</div>
-					<div class="stat-value tabular">{{ fmtCount(filtered.length) }}</div>
+					<div class="stat-value tabular">{{ fmtCount(stat.count) }}</div>
 				</div>
 				<div class="stat">
 					<div class="stat-label">成功收款</div>
-					<div class="stat-value tabular ok">¥{{ fmtMoney(successAmount) }}</div>
+					<div class="stat-value tabular ok">¥{{ fmtMoney(stat.success_amount) }}</div>
 				</div>
 				<div class="stat">
 					<div class="stat-label">失败笔数</div>
-					<div class="stat-value tabular warn">{{ fmtCount(failCount) }}</div>
+					<div class="stat-value tabular warn">{{ fmtCount(stat.fail_count) }}</div>
 				</div>
 				<div class="stat">
 					<div class="stat-label">手续费合计</div>
-					<div class="stat-value tabular">¥{{ fmtMoney(feeSum) }}</div>
+					<div class="stat-value tabular">¥{{ fmtMoney(stat.fee_sum) }}</div>
 				</div>
 			</div>
 
 			<el-table
-				:data="filtered"
+				v-loading="loading"
+				:data="rows"
 				border
 				stripe
 				show-summary
 				:summary-method="summaryMethod"
+				height="calc(100% - 265px)"
 				empty-text="暂无刷卡记录"
 			>
 				<el-table-column prop="serial_no" label="流水号" width="150">
@@ -69,139 +71,176 @@
 					<template #default="{ row }"><span class="tabular">{{ fmtDateTime(row.txn_time) }}</span></template>
 				</el-table-column>
 				<el-table-column label="客户" width="160" show-overflow-tooltip>
-					<template #default="{ row }">{{ row.customer_name }}</template>
+					<template #default="{ row }">{{ row.customer_name || '—' }}</template>
 				</el-table-column>
 				<el-table-column label="业务员" width="100" align="center">
-					<template #default="{ row }">{{ row.salesman_name }}</template>
+					<template #default="{ row }">{{ row.salesman_name || '—' }}</template>
 				</el-table-column>
 				<el-table-column label="卡类型" width="90" align="center">
-					<template #default="{ row }">{{ CARD_TYPE_LABEL[row.card_type] || '—' }}</template>
+					<template #default="{ row }">{{ row.card_type_label || '—' }}</template>
 				</el-table-column>
-				<el-table-column label="卡号后四位" width="100" align="center">
-					<template #default="{ row }"><span class="tabular">{{ maskCard(row.card_no || row.card_last4) }}</span></template>
+				<el-table-column label="卡号" width="140" align="center">
+					<template #default="{ row }"><span class="tabular">{{ row.card_no_masked || '—' }}</span></template>
 				</el-table-column>
 				<el-table-column label="金额" width="130" align="right">
 					<template #default="{ row }">
 						<span class="tabular amt" :class="row.amount < 0 ? 'neg' : ''">{{ fmtMoney(row.amount) }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column label="手续费" width="60" align="right">
+				<el-table-column label="手续费" width="90" align="right">
 					<template #default="{ row }"><span class="tabular">{{ fmtMoney(row.fee) }}</span></template>
 				</el-table-column>
 				<el-table-column label="状态" width="90" align="center">
 					<template #default="{ row }">
-						<el-tag :type="CARD_STATUS[row.status]?.tag || 'info'" size="small" effect="light">
-							{{ CARD_STATUS[row.status]?.label || row.status }}
-						</el-tag>
+						<span class="st-tag" :class="'st-' + row.status">{{ row.status_label }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column label="操作" width="90" align="center" fixed="right">
 					<template #default="{ row }">
-						<el-button
-							v-if="canRefund(row)"
-							link
-							type="danger"
-							size="small"
-							@click="onRefund(row)"
-						>退款</el-button>
-						<span v-else class="dash">—</span>
+						<el-tooltip :content="refundTip(row)" :disabled="row.refundable" placement="top">
+							<span>
+								<el-button
+									link
+									type="danger"
+									size="small"
+									:disabled="!row.refundable"
+									@click="onRefund(row)"
+								>退款</el-button>
+							</span>
+						</el-tooltip>
 					</template>
 				</el-table-column>
 			</el-table>
+
+			<div class="pager">
+				<el-pagination
+					v-model:current-page="page"
+					v-model:page-size="pageSize"
+					:page-sizes="[20, 50, 100]"
+					:total="total"
+					layout="total, sizes, prev, pager, next, jumper"
+					@size-change="load"
+					@current-change="load"
+				/>
+			</div>
 		</el-card>
 	</div>
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Download } from '@element-plus/icons-vue'
-import {
-	CUSTOMERS, SALESMEN, CARD_STATUS, CARD_TYPE_LABEL,
-	fmtMoney, fmtCount, fmtDateTime, maskCard, today,
-} from '@/mock/card'
-import { listCardTxns, refundCardTxn } from '@/mock/card'
+import cashApi from '@/api/cash'
+import { saveBlob } from '@/utils/fileDownload'
+import { fmtMoney, fmtCount, fmtDateTime } from '@/views/cash/shared'
 
-const filters = reactive({ customer: '', salesman: '', last4: '', status: '', start_date: '', end_date: '' })
+const customers = ref([])
+const salesmen = ref([])
+const filters = reactive({ customer_id: '', salesman_id: '', card_last4: '', status: '', start_date: '', end_date: '' })
 const dateRange = ref([])
-const rows = ref(listCardTxns())
-
-const filtered = computed(() => {
-	const last4 = filters.last4.trim()
-	return rows.value.filter((r) => {
-		const d = String(r.txn_time).slice(0, 10)
-		if (filters.customer && r.customer !== filters.customer) return false
-		if (filters.salesman && r.salesman !== filters.salesman) return false
-		if (filters.status && r.status !== filters.status) return false
-		if (last4 && !String(r.card_last4).endsWith(last4)) return false
-		if (filters.start_date && d < filters.start_date) return false
-		if (filters.end_date && d > filters.end_date) return false
-		return true
-	})
-})
-
-const successAmount = computed(() => filtered.value.reduce((s, r) => s + (r.status === 'success' ? Number(r.amount || 0) : 0), 0))
-const failCount = computed(() => filtered.value.filter((r) => r.status === 'fail').length)
-const feeSum = computed(() => filtered.value.reduce((s, r) => s + Math.abs(Number(r.fee || 0)), 0))
+const rows = ref([])
+const total = ref(0)
+const stat = ref({ count: 0, success_amount: 0, fail_count: 0, fee_sum: 0 })
+const page = ref(1)
+const pageSize = ref(20)
+const loading = ref(false)
 
 const onDateChange = (val) => {
 	filters.start_date = val?.[0] || ''
 	filters.end_date = val?.[1] || ''
 }
 
+// 合计行只算当前页（金额含退款负数），全量口径看上方统计条
 const summaryMethod = ({ columns, data }) =>
 	columns.map((col, i) => {
-		if (i === 0) return `合计（${data.length} 笔）`
+		if (i === 0) return `本页合计（${data.length} 笔）`
 		if (col.label === '金额') return '¥' + fmtMoney(data.reduce((s, r) => s + Number(r.amount || 0), 0))
 		if (col.label === '手续费') return '¥' + fmtMoney(data.reduce((s, r) => s + Number(r.fee || 0), 0))
 		return ''
 	})
 
-const onSearch = () => ElMessage.success(`查询到 ${filtered.value.length} 笔，成功收款 ¥${fmtMoney(successAmount.value)}`)
-const onReset = () => {
-	Object.assign(filters, { customer: '', salesman: '', last4: '', status: '', start_date: '', end_date: '' })
-	dateRange.value = []
+const refundParams = () => ({
+	start_date: filters.start_date,
+	end_date: filters.end_date,
+	customer_id: filters.customer_id,
+	salesman_id: filters.salesman_id,
+	card_last4: filters.card_last4.trim(),
+	status: filters.status,
+})
+
+async function load() {
+	loading.value = true
+	try {
+		const res = await cashApi.card.list.get({ ...refundParams(), page: page.value, page_size: pageSize.value })
+		const data = res.data || {}
+		rows.value = data.list || []
+		total.value = data.total || 0
+		stat.value = data.stat || { count: 0, success_amount: 0, fail_count: 0, fee_sum: 0 }
+	} catch (e) {
+		ElMessage.error(e.message || '查询失败')
+	} finally {
+		loading.value = false
+	}
 }
 
-/* 退款条件：刷卡成功且为当日流水 */
-const canRefund = (row) => row.status === 'success' && String(row.txn_time).slice(0, 10) === today()
+const onSearch = () => {
+	page.value = 1
+	load()
+}
+
+const onReset = () => {
+	Object.assign(filters, { customer_id: '', salesman_id: '', card_last4: '', status: '', start_date: '', end_date: '' })
+	dateRange.value = []
+	page.value = 1
+	load()
+}
+
+/* 退款闸门在后端（成功且当日），前端只解释置灰原因 */
+const refundTip = (row) => {
+	if (row.refundable) return ''
+	if (row.status === 'success') return '仅当日成功流水可退款'
+	if (row.status === 'refund') return '该流水已退款'
+	return '仅成功流水可退款'
+}
 
 const onRefund = (row) => {
 	ElMessageBox.confirm(
-		`确定对流水 ${row.serial_no} 执行退款？退款金额 ¥${fmtMoney(-Number(row.amount))}，退款后状态变更为「退款」。`,
+		`确定对流水 ${row.serial_no} 执行退款？退款金额 ¥${fmtMoney(-Number(row.amount))}，退款后状态变更为「已退款」。`,
 		'刷卡退款',
 		{ type: 'warning', confirmButtonText: '确认退款', cancelButtonText: '取消' }
-	).then(() => {
-		const updated = refundCardTxn(row.id)
-		rows.value = listCardTxns()
-		if (updated) ElMessage.success(`流水 ${updated.serial_no} 已退款 ¥${fmtMoney(-Number(updated.amount))}`)
-		else ElMessage.info('该流水当前状态不可退款')
+	).then(async () => {
+		try {
+			await cashApi.card.refund.post(row.id)
+			ElMessage.success(`流水 ${row.serial_no} 已退款`)
+			load()
+		} catch (e) {
+			ElMessage.error(e.message || '退款失败')
+		}
 	}).catch(() => {})
 }
 
-const onExport = () => {
-	const list = filtered.value
-	if (!list.length) return ElMessage.warning('当前无数据可导出')
-	const head = ['流水号', '刷卡日期时间', '客户', '业务员', '卡类型', '卡号后四位', '金额', '手续费', '状态']
-	const lines = [head.join('\t')]
-	list.forEach((r) =>
-		lines.push([
-			r.serial_no, fmtDateTime(r.txn_time), r.customer_name, r.salesman_name,
-			CARD_TYPE_LABEL[r.card_type] || '', maskCard(r.card_no || r.card_last4),
-			Number(r.amount).toFixed(2), Number(r.fee || 0).toFixed(2),
-			CARD_STATUS[r.status]?.label || r.status,
-		].join('\t'))
-	)
-	lines.push(['合计', '', '', '', '', '', list.reduce((s, r) => s + Number(r.amount || 0), 0).toFixed(2), list.reduce((s, r) => s + Number(r.fee || 0), 0).toFixed(2), ''].join('\t'))
-	const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
-	const url = URL.createObjectURL(blob)
-	const a = document.createElement('a')
-	a.href = url
-	a.download = `刷卡收款记录_${Date.now()}.csv`
-	a.click()
-	setTimeout(() => URL.revokeObjectURL(url), 1000)
-	ElMessage.success(`已导出 ${list.length} 条记录`)
+const onExport = async () => {
+	if (!total.value) return ElMessage.warning('当前无数据可导出')
+	try {
+		const blob = await cashApi.card.export(refundParams())
+		saveBlob(blob, `刷卡收款记录_${Date.now()}.csv`)
+		ElMessage.success('导出成功')
+	} catch (e) {
+		ElMessage.error(e.message || '导出失败')
+	}
 }
+
+onMounted(async () => {
+	load()
+	try {
+		const res = await cashApi.card.options.get()
+		customers.value = res.data?.customers || []
+		salesmen.value = res.data?.salesmen || []
+	} catch (e) {
+		// 下拉选项失败不阻塞列表
+	}
+})
 </script>
 
 <style scoped>
@@ -211,6 +250,7 @@ const onExport = () => {
 .card { flex: 1; margin: var(--space-lg) var(--space-xl); display: flex; flex-direction: column; }
 
 .filter { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-bottom: var(--space-md); }
+.pager { display: flex; justify-content: flex-end; padding-top: var(--space-md); }
 
 .stat-strip { display: flex; gap: var(--space-lg); margin-bottom: var(--space-md); }
 .stat { flex: 1; padding: var(--space-sm) var(--space-md); background: var(--bg-hover); border-radius: var(--radius-md); }
@@ -221,5 +261,9 @@ const onExport = () => {
 
 .amt { color: var(--text-primary); font-weight: 500; }
 .amt.neg { color: var(--color-danger); }
-.dash { color: var(--text-placeholder); }
+/* 连凯对标：状态 Tag 成功=绿 #67C23A / 已退款=橙 #E6A23C / 失败=红 #F56C6C，自绘以锁精确色值 */
+.st-tag { display: inline-block; padding: 0 8px; height: 22px; line-height: 22px; font-size: 12px; border-radius: 3px; color: #fff; }
+.st-success { background: #67C23A; }
+.st-refund { background: #E6A23C; }
+.st-fail { background: #F56C6C; }
 </style>
