@@ -602,6 +602,9 @@ onMounted(() => {
 	grid-template-columns: repeat(3, 1fr);
 	gap: 16px;
 }
+.dialog-body :deep(.el-input-number .el-input__inner) {
+	text-align: right;
+}
 .full-width {
 	grid-column: span 3;
 }
