@@ -1,503 +1,469 @@
 <template>
-  <div class="report-salesman-order">
-    <!-- 筛选卡 -->
-    <div class="search-card">
-      <el-form :inline="true" :model="searchForm">
-        <!-- 申报日期起止 -->
-        <el-date-picker
-          v-model="searchForm.apply_date_start"
-          type="daterange"
-          value-format="YYYY-MM-DD"
-          placeholder="申报日期起"
-          style="width: 120px"
-          @change="onDate"
-        />
-        <el-date-picker
-          v-model="searchForm.apply_date_end"
-          type="daterange"
-          value-format="YYYY-MM-DD"
-          placeholder="申报日期止"
-          style="width: 120px"
-          @change="onDate"
-        />
-        <!-- 事业部 -->
-        <el-select
-          v-model="searchForm.department"
-          placeholder="事业部"
-          size="small"
-          style="width: 160px"
-        >
-          <el-option label="全部" value=""/>
-          <el-option label="事业部 A" value="A"/>
-          <el-option label="事业部 B" value="B"/>
-        </el-select>
-        <!-- 拣货员 -->
-        <el-select
-          v-model="searchForm.picker_assign"
-          placeholder="拣货员"
-          size="small"
-          style="width: 160px"
-        >
-          <el-option label="全部" value=""/>
-          <el-option label="拣货员 1" value="1"/>
-          <el-option label="拣货员 2" value="2"/>
-        </el-select>
-        <!-- 订单类型 -->
-        <el-select
-          v-model="searchForm.order_type"
-          placeholder="订单类型"
-          size="small"
-          style="width: 120px"
-        >
-          <el-option label="普通" value="1"/>
-          <el-option label="车销" value="2"/>
-          <el-option label="预售" value="3"/>
-        </el-select>
-        <!-- 订单状态 -->
-        <el-select
-          v-model="searchForm.order_status"
-          placeholder="订单状态"
-          size="small"
-          style="width: 120px"
-        >
-          <el-option label="已完成成功" value="1"/>
-          <el-option label="待审核" value="2"/>
-          <el-option label="审核中" value="3"/>
-          <el-option label="已驳回" value="4"/>
-        </el-select>
-        <!-- 销售类型 -->
-        <el-select
-          v-model="searchForm.sales_type"
-          placeholder="销售类型"
-          size="small"
-          style="width: 120px"
-        >
-          <el-option label="自营" value="1"/>
-          <el-option label="代销" value="2"/>
-        </el-select>
-        <!-- 单据来源 -->
-        <el-select
-          v-model="searchForm.source"
-          placeholder="单据来源"
-          size="small"
-          style="width: 140px"
-        >
-          <el-option label="系统录入" value="1"/>
-          <el-option label="手工录入" value="2"/>
-        </el-select>
-        <!-- 业务员 -->
-        <el-select
-          v-model="searchForm.salesman"
-          placeholder="业务员"
-          size="small"
-          style="width: 160px"
-        >
-          <el-option label="张三" value="张三"/>
-          <el-option label="李四" value="李四"/>
-          <el-option label="王五" value="王五"/>
-          <el-option label="赵六" value="赵六"/>
-          <el-option label="刘七" value="刘七"/>
-        </el-select>
+	<div class="perf-list">
+		<div class="perf-head">
+			<div class="perf-title">业务员订单汇总</div>
+			<div class="perf-filter">
+				<span class="label">申报日期</span>
+				<el-date-picker
+					v-model="dateRange"
+					type="daterange"
+					value-format="YYYY-MM-DD"
+					start-placeholder="开始"
+					end-placeholder="结束"
+					style="width: 260px"
+					@change="refreshAll"
+				/>
+				<span class="label">业务员</span>
+				<el-select v-model="salesmanId" placeholder="全部业务员" clearable filterable style="width: 150px" @change="refreshAll">
+					<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
+				</el-select>
+				<span class="label">客户</span>
+				<el-select v-model="customerId" placeholder="全部客户" clearable filterable style="width: 180px" @change="refreshAll">
+					<el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
+				</el-select>
+				<el-button type="primary" @click="refreshAll">查询</el-button>
+				<el-button @click="onReset">重置</el-button>
+				<el-button :loading="exporting" @click="exportData">导出Excel</el-button>
+			</div>
+		</div>
 
-        <el-button type="primary" size="small" @click="refresh">查询</el-button>
-        <el-button size="small" @click="resetSearch">重置</el-button>
-        <el-button size="small" @click="exportData">导出Excel</el-button>
-      </el-form>
-    </div>
+		<el-tabs v-model="activeTab" class="perf-tabs" @tab-change="onTabChange">
+			<!-- 页签一：商品明细 -->
+			<el-tab-pane label="商品明细" name="items">
+				<div class="perf-table">
+					<el-table
+						:data="items.list"
+						border
+						stripe
+						height="100%"
+						v-loading="items.loading"
+						show-summary
+						:summary-method="summaryItems"
+						empty-text="暂无数据"
+					>
+						<el-table-column type="index" label="序号" width="60" align="center" :index="indexOf" />
+						<el-table-column prop="apply_date" label="申报日期" width="110" align="center" />
+						<el-table-column prop="order_no" label="单号" width="150" show-overflow-tooltip />
+						<el-table-column prop="salesman" label="业务员" width="100" />
+						<el-table-column prop="customer" label="客户" min-width="160" show-overflow-tooltip />
+						<el-table-column prop="product_code" label="商品编码" width="120" />
+						<el-table-column prop="product_name" label="商品名称" min-width="180" show-overflow-tooltip />
+						<el-table-column prop="brand" label="品牌" width="110" show-overflow-tooltip />
+						<el-table-column prop="qty" label="数量" width="90" align="right">
+							<template #default="{ row }">{{ fmtQty(row.qty) }}</template>
+						</el-table-column>
+						<el-table-column prop="unit_price" label="单价" width="100" align="right">
+							<template #default="{ row }">{{ fmtMoney(row.unit_price) }}</template>
+						</el-table-column>
+						<el-table-column prop="amount" label="金额" width="130" align="right">
+							<template #default="{ row }">{{ fmtMoney(row.amount) }}</template>
+						</el-table-column>
+						<el-table-column prop="status" label="订单状态" width="100" align="center">
+							<template #default="{ row }">{{ statusText(row.status) }}</template>
+						</el-table-column>
+					</el-table>
+				</div>
+			</el-tab-pane>
 
-    <!-- 三视图 -->
-    <el-tabs @tab-change="onTabChange">
-      <el-tab-pane label="商品明细" name="items">
-        <sTable
-          ref="tableRefA"
-          tableName="report_salesman_order_items"
-          :data="itemsData"
-          :columns="columnsA"
-          :loading="loadingA"
-          :currentPage="paginationPropsA.currentPage"
-          :pageSize="paginationPropsA.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :pagination-layout="paginationPropsA.paginationLayout"
-          :empty-text="emptyTextA"
-          @refresh="handleARefresh"
-        />
-      </el-tab-pane>
+			<!-- 页签二：客户商品汇总 -->
+			<el-tab-pane label="客户商品汇总" name="customerItem">
+				<div class="perf-table">
+					<el-table
+						:data="customerItem.list"
+						border
+						stripe
+						height="100%"
+						v-loading="customerItem.loading"
+						show-summary
+						:summary-method="summaryCustomerItem"
+						empty-text="暂无数据"
+					>
+						<el-table-column type="index" label="序号" width="60" align="center" :index="indexOf" />
+						<el-table-column prop="salesman" label="业务员" width="120" />
+						<el-table-column prop="customer" label="客户" min-width="180" show-overflow-tooltip />
+						<el-table-column prop="product_name" label="商品名称" min-width="200" show-overflow-tooltip />
+						<el-table-column prop="qty" label="数量汇总" width="120" align="right">
+							<template #default="{ row }">{{ fmtQty(row.qty) }}</template>
+						</el-table-column>
+						<el-table-column prop="amount" label="金额汇总" width="140" align="right">
+							<template #default="{ row }">{{ fmtMoney(row.amount) }}</template>
+						</el-table-column>
+						<el-table-column prop="order_count" label="订单数" width="100" align="right">
+							<template #default="{ row }">{{ fmtQty(row.order_count) }}</template>
+						</el-table-column>
+					</el-table>
+				</div>
+			</el-tab-pane>
 
-      <el-tab-pane label="客户商品汇总" name="customerItem">
-        <sTable
-          ref="tableRefB"
-          tableName="report_salesman_order_customer"
-          :data="customerItemData"
-          :columns="columnsB"
-          :loading="loadingB"
-          :currentPage="paginationPropsB.currentPage"
-          :pageSize="paginationPropsB.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :pagination-layout="paginationPropsB.paginationLayout"
-          :empty-text="emptyTextB"
-        />
-      </el-tab-pane>
+			<!-- 页签三：业务员订单汇总 -->
+			<el-tab-pane label="业务员订单汇总" name="salesman">
+				<div class="perf-table">
+					<el-table
+						v-show="viewMode === '列表'"
+						:data="salesman.list"
+						border
+						stripe
+						height="100%"
+						v-loading="salesman.loading"
+						show-summary
+						:summary-method="summarySalesman"
+						empty-text="暂无数据"
+						@row-dblclick="openDetail"
+					>
+						<el-table-column type="index" label="序号" width="60" align="center" />
+						<el-table-column prop="sales_name" label="业务员" min-width="140" show-overflow-tooltip />
+						<el-table-column prop="order_count" label="订单数" width="110" align="right">
+							<template #default="{ row }">{{ fmtQty(row.order_count) }}</template>
+						</el-table-column>
+						<el-table-column prop="goods_item_count" label="商品件数" width="120" align="right">
+							<template #default="{ row }">{{ fmtQty(row.goods_item_count) }}</template>
+						</el-table-column>
+						<el-table-column prop="order_amount" label="订单金额" width="150" align="right">
+							<template #default="{ row }">{{ fmtMoney(row.order_amount) }}</template>
+						</el-table-column>
+						<el-table-column prop="revenue" label="占比" width="180">
+							<template #default="{ row }">
+								<el-progress :percentage="Number(row.revenue || 0)" :stroke-width="10" color="#409EFF" />
+							</template>
+						</el-table-column>
+						<el-table-column prop="rank" label="排名" width="90" align="center" />
+					</el-table>
+					<div v-show="viewMode === '图表'" class="chart-box" v-loading="salesman.loading">
+						<div ref="chartRef" class="chart"></div>
+					</div>
+				</div>
+			</el-tab-pane>
+		</el-tabs>
 
-      <el-tab-pane label="业务员订单汇总" name="salesman">
-        <sTable
-          ref="tableRefC"
-          tableName="report_salesman_order_salesman"
-          :data="tabCData"
-          :columns="columnsC"
-          :loading="loadingC"
-          :currentPage="paginationPropsA.currentPage"
-          :pageSize="paginationPropsA.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :pagination-layout="paginationPropsA.paginationLayout"
-          :empty-text="emptyTextC"
-        />
+		<div class="perf-toolbar">
+			<template v-if="activeTab === 'salesman'">
+				<el-radio-group v-model="viewMode" size="small" @change="onViewModeChange">
+					<el-radio-button value="列表">列表</el-radio-button>
+					<el-radio-button value="图表">图表</el-radio-button>
+				</el-radio-group>
+				<span class="pager-total">共 {{ salesman.total }} 人 · 双击行看订单明细</span>
+			</template>
+			<template v-else>
+				<span class="pager-total">共 {{ current.total }} 条</span>
+				<el-pagination
+					layout="sizes, prev, pager, next, jumper"
+					:page-sizes="[10, 20, 30, 50, 100]"
+					:page-size="current.pageSize"
+					:total="current.total"
+					:current-page="current.page"
+					@current-change="onPage"
+					@size-change="onSizeChange"
+				/>
+			</template>
+		</div>
 
-        <!-- 列表/图表切换 -->
-        <el-row v-if="showChart" style="margin-top: 20px;">
-          <el-segment
-            v-model="chartMode"
-            activecolor="#409EFF"
-            textcolor="#909399"
-            style="margin-bottom: 20px"
-          >
-            <el-button>列表</el-button>
-            <el-button>图表</el-button>
-          </el-segment>
-          <el-divider />
-          <div class="chart-container" ref="chartRef">
-            <div v-if="loadingC" style="padding: 60px; text-align: center; color: #909399;">加载中...</div>
-            <div v-else-if="chartState === 'loaded'">
-              <el-button style="padding: 8px 16px; background: #409EFF; color: white; border-radius: 4px; border: none;" @click="resetChart">
-                重置图表
-              </el-button>
-            </div>
-          </div>
-        </el-row>
-
-        <!-- 双击行 → 订单明细列表 -->
-        <el-dialog
-          v-model="detailVisible"
-          width="80%"
-          title="订单明细"
-          :close-on-click-modal="false"
-        >
-          <el-table
-            ref="itemTableRef"
-            :data="detailData"
-            border
-            :stripe="false"
-            style="width: 100%"
-            @row-click="handleRowClick"
-          >
-            <el-table-column prop="seq" label="序号" min-width="80" align="center" />
-            <el-table-column prop="apply_date" label="申报日期" min-width="140" align="center" />
-            <el-table-column prop="salesman" label="业务员" min-width="120" align="center" />
-            <el-table-column prop="customer" label="客户" min-width="160" align="center" />
-            <el-table-column prop="product_code" label="商品编码" min-width="120" align="right" />
-            <el-table-column prop="product_name" label="商品名称" min-width="200" align="center" show-overflow-tooltip />
-            <el-table-column prop="brand" label="品牌" min-width="120" align="center" />
-            <el-table-column prop="qty" label="数量" min-width="80" align="right" />
-            <el-table-column prop="unit_price" label="单价" min-width="100" align="right" />
-            <el-table-column prop="amount" label="金额" min-width="100" align="right" />
-            <el-table-column prop="status" label="订单状态" min-width="100" align="center" />
-          </el-table>
-        </el-dialog>
-      </el-tab-pane>
-    </el-tabs>
-  </div>
+		<!-- 双击业务员 → 该业务员的订单明细 -->
+		<el-dialog v-model="detailVisible" :title="`${detailName} · 订单明细`" width="80%">
+			<el-table :data="detail.list" border stripe max-height="420" v-loading="detail.loading" empty-text="暂无数据">
+				<el-table-column type="index" label="序号" width="60" align="center" />
+				<el-table-column prop="apply_date" label="申报日期" width="110" align="center" />
+				<el-table-column prop="order_no" label="单号" width="150" show-overflow-tooltip />
+				<el-table-column prop="customer" label="客户" min-width="160" show-overflow-tooltip />
+				<el-table-column prop="product_code" label="商品编码" width="120" />
+				<el-table-column prop="product_name" label="商品名称" min-width="180" show-overflow-tooltip />
+				<el-table-column prop="qty" label="数量" width="90" align="right">
+					<template #default="{ row }">{{ fmtQty(row.qty) }}</template>
+				</el-table-column>
+				<el-table-column prop="unit_price" label="单价" width="100" align="right">
+					<template #default="{ row }">{{ fmtMoney(row.unit_price) }}</template>
+				</el-table-column>
+				<el-table-column prop="amount" label="金额" width="130" align="right">
+					<template #default="{ row }">{{ fmtMoney(row.amount) }}</template>
+				</el-table-column>
+				<el-table-column prop="status" label="订单状态" width="100" align="center">
+					<template #default="{ row }">{{ statusText(row.status) }}</template>
+				</el-table-column>
+			</el-table>
+		</el-dialog>
+	</div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useTable } from '@/hooks/useTable'
-import { usePermission } from '@/composables/usePermission'
-import { ElNotification } from 'element-plus'
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
-import { saveBlob } from '@/utils/fileDownload'
-import sTable from '@/components/sTable/index.vue'
 import perfApi from '@/api/perf'
+import businessApi from '@/api/business'
+import { saveBlob } from '@/utils/fileDownload'
 
-const { t } = useI18n()
+const STATUS_TEXT = { approved: '已审核', completed: '已完成' }
+const statusText = (v) => STATUS_TEXT[v] || v || '—'
+// 金额/数量一律服务端 round 过，这里只做千分位展示，不再做二次运算
+const fmtMoney = (v) => Number(v || 0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+const fmtQty = (v) => String(Math.round(Number(v || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
 
-// ── 状态 ──
-const searchForm = reactive({
-  apply_date_start: '',
-  apply_date_end: '',
-  department: '',
-  picker_assign: '',
-  order_type: '',
-  order_status: '',
-  sales_type: '',
-  source: '',
-  salesman: '',
-})
+const activeTab = ref('items')
+const dateRange = ref([])
+const salesmanId = ref(null)
+const customerId = ref(null)
+const salesmen = ref([])
+const customers = ref([])
+const exporting = ref(false)
+const viewMode = ref('列表')
 
-const chartMode = ref('列表')
-const showChart = ref(true)
-const chartState = ref('idle')
-const detailVisible = ref(false)
-const detailData = ref([])
+/** 分页列表的统一状态：一个 tab 一份，切换 tab 只刷当前页签 */
+const newTabState = () => reactive({ list: [], total: 0, totals: {}, page: 1, pageSize: 30, loading: false })
+const items = newTabState()
+const customerItem = newTabState()
+const salesman = reactive({ list: [], total: 0, totals: {}, loading: false })
 
-// ── 初始化 Tab C 数据（使用 mock 数据，包含合计行） ──
-const itemsData = [
-  { seq: 1, apply_date: '2026-01-10', salesman: '张三', customer: '客户 A', product_code: 'P101', product_name: '产品 101', brand: '品牌 1', qty: 150, unit_price: 8.5, amount: 1275, status: '已完成成功' },
-  { seq: 2, apply_date: '2026-01-15', salesman: '李四', customer: '客户 A', product_code: 'P101', product_name: '产品 101', brand: '品牌 1', qty: 100, unit_price: 8.5, amount: 850, status: '已完成成功' },
-  { seq: 3, apply_date: '2026-01-20', salesman: '张三', customer: '客户 B', product_code: 'P102', product_name: '产品 102', brand: '品牌 2', qty: 200, unit_price: 12, amount: 2400, status: '已完成成功' },
-  { seq: 4, apply_date: '2026-01-25', salesman: '李四', customer: '客户 B', product_code: 'P102', product_name: '产品 102', brand: '品牌 2', qty: 150, unit_price: 12, amount: 1800, status: '待审核' },
-  { seq: 5, apply_date: '2026-02-01', salesman: '王五', customer: '客户 A', product_code: 'P103', product_name: '产品 103', brand: '品牌 3', qty: 80, unit_price: 25, amount: 2000, status: '已完成成功' },
-  { seq: 6, apply_date: '2026-02-05', salesman: '张三', customer: '客户 C', product_code: 'P104', product_name: '产品 104', brand: '品牌 4', qty: 120, unit_price: 18, amount: 2160, status: '已完成成功' },
-  { seq: 7, apply_date: '2026-02-10', salesman: '李四', customer: '客户 C', product_code: 'P104', product_name: '产品 104', brand: '品牌 4', qty: 100, unit_price: 18, amount: 1800, status: '待审核' },
-  { seq: 8, apply_date: '2026-02-15', salesman: '王五', customer: '客户 D', product_code: 'P105', product_name: '产品 105', brand: '品牌 5', qty: 200, unit_price: 30, amount: 6000, status: '已完成成功' },
-  { seq: 9, apply_date: '2026-02-20', salesman: '赵六', customer: '客户 A', product_code: 'P101', product_name: '产品 101', brand: '品牌 1', qty: 100, unit_price: 8.5, amount: 850, status: '已完成成功' },
-  { seq: 10, apply_date: '2026-03-01', salesman: '刘七', customer: '客户 B', product_code: 'P102', product_name: '产品 102', brand: '品牌 2', qty: 120, unit_price: 12, amount: 1440, status: '待审核' },
-  { seq: 11, apply_date: '2026-03-05', salesman: '张三', customer: '客户 C', product_code: 'P103', product_name: '产品 103', brand: '品牌 3', qty: 80, unit_price: 25, amount: 2000, status: '已完成成功' },
-  { seq: 12, apply_date: '2026-03-10', salesman: '李四', customer: '客户 D', product_code: 'P105', product_name: '产品 105', brand: '品牌 5', qty: 50, unit_price: 30, amount: 1500, status: '已完成成功' },
-  { seq: 13, apply_date: '2026-03-15', salesman: '王五', customer: '客户 E', product_code: 'P101', product_name: '产品 101', brand: '品牌 1', qty: 100, unit_price: 8.5, amount: 850, status: '已完成成功' },
-  { seq: 14, apply_date: '2026-03-20', salesman: '赵六', customer: '客户 A', product_code: 'P104', product_name: '产品 104', brand: '品牌 4', qty: 100, unit_price: 18, amount: 1800, status: '待审核' },
-  { seq: 15, apply_date: '2026-03-25', salesman: '刘七', customer: '客户 B', product_code: 'P105', product_name: '产品 105', brand: '品牌 5', qty: 100, unit_price: 30, amount: 3000, status: '已完成成功' },
-  { seq: 16, apply_date: '2026-04-01', salesman: '张三', customer: '客户 C', product_code: 'P101', product_name: '产品 101', brand: '品牌 1', qty: 120, unit_price: 8.5, amount: 1020, status: '已完成成功' },
-  { seq: 17, apply_date: '2026-04-05', salesman: '李四', customer: '客户 D', product_code: 'P104', product_name: '产品 104', brand: '品牌 4', qty: 80, unit_price: 18, amount: 1440, status: '待审核' },
-  { seq: 18, apply_date: '2026-04-10', salesman: '王五', customer: '客户 E', product_code: 'P102', product_name: '产品 102', brand: '品牌 2', qty: 100, unit_price: 12, amount: 1200, status: '已完成成功' },
-  { seq: 19, apply_date: '2026-04-15', salesman: '赵六', customer: '客户 C', product_code: 'P105', product_name: '产品 105', brand: '品牌 5', qty: 80, unit_price: 30, amount: 2400, status: '已完成成功' },
-  { seq: 20, apply_date: '2026-04-20', salesman: '刘七', customer: '客户 A', product_code: 'P103', product_name: '产品 103', brand: '品牌 3', qty: 100, unit_price: 25, amount: 2500, status: '已完成成功' },
-  { seq: 21, apply_date: '2026-05-01', salesman: '张三', customer: '客户 B', product_code: 'P101', product_name: '产品 101', brand: '品牌 1', qty: 150, unit_price: 8.5, amount: 1275, status: '已完成成功' },
-  { seq: 22, apply_date: '2026-05-05', salesman: '李四', customer: '客户 C', product_code: 'P102', product_name: '产品 102', brand: '品牌 2', qty: 120, unit_price: 12, amount: 1440, status: '待审核' },
-  { seq: 23, apply_date: '2026-05-10', salesman: '王五', customer: '客户 D', product_code: 'P105', product_name: '产品 105', brand: '品牌 5', qty: 200, unit_price: 30, amount: 6000, status: '已完成成功' },
-  { seq: 24, apply_date: '2026-05-15', salesman: '赵六', customer: '客户 A', product_code: 'P103', product_name: '产品 103', brand: '品牌 3', qty: 80, unit_price: 25, amount: 2000, status: '待审核' },
-  { seq: 25, apply_date: '2026-05-20', salesman: '刘七', customer: '客户 E', product_code: 'P101', product_name: '产品 101', brand: '品牌 1', qty: 100, unit_price: 8.5, amount: 850, status: '已完成成功' },
-  { seq: 26, apply_date: '2026-06-01', salesman: '张三', customer: '客户 B', product_code: 'P104', product_name: '产品 104', brand: '品牌 4', qty: 80, unit_price: 18, amount: 1440, status: '已完成成功' },
-  { seq: 27, apply_date: '2026-06-05', salesman: '李四', customer: '客户 C', product_code: 'P105', product_name: '产品 105', brand: '品牌 5', qty: 100, unit_price: 30, amount: 3000, status: '待审核' },
-  { seq: 28, apply_date: '2026-06-10', salesman: '王五', customer: '客户 A', product_code: 'P102', product_name: '产品 102', brand: '品牌 2', qty: 150, unit_price: 12, amount: 1800, status: '已完成成功' },
-  { seq: 29, apply_date: '2026-06-15', salesman: '赵六', customer: '客户 D', product_code: 'P101', product_name: '产品 101', brand: '品牌 1', qty: 100, unit_price: 8.5, amount: 850, status: '待审核' },
-  { seq: 30, apply_date: '2026-06-20', salesman: '刘七', customer: '客户 E', product_code: 'P103', product_name: '产品 103', brand: '品牌 3', qty: 80, unit_price: 25, amount: 2000, status: '已完成成功' },
-]
+const TAB_FETCHERS = { items: fetchItems, customerItem: fetchCustomerItem, salesman: fetchSalesman }
+const current = computed(() => (activeTab.value === 'items' ? items : customerItem))
 
-const customerItemData = [
-  { salesman: '张三', customer: '客户 A', product_name: '产品 101', qty: 250, amount: 2125 },
-  { salesman: '张三', customer: '客户 A', product_name: '产品 102', qty: 150, amount: 1800 },
-  { salesman: '李四', customer: '客户 A', product_name: '产品 101', qty: 250, amount: 2125 },
-  { salesman: '李四', customer: '客户 A', product_name: '产品 102', qty: 150, amount: 1800 },
-  { salesman: '王五', customer: '客户 A', product_name: '产品 101', qty: 100, amount: 850 },
-  { salesman: '王五', customer: '客户 A', product_name: '产品 102', qty: 150, amount: 1800 },
-  { salesman: '王五', customer: '客户 A', product_name: '产品 103', qty: 80, amount: 2000 },
-  { salesman: '赵六', customer: '客户 A', product_name: '产品 101', qty: 100, amount: 850 },
-  { salesman: '刘七', customer: '客户 A', product_name: '产品 103', qty: 100, amount: 2500 },
-  { salesman: '赵六', customer: '客户 B', product_name: '产品 101', qty: 250, amount: 2125 },
-  { salesman: '张三', customer: '客户 B', product_name: '产品 102', qty: 200, amount: 2400 },
-  { salesman: '张三', customer: '客户 B', product_name: '产品 103', qty: 80, amount: 2000 },
-  { salesman: '李四', customer: '客户 B', product_name: '产品 102', qty: 150, amount: 1800 },
-  { salesman: '李四', customer: '客户 B', product_name: '产品 103', qty: 100, amount: 2000 },
-  { salesman: '王五', customer: '客户 B', product_name: '产品 102', qty: 100, amount: 1200 },
-  { salesman: '赵六', customer: '客户 B', product_name: '产品 104', qty: 100, amount: 1800 },
-  { salesman: '刘七', customer: '客户 B', product_name: '产品 104', qty: 120, amount: 2160 },
-]
+const indexOf = (i) => (current.value.page - 1) * current.value.pageSize + i + 1
 
-const salesmanAgg = [
-  { sales_name: '张三', order_count: 9, goods_item_count: 16, order_amount: 16675, revenue: 16675, rank: 1, sales_item_count: 8 },
-  { sales_name: '李四', order_count: 8, goods_item_count: 13, order_amount: 13125, revenue: 13125, rank: 2, sales_item_count: 7 },
-  { sales_name: '王五', order_count: 7, goods_item_count: 10, order_amount: 13600, revenue: 13600, rank: 3, sales_item_count: 6 },
-  { sales_name: '赵六', order_count: 6, goods_item_count: 8, order_amount: 12800, revenue: 12800, rank: 4, sales_item_count: 4 },
-  { sales_name: '刘七', order_count: 5, goods_item_count: 8, order_amount: 13200, revenue: 13200, rank: 5, sales_item_count: 3 },
-]
-
-const tabCData = ref([...salesmanAgg])
-// 补充合计行
-const totalRow = {
-  sales_name: '合计',
-  order_count: 5,
-  goods_item_count: 16,
-  order_amount: 46600,
-  revenue: 100,
-  rank: '1',
-}
-tabCData.value.push(totalRow)
-
-// ── API ──
-const { tableRefA, dataA, loadingA, paginationPropsA, refreshA } = useTable({
-  apiObj: { get: (params) => perfApi.salesmanOrder.items.get(params) },
-  searchForm,
-  pageSize: 30,
-})
-
-const { tableRefB, dataB, loadingB, paginationPropsB } = useTable({
-  apiObj: { get: (params) => perfApi.salesmanOrder.customer.get(params) },
-  searchForm,
-  pageSize: 30,
-})
-
-// ── Tab A 商品明细 ──
-const columnsA = [
-  { prop: 'seq', title: '序号', width: 50, minWidth: 50, align: 'center' },
-  { prop: 'apply_date', title: '申报日期', width: 110, minWidth: 110, align: 'center' },
-  { prop: 'salesman', title: '业务员', width: 100, align: 'center' },
-  { prop: 'customer', title: '客户', width: 160, align: 'center' },
-  { prop: 'product_code', title: '商品编码', width: 120, align: 'right' },
-  { prop: 'product_name', title: '商品名称', width: 180, align: 'center' },
-  { prop: 'brand', title: '品牌', width: 100, align: 'center' },
-  { prop: 'qty', title: '数量', width: 80, align: 'right' },
-  { prop: 'unit_price', title: '单价', width: 100, align: 'right' },
-  { prop: 'amount', title: '金额', width: 130, align: 'right' },
-  { prop: 'status', title: '订单状态', width: 90, align: 'center' },
-]
-
-const emptyTextA = '暂无数据'
-
-// ── Tab B 客户商品汇总 ──
-const columnsB = [
-  { prop: 'salesman', title: '业务员', width: 100, align: 'center' },
-  { prop: 'customer', title: '客户', width: 160, align: 'center' },
-  { prop: 'product_name', title: '商品名称', width: 180, align: 'center' },
-  { prop: 'qty', title: '数量汇总', width: 100, align: 'right' },
-  { prop: 'amount', title: '金额汇总', width: 130, align: 'right' },
-  { prop: 'order_count', title: '订单数', width: 80, align: 'right' },
-]
-
-const emptyTextB = '暂无数据'
-
-// ── Tab C 业务员订单汇总 ──
-const columnsC = [
-  { prop: 'sales_name', title: '业务员', width: 100, align: 'center' },
-  { prop: 'order_count', title: '订单数', width: 80, align: 'right' },
-  { prop: 'goods_item_count', title: '商品件数', width: 100, align: 'right' },
-  { prop: 'order_amount', title: '订单金额', width: 150, align: 'right' },
-  { prop: 'revenue', title: '占比', width: 90, align: 'right', slot: 'progressDefault' },
-  { prop: 'rank', title: '排名', width: 60, align: 'center' },
-]
-
-const emptyTextC = '暂无数据'
-
-// ── 行点击（双击） → 订单明细列表 ──
-const onRowClick = (row) => {
-  detailData.value = { ...row }
-  detailVisible.value = true
+function buildParams(extra = {}) {
+	const p = { ...extra }
+	if (dateRange.value?.[0]) p.apply_date_start = dateRange.value[0]
+	if (dateRange.value?.[1]) p.apply_date_end = dateRange.value[1]
+	if (salesmanId.value !== null && salesmanId.value !== '') p.salesman_id = salesmanId.value
+	if (customerId.value !== null && customerId.value !== '') p.customer_id = customerId.value
+	return p
 }
 
-// ── 导出 Excel ──
+async function fetchItems() {
+	items.loading = true
+	try {
+		const res = await perfApi.salesmanOrder.items.get(buildParams({ page: items.page, page_size: items.pageSize }))
+		items.list = res?.data?.list || []
+		items.total = res?.data?.total || 0
+		items.totals = res?.data?.totals || {}
+	} catch (e) {
+		items.list = []
+		items.total = 0
+		items.totals = {}
+		ElMessage.error(e?.message || '商品明细加载失败')
+	} finally {
+		items.loading = false
+	}
+}
+
+async function fetchCustomerItem() {
+	customerItem.loading = true
+	try {
+		const res = await perfApi.salesmanOrder.customerItem.get(buildParams({ page: customerItem.page, page_size: customerItem.pageSize }))
+		customerItem.list = res?.data?.list || []
+		customerItem.total = res?.data?.total || 0
+		customerItem.totals = res?.data?.totals || {}
+	} catch (e) {
+		customerItem.list = []
+		customerItem.total = 0
+		customerItem.totals = {}
+		ElMessage.error(e?.message || '客户商品汇总加载失败')
+	} finally {
+		customerItem.loading = false
+	}
+}
+
+async function fetchSalesman() {
+	salesman.loading = true
+	try {
+		const res = await perfApi.salesmanOrder.salesman.get(buildParams())
+		salesman.list = res?.data?.list || []
+		salesman.total = salesman.list.length
+		salesman.totals = res?.data?.totals || {}
+		if (viewMode.value === '图表') await renderChart()
+	} catch (e) {
+		salesman.list = []
+		salesman.total = 0
+		salesman.totals = {}
+		ElMessage.error(e?.message || '业务员汇总加载失败')
+	} finally {
+		salesman.loading = false
+	}
+}
+
+/** 查询：三个页签共用一套筛选，只刷当前页签，切页签时再按需加载 */
+const dirty = reactive({ items: false, customerItem: false, salesman: false })
+const refreshAll = async () => {
+	Object.keys(dirty).forEach((k) => { dirty[k] = k !== activeTab.value })
+	await TAB_FETCHERS[activeTab.value]()
+}
+
+const onTabChange = async (name) => {
+	if (dirty[name]) {
+		dirty[name] = false
+		await TAB_FETCHERS[name]()
+	}
+	if (name === 'salesman' && viewMode.value === '图表') await renderChart()
+}
+
+const onReset = () => {
+	dateRange.value = []
+	salesmanId.value = null
+	customerId.value = null
+	items.page = 1
+	customerItem.page = 1
+	refreshAll()
+}
+
+const onPage = async (p) => {
+	current.value.page = p
+	await TAB_FETCHERS[activeTab.value]()
+}
+const onSizeChange = async (s) => {
+	current.value.pageSize = s
+	current.value.page = 1
+	await TAB_FETCHERS[activeTab.value]()
+}
+
+// 合计行取服务端 totals（= 本页返回行之和），保证所见即所合计
+const summaryItems = ({ columns: cols }) =>
+	cols.map((c, i) => {
+		if (i === 0) return '合计'
+		if (c.property === 'qty') return fmtQty(items.totals.qty)
+		if (c.property === 'amount') return fmtMoney(items.totals.amount)
+		return ''
+	})
+
+const summaryCustomerItem = ({ columns: cols }) =>
+	cols.map((c, i) => {
+		if (i === 0) return '合计'
+		if (c.property === 'qty') return fmtQty(customerItem.totals.qty)
+		if (c.property === 'amount') return fmtMoney(customerItem.totals.amount)
+		if (c.property === 'order_count') return fmtQty(customerItem.list.reduce((s, r) => s + Number(r.order_count || 0), 0))
+		return ''
+	})
+
+const summarySalesman = ({ columns: cols }) =>
+	cols.map((c, i) => {
+		if (i === 0) return '合计'
+		if (c.property === 'order_count') return fmtQty(salesman.totals.order_count)
+		if (c.property === 'goods_item_count') return fmtQty(salesman.totals.goods_item_count)
+		if (c.property === 'order_amount') return fmtMoney(salesman.totals.order_amount)
+		if (c.property === 'revenue') return `${Number(salesman.totals.revenue || 0).toFixed(2)}%`
+		return ''
+	})
+
 const exportData = async () => {
-  if (tabCData.value.length === 0) {
-    ElMessage.warning('业务员订单汇总暂无数据')
-    return
-  }
-  try {
-    await nextTick()
-    const res = await perfApi.salesmanOrder.export({})
-    ElMessage.success(`导出成功，共 ${tabCData.value.length} 条记录`)
-  } catch (e) {
-    ElMessage.error(e?.message || '导出失败')
-  }
+	if (!current.value.total && !salesman.total) return ElMessage.warning('当前筛选无数据')
+	exporting.value = true
+	try {
+		const blob = await perfApi.salesmanOrder.export(buildParams())
+		saveBlob(blob, `业务员订单汇总_${dateRange.value?.[0] || ''}-${dateRange.value?.[1] || ''}.csv`)
+		ElMessage.success('导出成功')
+	} catch (e) {
+		ElMessage.error(e?.message || '导出失败')
+	} finally {
+		exporting.value = false
+	}
 }
 
-// ── 查询刷新 ──
-const refresh = async () => {
-  await nextTick()
-  await refreshA()
-  await refreshB()
-  // Tab C 不依赖 useTable，dataC 不存在
-  // 此处无需调用 refreshC
-  ElMessage.success('查询完成')
+// ── 双击业务员行：按同筛选拉该业务员的订单明细 ──
+const detailVisible = ref(false)
+const detailName = ref('')
+const detail = reactive({ list: [], loading: false })
+const openDetail = async (row) => {
+	detailName.value = row.sales_name || ''
+	detailVisible.value = true
+	detail.loading = true
+	try {
+		const res = await perfApi.salesmanOrder.items.get(buildParams({ page: 1, page_size: 200 }))
+		detail.list = (res?.data?.list || []).filter((r) => (r.salesman || '-') === detailName.value)
+	} catch (e) {
+		detail.list = []
+		ElMessage.error(e?.message || '订单明细加载失败')
+	} finally {
+		detail.loading = false
+	}
 }
 
-const resetSearch = async () => {
-  searchForm.apply_date_start = ''
-  searchForm.apply_date_end = ''
-  searchForm.department = ''
-  searchForm.picker_assign = ''
-  searchForm.order_type = ''
-  searchForm.order_status = ''
-  searchForm.sales_type = ''
-  searchForm.source = ''
-  searchForm.salesman = ''
-  await nextTick()
-  await refreshA()
-  await refreshB()
-  // Tab C data 已初始化，无需刷新
-}
-
-// ── 图表初始化 ──
+// ── 业务员订单金额横向柱状图 ──
 const chartRef = ref(null)
-let chartInstance = ref(null)
-const chartOption = computed(() => ({
-  title: { text: '业务员订单金额 · 横向柱状图', left: 20, top: 8, textStyle: { fontSize: 13, color: '#303133' } },
-  tooltip: { trigger: 'axis' },
-  legend: { data: ['业务员订单金额'], right: 20, top: 8, textStyle: { fontSize: 12, color: '#606266' } },
-  grid: { left: 50, right: 30, top: 50, bottom: 30 },
-  xAxis: { type: 'category', data: tabCData.value.map((r) => r.sales_name), axisLabel: { fontSize: 12, color: '#909399' } },
-  yAxis: { type: 'value' },
-  series: [
-    { name: '业务员订单金额', type: 'bar', data: tabCData.value.map((r) => r.order_amount), itemStyle: { color: '#409EFF' }, barWidth: '100%' },
-  ],
-}))
-
-const loadChart = async () => {
-  await nextTick()
-  if (!chartRef.value) return
-  chartState.value = 'loading'
-  try {
-    if (!chartInstance.value) {
-      chartInstance.value = echarts.init(chartRef.value)
-      chartInstance.value.setOption(chartOption.value)
-    }
-  } catch (e) {}
-  chartState.value = 'loaded'
+let chart = null
+const onViewModeChange = async (v) => {
+	if (v === '图表') await renderChart()
 }
 
-// ── 重新初始化图表 ──
-watch(showChart, (val) => {
-  if (val && chartRef.value) {
-    loadChart()
-  }
-})
+async function renderChart() {
+	await nextTick()
+	if (!chartRef.value) return
+	if (!chart) chart = echarts.init(chartRef.value)
+	chart.setOption({
+		title: { text: '业务员订单金额', left: 16, top: 10, textStyle: { fontSize: 13, color: '#303133' } },
+		tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+		grid: { left: 90, right: 40, top: 48, bottom: 30 },
+		xAxis: { type: 'value', axisLabel: { fontSize: 12, color: '#909399' } },
+		yAxis: {
+			type: 'category',
+			data: salesman.list.map((r) => r.sales_name),
+			axisLabel: { fontSize: 12, color: '#606266' },
+		},
+		series: [
+			{
+				name: '订单金额',
+				type: 'bar',
+				data: salesman.list.map((r) => Number(r.order_amount || 0)),
+				itemStyle: { color: '#409EFF' },
+				barMaxWidth: 18,
+			},
+		],
+	})
+	chart.resize()
+}
+
+const onResize = () => chart?.resize()
+
+const loadOptions = async () => {
+	try {
+		const res = await businessApi.employee.list.get({ page: 1, page_size: 200 })
+		salesmen.value = (res?.data?.list || []).filter((e) => e.user_id).map((e) => ({ id: e.user_id, name: e.name }))
+	} catch { /* 下拉降级为空，不影响查询 */ }
+	try {
+		const res = await businessApi.customer.list.get({ page: 1, page_size: 200 })
+		customers.value = res?.data?.list || []
+	} catch { /* 同上 */ }
+}
 
 onMounted(async () => {
-  await nextTick()
-  // 首次查询触发
-  await refreshA()
-  await refreshB()
-  // Tab C 数据已由 mock 初始化，图表在 showChart 后自动加载
+	window.addEventListener('resize', onResize)
+	await loadOptions()
+	await fetchItems()
+	dirty.customerItem = true
+	dirty.salesman = true
+})
+
+onBeforeUnmount(() => {
+	window.removeEventListener('resize', onResize)
+	chart?.dispose()
+	chart = null
 })
 </script>
 
 <style scoped>
-.report-salesman-order {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
+.perf-list { height: 100%; display: flex; flex-direction: column; overflow: auto; }
+/* 白底查询区：标题 18px 加粗 #303133，下边框 1px #EBEEF5，字段间距 12px，标签 14px #606266 */
+.perf-head { background: #fff; border-bottom: 1px solid #EBEEF5; }
+.perf-title { padding: 16px 20px 0; font-size: 18px; font-weight: 700; color: #303133; }
+.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; }
+.perf-filter .label { font-size: 14px; color: #606266; }
+.perf-filter .el-button { height: 36px; padding: 0 20px; font-size: 14px; border-radius: 4px; }
+.perf-filter .el-button--primary { background: #409EFF; border-color: #409EFF; color: #fff; }
+.perf-filter .el-button:not(.el-button--primary) { background: #fff; border: 1px solid #DCDFE6; color: #606266; }
 
-.search-card {
-  padding: 16px 20px;
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
-}
+.perf-tabs { flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 12px 20px 0; padding: 0 16px; background: #fff; }
+.perf-tabs :deep(.el-tabs__content) { flex: 1; min-height: 0; }
+.perf-tabs :deep(.el-tab-pane) { height: 100%; }
+.perf-table { height: 100%; min-height: 320px; }
+.chart-box { height: 100%; min-height: 320px; }
+.chart { width: 100%; height: 100%; min-height: 320px; }
 
-.search-card .el-form {
-  margin-bottom: 16px;
-}
+/* 表头 #F5F7FA 14px 500 #606266 行高 48px；表体 14px #606266 行高 48px；斑马偶数 #FAFAFA；悬停 #F5F7FA */
+:deep(.el-table th.el-table__cell) { background: #F5F7FA !important; height: 48px; padding-top: 0; padding-bottom: 0; }
+:deep(.el-table th.el-table__cell .cell) { color: #606266; font-size: 14px; font-weight: 500; line-height: 24px; padding-top: 0; padding-bottom: 0; }
+:deep(.el-table td.el-table__cell) { height: 48px; padding-top: 0; padding-bottom: 0; }
+:deep(.el-table td.el-table__cell .cell) { color: #606266; font-size: 14px; line-height: 24px; padding-top: 0; padding-bottom: 0; }
+:deep(.el-table .el-table__body tr.el-table__row--striped td.el-table__cell) { background: #FAFAFA; }
+:deep(.el-table--enable-row-hover .el-table__body tr:hover > td.el-table__cell) { background: #F5F7FA !important; }
+/* 合计行加粗 */
+:deep(.el-table__footer td.el-table__cell .cell) { font-weight: 700; }
 
-.search-card .el-form :deep(.el-input) {
-  width: 100%;
-}
-
-.search-card .el-form :deep(.el-select) {
-  width: 100%;
-}
-
-.chart-container {
-  width: 100%;
-  min-height: 360px;
-}
-
-.chart-title {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 16px;
-}
-
-@media (max-width: 768px) {
-  .chart-container {
-    min-height: 260px;
-  }
-}
+.perf-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 12px 20px; }
+.pager-total { font-size: 14px; color: #606266; }
+:deep(.perf-toolbar .el-pagination) { font-size: 14px; color: #606266; --el-pagination-text-color: #606266; --el-pagination-button-color: #606266; }
 </style>
