@@ -29,6 +29,23 @@ const dataApi = {
 		batchUpdateStatus: { post: (data) => request.post('data/division/batch-status', data) },
 		export: (params) => request.get('data/division/export', { params, responseType: 'blob' }),
 	},
+	// 开账向导（F6 第二批）：一个「公司 + 事业部（可空）+ 期初期间」一份四步向导
+	opening: {
+		// 首次打开后端会自动建 draft 向导 + 4 步 pending，返回体里的 steps 就是步骤条的数据源
+		show: (params) => request.get('data/opening', { params }),
+		// 别的页面判断是否已开账（只读，不会创建向导）
+		lockStatus: (params) => request.get('data/opening/lock-status', { params }),
+		saveStep: (step, data) => request.post(`data/opening/steps/${step}`, data),
+		lock: (data) => request.post('data/opening/lock', data),
+		unlock: (data) => request.post('data/opening/unlock', data),
+		// 导入：走 multipart，onProgress 由 sImport 传进来显示进度条
+		importFile: (data, onProgress) =>
+			request.post('data/opening/import', data, {
+				headers: { 'Content-Type': 'multipart/form-data' },
+				onUploadProgress: onProgress,
+			}),
+		template: (kind) => request.get(`data/opening/template/${kind}`, { responseType: 'blob' }),
+	},
 }
 
 export default dataApi

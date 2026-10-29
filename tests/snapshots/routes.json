@@ -8913,6 +8913,90 @@
     },
     {
         "method": "GET",
+        "uri": "admin/data/opening",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\OpeningWizardController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/opening/import",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\OpeningWizardController@import",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/opening/lock",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\OpeningWizardController@lock",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/opening/lock-status",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\OpeningWizardController@lockStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/opening/steps/{step}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\OpeningWizardController@saveStep",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/opening/template/{kind}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\OpeningWizardController@downloadTemplate",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/opening/unlock",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\OpeningWizardController@unlock",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/hr/commission-flows",
         "name": "admin.",
         "action": "Modules\\Hr\\Http\\Controllers\\CommissionFlowController@index",

@@ -109,6 +109,18 @@ class ArchitectureTest extends TestCase
         'Asset->Ledger',        // 购置单勾选「同时登记现金支出凭证」时调 Ledger 的 VoucherService 生成
         //   现金支出凭证（借 1601 固定资产 / 贷 1001 库存现金）——凭证入口必须唯一，绝不在 Asset 内
         //   自建凭证；只调用其公开服务方法，不改 A 域代码（与 Order->Member 同理的服务调用）
+        'Archive->Stock',       // 开账向导（F6）锁定时要同事务把期初库存写进 Stock 的 stocks 主数据表
+        //   （updateOrCreate，幂等覆盖），同库同事务；开账是系统初始化的一次性动作，
+        //   抽契约只会给一次性的期初回写引入跨事务一致性负担，收益低于耦合成本，
+        //   与 Order->Stock（共享主数据）同理；商品/仓库名称亦只读引用该表回显
+        'Archive->Ledger',      // 开账向导（F6）第 1/3 步要读 Ledger 的科目主数据（is_leaf 判定与编码匹配）、
+        //   锁定时要同事务把期初余额写进 ledger_opening_balances，试算口径必须与 Ledger 的
+        //   OpeningBalanceService 完全一致，故直连同一张表而不是抄一套算法；
+        //   同上：一次性初始化写对方主数据，同库同事务，抽契约无收益。
+        //   ledger_periods 的结账状态只用 DB::table 只读查询，不引 Ledger 的模型
+        'Archive->Auth',        // 开账菜单/按钮权限迁移写 Auth 的 auth_permission 与角色授权，
+        //   并与第一批 Archive->Auth 同因（Performance->Auth、Business->Auth 完全同因：
+        //   菜单数据本就落在 Auth 的权限表上）；锁定人/操作人姓名也取 Auth 的 auth_user
     ];
 
     /**

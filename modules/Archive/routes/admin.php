@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Archive\Http\Controllers\CompanyController;
 use Modules\Archive\Http\Controllers\DivisionController;
+use Modules\Archive\Http\Controllers\OpeningWizardController;
 
 // =============================================================================
 // 基础档案模块（Archive）路由 —— F6
@@ -40,5 +41,17 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/{division}', [DivisionController::class, 'show']);
         Route::put('/{division}', [DivisionController::class, 'update']);
         Route::delete('/{division}', [DivisionController::class, 'destroy']);
+    });
+
+    // 开账向导（F6 第二批）：静态段 lock-status / template 必须先声明，
+    // 否则 GET /data/opening/lock-status 会被参数型路由吃掉
+    Route::prefix('data/opening')->group(function () {
+        Route::get('/lock-status', [OpeningWizardController::class, 'lockStatus']);
+        Route::get('/template/{kind}', [OpeningWizardController::class, 'downloadTemplate']);
+        Route::get('/', [OpeningWizardController::class, 'show']);
+        Route::post('/steps/{step}', [OpeningWizardController::class, 'saveStep']);
+        Route::post('/import', [OpeningWizardController::class, 'import']);
+        Route::post('/lock', [OpeningWizardController::class, 'lock']);
+        Route::post('/unlock', [OpeningWizardController::class, 'unlock']);
     });
 });
