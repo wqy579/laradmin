@@ -9,6 +9,66 @@
         ]
     },
     {
+        "method": "GET",
+        "uri": "admin/asset/cards",
+        "name": "admin.asset.cards.index",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetCardController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/cards/options",
+        "name": "admin.asset.cards.options",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetCardController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/purchases",
+        "name": "admin.asset.purchases.index",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetPurchaseController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/asset/purchases",
+        "name": "admin.asset.purchases.store",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetPurchaseController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/purchases/options",
+        "name": "admin.asset.purchases.options",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetPurchaseController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "POST",
         "uri": "admin/auth/change-password",
         "name": "admin.",

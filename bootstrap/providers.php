@@ -1,6 +1,7 @@
 <?php
 
 use App\Providers\AppServiceProvider;
+use Modules\Asset\Providers\AssetServiceProvider;
 use Modules\Auth\Providers\AuthServiceProvider;
 use Modules\BorrowReturn\Providers\BorrowReturnServiceProvider;
 use Modules\Business\Providers\BusinessServiceProvider;
@@ -38,4 +39,5 @@ return [
     DashboardServiceProvider::class,
     PerformanceServiceProvider::class,
     CashServiceProvider::class,
+    AssetServiceProvider::class,
 ];

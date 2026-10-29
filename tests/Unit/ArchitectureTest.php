@@ -79,6 +79,11 @@ class ArchitectureTest extends TestCase
         //   同库只读、抽契约收益低于耦合成本
         'Performance->Auth',    // 绩效菜单 Seeder 写 Auth 的 Permission 与角色授权（与 Business->Auth、
         //   System->Auth 完全同因：菜单数据本就落在 Auth 的权限表上）
+        'Asset->Auth',          // 资产卡片/购置单的使用部门与使用人回显名称，belongsTo Auth 的部门与用户表
+        //   （与 Ledger->Auth、Order->Auth 同因）；Asset 不维护人员主数据，内核亦无 User/Department 契约
+        'Asset->Ledger',        // 购置单勾选「同时登记现金支出凭证」时调 Ledger 的 VoucherService 生成
+        //   现金支出凭证（借 1601 固定资产 / 贷 1001 库存现金）——凭证入口必须唯一，绝不在 Asset 内
+        //   自建凭证；同库同事务、只调用公开服务方法，不改 A 域代码（与 Order->Member 同理的服务调用）
     ];
 
     /**
