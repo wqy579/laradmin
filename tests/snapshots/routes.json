@@ -8721,6 +8721,198 @@
     },
     {
         "method": "GET",
+        "uri": "admin/data/company",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\CompanyController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/company",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\CompanyController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/company/batch-status",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\CompanyController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/company/export",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\CompanyController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/company/options",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\CompanyController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/data/company/{company}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\CompanyController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/company/{company}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\CompanyController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/data/company/{company}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\CompanyController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/division",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DivisionController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/division",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DivisionController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/division/batch-status",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DivisionController@batchUpdateStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/division/export",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DivisionController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/division/options",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DivisionController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/data/division/{division}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DivisionController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/division/{division}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DivisionController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/data/division/{division}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DivisionController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/hr/commission-flows",
         "name": "admin.",
         "action": "Modules\\Hr\\Http\\Controllers\\CommissionFlowController@index",
