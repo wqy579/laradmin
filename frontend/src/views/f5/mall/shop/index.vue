@@ -1,5 +1,5 @@
 <template>
-	<div class="f5-shop-page">
+	<div class="f5-shop-page f5-page">
 		<!-- 顶部栏：搜索 + 购物车入口 -->
 		<div class="sp-top">
 			<div class="sp-title">
@@ -77,7 +77,7 @@
 		</el-drawer>
 
 		<!-- 下单对话框 -->
-		<el-dialog v-model="checkoutOpen" title="确认下单" width="640px">
+		<el-dialog v-model="checkoutOpen" class="f5-dialog" title="确认下单" width="640px">
 			<el-form :model="checkout" label-width="100px">
 				<el-form-item label="分销商" required>
 					<el-select v-model="checkout.customer_id" filterable placeholder="选择客户" style="width: 100%">
@@ -244,6 +244,10 @@ onMounted(() => {
 })
 </script>
 
+<style>
+@import '../../_shared.css';
+</style>
+
 <style scoped>
 .f5-shop-page { padding: 16px 20px; }
 .sp-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -267,7 +271,7 @@ onMounted(() => {
 .sp-price-unit { font-size: 12px; color: #909399; }
 .sp-card-buy { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
 .sp-stock { font-size: 12px; color: #909399; }
-.sp-pager { display: flex; justify-content: flex-end; margin-top: 16px; }
+.sp-pager { display: flex; justify-content: flex-end; align-items: center; height: 52px; }
 .sp-cart-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed #ebeef5; }
 .sp-cart-info { flex: 1; min-width: 0; }
 .sp-cart-name { font-size: 13px; color: #303133; }

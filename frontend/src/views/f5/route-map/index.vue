@@ -1,5 +1,5 @@
 <template>
-	<div class="f5-map-page">
+	<div class="f5-map-page f5-page">
 		<!-- 查询区 -->
 		<div class="mp-query">
 			<el-form inline :model="query" @submit.prevent>
@@ -250,6 +250,10 @@ onMounted(() => {
 })
 onUnmounted(stopTimer)
 </script>
+
+<style>
+@import '../_shared.css';
+</style>
 
 <style scoped>
 .f5-map-page { display: flex; flex-direction: column; height: 100%; }
