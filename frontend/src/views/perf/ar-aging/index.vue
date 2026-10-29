@@ -1,5 +1,5 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<div class="perf-filter">
 			<el-radio-group v-model="dimension" size="small" @change="onDimension">
 				<el-radio-button label="customer">按客户</el-radio-button>
@@ -19,7 +19,7 @@
 		<!-- 4 统计卡 -->
 		<div class="stat-cards" v-if="result?.cards">
 			<div class="stat-card" v-for="c in cards" :key="c.key" :style="{ borderLeftColor: c.color }">
-				<div class="stat-num">¥{{ fmt(result.cards[c.key]) }}</div>
+				<div class="stat-num">¥{{ fmtMoney(result.cards[c.key]) }}</div>
 				<div class="stat-label">{{ c.label }}</div>
 			</div>
 		</div>
@@ -29,7 +29,7 @@
 				<el-table-column type="expand">
 					<template #default="{ row }">
 						<div class="detail-box" v-loading="row._loading">
-							<el-table v-if="detailMap[row[dimKey]]?.length" :data="detailMap[row[dimKey]]" border size="small">
+							<el-table v-if="detailMap[row[dimKey]]?.length" :data="detailMap[row[dimKey]]" border size="small" class="perf-table--dense">
 								<el-table-column prop="order_no" label="单据号" min-width="150">
 									<template #default="{ row: o }">
 										<span class="link" @click="goOrder(o)">{{ o.order_no }}</span>
@@ -38,20 +38,20 @@
 								<el-table-column v-if="dimension === 'salesman'" prop="customer_name" label="客户" min-width="150" />
 								<el-table-column prop="order_date" label="日期" width="120" align="center" />
 								<el-table-column prop="total_amount" label="金额" width="130" align="right">
-									<template #default="{ row: o }"><span :class="negClass(o.total_amount)">¥{{ fmt(o.total_amount) }}</span></template>
+									<template #default="{ row: o }"><span :class="negClass(o.total_amount)">¥{{ fmtMoney(o.total_amount) }}</span></template>
 								</el-table-column>
 								<el-table-column prop="paid_amount" label="已收" width="130" align="right">
-									<template #default="{ row: o }"><span :class="negClass(o.paid_amount)">¥{{ fmt(o.paid_amount) }}</span></template>
+									<template #default="{ row: o }"><span :class="negClass(o.paid_amount)">¥{{ fmtMoney(o.paid_amount) }}</span></template>
 								</el-table-column>
 								<el-table-column prop="outstanding" label="未收" width="130" align="right">
-									<template #default="{ row: o }"><span class="text-red">¥{{ fmt(o.outstanding) }}</span></template>
+									<template #default="{ row: o }"><span class="text-red">¥{{ fmtMoney(o.outstanding) }}</span></template>
 								</el-table-column>
 								<el-table-column prop="age_days" label="账龄(天)" width="100" align="center" />
 								<template #empty>
-									<span class="empty-text">当前筛选条件下暂无数据</span>
+									<span class="perf-empty">当前筛选条件下暂无数据</span>
 								</template>
 							</el-table>
-							<span v-else class="empty-text">当前筛选条件下暂无数据</span>
+							<span v-else class="perf-empty">当前筛选条件下暂无数据</span>
 						</div>
 					</template>
 				</el-table-column>
@@ -62,28 +62,28 @@
 					<el-table-column prop="customer_name" label="客户名称" min-width="190" />
 					<el-table-column prop="salesman_name" label="业务员" width="110" />
 					<el-table-column prop="outstanding" label="应收余额" width="130" align="right">
-						<template #default="{ row }"><span :class="negClass(row.outstanding)">¥{{ fmt(row.outstanding) }}</span></template>
+						<template #default="{ row }"><span :class="negClass(row.outstanding)">¥{{ fmtMoney(row.outstanding) }}</span></template>
 					</el-table-column>
 					<el-table-column label="额度占用%" width="130" align="right">
-						<template #default="{ row }">{{ Number(row.credit_usage_rate || 0).toFixed(1) }}%</template>
+						<template #default="{ row }">{{ fmtRate(row.credit_usage_rate) }}%</template>
 					</el-table-column>
 					<el-table-column prop="unmatured" label="未到期" width="120" align="right">
-						<template #default="{ row }"><span :class="negClass(row.unmatured)">¥{{ fmt(row.unmatured) }}</span></template>
+						<template #default="{ row }"><span :class="negClass(row.unmatured)">¥{{ fmtMoney(row.unmatured) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b1_30" label="1~30天" width="120" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(30) }">¥{{ fmt(row.b1_30) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(30) }">¥{{ fmtMoney(row.b1_30) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b31_60" label="31~60天" width="120" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(60) }">¥{{ fmt(row.b31_60) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(60) }">¥{{ fmtMoney(row.b31_60) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b61_90" label="61~90天" width="120" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(90) }">¥{{ fmt(row.b61_90) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(90) }">¥{{ fmtMoney(row.b61_90) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b91_180" label="91~180天" width="130" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(180), fontWeight: 'bold' }">¥{{ fmt(row.b91_180) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(180), fontWeight: 'bold' }">¥{{ fmtMoney(row.b91_180) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b180_plus" label="180天以上" width="130" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(999), fontWeight: 'bold' }">¥{{ fmt(row.b180_plus) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(999), fontWeight: 'bold' }">¥{{ fmtMoney(row.b180_plus) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="max_age" label="最长逾期" width="100" align="center">
 						<template #default="{ row }"><span class="text-red">{{ row.max_age }}天</span></template>
@@ -100,25 +100,25 @@
 					<el-table-column prop="salesman_name" label="业务员" min-width="170" />
 					<el-table-column prop="customer_count" label="客户数" width="90" align="center" />
 					<el-table-column prop="outstanding" label="应收余额" width="130" align="right">
-						<template #default="{ row }"><span :class="negClass(row.outstanding)">¥{{ fmt(row.outstanding) }}</span></template>
+						<template #default="{ row }"><span :class="negClass(row.outstanding)">¥{{ fmtMoney(row.outstanding) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="unmatured" label="未到期" width="120" align="right">
-						<template #default="{ row }"><span :class="negClass(row.unmatured)">¥{{ fmt(row.unmatured) }}</span></template>
+						<template #default="{ row }"><span :class="negClass(row.unmatured)">¥{{ fmtMoney(row.unmatured) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b1_30" label="1~30天" width="120" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(30) }">¥{{ fmt(row.b1_30) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(30) }">¥{{ fmtMoney(row.b1_30) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b31_60" label="31~60天" width="120" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(60) }">¥{{ fmt(row.b31_60) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(60) }">¥{{ fmtMoney(row.b31_60) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b61_90" label="61~90天" width="120" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(90) }">¥{{ fmt(row.b61_90) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(90) }">¥{{ fmtMoney(row.b61_90) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b91_180" label="91~180天" width="130" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(180), fontWeight: 'bold' }">¥{{ fmt(row.b91_180) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(180), fontWeight: 'bold' }">¥{{ fmtMoney(row.b91_180) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="b180_plus" label="180天以上" width="130" align="right">
-						<template #default="{ row }"><span :style="{ color: agingColor(999), fontWeight: 'bold' }">¥{{ fmt(row.b180_plus) }}</span></template>
+						<template #default="{ row }"><span :style="{ color: agingColor(999), fontWeight: 'bold' }">¥{{ fmtMoney(row.b180_plus) }}</span></template>
 					</el-table-column>
 					<el-table-column prop="max_age" label="最长逾期" width="100" align="center">
 						<template #default="{ row }"><span class="text-red">{{ row.max_age }}天</span></template>
@@ -131,7 +131,7 @@
 				</template>
 
 				<template #empty>
-					<span class="empty-text">当前筛选条件下暂无数据</span>
+					<FinEmpty text="当前筛选条件下暂无数据" />
 				</template>
 			</el-table>
 		</div>
@@ -147,9 +147,10 @@ import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import perfApi from '@/api/perf'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../../finance/_FinEmpty.vue'
+import { fmtMoney, fmtRate } from '../_fmt.js'
 
-// 金额千分位 + 两位小数；负数 #F56C6C
-const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// 金额千分位 + 两位小数（_fmt.js 统一兜底非有限值）；负数 #F56C6C
 const negClass = (v) => (Number(v) < 0 ? 'text-red' : '')
 
 const cards = [
@@ -257,7 +258,7 @@ const summaryMethod = ({ columns }) => {
 	const moneyKeys = { outstanding: 1, unmatured: 1, b1_30: 1, b31_60: 1, b61_90: 1, b91_180: 1, b180_plus: 1 }
 	return columns.map((col, i) => {
 		if (i === 0) return '合计'
-		if (col.property && moneyKeys[col.property]) return '¥' + fmt(t[col.property])
+		if (col.property && moneyKeys[col.property]) return '¥' + fmtMoney(t[col.property])
 		return ''
 	})
 }
@@ -284,22 +285,25 @@ watch(() => search.as_of_date, () => {
 onMounted(refresh)
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; overflow: auto; }
-.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; background: #fff; border-bottom: 1px solid #DCDFE6; }
-.perf-filter .label { font-size: 14px; color: #606266; }
+/* 排版（flex）留在本页，白底/内边距/下边框/标签字号由 _shared.css .perf-filter 提供 */
+.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .stat-cards { display: flex; gap: 16px; padding: 12px 20px; }
-.stat-card { flex: 1; background: #fff; height: 96px; border: 1px solid #DCDFE6; border-left: 4px solid #409EFF; border-radius: 4px; padding: 16px 20px; display: flex; flex-direction: column; justify-content: center; }
-.stat-num { font-size: 24px; font-weight: bold; color: #303133; }
-.stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
+.stat-card { flex: 1; background: var(--bg-card); height: 96px; border: 1px solid var(--border-base); border-left: 4px solid var(--color-primary); border-radius: var(--radius-md); padding: 16px 20px; display: flex; flex-direction: column; justify-content: center; }
+.stat-num { font-size: var(--font-stat); font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
+.stat-label { font-size: var(--font-base); color: var(--text-secondary); margin-top: 4px; }
 .perf-content { flex: 1; overflow: auto; padding: 0 12px; }
-.perf-pager { display: flex; justify-content: flex-end; padding: 10px 12px; }
+.perf-pager { padding: 0 12px; }
 .detail-box { padding: 8px 12px 8px 48px; }
-.link { color: #409EFF; cursor: pointer; }
-.text-red { color: #F56C6C; font-weight: 600; }
-.empty-text { color: #909399; font-size: 14px; }
-:deep(.el-table) { font-size: 14px; color: #606266; }
-:deep(.el-table th.el-table__cell) { background: #F5F7FA; }
-:deep(.el-table .el-table__row) { height: 48px; }
-:deep(.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell) { background: #FAFAFA; }
+.link { color: var(--color-primary); cursor: pointer; }
+.text-red { color: var(--color-danger); font-weight: 600; }
+/* 表头底色/字号/行高/斑马纹/hover 均由 _shared.css 提供，这里只留正文色与分隔线 */
+:deep(.el-table) { color: var(--text-regular); }
+:deep(.el-table td.el-table__cell),
+:deep(.el-table th.el-table__cell) { border-bottom-color: var(--border-lighter); }
 </style>

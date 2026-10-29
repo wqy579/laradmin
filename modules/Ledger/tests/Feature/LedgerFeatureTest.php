@@ -3,6 +3,7 @@
 namespace Tests\Ledger\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Modules\Ledger\Models\Period;
 use Modules\Ledger\Models\Subject;
 use Modules\Ledger\Models\Voucher;
@@ -221,5 +222,45 @@ class LedgerFeatureTest extends TestCase
         $svc = app(VoucherGenerateService::class);
         $result = $svc->generateFromBusiness('receive', 1, ['amount' => 100]);
         $this->assertNull($result);
+    }
+
+    public function test_period_check_reports_pending_handover_as_non_blocking(): void
+    {
+        $this->seedSubjects();
+        $period = date('Y-m');
+        $svc = app(PeriodService::class);
+
+        // 无未确认上交款：本项通过
+        $item = collect($svc->check($period)['checks'])->firstWhere('key', 'handover_pending');
+        $this->assertNotNull($item, '结账检查须包含 handover_pending 项（业务域月结 Step2 取数）');
+        $this->assertTrue($item['passed']);
+
+        // 本期一张未确认 + 一张已确认 + 一张上月的未确认（上月不算本期）
+        $this->insertHandover($period.'-15', 'pending', 'SC'.date('Ym').'150001');
+        $this->insertHandover($period.'-16', 'confirmed', 'SC'.date('Ym').'160001');
+        $this->insertHandover(date('Y-m-t', strtotime($period.'-01 -1 month')), 'pending', 'SC'.date('Ym', strtotime('-1 month')).'280001');
+
+        $check = $svc->check($period);
+        $item = collect($check['checks'])->firstWhere('key', 'handover_pending');
+        $this->assertFalse($item['passed']);
+        // 提示性检查：不阻止结账
+        $this->assertFalse($item['blocking']);
+        // detail 报出未确认张数（跨月的那张不计入本期）
+        $this->assertStringContainsString('上交款 1 单', $item['detail']);
+        $this->assertTrue($check['can_close']);
+    }
+
+    /** 裸表插入上交款单，避免 Ledger 测试依赖 Cash 域的模型类 */
+    private function insertHandover(string $date, string $status, string $no): void
+    {
+        DB::table('cash_handover')->insert([
+            'handover_no' => $no,
+            'handover_date' => $date,
+            'account_id' => 1,
+            'amount' => 100,
+            'status' => $status,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
     }
 }

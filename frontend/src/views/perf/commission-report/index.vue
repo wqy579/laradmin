@@ -1,9 +1,9 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<div class="perf-filter">
 			<span class="label">所属月份</span>
 			<el-date-picker v-model="search.period_start" type="month" value-format="YYYY-MM" placeholder="起" size="small" style="width: 120px" />
-			<span style="color: #dcdfe6">~</span>
+			<span class="range-sep">~</span>
 			<el-date-picker v-model="search.period_end" type="month" value-format="YYYY-MM" placeholder="止" size="small" style="width: 120px" />
 			<span class="label">业务员</span>
 			<el-input v-model="search.keyword" placeholder="业务员/单号" clearable size="small" style="width: 160px" @keyup.enter="refresh" @clear="refresh" />
@@ -23,8 +23,8 @@
 			<template #bill_no_default="{ row }">
 				<el-button type="primary" link size="small" @click="handleView(row)">{{ row.bill_no }}</el-button>
 			</template>
-			<template #actual_default="{ row }">¥{{ fmt(row.actual_amount) }}</template>
-			<template #uncollected_default="{ row }"><span class="uncollected">¥{{ fmt(uncollected(row)) }}</span></template>
+			<template #actual_default="{ row }">¥{{ fmtMoney(row.actual_amount) }}</template>
+			<template #uncollected_default="{ row }"><span class="uncollected">¥{{ fmtMoney(uncollected(row)) }}</span></template>
 			<template #status_default="{ row }">
 				<el-tag class="status-tag" :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
 			</template>
@@ -37,10 +37,13 @@
 				<el-button v-if="row.status === 'audited' && hasPerm('perf.audit')" type="primary" link size="small" @click="handlePay(row)">标记发放</el-button>
 				<el-button v-if="hasPerm('perf.export')" type="info" link size="small" @click="handleExport(row)">工资条</el-button>
 			</template>
+			<template #empty>
+				<FinEmpty text="当前筛选条件下暂无数据" />
+			</template>
 		</sTable>
 
 		<!-- 工资条弹窗：900px，标题栏 50px，footer 60px，圆角 4px -->
-		<el-dialog v-model="detailVisible" class="slip-dialog" title="提成工资条" width="900px" :close-on-click-modal="false">
+		<el-dialog v-model="detailVisible" class="slip-dialog perf-dialog" title="提成工资条" width="900px" :close-on-click-modal="false">
 			<div v-if="detail" class="pay-slip">
 				<div class="slip-header">
 					<h2>提成工资条</h2>
@@ -48,13 +51,13 @@
 				</div>
 				<table class="slip-table">
 					<tbody>
-						<tr><td>销售额</td><td class="r">¥{{ fmt(detail.sales_amount) }}</td></tr>
-						<tr><td>回款额</td><td class="r">¥{{ fmt(detail.received_amount) }}</td></tr>
-						<tr><td>退货金额</td><td class="r">¥{{ fmt(detail.return_amount) }}</td></tr>
-						<tr><td>毛利</td><td class="r">¥{{ fmt(detail.profit_amount) }}</td></tr>
-						<tr><td>应发提成</td><td class="r">¥{{ fmt(detail.commission_amount) }}</td></tr>
-						<tr><td>扣减</td><td class="r">-¥{{ fmt(detail.deduction) }}</td></tr>
-						<tr class="total-row"><td>实发提成</td><td class="r total">¥{{ fmt(detail.actual_amount) }}</td></tr>
+						<tr><td>销售额</td><td class="r">¥{{ fmtMoney(detail.sales_amount) }}</td></tr>
+						<tr><td>回款额</td><td class="r">¥{{ fmtMoney(detail.received_amount) }}</td></tr>
+						<tr><td>退货金额</td><td class="r">¥{{ fmtMoney(detail.return_amount) }}</td></tr>
+						<tr><td>毛利</td><td class="r">¥{{ fmtMoney(detail.profit_amount) }}</td></tr>
+						<tr><td>应发提成</td><td class="r">¥{{ fmtMoney(detail.commission_amount) }}</td></tr>
+						<tr><td>扣减</td><td class="r">-¥{{ fmtMoney(detail.deduction) }}</td></tr>
+						<tr class="total-row"><td>实发提成</td><td class="r total">¥{{ fmtMoney(detail.actual_amount) }}</td></tr>
 					</tbody>
 				</table>
 				<div class="slip-sign">
@@ -69,10 +72,10 @@
 						<el-table-column prop="product_name" label="商品" min-width="140" show-overflow-tooltip />
 						<el-table-column prop="rate_or_unit" label="比例/单额" width="120" />
 						<el-table-column prop="base_amount" label="基数" width="110" align="right">
-							<template #default="{ row }">¥{{ fmt(row.base_amount) }}</template>
+							<template #default="{ row }">¥{{ fmtMoney(row.base_amount) }}</template>
 						</el-table-column>
 						<el-table-column prop="amount" label="提成" width="110" align="right">
-							<template #default="{ row }"><span class="text-red">¥{{ fmt(row.amount) }}</span></template>
+							<template #default="{ row }"><span class="text-red">¥{{ fmtMoney(row.amount) }}</span></template>
 						</el-table-column>
 					</el-table>
 				</div>
@@ -92,10 +95,12 @@ import { useTable } from '@/hooks/useTable'
 import { usePermission } from '@/composables/usePermission'
 import perfApi from '@/api/perf'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../../finance/_FinEmpty.vue'
+import { fmtMoney, toNum } from '../_fmt.js'
 
-const fmt = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+// 金额格式化统一走 _fmt.js（内部 Number.isFinite 兜底，不输出 NaN）
 // 未回款 = 销售 - 回款，未回款部分不计提，灰字斜体提示
-const uncollected = (row) => Math.max(0, Number(row.sales_amount || 0) - Number(row.received_amount || 0))
+const uncollected = (row) => Math.max(0, toNum(row.sales_amount) - toNum(row.received_amount))
 const statusLabel = (s) => ({ pending: '待审核', audited: '已审核', paid: '已发放', rejected: '已驳回' }[s] || s)
 // 12px 状态标签：待审核橙 #E6A23E / 已审核绿 #67C23A / 已发放蓝 #409EFF / 已驳回红 #F56C6C
 const statusType = (s) => ({ pending: 'warning', audited: 'success', paid: 'primary', rejected: 'danger' }[s] || 'info')
@@ -116,12 +121,12 @@ const columns = [
 	{ prop: 'period', title: '所属月份', width: 100, align: 'center' },
 	{ prop: 'employee_name', title: '业务员', width: 120 },
 	{ prop: 'department_name', title: '部门', width: 120 },
-	{ prop: 'sales_amount', title: '销售额', width: 120, align: 'right', formatter: ({ row }) => fmt(row.sales_amount) },
-	{ prop: 'received_amount', title: '回款额', width: 120, align: 'right', formatter: ({ row }) => fmt(row.received_amount) },
+	{ prop: 'sales_amount', title: '销售额', width: 120, align: 'right', formatter: ({ row }) => fmtMoney(row.sales_amount) },
+	{ prop: 'received_amount', title: '回款额', width: 120, align: 'right', formatter: ({ row }) => fmtMoney(row.received_amount) },
 		{ prop: 'uncollected', title: '未回款', width: 110, align: 'right', slots: { default: 'uncollected_default' } },
-	{ prop: 'profit_amount', title: '毛利', width: 110, align: 'right', formatter: ({ row }) => fmt(row.profit_amount) },
-	{ prop: 'commission_amount', title: '应发提成', width: 110, align: 'right', formatter: ({ row }) => fmt(row.commission_amount) },
-	{ prop: 'deduction', title: '扣减', width: 100, align: 'right', formatter: ({ row }) => fmt(row.deduction) },
+	{ prop: 'profit_amount', title: '毛利', width: 110, align: 'right', formatter: ({ row }) => fmtMoney(row.profit_amount) },
+	{ prop: 'commission_amount', title: '应发提成', width: 110, align: 'right', formatter: ({ row }) => fmtMoney(row.commission_amount) },
+	{ prop: 'deduction', title: '扣减', width: 100, align: 'right', formatter: ({ row }) => fmtMoney(row.deduction) },
 	{ prop: 'actual_amount', title: '实发提成', width: 130, align: 'right', className: 'col-actual', slots: { default: 'actual_default' } },
 	{ prop: 'status', title: '状态', width: 100, align: 'center', slots: { default: 'status_default' } },
 	{ prop: 'auditor_name', title: '审核人', width: 100 },
@@ -160,48 +165,42 @@ const resetSearch = () => { search.period_start = ''; search.period_end = ''; se
 onMounted(() => refresh())
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; }
-.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 16px 20px; background: #fff; border-bottom: 1px solid #ebeef5; }
-.perf-filter .label { font-size: 14px; color: #606266; }
-.text-red { color: #f56c6c; font-weight: 600; }
+/* 排版（flex）留在本页，白底/内边距/下边框/标签字号由 _shared.css .perf-filter 提供 */
+.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.range-sep { color: var(--border-base); }
+.text-red { color: var(--color-danger); font-weight: 600; }
 
-/* 表格：表头 #F5F7FA 14px/500，表体 14px #606266，行高 48px，斑马 #FAFAFA */
-:deep(.el-table th.el-table__cell) { background: #f5f7fa; color: #303133; font-size: 14px; font-weight: 500; height: 48px; }
-:deep(.el-table td.el-table__cell) { color: #606266; font-size: 14px; height: 48px; }
-:deep(.el-table .el-table__row--striped td.el-table__cell) { background: #fafafa; }
-
-/* sTable 走 vxe：金额千分位、实发加粗红字、状态 12px */
-:deep(.vxe-table .vxe-cell) { font-size: 14px; color: #606266; }
-:deep(.vxe-table .vxe-header--column) { background: #f5f7fa; font-size: 14px; font-weight: 500; color: #303133; }
-:deep(.vxe-table .vxe-body--row.row--stripe) { background: #fafafa; }
-:deep(.col-actual .vxe-cell), :deep(td.col-actual .vxe-cell) { font-weight: bold; color: #f56c6c; }
-:deep(.status-tag) { font-size: 12px; }
+/* sTable 走 vxe（共享样式只覆盖 el-table），故本页保留 vxe 排版并换用 tokens */
+:deep(.vxe-table .vxe-cell) { font-size: var(--font-base); color: var(--text-regular); }
+:deep(.vxe-table .vxe-header--column) { background: var(--bg-hover); font-size: var(--font-h3); font-weight: 500; color: var(--text-regular); }
+:deep(.vxe-table .vxe-body--row.row--stripe) { background: #FAFAFA; }
+:deep(.col-actual .vxe-cell), :deep(td.col-actual .vxe-cell) { font-weight: bold; color: var(--color-danger); }
+:deep(.status-tag) { font-size: var(--font-aux); }
 /* 未回款不计提：灰字斜体提示 */
-:deep(.uncollected) { color: #909399; font-style: italic; }
+:deep(.uncollected) { color: var(--text-secondary); font-style: italic; }
 
-/* 弹窗规格：标题栏 50px/16px 加粗，footer 60px，圆角 4px，浅底 #FAFAFA，边框 #DCDFE6 */
-:deep(.slip-dialog .el-dialog) { border-radius: 4px; }
-:deep(.slip-dialog .el-dialog__header) { margin: 0; padding: 0 20px; height: 50px; line-height: 50px; border-bottom: 1px solid #dcdfe6; }
-:deep(.slip-dialog .el-dialog__title) { font-size: 16px; font-weight: 600; color: #303133; line-height: 50px; }
-:deep(.slip-dialog .el-dialog__body) { padding: 16px 24px; }
-:deep(.slip-dialog .el-dialog__footer) { height: 60px; box-sizing: border-box; padding: 12px 24px; background: #fafafa; border-top: 1px solid #dcdfe6; }
-:deep(.slip-dialog .el-form-item__label) { width: 110px; text-align: right; padding-right: 12px; background: #fafafa; }
-:deep(.slip-dialog .el-input__wrapper) { min-height: 36px; }
-:deep(.slip-dialog .el-button) { height: 36px; }
+/* 弹窗骨架由 _shared.css .perf-dialog 提供，这里只留工资条页独有排版 */
+:deep(.slip-dialog .el-dialog__footer) { box-sizing: border-box; background: #FAFAFA; border-top: 1px solid var(--border-base); }
+:deep(.slip-dialog .el-form-item__label) { width: 110px; text-align: right; padding-right: 12px; background: #FAFAFA; }
 
 .pay-slip { padding: 8px; }
 .slip-header { text-align: center; margin-bottom: 16px; }
-.slip-header h2 { font-size: 20px; color: #303133; margin: 0 0 8px; }
-.slip-meta { font-size: 13px; color: #606266; }
+.slip-header h2 { font-size: var(--font-h1); color: var(--text-primary); margin: 0 0 8px; }
+.slip-meta { font-size: var(--font-base); color: var(--text-regular); }
 .slip-table { width: 100%; border-collapse: collapse; }
-.slip-table td { border: 1px solid #dcdfe6; padding: 8px 12px; font-size: 14px; color: #606266; }
+.slip-table td { border: 1px solid var(--border-base); padding: 8px 12px; font-size: var(--font-h3); color: var(--text-regular); }
 .slip-table td.r { text-align: right; }
-.slip-table .total-row td { background: #fafafa; font-weight: bold; color: #303133; }
-.slip-table .total { font-size: 22px; color: #f56c6c; }
-.slip-sign { display: flex; justify-content: space-around; margin-top: 24px; font-size: 13px; color: #909399; }
+.slip-table .total-row td { background: #FAFAFA; font-weight: bold; color: var(--text-primary); }
+.slip-table .total { font-size: 22px; color: var(--color-danger); }
+.slip-sign { display: flex; justify-content: space-around; margin-top: 24px; font-size: var(--font-base); color: var(--text-secondary); }
 .slip-items { margin-top: 20px; }
-.slip-items h4 { font-size: 14px; color: #303133; margin: 0 0 8px; }
+.slip-items h4 { font-size: var(--font-h3); color: var(--text-primary); margin: 0 0 8px; }
 
 /* A5 打印：只留工资条，隐藏筛选区/按钮/列表 */
 @media print {

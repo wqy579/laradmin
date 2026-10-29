@@ -81,6 +81,13 @@ const perfApi = {
 	reports: {
 		returnSummary: { get: (params) => request.get('perf/reports/return-summary', { params }) },
 	},
+	// 业务员订单汇总
+	salesmanOrder: {
+		items: { get: (params) => request.get('perf/salesman-order/items', { params }) },
+		customerItem: { get: (params) => request.get('perf/salesman-order/customer-item', { params }) },
+		salesman: { get: (params) => request.get('perf/salesman-order/salesman', { params }) },
+		export: (params) => request.get('perf/salesman-order/export', { params, responseType: 'blob' }),
+	},
 	// 销售目标
 	target: {
 		list: { get: (params) => request.get('perf/sales-targets', { params }) },

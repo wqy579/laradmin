@@ -1,5 +1,5 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<!-- 查询区 -->
 		<div class="perf-filter">
 			<span class="label">方案名称</span>
@@ -42,10 +42,13 @@
 				<el-button type="warning" link size="small" @click="handleToggle(row)">{{ row.status === 'active' ? '停用' : '启用' }}</el-button>
 				<el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
 			</template>
+			<template #empty>
+				<FinEmpty text="当前筛选条件下暂无数据" />
+			</template>
 		</sTable>
 
 		<!-- 方案查看（名称点击） -->
-		<el-dialog v-model="detailVisible" title="方案详情" width="560px">
+		<el-dialog v-model="detailVisible" class="perf-dialog" title="方案详情" width="560px">
 			<div v-if="detail" class="detail-grid">
 				<div><span class="k">方案名称</span><span class="v">{{ detail.name }}</span></div>
 				<div><span class="k">类型</span><span class="v">{{ typeLabel(rowType(detail)) }}</span></div>
@@ -69,6 +72,7 @@ import { useTable } from '@/hooks/useTable'
 import { usePermission } from '@/composables/usePermission'
 import { saveBlob } from '@/utils/fileDownload'
 import perfApi from '@/api/perf'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 import RuleDialog from './rule-dialog.vue'
 
 const typeOptions = [
@@ -167,27 +171,28 @@ const resetSearch = () => { search.name = ''; search.type = ''; search.status = 
 onMounted(() => refresh())
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; }
-/* 表格边框 #ebeef5 → #DCDFE6（vxe 单元格/表头边框均走 Element 边框变量） */
+/* vxe 表格边框走 Element 边框变量，统一为 #DCDFE6 */
 .perf-list :deep(.vxe-table) {
-	--el-border-color-lighter: #DCDFE6;
-	--el-border-color-light: #DCDFE6;
-	--el-border-color: #DCDFE6;
+	--el-border-color-lighter: var(--border-base);
+	--el-border-color-light: var(--border-base);
+	--el-border-color: var(--border-base);
 }
-.perf-filter {
-	display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-	padding: 16px 20px; background: #fff; border-bottom: 1px solid #DCDFE6;
-}
-.perf-filter .label { font-size: 14px; color: #606266; }
+/* 排版（flex）留在本页，白底/内边距/下边框/标签字号由 _shared.css .perf-filter 提供 */
+.perf-filter { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .perf-toolbar { margin: 12px 0; display: flex; }
-.detail-grid { font-size: 14px; color: #303133; line-height: 32px; }
-.detail-grid .k { display: inline-block; width: 90px; color: #909399; }
-.detail-grid .v { color: #303133; }
+.detail-grid { font-size: var(--font-h3); color: var(--text-primary); line-height: 32px; }
+.detail-grid .k { display: inline-block; width: 90px; color: var(--text-secondary); }
+.detail-grid .v { color: var(--text-primary); }
 .detail-grid .rule-json { display: block; margin-top: 8px; }
 .detail-grid .rule-json .k { display: block; margin-bottom: 4px; }
 .detail-grid pre.v {
-	margin: 0; padding: 10px 12px; background: #FAFAFA; border: 1px solid #DCDFE6; border-radius: 4px;
-	font-size: 12px; color: #606266; max-height: 240px; overflow: auto;
+	margin: 0; padding: 10px 12px; background: #FAFAFA; border: 1px solid var(--border-base); border-radius: var(--radius-md);
+	font-size: var(--font-aux); color: var(--text-regular); max-height: 240px; overflow: auto;
 }
 </style>

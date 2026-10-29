@@ -1,5 +1,5 @@
 <template>
-	<div class="perf-list">
+	<div class="perf-list perf-page">
 		<!-- 预警概览（4 卡，同 A8 规范） -->
 		<div class="stat-cards" v-if="overview">
 			<div class="stat-card" v-for="c in cards" :key="c.key" :style="{ borderLeftColor: c.color }">
@@ -10,7 +10,7 @@
 
 		<el-tabs v-model="activeTab" @tab-change="refresh">
 			<el-tab-pane label="安全库存预警" name="safety-stock">
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据" @selection-change="onSelectionChange">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" @selection-change="onSelectionChange">
 					<el-table-column type="selection" width="45" />
 					<el-table-column prop="product_code" label="商品编码" width="120" />
 					<el-table-column prop="product_name" label="商品名称" min-width="180" />
@@ -36,12 +36,15 @@
 							<span class="link" @click="onDrillPurchase(row)">采购申请</span>
 						</template>
 					</el-table-column>
+					<template #empty>
+						<FinEmpty text="当前筛选条件下暂无数据" />
+					</template>
 				</el-table>
 			</el-tab-pane>
 
 			<el-tab-pane label="临期/超期预警" name="expiry">
 				<el-alert v-if="hint" :title="hint" type="warning" :closable="false" style="margin-bottom: 8px" />
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%">
 					<el-table-column prop="product_code" label="商品编码" width="120" />
 					<el-table-column prop="product_name" label="商品名称" min-width="180" />
 					<el-table-column prop="spec" label="规格" width="100" />
@@ -64,11 +67,14 @@
 							<el-tag :type="expiryType(row.status)" size="small">{{ expiryLabel(row.status) }}</el-tag>
 						</template>
 					</el-table-column>
+					<template #empty>
+						<FinEmpty text="当前筛选条件下暂无数据" />
+					</template>
 				</el-table>
 			</el-tab-pane>
 
 			<el-tab-pane label="库存可销天数" name="sellable-days">
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%">
 					<el-table-column prop="product_code" label="商品编码" width="120" />
 					<el-table-column prop="product_name" label="商品名称" min-width="180" />
 					<el-table-column prop="spec" label="规格" width="100" />
@@ -85,11 +91,14 @@
 						</template>
 					</el-table-column>
 					<el-table-column prop="action" label="建议动作" width="100" align="center" />
+					<template #empty>
+						<FinEmpty text="当前筛选条件下暂无数据" />
+					</template>
 				</el-table>
 			</el-tab-pane>
 
 			<el-tab-pane label="库存异常" name="stock-exception">
-				<el-table :data="pagedList" border stripe v-loading="loading" height="100%" empty-text="当前筛选条件下暂无数据">
+				<el-table :data="pagedList" border stripe v-loading="loading" height="100%">
 					<el-table-column prop="product_code" label="商品编码" width="120" />
 					<el-table-column prop="product_name" label="商品名称" min-width="180" />
 					<el-table-column prop="spec" label="规格" width="100" />
@@ -107,11 +116,14 @@
 							<el-button type="primary" link size="small" @click="$router.push('/business/stock-check')">去处理</el-button>
 						</template>
 					</el-table-column>
+					<template #empty>
+						<FinEmpty text="当前筛选条件下暂无数据" />
+					</template>
 				</el-table>
 			</el-tab-pane>
 		</el-tabs>
 
-		<div class="perf-toolbar">
+		<div class="perf-toolbar perf-pager">
 			<span class="pager-total">共 {{ total }} 条</span>
 			<el-pagination small layout="prev, pager, next, jumper" :page-size="30" :total="total" :current-page="page" @current-change="onPage" />
 			<el-button type="primary" size="small" :disabled="activeTab !== 'safety-stock' || !selection.length" @click="onPurchase">生成采购申请</el-button>
@@ -126,6 +138,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import perfApi from '@/api/perf'
 import { saveBlob } from '@/utils/fileDownload'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const router = useRouter()
 const activeTab = ref('safety-stock')
@@ -265,14 +278,19 @@ const exportData = () => {
 onMounted(() => { loadOverview(); refresh() })
 </script>
 
+<style>
+@import '../_shared.css';
+</style>
+
 <style scoped>
 .perf-list { height: 100%; display: flex; flex-direction: column; overflow: auto; }
 .stat-cards { display: flex; gap: 16px; padding: 12px 20px; }
-.stat-card { flex: 1; background: #fff; height: 96px; border: 1px solid #DCDFE6; border-left: 4px solid #409EFF; border-radius: 4px; padding: 16px 20px; display: flex; flex-direction: column; justify-content: center; }
-.stat-num { font-size: 24px; font-weight: bold; color: #303133; }
-.stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
-.perf-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin: 12px 20px; }
-.pager-total { font-size: 14px; color: #606266; }
-.text-red { color: #F56C6C; font-weight: 600; }
-.link { color: #409EFF; cursor: pointer; }
+.stat-card { flex: 1; background: var(--bg-card); height: 96px; border: 1px solid var(--border-base); border-left: 4px solid var(--color-primary); border-radius: var(--radius-md); padding: 16px 20px; display: flex; flex-direction: column; justify-content: center; }
+.stat-num { font-size: var(--font-stat); font-weight: 600; color: var(--text-primary); font-family: var(--font-numeric); }
+.stat-label { font-size: var(--font-base); color: var(--text-secondary); margin-top: 4px; }
+/* 表头/行高/斑马纹/空态由 _shared.css 提供，这里只留页面独有的工具条排版 */
+.perf-toolbar { gap: 12px; margin: 0 20px; }
+.pager-total { font-size: var(--font-h3); color: var(--text-regular); }
+.text-red { color: var(--color-danger); font-weight: 600; }
+.link { color: var(--color-primary); cursor: pointer; }
 </style>
