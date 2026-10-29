@@ -130,11 +130,9 @@
 								<el-input-number v-model="row.new_qty" :min="0" :precision="2" :step="1" size="small" style="width: 140px" />
 							</template>
 						</el-table-column>
-						<el-table-column label="变化" width="100" align="right">
+						<el-table-column label="变化" width="110" align="right">
 							<template #default="{ row }">
-								<span :class="{ 'text-red': Number(row.new_qty) !== Number(row.old_qty) }">
-									{{ formatNumber(Number(row.new_qty) - Number(row.old_qty)) }}
-								</span>
+								<span :class="qtyDeltaClass(row)">{{ qtyDeltaText(row) }}</span>
 							</template>
 						</el-table-column>
 						<template #empty>
@@ -157,7 +155,7 @@
 			</template>
 		</el-dialog>
 
-		<!-- 详情弹窗：调整信息 + 明细 + 操作留痕 -->
+		<!-- 详情弹窗：调整信息 + 明细 + 记录 Tab（F2：时间/操作人/前后值） -->
 		<el-dialog v-model="detailVisible" :title="`订货调整单 · ${detail.adjust_no || ''}`" width="720px" top="6vh">
 			<el-descriptions :column="2" border size="small" style="margin-bottom: 12px">
 				<el-descriptions-item label="调整单号">{{ detail.adjust_no }}</el-descriptions-item>
@@ -174,41 +172,53 @@
 				<el-descriptions-item label="调整原因" :span="2">{{ detail.reason || '—' }}</el-descriptions-item>
 			</el-descriptions>
 
-			<div class="detail-sub-title">调整明细</div>
-			<el-table v-if="detail.items && detail.items.length" :data="detail.items" size="small" border>
-				<el-table-column prop="product" label="商品" min-width="160" show-overflow-tooltip />
-				<el-table-column label="调整前" width="110" align="right">
-					<template #default="{ row }">{{ formatNumber(row.old_qty) }}</template>
-				</el-table-column>
-				<el-table-column label="调整后" width="110" align="right">
-					<template #default="{ row }">{{ formatNumber(row.new_qty) }}</template>
-				</el-table-column>
-				<el-table-column label="变化" width="110" align="right">
-					<template #default="{ row }">
-						<span class="text-red">{{ formatNumber(Number(row.new_qty) - Number(row.old_qty)) }}</span>
-					</template>
-				</el-table-column>
-			</el-table>
-			<el-empty v-else description="作废单无数量明细" :image-size="50" />
+			<el-tabs v-model="detailTab">
+				<!-- Tab 1：调整明细（变化值红增绿减） -->
+				<el-tab-pane label="调整明细" name="items">
+					<el-table v-if="detail.items && detail.items.length" :data="detail.items" size="small" border>
+						<el-table-column prop="product" label="商品" min-width="160" show-overflow-tooltip />
+						<el-table-column label="调整前" width="110" align="right">
+							<template #default="{ row }">{{ formatNumber(row.old_qty) }}</template>
+						</el-table-column>
+						<el-table-column label="调整后" width="110" align="right">
+							<template #default="{ row }">{{ formatNumber(row.new_qty) }}</template>
+						</el-table-column>
+						<el-table-column label="变化" width="120" align="right">
+							<template #default="{ row }">
+								<span :class="qtyDeltaClass(row)">{{ qtyDeltaText(row) }}</span>
+							</template>
+						</el-table-column>
+					</el-table>
+					<el-empty v-else description="作废单无数量明细" :image-size="50" />
+				</el-tab-pane>
 
-			<div class="detail-sub-title">操作留痕</div>
-			<el-timeline v-if="detail.history && detail.history.length" style="padding-left: 4px">
-				<el-timeline-item
-					v-for="log in detail.history"
-					:key="log.id"
-					:timestamp="log.created_at"
-					:type="log.to_status === 'rejected' || log.to_status === 'cancelled' ? 'danger' : 'primary'"
-				>
-					<span class="history-action">{{ log.action_label || log.action }}</span>
-					<span class="history-operator">{{ log.operator }}</span>
-					<span v-if="log.from_status && log.to_status" class="history-status">
-						{{ statusLabel(log.from_status) }} → {{ statusLabel(log.to_status) }}
-					</span>
-					<div v-if="log.detail" class="history-detail">{{ log.detail }}</div>
-					<div v-if="log.remark" class="history-remark">备注：{{ log.remark }}</div>
-				</el-timeline-item>
-			</el-timeline>
-			<el-empty v-else description="暂无操作记录" :image-size="60" />
+				<!-- Tab 2：调整记录（时间 / 操作人 / 前后值，留痕可查） -->
+				<el-tab-pane label="调整记录" name="history">
+					<el-table v-if="detail.history && detail.history.length" :data="detail.history" size="small" border>
+						<el-table-column label="时间" width="170">
+							<template #default="{ row }">{{ row.created_at || '—' }}</template>
+						</el-table-column>
+						<el-table-column label="操作" width="100">
+							<template #default="{ row }">{{ row.action_label || row.action }}</template>
+						</el-table-column>
+						<el-table-column label="操作人" width="110">
+							<template #default="{ row }">{{ row.operator || '—' }}</template>
+						</el-table-column>
+						<el-table-column label="状态变化" min-width="150">
+							<template #default="{ row }">
+								<template v-if="row.from_status && row.to_status">
+									{{ statusLabel(row.from_status) }} → {{ statusLabel(row.to_status) }}
+								</template>
+								<span v-else>—</span>
+							</template>
+						</el-table-column>
+						<el-table-column label="说明" min-width="180" show-overflow-tooltip>
+							<template #default="{ row }">{{ row.detail || row.remark || '—' }}</template>
+						</el-table-column>
+					</el-table>
+					<el-empty v-else description="暂无操作记录" :image-size="60" />
+				</el-tab-pane>
+			</el-tabs>
 		</el-dialog>
 	</div>
 </template>
@@ -396,12 +406,28 @@ const onVoid = async (row) => {
 
 // ---------------- 详情 ----------------
 const detailVisible = ref(false)
+const detailTab = ref('items')
 const detail = reactive({ adjust_no: '', order_no: '', type: '', status: '', reason: '', creator: '', applied_at: '', items: [], history: [] })
 
 const openDetail = async (row) => {
 	detailVisible.value = true
+	detailTab.value = 'items'
 	const res = await api.adjust.detail(row.id)
 	Object.assign(detail, { items: [], history: [] }, res.data || {})
+}
+
+/** 变化值红增绿减（F2）：增量为红 ↑、减量为绿 ↓、无变化灰。 */
+const qtyDeltaText = (row) => {
+	const d = Math.round((Number(row.new_qty) - Number(row.old_qty)) * 100) / 100
+	if (d > 0) return `↑ ${formatNumber(d)}`
+	if (d < 0) return `↓ ${formatNumber(Math.abs(d))}`
+	return '—'
+}
+const qtyDeltaClass = (row) => {
+	const d = Number(row.new_qty) - Number(row.old_qty)
+	if (d > 0) return 'delta-up'
+	if (d < 0) return 'delta-down'
+	return 'delta-flat'
 }
 
 onMounted(() => {
@@ -412,6 +438,12 @@ onMounted(() => {
 
 <style scoped>
 /* 沿用 perf 域视觉规范：表体 14px #606266，行高 48px，表头 #F5F7FA */
+.perf-list {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	overflow: auto;
+}
 .perf-filter {
 	display: flex;
 	align-items: center;
@@ -431,6 +463,19 @@ onMounted(() => {
 .text-red {
 	color: #f56c6c;
 	font-weight: 600;
+}
+/* 变化值红增绿减（F2） */
+.delta-up {
+	color: #f56c6c;
+	font-weight: 700;
+}
+.delta-down {
+	color: #67c23a;
+	font-weight: 700;
+}
+.delta-flat {
+	color: #909399;
+	font-weight: 500;
 }
 .detail-sub-title {
 	margin: 16px 0 8px;

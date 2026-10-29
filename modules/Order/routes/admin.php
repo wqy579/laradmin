@@ -289,9 +289,12 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/{id}', [OrderTransferController::class, 'show']);
     });
     // 订货闭环 T5.4 业务员拜访提醒（订货中心）—— 发送后置为「已提醒」，全程留痕
+    // F3：新增 stats（4 KPI 卡统计）与 batch-send（批量提醒）
     Route::prefix('business/visit-reminder')->group(function () {
         Route::get('/', [VisitReminderController::class, 'index']);
         Route::post('/', [VisitReminderController::class, 'store']);
+        Route::get('/stats', [VisitReminderController::class, 'stats']);
+        Route::post('/batch-send', [VisitReminderController::class, 'batchSend']);
         Route::get('/{id}', [VisitReminderController::class, 'show']);
         Route::post('/{id}/send', [VisitReminderController::class, 'send']);
         Route::delete('/{id}', [VisitReminderController::class, 'destroy']);

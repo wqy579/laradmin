@@ -2,11 +2,13 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Dashboard\Http\Controllers\DashboardController;
+use Modules\Dashboard\Http\Controllers\DashboardPreferenceController;
 
 /**
  * 智慧大屏模块路由（Dashboard）
  *
- * 纯聚合接口，无写操作。URL 前缀 dashboard。
+ * 聚合接口 + E8 用户布局偏好。URL 前缀 dashboard。
+ * 所有路由（含偏好读写）统一走 admin 鉴权 + 请求日志。
  */
 Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('dashboard')->group(function () {
@@ -26,5 +28,11 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/finance-overview', [DashboardController::class, 'financeOverview']);
         Route::get('/brand-proportion', [DashboardController::class, 'brandProportion']);
         Route::get('/brand-top10', [DashboardController::class, 'brandTop10']);
+    });
+
+    // E8：仪表盘编辑布局按用户持久化（读 / 整表覆写）
+    Route::prefix('dashboard/preference')->group(function () {
+        Route::get('/layout', [DashboardPreferenceController::class, 'layout']);
+        Route::put('/layout', [DashboardPreferenceController::class, 'saveLayout']);
     });
 });

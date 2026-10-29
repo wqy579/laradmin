@@ -39,12 +39,15 @@ class AssetCard extends Model
 
     const STATUS_DISPOSED = 'disposed';
 
+    const STATUS_SOLD = 'sold';
+
     public static function statusLabel(string $status): string
     {
         return [
             self::STATUS_INUSE => '在用',
             self::STATUS_IDLE => '闲置',
             self::STATUS_DISPOSED => '已处置',
+            self::STATUS_SOLD => '已售',
         ][$status] ?? $status;
     }
 

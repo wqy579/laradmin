@@ -65,6 +65,9 @@ class ArchitectureTest extends TestCase
         'Exchange->Order',  // 换货单客户快照引用 Order 的 Customer 主数据表
         'Dashboard->Stock',  // 大屏聚合读 Stock 的库存/商品/品牌主数据（含测试夹具构造商品/仓库）
         'Dashboard->Order',  // 大屏聚合读 Order 的销售单/客户主数据（含测试夹具构造客户）
+        'Dashboard->Auth',   // E8 仪表盘编辑布局按用户持久化：dashboard_user_preference.user_id
+        // 引用 Auth 的 auth_user（与 Order->Auth、Member->Auth 同理）；仪表盘自身不维护人员主数据，
+        // 内核无 User 契约，抽契约只会把一次 user_id 外键落库变成跨模块调用
         'Member->Order',  // 会员档案绑定客户（members.customer_id 1:0..1），引用 Order 的
         // Customer 主数据表；销售订单也落 member_id 快照，同库同事务，抽契约收益低
         'Member->Auth',   // 储值/兑换单据记录审核人，引用 Auth 的用户表（与 Order->Auth 同理）
@@ -89,6 +92,18 @@ class ArchitectureTest extends TestCase
         'Cash->Auth',       // 上交款单确认人落 confirmed_by、积分发放单落 operator_id/audited_by，
         //   belongsTo Auth 的用户表回显姓名（与 Ledger->Auth、Order->Auth 同理）；
         //   出纳域不维护人员主数据，内核亦无 User 契约
+        'Hr->Business',     // 工资单的基本工资取自员工档案 employees.base_salary（F4），
+        //   薪酬域不维护人员主数据，与 Order->Business（拜访人）、Delivery->Business 同理
+        'Hr->Order',        // 工资发放必须走既有付款单通道：调 Order 的 PayService 生成 pays
+        //   （pay_type=2 其他付款）并回写 pay_id/pay_no，同库同事务（付款单与工资单状态必须原子），
+        //   与 Cash->Order（代收货款回写）同理；重建一套付款单等于绕过资金主线
+        'Hr->Performance',  // 提成列与提成流水只读引用 perf 的提成单（audited/paid 的 actual_amount），
+        //   任务书要求「与 C 域提成数据口径一致、只读引用不改 perf」，
+        //   同库只读主数据 + 对账接口按同一口径比对，抽契约收益低于耦合成本
+        'Hr->Report',       // 工资表/提成流水导出复用 ReportFilter::csv，与 Performance->Report 完全同因
+        'Agreement->Order', // 协议档案的客户下拉引用 Order 的 Customer 主数据表（与 Exchange->Order 同理），
+        //   协议域不维护客户主数据，customer_name 是冗余快照
+        'Agreement->Report', // 协议档案导出复用 ReportFilter::csv，与 Performance->Report 完全同因
         'Asset->Auth',          // 资产卡片/购置单的使用部门与使用人回显名称，belongsTo Auth 的部门与用户表
         //   （与 Ledger->Auth、Cash->Auth 同因）；Asset 不维护人员主数据，内核亦无 User/Department 契约
         'Asset->Ledger',        // 购置单勾选「同时登记现金支出凭证」时调 Ledger 的 VoucherService 生成

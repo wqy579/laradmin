@@ -302,6 +302,20 @@
 			</div>
 		</div>
 
+		<!-- F1-6 模式规则警告条：任一行选用非「正常销售」模式时出现，说明该模式的金额规则。
+		     对齐连凯「警告条提示模式规则」——不打断录入，只随行内模式变化显隐。 -->
+		<el-alert
+			v-if="modeRuleRows.length"
+			class="mode-rule-bar"
+			type="warning"
+			:closable="false"
+			show-icon
+		>
+			<template #title>
+				<span class="mode-rule-title">特殊销售模式规则：</span>
+				<span class="mode-rule-text">{{ modeRuleHint }}</span>
+			</template>
+		</el-alert>
 		<!-- 底部信息条：操作提示常显；客户余额/欠款选客户后显示（balance 为欠款余额，正数=客户欠我们的） -->
 		<div class="bottom-info">
 			<template v-if="selectedCustomer">
@@ -492,6 +506,21 @@ const bottomHint = computed(() => {
 	else if (form.print_type === 'item_note') parts.push('打印订单明细单')
 	parts.push('提交后在订单查询【待配送】进行发货收款')
 	return parts.join('，') + '。'
+})
+// F1-6 模式规则警告条：统计所有非「正常销售」模式的行，汇总成一条规则提示。
+// 赠品 / 陈列费在 onModeChange 里清零三档单价（price_source='特殊'），
+// 试用 / 特价销售 / 返利保留目录价但按约定不计入正常销售毛利——此处仅提示规则，
+// 不打断录入（与连凯警告条一致：只在用到特殊模式时出现，选回正常销售即消失）。
+const modeRuleRows = computed(() => form.items.filter(i => i.product_id && i.sale_mode && i.sale_mode !== '正常销售'))
+const modeRuleHint = computed(() => {
+	if (!modeRuleRows.value.length) return ''
+	const modes = [...new Set(modeRuleRows.value.map(i => i.sale_mode))]
+	const zeroPrice = modes.filter(m => CLEAR_PRICE_MODES.includes(m))
+	const keepPrice = modes.filter(m => !CLEAR_PRICE_MODES.includes(m))
+	const parts = []
+	if (zeroPrice.length) parts.push(`${zeroPrice.join('、')}模式单价自动清零（列为特殊赠送/陈列，不计入销售收入）`)
+	if (keepPrice.length) parts.push(`${keepPrice.join('、')}模式按目录价计但单列毛利口径`)
+	return parts.join('；') + '。'
 })
 const onCustomerChange = () => {
 	// 客户变了重新拉一次余额信息（下拉数据已含 balance/credit_limit）
@@ -1643,6 +1672,11 @@ const onDialogKeydown = (e) => {
 .dialog-toolbar .type-tabs :deep(.el-tabs__item.is-active) { font-weight: 600; color: var(--el-color-primary); }
 .toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .toolbar-right :deep(.el-checkbox.is-bordered) { margin-right: 0; height: 28px; }
+/* F1-6 模式规则警告条：warning 浅底（#FDF6EC）+ 12px 正文，随特殊模式出现 */
+.mode-rule-bar { margin-bottom: 8px; padding: 4px 12px; }
+.mode-rule-bar :deep(.el-alert__title) { font-size: 12px; line-height: 18px; }
+.mode-rule-title { color: var(--el-color-warning); font-weight: 700; }
+.mode-rule-text { color: var(--el-text-color-primary); }
 .bottom-info { display: flex; gap: 20px; align-items: center; padding: 8px 12px; margin-bottom: 8px; background: #fdf6ec; border: 1px solid #faecd8; border-radius: 4px; font-size: 12px; color: var(--el-text-color-primary); }
 .bottom-info .info-item { color: #e6a23c; }
 .bottom-info .info-val { color: #f56c6c; font-size: 13px; }

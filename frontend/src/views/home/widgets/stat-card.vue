@@ -7,6 +7,7 @@ const props = defineProps({
 		default: 'primary',
 		validator: (v) => ['primary', 'success', 'warning', 'danger'].includes(v),
 	},
+	icon: String,
 	label: String,
 	value: String,
 	trend: Number,

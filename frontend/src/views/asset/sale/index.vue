@@ -69,7 +69,7 @@
 						<el-col :span="12">
 							<el-form-item label="经手人" prop="handler">
 								<el-select v-model="form.handler" placeholder="请选择" clearable style="width: 100%">
-									<el-option v-for="e in EMPLOYEES" :key="e.value" :label="e.label" :value="e.value" />
+									<el-option v-for="e in users" :key="e.id" :label="e.name" :value="e.name" />
 								</el-select>
 							</el-form-item>
 						</el-col>
@@ -143,10 +143,10 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { EMPLOYEES, fmtMoney, fmtDay } from '../shared'
-import { listCards, getCard, addSale, listSales } from '../store'
+import assetApi from '@/api/asset'
+import { fmtMoney, fmtDay } from '../shared'
 import FinEmpty from '../../finance/_FinEmpty.vue'
 
 /* ---------- 表单 ---------- */
@@ -173,10 +173,12 @@ const rules = {
 	handler: [{ required: true, message: '请选择经手人', trigger: 'change' }],
 }
 
-/* 仅「在用」资产可变卖 */
-const inUseCards = computed(() => listCards().filter((c) => c.status === 'inuse'))
+/* 数据源：在用的可选资产（后端 options 提供）+ 变卖流水 */
+const inUseCards = ref([])
+const sales = ref([])
+const users = ref([])
 
-const card = computed(() => getCard(form.card_id))
+const card = computed(() => inUseCards.value.find((c) => c.id === form.card_id) || null)
 
 /* 默认变卖金额取资产净值，便于快速核对 */
 watch(
@@ -196,7 +198,25 @@ const pnl = computed(() => {
 	return Math.round((amt - net) * 100) / 100
 })
 
-const sales = computed(() => listSales())
+async function loadOptions() {
+	try {
+		const res = await assetApi.sale.options.get()
+		const data = res.data || {}
+		inUseCards.value = data.cards || []
+		users.value = data.users || []
+	} catch (e) {
+		ElMessage.error(e.message || '加载下拉数据失败')
+	}
+}
+
+async function loadSales() {
+	try {
+		const res = await assetApi.sale.list.get({ page: 1, page_size: 100 })
+		sales.value = (res.data || {}).list || []
+	} catch (e) {
+		ElMessage.error(e.message || '加载变卖流水失败')
+	}
+}
 
 const onCardChange = () => {
 	if (card.value) form.sale_amount = Number(card.value.net)
@@ -212,19 +232,24 @@ const onSave = () => {
 			`确认变卖 ${card.value.code}（${card.value.name}）？<br/>变卖金额 ¥${fmtMoney(form.sale_amount)}，资产净值 ¥${fmtMoney(card.value.net)}，${pnl >= 0 ? '盈利' : '亏损'} ¥${fmtMoney(Math.abs(pnl))}。<br/>保存后资产状态将改为「已售」，不可撤销。`,
 			'确认变卖',
 			{ confirmButtonText: '确认变卖', cancelButtonText: '取消', type: 'warning', dangerouslyUseHTMLString: true }
-		).then(() => {
+		).then(async () => {
 			saving.value = true
-			// TODO(api) POST /api/asset/sale —— 当前写 mock
-			setTimeout(() => {
-				const { sale, pnl: p } = addSale({ ...form })
-				saving.value = false
+			try {
+				const res = await assetApi.sale.save({ ...form })
+				const d = res.data || {}
+				const p = Number(d.pnl || 0)
 				ElMessageBox.alert(
-					`变卖单 ${sale.id} 已保存<br/>资产 ${sale.card_code} 状态已改为「已售」<br/>变卖损益：${p >= 0 ? '盈利' : '亏损'} ¥${fmtMoney(Math.abs(p))}`,
+					`变卖单 ${d.sale_no} 已保存<br/>资产 ${card.value.code} 状态已改为「已售」<br/>变卖损益：${p >= 0 ? '盈利' : '亏损'} ¥${fmtMoney(Math.abs(p))}`,
 					'保存成功',
 					{ dangerouslyUseHTMLString: true, confirmButtonText: '确定' }
 				)
 				resetForm()
-			}, 300)
+				await Promise.all([loadOptions(), loadSales()])
+			} catch (e) {
+				ElMessage.error(e.message || '保存失败')
+			} finally {
+				saving.value = false
+			}
 		}).catch(() => {})
 	})
 }
@@ -233,6 +258,11 @@ const resetForm = () => {
 	Object.assign(form, defaultForm())
 	formRef.value?.clearValidate()
 }
+
+onMounted(() => {
+	loadOptions()
+	loadSales()
+})
 </script>
 
 <style>
@@ -392,11 +422,12 @@ const resetForm = () => {
 .pnl-row.total .pnl-v {
 	font-size: var(--font-h3);
 }
+/* 损益配色（DS 约定）：盈利红 #F56C6C、亏损绿 #67C23A */
 .pnl-up {
-	color: var(--color-success);
+	color: var(--color-danger);
 }
 .pnl-down {
-	color: var(--color-danger);
+	color: var(--color-success);
 }
 
 .form-foot {
