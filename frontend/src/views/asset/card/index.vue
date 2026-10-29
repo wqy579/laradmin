@@ -218,7 +218,7 @@ import { fmtMoney, fmtDay } from '../shared'
 const route = useRoute()
 const router = useRouter()
 
-const STATUS_TAG = { inuse: 'success', idle: 'warning', disposed: 'info' }
+const STATUS_TAG = { inuse: 'success', idle: 'warning', disposed: 'info', sold: 'success' }
 
 /* ---------- 视图切换（仅渲染层，数据源唯一） ---------- */
 const viewMode = ref('card')

@@ -18,6 +18,19 @@ const assetApi = {
 		options: { get: (params) => request.get('asset/cards/options', { params }) },
 		list: { get: (params) => request.get('asset/cards', { params }) },
 	},
+	// 资产折旧（本期应折明细 + 执行流水 + 计提）
+	depreciation: {
+		preview: { get: (params) => request.get('asset/depreciations/preview', { params }) },
+		runs: { get: (params) => request.get('asset/depreciations/runs', { params }) },
+		records: { get: (params) => request.get('asset/depreciations/records', { params }) },
+		run: (data) => request.post('asset/depreciations', data),
+	},
+	// 资产变卖（变卖流水 + 保存）
+	sale: {
+		options: { get: (params) => request.get('asset/sales/options', { params }) },
+		list: { get: (params) => request.get('asset/sales', { params }) },
+		save: (data) => request.post('asset/sales', data),
+	},
 }
 
 export default assetApi
