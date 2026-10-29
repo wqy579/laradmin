@@ -853,4 +853,261 @@ class ReportFeatureTest extends TestCase
 
         return $id;
     }
+
+    // ================================================================
+    // E6 采购 + 入出库 + 费用 + 价格报表
+    // ================================================================
+
+    public function test_procurement_every_dimension_runs(): void
+    {
+        $this->seedProcurementData();
+
+        $dimensions = ['purchase', 'stock_in', 'transfer', 'scrap', 'stock_in_summary', 'stock_detail_summary', 'expense', 'price_plan'];
+
+        foreach ($dimensions as $dimension) {
+            $res = $this->getJson('admin/business/report/procurement?dimension='.$dimension);
+            $res->assertOk("采购费用维度 {$dimension} 查询失败");
+            $this->assertNotEmpty($res->json('data.columns'), "维度 {$dimension} 没有返回列定义");
+            $this->assertIsArray($res->json('data.list'));
+            $this->assertIsArray($res->json('data.summary'));
+        }
+    }
+
+    public function test_procurement_purchase_aggregates_by_supplier_with_net(): void
+    {
+        $this->seedProcurementData();
+
+        $res = $this->getJson('admin/business/report/procurement?dimension=purchase');
+
+        $res->assertOk();
+        $row = collect($res->json('data.list'))->firstWhere('supplier_name', '供应商甲');
+
+        $this->assertNotNull($row, '采购汇总应出现供应商甲');
+        // 采购额 = 两张已审核采购申请单金额之和；退货额 = 已审核退货单金额；净额 = 差
+        $this->assertEquals(1000 + 500, round((float) $row['purchase_amount'], 2));
+        $this->assertEquals(200, round((float) $row['return_amount'], 2));
+        $this->assertEquals(1000 + 500 - 200, round((float) $row['net_amount'], 2));
+        $this->assertEquals(2, (int) $row['order_count']);
+        $this->assertEquals(1, (int) $row['return_count']);
+
+        // 合计行：净额列求和（仅已审核/已转库计入，草稿 300 不计）
+        $summary = $res->json('data.summary');
+        $this->assertEquals(1500, round((float) $summary['purchase_amount'], 2));
+        $this->assertEquals(200, round((float) $summary['return_amount'], 2));
+        $this->assertEquals(1300, round((float) $summary['net_amount'], 2));
+    }
+
+    public function test_procurement_purchase_filters_by_supplier_and_date(): void
+    {
+        $this->seedProcurementData();
+        $supplierId = DB::table('suppliers')->where('name', '供应商甲')->value('id');
+
+        // 供应商筛选
+        $bySupplier = $this->getJson('admin/business/report/procurement?dimension=purchase&supplier_ids[]='.$supplierId);
+        $bySupplier->assertOk();
+        $this->assertCount(1, $bySupplier->json('data.list'));
+
+        // 日期区间：只圈到 10-01，第一张采购单(10-01)命中，第二张(10-05)被排除
+        $byDate = $this->getJson('admin/business/report/procurement?dimension=purchase&start_date=2026-10-01&end_date=2026-10-01');
+        $byDate->assertOk();
+        $this->assertEquals(1000, round((float) $byDate->json('data.summary.purchase_amount'), 2));
+    }
+
+    public function test_procurement_expense_total_equals_detail_sum(): void
+    {
+        $this->seedProcurementData();
+
+        $res = $this->getJson('admin/business/report/procurement?dimension=expense');
+
+        $res->assertOk();
+        $rows = $res->json('data.list');
+        // 两笔费用：差旅费 300 + 办公费 150 = 450
+        $this->assertCount(2, $rows);
+        $this->assertEquals(450, round((float) $res->json('data.summary.amount'), 2));
+        $this->assertEquals(2, (int) $res->json('data.summary.count'));
+
+        // 费用类型多选筛选（string 数组，不能被 intval 吞掉）
+        $byType = $this->getJson('admin/business/report/procurement?dimension=expense&expense_types[]='.urlencode('差旅费'));
+        $byType->assertOk();
+        $this->assertCount(1, $byType->json('data.list'));
+        $this->assertSame('差旅费', $byType->json('data.list.0.expense_type'));
+    }
+
+    public function test_procurement_price_plan_has_per_level_columns(): void
+    {
+        $this->seedProcurementData();
+
+        $res = $this->getJson('admin/business/report/procurement?dimension=price_plan');
+
+        $res->assertOk();
+        $cols = collect($res->json('data.columns'))->pluck('prop');
+
+        // 标准售价列存在；每个启用等级（迁移幂等种入 LV1/LV2/LV3/VIP）各一列
+        $this->assertContains('base_price', $cols);
+        $levelIds = DB::table('customer_levels')->where('status', 1)->pluck('id')->all();
+        $this->assertNotEmpty($levelIds);
+        foreach ($levelIds as $lid) {
+            $this->assertContains('level_'.$lid, $cols, '每个启用等级应有一列');
+        }
+
+        // 行数据里等级价已回填：LV1 挂 10.8，其余等级无方案价 → 无该键
+        $row = collect($res->json('data.list'))->firstWhere('product_code', 'E6_PROD');
+        $this->assertNotNull($row);
+        $this->assertEquals(12, round((float) $row['base_price'], 2));
+        $lv1 = DB::table('customer_levels')->where('code', 'LV1')->value('id');
+        $this->assertEquals(10.8, round((float) $row['level_'.$lv1], 2), 'LV1 应回填方案价');
+        $lv2 = DB::table('customer_levels')->where('code', 'LV2')->value('id');
+        $this->assertArrayNotHasKey('level_'.$lv2, $row, '未挂方案价的等级不应有列值');
+    }
+
+    public function test_procurement_stock_detail_summary_opening_closing_balance(): void
+    {
+        $this->seedProcurementData();
+
+        $res = $this->getJson('admin/business/report/procurement?dimension=stock_detail_summary');
+
+        $res->assertOk();
+        $row = collect($res->json('data.list'))->firstWhere('product_code', 'E6_PROD');
+        $this->assertNotNull($row);
+
+        // 基线库存 50 + 期间入库 100（流水 +100）→ 期末 150；期初 = 期末 − 收入 + 发出
+        $this->assertEquals(150, round((float) $row['closing_qty'], 2));
+        $this->assertEquals(100, round((float) $row['in_qty'], 2));
+        $this->assertEquals(50, round((float) $row['opening_qty'], 2));
+    }
+
+    // ================================================================
+    // E6 测试数据
+    // ================================================================
+
+    /** E6 全套业务数据：供应商、采购单、退货单、入库、调拨、报废、费用、等级价 */
+    private function seedProcurementData(): void
+    {
+        // 固定商品编码，便于 firstWhere('product_code', 'E6_PROD') 定位
+        DB::table('products')->where('id', $this->ids['product'])->update(['code' => 'E6_PROD']);
+        $product = DB::table('products')->where('id', $this->ids['product'])->first();
+        $warehouse = $this->ids['warehouse'];
+
+        $supplier = $this->makeSupplier(['name' => '供应商甲', 'code' => 'SUP_A']);
+        $supplierB = $this->makeSupplier(['name' => '供应商乙', 'code' => 'SUP_B']);
+
+        // 采购申请单 ×2（已审核），另一张草稿不计数
+        $pa1 = DB::table('purchase_applications')->insertGetId([
+            'apply_no' => 'CG'.date('Ymd').rand(1000, 9999), 'supplier_id' => $supplier->id,
+            'supplier_name' => '供应商甲', 'warehouse_id' => $warehouse,
+            'apply_date' => '2026-10-01', 'status' => 'approved',
+            'total_quantity' => 100, 'total_amount' => 1000, 'payable_amount' => 1000,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('purchase_application_items')->insert([
+            'application_id' => $pa1, 'product_id' => $product->id,
+            'product_code' => $product->code, 'product_name' => $product->name,
+            'quantity' => 100, 'amount' => 1000,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('purchase_applications')->insert([
+            'apply_no' => 'CG'.date('Ymd').rand(1000, 9999), 'supplier_id' => $supplier->id,
+            'supplier_name' => '供应商甲', 'warehouse_id' => $warehouse,
+            'apply_date' => '2026-10-05', 'status' => 'transferred',
+            'total_quantity' => 50, 'total_amount' => 500, 'payable_amount' => 500,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('purchase_applications')->insert([
+            'apply_no' => 'CG'.date('Ymd').rand(1000, 9999), 'supplier_id' => $supplierB->id,
+            'supplier_name' => '供应商乙', 'warehouse_id' => $warehouse,
+            'apply_date' => '2026-10-08', 'status' => 'draft',
+            'total_quantity' => 30, 'total_amount' => 300, 'payable_amount' => 300,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // 采购退货单 ×1（已审核），退货额 200
+        DB::table('purchase_returns')->insert([
+            'return_no' => 'TH'.date('Ymd').rand(1000, 9999), 'supplier_id' => $supplier->id,
+            'supplier_name' => '供应商甲', 'warehouse_id' => $warehouse,
+            'return_date' => '2026-10-06', 'status' => 'approved',
+            'total_qty' => 20, 'total_amount' => 200, 'payable_offset' => 200,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // 入库：purchase 类型 +100（供应商甲），adjustment 类型 +50（无供应商）
+        $si1 = DB::table('stock_ins')->insertGetId([
+            'order_no' => 'RK'.date('Ymd').rand(1000, 9999), 'type' => 'purchase',
+            'warehouse_id' => $warehouse, 'supplier_id' => $supplier->id,
+            'stock_date' => '2026-10-02', 'total_amount' => 1200,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('stock_in_items')->insert([
+            'stock_in_id' => $si1, 'product_id' => $product->id,
+            'quantity' => 100, 'price' => 12, 'amount' => 1200,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $si2 = DB::table('stock_ins')->insertGetId([
+            'order_no' => 'RK'.date('Ymd').rand(1000, 9999), 'type' => 'adjustment',
+            'warehouse_id' => $warehouse, 'supplier_id' => null,
+            'stock_date' => '2026-10-03', 'total_amount' => 0,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('stock_in_items')->insert([
+            'stock_in_id' => $si2, 'product_id' => $product->id,
+            'quantity' => 50, 'price' => 0, 'amount' => 0,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // 调拨：approved 一张，含 30 件
+        $t = DB::table('transfers')->insertGetId([
+            'order_no' => 'DB'.date('Ymd').rand(1000, 9999),
+            'from_warehouse_id' => $warehouse, 'to_warehouse_id' => $warehouse,
+            'transfer_date' => '2026-10-04', 'total_qty' => 30, 'total_amount' => 360,
+            'status' => 'approved', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('transfer_items')->insert([
+            'transfer_id' => $t, 'product_id' => $product->id,
+            'quantity' => 30, 'price' => 12, 'amount' => 360,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // 报废报损：已审核 adjust_type=stock_loss，报损 5 件
+        $ar = DB::table('stock_adjusts')->insertGetId([
+            'adjust_no' => 'BS'.date('Ymd').rand(1000, 9999), 'warehouse_id' => $warehouse,
+            'adjust_date' => '2026-10-07', 'adjust_type' => 'stock_loss', 'status' => 'approved',
+            'total_qty' => 5, 'total_amount' => 25, 'reason' => '破损',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('stock_adjust_items')->insert([
+            'adjust_id' => $ar, 'product_id' => $product->id,
+            'product_code' => $product->code, 'product_name' => $product->name,
+            'spec' => $product->spec ?? '', 'unit' => '瓶',
+            'before_qty' => 50, 'adjust_qty' => 5, 'after_qty' => 45,
+            'unit_cost' => 5, 'total_cost' => 25,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // 费用：差旅费 300 + 办公费 150（不同类型，验证多选与合计）
+        foreach ([['差旅费', 300], ['办公费', 150]] as [$type, $amount]) {
+            DB::table('expenses')->insert([
+                'expense_no' => 'FY'.date('Ymd').rand(1000, 9999), 'expense_type' => $type,
+                'amount' => $amount, 'expense_date' => '2026-10-09',
+                'handler_id' => null, 'department_id' => null, 'status' => 1,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        // 价格方案：等级默认由迁移幂等种入（LV1/LV2/LV3/VIP），只给 LV1 挂一个方案价
+        $lv1 = DB::table('customer_levels')->where('code', 'LV1')->value('id');
+        DB::table('product_level_prices')->insert([
+            'product_id' => $product->id, 'level_id' => $lv1, 'price' => 10.8,
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        // 库存流水：期间 +100 入库（与 stock_ins 对齐），期末 50+100=150
+        DB::table('stocks_history')->insert([
+            'product_id' => $product->id, 'warehouse_id' => $warehouse,
+            'change_type' => 'purchase', 'change_qty' => 100,
+            'before_qty' => 50, 'after_qty' => 150,
+            'created_at' => '2026-10-02 10:00:00', 'updated_at' => now(),
+        ]);
+        // 把基线库存同步到 150，让「期末结存 = 当前 stocks.quantity」成立
+        DB::table('stocks')->where('product_id', $product->id)->where('warehouse_id', $warehouse)
+            ->update(['quantity' => 150, 'total_amount' => 150 * 5]);
+    }
 }
