@@ -252,17 +252,9 @@ class BusinessSeeder extends Seeder
 
         // 配送管理（独立顶级，完整配送业务闭环）
         // 注：与 order.dispatch 旧壳页面并存；本组为新的配货→拣货→验货→装车→任务→收款→上交闭环入口。
+        // 顶级「delivery」已在顶部 $topMenus 定义（sort=11），这里不再重复声明——
+        // 重复声明是同名菜单在 seed 阶段被定义两次，F8 菜单治理要求唯一性。
         // 必须在 Seeder 里定义：AuthSeeder 会 truncate auth_permission，迁移阶段补的菜单会被清掉。
-        Permission::firstOrCreate(['name' => 'delivery'], [
-            'title' => '配送管理',
-            'type' => 'menu',
-            'parent_id' => 0,
-            'path' => '/business/delivery-picking',
-            'component' => null,
-            'meta' => ['icon' => 'ElIconVan'],
-            'sort' => 6,
-            'status' => 1,
-        ]);
         $deliveryTopId = Permission::where('name', 'delivery')->value('id');
         $deliveryMenus = [
             ['name' => 'delivery.picking', 'title' => '配货单', 'path' => '/business/delivery-picking', 'component' => 'business/delivery/picking/index', 'sort' => 1],
