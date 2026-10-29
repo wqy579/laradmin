@@ -279,7 +279,7 @@ function digitsToChinese(num) {
 .del-icon { color: var(--color-danger); cursor: pointer; font-size: 16px; }
 .add-entry-btn { width: 100%; border: 1px dashed var(--color-primary); color: var(--color-primary); margin-top: 8px; }
 .total-row { display: flex; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid var(--border-lighter); margin-top: 8px; }
-.chinese { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.chinese { font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .total-amt { font-size: 14px; color: var(--text-regular); }
 .green { color: var(--color-success); }
 .red { color: var(--color-danger); }

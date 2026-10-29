@@ -126,9 +126,9 @@ onMounted(() => { period.value = new Date().toISOString().slice(0, 7); load() })
 </script>
 
 <style scoped>
-.page { background: #f0f2f5; min-height: 100vh; }
-.page-header { height: 50px; background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 18px; font-weight: 700; color: #303133; }
+.page { background: var(--bg-body); min-height: 100vh; }
+.page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
+.title { font-size: 20px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .lbl { font-size: 14px; color: #606266; }
@@ -137,4 +137,11 @@ onMounted(() => { period.value = new Date().toISOString().slice(0, 7); load() })
 .balance-hint.err { color: #f56c6c; }
 .amt-input { width: 120px; text-align: right; }
 :deep(.non-leaf-row) { background: #fafafa !important; color: #909399; }
+/* DS：表头 44px 13px/600、明细行 41px、合计行加粗、金额等宽 */
+:deep(.el-table th.el-table__cell) { height: 44px; }
+:deep(.el-table th.el-table__cell .cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.el-table .el-table__body .el-table__row) { height: 41px; }
+:deep(.el-table .el-table__body td.el-table__cell .cell) { font-size: var(--font-base); }
+:deep(.el-table__footer-wrapper td.el-table__cell .cell) { font-weight: 600; font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
+:deep(.amt-input .el-input__inner) { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
 </style>

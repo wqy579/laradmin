@@ -76,10 +76,10 @@
 						<el-table-column prop="voucher_no" label="凭证字号" width="170" align="center" />
 						<el-table-column prop="summary" label="摘要" min-width="200" />
 						<el-table-column prop="opposite_subject" label="对方科目" min-width="160" />
-						<el-table-column label="借方发生" width="130" align="right"><template #default="{ row }">{{ fmt(row.debit) }}</template></el-table-column>
-						<el-table-column label="贷方发生" width="130" align="right"><template #default="{ row }">{{ fmt(row.credit) }}</template></el-table-column>
+						<el-table-column label="借方发生" width="130" align="right"><template #default="{ row }"><span class="tabular">{{ fmt(row.debit) }}</span></template></el-table-column>
+						<el-table-column label="贷方发生" width="130" align="right"><template #default="{ row }"><span class="tabular">{{ fmt(row.credit) }}</span></template></el-table-column>
 						<el-table-column prop="direction" label="方向" width="80" align="center" />
-						<el-table-column label="余额" width="130" align="right"><template #default="{ row }">{{ fmt(row.balance) }}</template></el-table-column>
+						<el-table-column label="余额" width="130" align="right"><template #default="{ row }"><span class="tabular">{{ fmt(row.balance) }}</span></template></el-table-column>
 					</el-table>
 				</el-tab-pane>
 			</el-tabs>
@@ -163,11 +163,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page { background: #f0f2f5; min-height: 100vh; }
-.page-header { height: 50px; background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 18px; font-weight: 700; color: #303133; }
+.page { background: var(--bg-body); min-height: 100vh; }
+.page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
+.title { font-size: 20px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
-.report-tabs :deep(.el-tabs__item) { font-size: 15px; color: #606266; }
+.report-tabs :deep(.el-tabs__item) { font-size: 14px; color: #606266; }
 .report-tabs :deep(.is-active) { color: #409eff; }
 .report-filter { display: flex; gap: 12px; align-items: center; padding: 12px 0; flex-wrap: wrap; }
 .lbl { font-size: 14px; color: #606266; }
@@ -175,8 +175,8 @@ onMounted(() => {
 .rpt-sub { font-size: 14px; color: #606266; text-align: center; margin-bottom: 12px; }
 .bs-table, .is-table { width: 100%; border-collapse: collapse; }
 .bs-table th, .bs-table td, .is-table th, .is-table td { border: 1px solid #ebeef5; padding: 8px; font-size: 14px; text-align: center; }
-.bs-table th, .is-table th { background: #f5f7fa; color: #606266; font-weight: 500; }
-.amt { text-align: right; }
+.bs-table th, .is-table th { background: #f5f7fa; color: #606266; font-weight: 600; }
+.amt { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
 .bold { font-weight: 700; }
 .total { background: #fafafa; }
 .red { color: #f56c6c; }

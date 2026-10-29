@@ -12,8 +12,8 @@
 							<template #default="{ row }"><el-tag :type="row.status === 'closed' ? 'success' : 'info'" size="small">{{ row.status_label }}</el-tag></template>
 						</el-table-column>
 						<el-table-column prop="voucher_count" label="凭证张数" width="90" align="center" />
-						<el-table-column label="借方合计" width="120" align="right"><template #default="{ row }">{{ fmt(row.total_debit) }}</template></el-table-column>
-						<el-table-column label="贷方合计" width="120" align="right"><template #default="{ row }">{{ fmt(row.total_credit) }}</template></el-table-column>
+						<el-table-column label="借方合计" width="120" align="right"><template #default="{ row }"><span class="tabular">{{ fmt(row.total_debit) }}</span></template></el-table-column>
+						<el-table-column label="贷方合计" width="120" align="right"><template #default="{ row }"><span class="tabular">{{ fmt(row.total_credit) }}</span></template></el-table-column>
 						<el-table-column prop="closed_by_name" label="结账人" width="100" />
 						<el-table-column prop="closed_at" label="结账时间" width="160" align="center" />
 						<el-table-column label="操作" width="280" align="center" fixed="right">
@@ -122,9 +122,9 @@ onMounted(() => load())
 </script>
 
 <style scoped>
-.page { background: #f0f2f5; min-height: 100vh; }
-.page-header { height: 50px; background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 18px; font-weight: 700; color: #303133; }
+.page { background: var(--bg-body); min-height: 100vh; }
+.page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
+.title { font-size: 20px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
 .check-list { display: flex; flex-direction: column; gap: 12px; }
 .check-item { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 4px; font-size: 14px; }
@@ -133,4 +133,9 @@ onMounted(() => load())
 .check-item.warn { background: #fdf6ec; color: #e6a23c; }
 .check-title { font-weight: 700; }
 .check-detail { color: #606266; margin-left: 8px; }
+/* DS：表头 44px 13px/600、明细行 41px（原生 el-table，size=small 覆盖） */
+:deep(.el-table th.el-table__cell) { height: 44px; }
+:deep(.el-table th.el-table__cell .cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.el-table .el-table__body .el-table__row) { height: 41px; }
+:deep(.el-table .el-table__body td.el-table__cell .cell) { font-size: var(--font-base); }
 </style>

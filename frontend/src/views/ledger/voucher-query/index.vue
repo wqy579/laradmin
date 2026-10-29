@@ -81,11 +81,17 @@ onMounted(() => { load(); loadSubjects() })
 </script>
 
 <style scoped>
-.page { background: #f0f2f5; min-height: 100vh; }
-.page-header { height: 50px; background: #fff; border-bottom: 1px solid #e8e8e8; padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 18px; font-weight: 700; color: #303133; }
+.page { background: var(--bg-body); min-height: 100vh; }
+.page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
+.title { font-size: 20px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; }
 .link { color: #409eff; cursor: pointer; }
-.amt { color: #303133; font-weight: 500; text-align: right; display: inline-block; width: 100%; }
+.amt { color: #303133; font-weight: 500; text-align: right; display: inline-block; width: 100%; font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
+/* DS：表头 44px 13px/600、明细行 41px、分页 52px（vxe-grid / sTable 页面级覆盖） */
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-header--column .vxe-cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.vxe-body--row) { height: 41px !important; }
+:deep(.vxe-body--column .vxe-cell) { font-size: var(--font-base); }
+:deep(.sTable-page) { height: 52px !important; }
 </style>

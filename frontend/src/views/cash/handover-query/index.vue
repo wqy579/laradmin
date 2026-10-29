@@ -363,7 +363,7 @@ onMounted(async () => {
 .card { flex: 1; margin: var(--space-lg) var(--space-xl); display: flex; flex-direction: column; }
 
 .query-tabs { margin-top: calc(-1 * var(--space-md)); }
-.query-tabs :deep(.el-tabs__item) { font-size: 15px; color: #606266; }
+.query-tabs :deep(.el-tabs__item) { font-size: 14px; color: #606266; }
 .query-tabs :deep(.is-active) { color: #409eff; }
 
 .filter { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-bottom: var(--space-md); }

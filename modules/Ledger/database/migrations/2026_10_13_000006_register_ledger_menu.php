@@ -22,7 +22,7 @@ return new class extends Migration
     {
         $menus = [
             // 顶级分组：path 指向第一个子菜单 /ledger/subject，component 为空
-            ['name' => 'ledger', 'title' => '总账管理', 'parent_name' => null, 'path' => '/ledger/subject', 'component' => '', 'sort' => 13, 'icon' => 'ElIconNotebook'],
+            ['name' => 'ledger', 'title' => '总账管理', 'parent_name' => null, 'path' => '/ledger/subject', 'component' => '', 'sort' => 17, 'icon' => 'ElIconNotebook'],
             // 总账驾驶舱排首（A8 首页 dashboard），其余九个子菜单顺序固定
             ['name' => 'ledger.dashboard', 'title' => '总账驾驶舱', 'parent_name' => 'ledger', 'path' => '/ledger/dashboard', 'component' => 'ledger/dashboard/index', 'sort' => 1, 'icon' => null],
             ['name' => 'ledger.subject', 'title' => '会计科目', 'parent_name' => 'ledger', 'path' => '/ledger/subject', 'component' => 'ledger/subject/index', 'sort' => 2, 'icon' => null],
