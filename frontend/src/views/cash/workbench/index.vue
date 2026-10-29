@@ -252,7 +252,7 @@ onBeforeUnmount(() => {
 }
 
 .stat-grid__item {
-	border-radius: 12px;
+	border-radius: var(--radius-lg);
 }
 
 .chart-card,

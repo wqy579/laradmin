@@ -169,7 +169,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 
 .stat-grid__item {
 	cursor: pointer;
-	border-radius: 12px;
+	border-radius: var(--radius-lg);
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -179,7 +179,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 }
 
 .recent-card {
-	border-radius: 12px;
+	border-radius: var(--radius-lg);
 }
 
 .recent-card__header {

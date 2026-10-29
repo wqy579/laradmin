@@ -75,7 +75,7 @@
 	height: 22px;
 	line-height: 22px;
 	font-size: var(--font-aux);
-	border-radius: 3px;
+	border-radius: var(--radius-sm);
 	color: #fff;
 }
 .pts-tag--draft {
