@@ -100,14 +100,14 @@
 	flex-shrink: 0;
 }
 
-/* 空态：13px #909399 */
+/* 空态：14px #C0C4CC（DS 统一） */
 .pts-empty {
-	font-size: var(--font-base);
-	color: var(--text-secondary);
+	font-size: 14px;
+	color: #c0c4cc;
 }
 .pts-page .el-table__empty-text {
-	font-size: var(--font-base);
-	color: var(--text-secondary);
+	font-size: 14px;
+	color: #c0c4cc;
 	line-height: 1.6;
 }
 
