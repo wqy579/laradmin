@@ -59,6 +59,12 @@
         <testsuite name="Cash">
             <directory>modules/Cash/tests</directory>
         </testsuite>
+        <testsuite name="Hr">
+            <directory>modules/Hr/tests</directory>
+        </testsuite>
+        <testsuite name="Agreement">
+            <directory>modules/Agreement/tests</directory>
+        </testsuite>
         <testsuite name="Asset">
             <directory>modules/Asset/tests</directory>
         </testsuite>

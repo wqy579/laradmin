@@ -10,6 +10,126 @@
     },
     {
         "method": "GET",
+        "uri": "admin/agr/agreements",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/agr/agreements",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/agr/agreements/export",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/agr/agreements/options",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/agr/agreements/stats",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@stats",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/agr/agreements/{id}",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/agr/agreements/{id}",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/agr/agreements/{id}",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/agr/agreements/{id}/redeem",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@redeem",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/agr/agreements/{id}/terminate",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@terminate",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/asset/cards",
         "name": "admin.asset.cards.index",
         "action": "Modules\\Asset\\Http\\Controllers\\AssetCardController@index",
@@ -8592,6 +8712,150 @@
         "uri": "admin/dashboard/salesman-rank",
         "name": "admin.",
         "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@salesmanRank",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/commission-flows",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\CommissionFlowController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/commission-flows/export",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\CommissionFlowController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/commission-flows/options",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\CommissionFlowController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/commission-flows/reconcile",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\CommissionFlowController@reconcile",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/payrolls",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/payrolls/export",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/hr/payrolls/generate",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@generate",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/payrolls/options",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/hr/payrolls/{id}",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/payrolls/{id}",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/hr/payrolls/{id}",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/hr/payrolls/{id}/pay",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@pay",
         "middleware": [
             "api",
             "stock.snapshot",
