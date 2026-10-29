@@ -23,6 +23,9 @@
 					:current-page="page"
 					:page-size="pageSize"
 					:summary="summary"
+					:drill-fetcher="drillFetcher"
+					:drill-payload="drillPayload"
+					:drill-drawer="GenericDrillDrawer"
 					@page-change="onPageChange"
 					@page-size-change="onPageSizeChange"
 					@refresh="fetchData"
@@ -38,6 +41,7 @@ import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import ReportFilterBar from '../components/ReportFilterBar.vue'
 import ReportTable from '../components/ReportTable.vue'
+import GenericDrillDrawer from '../components/GenericDrillDrawer.vue'
 import { saveBlob, printTable } from '@/utils/fileDownload'
 
 /** 8 个 tab 与后端 DIMENSIONS 一一对应，顺序即设计方案里的 tab 顺序 */
@@ -149,6 +153,25 @@ function onPageSizeChange(s) {
 
 function currentLabel() {
 	return TABS.find((t) => t.value === activeTab.value)?.label || ''
+}
+
+// ================= 穿透（可穿）：双击行 → 源单/源明细 =================
+// 明细类维度回源单头+行；聚合类维度回该实体下明细。载荷按当前 tab 构造，
+// 后端 drill 的 match 与 index 的 dimension 同源，key 一一对应。
+const drillFetcher = (payload) => {
+	// 附带当前筛选日期，让采购/入库汇总/收发存穿透限定在区间内（后端按需使用）
+	return businessApi.report.procurement.drill.get({ ...payload, ...buildParams() })
+}
+
+function drillPayload(row) {
+	const dim = activeTab.value
+	if (dim === 'purchase') return row?.supplier_id != null ? { supplier_id: row.supplier_id } : null
+	if (dim === 'stock_in' || dim === 'transfer') return row?.order_no != null ? { order_no: row.order_no } : null
+	if (dim === 'scrap') return row?.adjust_no != null ? { adjust_no: row.adjust_no } : null
+	if (dim === 'stock_in_summary' || dim === 'stock_detail_summary' || dim === 'price_plan')
+		return row?.product_id != null ? { product_id: row.product_id } : null
+	if (dim === 'expense') return row?.expense_no != null ? { expense_no: row.expense_no } : null
+	return null
 }
 
 async function onExport() {

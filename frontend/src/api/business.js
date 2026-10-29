@@ -878,6 +878,7 @@ const businessApi = {
 		procurement: {
 			get: (params) => request.get('business/report/procurement', { params }),
 			export: { get: (params) => request.get('business/report/procurement/export', { params, responseType: 'blob' }) },
+			drill: { get: (params) => request.get('business/report/procurement/drill', { params }) },
 		},
 	},
 }

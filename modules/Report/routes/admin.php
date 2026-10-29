@@ -110,6 +110,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::prefix('procurement')->group(function () {
             Route::get('/', [ProcurementController::class, 'index']);
             Route::get('/export', [ProcurementController::class, 'export']);
+            Route::get('/drill', [ProcurementController::class, 'drill']);
         });
     });
 });

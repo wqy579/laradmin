@@ -105,8 +105,10 @@
 			</el-button>
 		</div>
 
-		<!-- 穿透抽屉：双击行 → 源单明细 -->
-		<ReportDrillDrawer
+		<!-- 穿透抽屉：双击行 → 源单明细。默认用销售单硬编码的 ReportDrillDrawer，
+		     业务形状不同（如 E6 采购/入出库/费用/价格）可传 drillDrawer 换成列驱动通用抽屉 -->
+		<component
+			:is="drillDrawer"
 			v-model="drillOpen"
 			:payload="drillPayload"
 			:fetcher="drillFetcher"
@@ -317,6 +319,8 @@ const props = defineProps({
 	drillFetcher: { type: Function, default: null },
 /** 自定义穿透载荷构造器（row）=> payload；默认按 order_no / order_id 构造，客户类报表按 customer_id 下钻 */
 	drillPayload: { type: Function, default: null },
+	/** 穿透抽屉组件：默认销售单硬编码的 ReportDrillDrawer，可传列驱动通用抽屉覆盖 */
+	drillDrawer: { type: [Object, Function], default: () => ReportDrillDrawer },
 })
 const emit = defineEmits(['pageChange', 'pageSizeChange', 'refresh', 'rowDblclick'])
 

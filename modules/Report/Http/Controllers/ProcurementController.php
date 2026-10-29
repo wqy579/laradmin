@@ -116,6 +116,478 @@ class ProcurementController extends Controller
         return array_key_exists($dimension, self::DIMENSIONS) ? $dimension : 'purchase';
     }
 
+    // ================================================================
+    // 穿透（可穿）：双击行 → 源单/源明细
+    // 8 个维度共用一口径：明细类维度回源单表头+行，聚合类维度回该实体下的明细行。
+    // 载荷约定：doc 型维度传 order_no / adjust_no / expense_no；聚合型传 supplier_id / product_id。
+    // ================================================================
+
+    public function drill(Request $request): JsonResponse
+    {
+        $dimension = $this->dimension($request->all());
+
+        return match ($dimension) {
+            'purchase' => $this->drillPurchase($request),
+            'stock_in' => $this->drillStockIn($request),
+            'transfer' => $this->drillTransfer($request),
+            'scrap' => $this->drillScrap($request),
+            'stock_in_summary' => $this->drillStockInSummary($request),
+            'stock_detail_summary' => $this->drillStockDetail($request),
+            'expense' => $this->drillExpense($request),
+            'price_plan' => $this->drillPricePlan($request),
+            default => $this->error('未知维度', 422),
+        };
+    }
+
+    /** 采购汇总穿透：该供应商区间内的采购申请单 + 退货单 */
+    private function drillPurchase(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['supplier_id' => 'required|integer']);
+
+        $supplier = DB::table('suppliers')->where('id', $validated['supplier_id'])->first(['id', 'code', 'name']);
+        if (! $supplier) {
+            return $this->error('供应商不存在', 404);
+        }
+
+        $params = ReportFilter::parse($request);
+        $header = $this->drillHeader('供应商采购明细', $supplier->code, [
+            ['label' => '供应商', 'value' => $supplier->name],
+            ['label' => '起止日期', 'value' => ($params['start_date'] ?: '最早').' ~ '.($params['end_date'] ?: '最新')],
+        ]);
+
+        $apps = DB::table('purchase_applications as pa')
+            ->where('pa.supplier_id', $validated['supplier_id'])
+            ->whereIn('pa.status', self::PURCHASE_STATUS);
+        $this->applyDateRange($apps, $params, 'pa.apply_date');
+        $apps = $apps->get(['pa.apply_no', 'pa.apply_date', 'pa.status', 'pa.total_quantity', 'pa.total_amount'])
+            ->map(fn ($r) => (object) [
+                'biz_type' => '采购申请',
+                'doc_no' => $r->apply_no,
+                'doc_date' => $r->apply_date,
+                'status' => $this->purchaseStatusLabel($r->status),
+                'qty' => ReportFilter::num($r->total_quantity),
+                'amount' => ReportFilter::num($r->total_amount),
+            ]);
+
+        $returns = DB::table('purchase_returns as pr')
+            ->where('pr.supplier_id', $validated['supplier_id'])
+            ->where('pr.status', 'approved');
+        $this->applyDateRange($returns, $params, 'pr.return_date');
+        $returns = $returns->get(['pr.return_no', 'pr.return_date', 'pr.total_qty', 'pr.total_amount'])
+            ->map(fn ($r) => (object) [
+                'biz_type' => '采购退货',
+                'doc_no' => $r->return_no,
+                'doc_date' => $r->return_date,
+                'status' => '已审核',
+                'qty' => ReportFilter::num($r->total_qty),
+                'amount' => ReportFilter::num($r->total_amount),
+            ]);
+
+        $items = $apps->concat($returns)->sortByDesc('doc_date')->values()->all();
+
+        return $this->success([
+            'header' => $header,
+            'items' => $items,
+            'columns' => [
+                ['prop' => 'biz_type', 'label' => '类型', 'width' => 90, 'align' => 'center', 'type' => 'text'],
+                ['prop' => 'doc_no', 'label' => '单据号', 'width' => 150, 'align' => 'left', 'type' => 'text', 'bold' => true],
+                ['prop' => 'doc_date', 'label' => '日期', 'width' => 100, 'align' => 'center', 'type' => 'text'],
+                ['prop' => 'status', 'label' => '状态', 'width' => 90, 'align' => 'center', 'type' => 'text'],
+                ['prop' => 'qty', 'label' => '数量', 'width' => 90, 'align' => 'right', 'type' => 'number'],
+                ['prop' => 'amount', 'label' => '金额', 'width' => 110, 'align' => 'right', 'type' => 'money', 'bold' => true],
+            ],
+        ]);
+    }
+
+    private function purchaseStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'approved' => '已审核',
+            'transferred' => '已转库',
+            'draft' => '草稿',
+            default => $status,
+        };
+    }
+
+    /** 入库明细穿透：入库单表头 + 行明细 */
+    private function drillStockIn(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['order_no' => 'required|string|max:50']);
+
+        $header = DB::table('stock_ins as sih')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sih.warehouse_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'sih.supplier_id')
+            ->where('sih.order_no', $validated['order_no'])
+            ->selectRaw("
+                sih.order_no, sih.stock_date,
+                case sih.type when 'purchase' then '采购入库' when 'adjustment' then '调整入库' else sih.type end as type_label,
+                COALESCE(w.name, '') as warehouse_name,
+                COALESCE(s.name, '') as supplier_name,
+                COALESCE(sih.total_amount, 0) as total_amount,
+                COALESCE(sih.remark, '') as remark
+            ")
+            ->first();
+
+        if (! $header) {
+            return $this->error('入库单不存在', 404);
+        }
+
+        $items = DB::table('stock_in_items as si')
+            ->leftJoin('products as p', 'p.id', '=', 'si.product_id')
+            ->where('si.stock_in_id', DB::table('stock_ins')->where('order_no', $validated['order_no'])->value('id'))
+            ->selectRaw("
+                COALESCE(p.code, si.product_id) as product_code,
+                COALESCE(p.name, CONCAT('商品#', si.product_id)) as product_name,
+                COALESCE(p.spec, '') as spec, COALESCE(p.price_unit_small, '') as unit,
+                si.quantity, si.price, si.amount
+            ")
+            ->orderByDesc('si.amount')
+            ->get();
+
+        return $this->success([
+            'header' => $this->drillHeader($header->order_no, '', [
+                ['label' => '入库类型', 'value' => $header->type_label],
+                ['label' => '仓库', 'value' => $header->warehouse_name],
+                ['label' => '供应商', 'value' => $header->supplier_name],
+                ['label' => '入库日期', 'value' => $header->stock_date],
+                ['label' => '备注', 'value' => $header->remark],
+            ], [['label' => '入库金额', 'value' => ReportFilter::num($header->total_amount)]]),
+            'items' => $items,
+            'columns' => $this->drillProductColumns(),
+        ]);
+    }
+
+    /** 调拨明细穿透：调拨单表头 + 行明细 */
+    private function drillTransfer(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['order_no' => 'required|string|max:50']);
+
+        $header = DB::table('transfers as t')
+            ->leftJoin('warehouses as fw', 'fw.id', '=', 't.from_warehouse_id')
+            ->leftJoin('warehouses as tw', 'tw.id', '=', 't.to_warehouse_id')
+            ->where('t.order_no', $validated['order_no'])
+            ->selectRaw("
+                t.order_no, t.transfer_date,
+                COALESCE(fw.name, '') as from_warehouse, COALESCE(tw.name, '') as to_warehouse,
+                COALESCE(t.total_amount, 0) as total_amount, COALESCE(t.remark, '') as remark
+            ")
+            ->first();
+
+        if (! $header) {
+            return $this->error('调拨单不存在', 404);
+        }
+
+        $items = DB::table('transfer_items as ti')
+            ->leftJoin('products as p', 'p.id', '=', 'ti.product_id')
+            ->where('ti.transfer_id', DB::table('transfers')->where('order_no', $validated['order_no'])->value('id'))
+            ->selectRaw("
+                COALESCE(p.code, ti.product_id) as product_code,
+                COALESCE(p.name, CONCAT('商品#', ti.product_id)) as product_name,
+                COALESCE(p.spec, '') as spec, COALESCE(p.price_unit_small, '') as unit,
+                ti.quantity, ti.price, ti.amount
+            ")
+            ->orderByDesc('ti.amount')
+            ->get();
+
+        return $this->success([
+            'header' => $this->drillHeader($header->order_no, '', [
+                ['label' => '调出仓', 'value' => $header->from_warehouse],
+                ['label' => '调入仓', 'value' => $header->to_warehouse],
+                ['label' => '调拨日期', 'value' => $header->transfer_date],
+                ['label' => '备注', 'value' => $header->remark],
+            ], [['label' => '调拨金额', 'value' => ReportFilter::num($header->total_amount)]]),
+            'items' => $items,
+            'columns' => $this->drillProductColumns(),
+        ]);
+    }
+
+    /** 报废报损穿透：报损单表头 + 行明细 */
+    private function drillScrap(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['adjust_no' => 'required|string|max:50']);
+
+        $header = DB::table('stock_adjusts as ar')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'ar.warehouse_id')
+            ->where('ar.adjust_no', $validated['adjust_no'])
+            ->selectRaw("
+                ar.adjust_no, ar.adjust_date, COALESCE(w.name, '') as warehouse_name,
+                COALESCE(ar.total_qty, 0) as total_qty, COALESCE(ar.total_amount, 0) as total_amount,
+                COALESCE(ar.reason, '') as reason
+            ")
+            ->first();
+
+        if (! $header) {
+            return $this->error('报损单不存在', 404);
+        }
+
+        $items = DB::table('stock_adjust_items as ari')
+            ->where('ari.adjust_id', DB::table('stock_adjusts')->where('adjust_no', $validated['adjust_no'])->value('id'))
+            ->selectRaw('
+                ari.product_code, ari.product_name, ari.spec, ari.unit,
+                ari.before_qty, ari.adjust_qty, ari.after_qty, ari.unit_cost, ari.total_cost
+            ')
+            ->get();
+
+        return $this->success([
+            'header' => $this->drillHeader($header->adjust_no, '', [
+                ['label' => '仓库', 'value' => $header->warehouse_name],
+                ['label' => '报损日期', 'value' => $header->adjust_date],
+                ['label' => '原因', 'value' => $header->reason],
+            ], [['label' => '报损金额', 'value' => ReportFilter::num($header->total_amount)]]),
+            'items' => $items,
+            'columns' => [
+                ['prop' => 'product_code', 'label' => '编码', 'width' => 80, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'product_name', 'label' => '商品', 'width' => 120, 'align' => 'left', 'type' => 'text', 'bold' => true],
+                ['prop' => 'before_qty', 'label' => '调整前', 'width' => 70, 'align' => 'right', 'type' => 'int'],
+                ['prop' => 'adjust_qty', 'label' => '报损数量', 'width' => 80, 'align' => 'right', 'type' => 'int', 'bold' => true],
+                ['prop' => 'after_qty', 'label' => '调整后', 'width' => 70, 'align' => 'right', 'type' => 'int'],
+                ['prop' => 'unit_cost', 'label' => '成本单价', 'width' => 80, 'align' => 'right', 'type' => 'money'],
+                ['prop' => 'total_cost', 'label' => '报损金额', 'width' => 90, 'align' => 'right', 'type' => 'money', 'bold' => true],
+            ],
+        ]);
+    }
+
+    /** 入库汇总穿透：该商品区间内的入库行 */
+    private function drillStockInSummary(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['product_id' => 'required|integer']);
+
+        $product = DB::table('products')->where('id', $validated['product_id'])->first(['id', 'code', 'name']);
+        if (! $product) {
+            return $this->error('商品不存在', 404);
+        }
+
+        $params = ReportFilter::parse($request);
+        $header = $this->drillHeader('商品入库明细', $product->code, [
+            ['label' => '商品', 'value' => $product->name],
+            ['label' => '起止日期', 'value' => ($params['start_date'] ?: '最早').' ~ '.($params['end_date'] ?: '最新')],
+        ]);
+
+        $query = DB::table('stock_in_items as si')
+            ->join('stock_ins as sih', 'sih.id', '=', 'si.stock_in_id')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sih.warehouse_id')
+            ->leftJoin('suppliers as s', 's.id', '=', 'sih.supplier_id')
+            ->where('si.product_id', $validated['product_id']);
+
+        $this->applyDateRange($query, $params, 'sih.stock_date');
+
+        $items = $query
+            ->selectRaw("
+                sih.order_no, sih.stock_date,
+                case sih.type when 'purchase' then '采购入库' when 'adjustment' then '调整入库' else sih.type end as type_label,
+                COALESCE(w.name, '') as warehouse_name, COALESCE(s.name, '') as supplier_name,
+                si.quantity, si.price, si.amount
+            ")
+            ->orderByDesc('sih.stock_date')->get();
+
+        return $this->success([
+            'header' => $header,
+            'items' => $items,
+            'columns' => [
+                ['prop' => 'stock_date', 'label' => '入库日期', 'width' => 90, 'align' => 'center', 'type' => 'text'],
+                ['prop' => 'order_no', 'label' => '入库单号', 'width' => 140, 'align' => 'left', 'type' => 'text', 'bold' => true],
+                ['prop' => 'type_label', 'label' => '类型', 'width' => 80, 'align' => 'center', 'type' => 'text'],
+                ['prop' => 'warehouse_name', 'label' => '仓库', 'width' => 90, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'supplier_name', 'label' => '供应商', 'width' => 110, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'quantity', 'label' => '数量', 'width' => 80, 'align' => 'right', 'type' => 'int'],
+                ['prop' => 'price', 'label' => '单价', 'width' => 80, 'align' => 'right', 'type' => 'money'],
+                ['prop' => 'amount', 'label' => '金额', 'width' => 100, 'align' => 'right', 'type' => 'money', 'bold' => true],
+            ],
+        ]);
+    }
+
+    /** 收发存汇总穿透：该商品区间内的库存流水 */
+    private function drillStockDetail(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['product_id' => 'required|integer']);
+
+        $product = DB::table('products')->where('id', $validated['product_id'])->first(['id', 'code', 'name']);
+        if (! $product) {
+            return $this->error('商品不存在', 404);
+        }
+
+        $params = ReportFilter::parse($request);
+        $header = $this->drillHeader('商品库存流水', $product->code, [
+            ['label' => '商品', 'value' => $product->name],
+            ['label' => '起止日期', 'value' => ($params['start_date'] ?: '最早').' ~ '.($params['end_date'] ?: '最新')],
+        ]);
+
+        $query = DB::table('stocks_history as sh')
+            ->leftJoin('warehouses as w', 'w.id', '=', 'sh.warehouse_id')
+            ->where('sh.product_id', $validated['product_id']);
+
+        if (! empty($params['start_date']) || ! empty($params['end_date'])) {
+            $start = $params['start_date'] ? $params['start_date'].' 00:00:00' : '1970-01-01 00:00:00';
+            $end = $params['end_date'] ? $params['end_date'].' 23:59:59' : '2999-12-31 23:59:59';
+            $query->whereBetween('sh.created_at', [$start, $end]);
+        }
+
+        $items = $query
+            ->selectRaw("
+                sh.created_at, COALESCE(w.name, '') as warehouse_name,
+                sh.change_type, sh.change_qty, sh.before_qty, sh.after_qty
+            ")
+            ->orderByDesc('sh.created_at')->get()
+            ->map(fn ($r) => (object) [
+                'created_at' => $r->created_at,
+                'warehouse_name' => $r->warehouse_name,
+                'change_type' => $this->stockChangeLabel($r->change_type),
+                'change_qty' => ReportFilter::num($r->change_qty),
+                'before_qty' => ReportFilter::num($r->before_qty),
+                'after_qty' => ReportFilter::num($r->after_qty),
+            ]);
+
+        return $this->success([
+            'header' => $header,
+            'items' => $items,
+            'columns' => [
+                ['prop' => 'created_at', 'label' => '时间', 'width' => 140, 'align' => 'center', 'type' => 'text'],
+                ['prop' => 'warehouse_name', 'label' => '仓库', 'width' => 90, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'change_type', 'label' => '类型', 'width' => 90, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'change_qty', 'label' => '变动', 'width' => 80, 'align' => 'right', 'type' => 'number', 'sign_color' => true],
+                ['prop' => 'before_qty', 'label' => '变动前', 'width' => 80, 'align' => 'right', 'type' => 'int'],
+                ['prop' => 'after_qty', 'label' => '变动后', 'width' => 80, 'align' => 'right', 'type' => 'int', 'bold' => true],
+            ],
+        ]);
+    }
+
+    private function stockChangeLabel(string $type): string
+    {
+        return match ($type) {
+            'purchase' => '采购入库',
+            'sale' => '销售出库',
+            'transfer_out' => '调拨出库',
+            'transfer_in' => '调拨入库',
+            'stock_loss' => '报损出库',
+            'stock_check' => '盘点调整',
+            default => $type ?: '—',
+        };
+    }
+
+    /** 费用查询穿透：费用单自身（单行费用，无行明细，返回一行摘要） */
+    private function drillExpense(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['expense_no' => 'required|string|max:50']);
+
+        $header = DB::table('expenses as e')
+            ->leftJoin('employees as emp', 'emp.id', '=', 'e.handler_id')
+            ->leftJoin('auth_department as d', 'd.id', '=', 'e.department_id')
+            ->where('e.expense_no', $validated['expense_no'])
+            ->selectRaw("
+                e.expense_no, e.expense_date, e.expense_type,
+                COALESCE(emp.name, '') as handler_name,
+                COALESCE(d.name, '') as department_name,
+                e.amount, COALESCE(e.remark, '') as remark,
+                case e.status when 1 then '已生效' when 0 then '草稿' else '其他' end as status_label
+            ")
+            ->first();
+
+        if (! $header) {
+            return $this->error('费用单不存在', 404);
+        }
+
+        return $this->success([
+            'header' => $this->drillHeader($header->expense_no, '', [
+                ['label' => '费用类型', 'value' => $header->expense_type],
+                ['label' => '经办人', 'value' => $header->handler_name],
+                ['label' => '部门', 'value' => $header->department_name],
+                ['label' => '费用日期', 'value' => $header->expense_date],
+                ['label' => '状态', 'value' => $header->status_label],
+                ['label' => '备注', 'value' => $header->remark],
+            ], [['label' => '费用金额', 'value' => ReportFilter::num($header->amount)]]),
+            'items' => [['项目' => $header->expense_type, '金额' => ReportFilter::num($header->amount)]],
+            'columns' => [
+                ['prop' => '项目', 'label' => '费用项目', 'width' => 160, 'align' => 'left', 'type' => 'text'],
+                ['prop' => '金额', 'label' => '金额', 'width' => 120, 'align' => 'right', 'type' => 'money', 'bold' => true],
+            ],
+        ]);
+    }
+
+    /** 价格方案穿透：该商品的标准售价/成本价/各等级方案价 */
+    private function drillPricePlan(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['product_id' => 'required|integer']);
+
+        $product = DB::table('products as p')
+            ->leftJoin('brands as b', 'b.id', '=', 'p.brand_id')
+            ->where('p.id', $validated['product_id'])
+            ->selectRaw("
+                p.code, p.name, p.spec, p.price_unit_small as unit,
+                COALESCE(b.name, '') as brand_name,
+                COALESCE(p.cost_price, 0) as cost_price,
+                COALESCE(p.price_small, p.price_large, 0) as base_price
+            ")
+            ->first();
+
+        if (! $product) {
+            return $this->error('商品不存在', 404);
+        }
+
+        $header = $this->drillHeader('商品价格方案', $product->code, [
+            ['label' => '商品', 'value' => $product->name],
+            ['label' => '规格', 'value' => $product->spec],
+            ['label' => '品牌', 'value' => $product->brand_name],
+        ]);
+
+        $items = [[
+            'item' => '标准售价', 'price' => ReportFilter::num($product->base_price), 'note' => '挂牌价',
+        ], [
+            'item' => '成本价', 'price' => ReportFilter::num($product->cost_price), 'note' => '当前成本',
+        ]];
+
+        $levels = DB::table('customer_levels')->where('status', 1)->orderBy('sort')->get(['id', 'name']);
+        $levelPrices = DB::table('product_level_prices')->where('product_id', $validated['product_id'])
+            ->pluck('price', 'level_id');
+        foreach ($levels as $lv) {
+            if ($levelPrices->has($lv->id)) {
+                $items[] = [
+                    'item' => $lv->name.' 方案价', 'price' => ReportFilter::num($levelPrices->get($lv->id)), 'note' => '等级方案',
+                ];
+            }
+        }
+
+        return $this->success([
+            'header' => $header,
+            'items' => $items,
+            'columns' => [
+                ['prop' => 'item', 'label' => '价格项目', 'width' => 160, 'align' => 'left', 'type' => 'text'],
+                ['prop' => 'price', 'label' => '价格', 'width' => 120, 'align' => 'right', 'type' => 'money', 'bold' => true],
+                ['prop' => 'note', 'label' => '说明', 'width' => 100, 'align' => 'left', 'type' => 'text'],
+            ],
+        ]);
+    }
+
+    /** 商品行明细通用列（编码/名称/规格/单位/数量/单价/金额） */
+    private function drillProductColumns(): array
+    {
+        return [
+            ['prop' => 'product_code', 'label' => '编码', 'width' => 80, 'align' => 'left', 'type' => 'text'],
+            ['prop' => 'product_name', 'label' => '商品', 'width' => 120, 'align' => 'left', 'type' => 'text', 'bold' => true],
+            ['prop' => 'spec', 'label' => '规格', 'width' => 70, 'align' => 'left', 'type' => 'text'],
+            ['prop' => 'unit', 'label' => '单位', 'width' => 56, 'align' => 'center', 'type' => 'text'],
+            ['prop' => 'quantity', 'label' => '数量', 'width' => 76, 'align' => 'right', 'type' => 'int'],
+            ['prop' => 'price', 'label' => '单价', 'width' => 80, 'align' => 'right', 'type' => 'money'],
+            ['prop' => 'amount', 'label' => '金额', 'width' => 90, 'align' => 'right', 'type' => 'money', 'bold' => true],
+        ];
+    }
+
+    /**
+     * 穿透表头统一结构：通用抽屉按此渲染。
+     *
+     * title   单据号或实体名（大标题）；code 次要编号（供应商/商品编码 Tag）；
+     * desc    [{label,value}] 键值描述；totals [{label,value}] 底部合计（金额右对齐、红色）。
+     * 通用组件不感知各业务字段名，只认这套契约。
+     */
+    private function drillHeader(string $title, string $code = '', array $desc = [], array $totals = []): array
+    {
+        return [
+            'title' => $title,
+            'code' => $code,
+            'desc' => array_values($desc),
+            'totals' => array_values($totals),
+        ];
+    }
+
     /** 维度调度：统一返回查询构造器（purchase/stock_detail_summary/price_plan 走 index 里的专路） */
     private function aggregate(array $params, string $dimension)
     {

@@ -1110,4 +1110,89 @@ class ReportFeatureTest extends TestCase
         DB::table('stocks')->where('product_id', $product->id)->where('warehouse_id', $warehouse)
             ->update(['quantity' => 150, 'total_amount' => 150 * 5]);
     }
+
+    // ================================================================
+    // E6 穿透（可穿）：双击行 → 源单/源明细
+    // ================================================================
+
+    public function test_procurement_drill_returns_doc_lines(): void
+    {
+        $this->seedProcurementData();
+        $product = DB::table('products')->where('code', 'E6_PROD')->first();
+
+        // 入库明细穿透：order_no → 表头 + 行明细（取 purchase 那张，数量 100）
+        $orderNo = DB::table('stock_ins')->where('type', 'purchase')->value('order_no');
+        $res = $this->getJson('admin/business/report/procurement/drill?dimension=stock_in&order_no='.$orderNo);
+        $res->assertOk();
+        $this->assertSame($orderNo, $res->json('data.header.title'), '穿透表头应带出单号');
+        $this->assertNotEmpty($res->json('data.items'), '入库单应有行明细');
+        $this->assertEquals(100, round((float) $res->json('data.items.0.quantity'), 2));
+        $this->assertEquals(1200, round((float) $res->json('data.items.0.amount'), 2));
+
+        // 调拨明细穿透：order_no → 行明细
+        $transferNo = DB::table('transfers')->value('order_no');
+        $res = $this->getJson('admin/business/report/procurement/drill?dimension=transfer&order_no='.$transferNo);
+        $res->assertOk();
+        $this->assertEquals(30, round((float) $res->json('data.items.0.quantity'), 2));
+
+        // 报废报损穿透：adjust_no → 行明细（含调整前后）
+        $adjustNo = DB::table('stock_adjusts')->value('adjust_no');
+        $res = $this->getJson('admin/business/report/procurement/drill?dimension=scrap&adjust_no='.$adjustNo);
+        $res->assertOk();
+        $this->assertEquals(5, round((float) $res->json('data.items.0.adjust_qty'), 2));
+        $this->assertEquals(25, round((float) $res->json('data.items.0.total_cost'), 2));
+
+        // 费用查询穿透：expense_no → 单行摘要
+        $expenseNo = DB::table('expenses')->value('expense_no');
+        $res = $this->getJson('admin/business/report/procurement/drill?dimension=expense&expense_no='.$expenseNo);
+        $res->assertOk();
+        $this->assertSame($expenseNo, $res->json('data.header.title'));
+    }
+
+    public function test_procurement_drill_by_entity_id(): void
+    {
+        $this->seedProcurementData();
+        $product = DB::table('products')->where('code', 'E6_PROD')->first();
+        $supplier = DB::table('suppliers')->where('name', '供应商甲')->first();
+
+        // 采购汇总穿透：supplier_id → 采购申请单 + 退货单 并集
+        $res = $this->getJson('admin/business/report/procurement/drill?dimension=purchase&supplier_id='.$supplier->id);
+        $res->assertOk();
+        $types = collect($res->json('data.items'))->pluck('biz_type');
+        $this->assertContains('采购申请', $types);
+        $this->assertContains('采购退货', $types);
+
+        // 入库汇总穿透：product_id → 入库行
+        $res = $this->getJson('admin/business/report/procurement/drill?dimension=stock_in_summary&product_id='.$product->id);
+        $res->assertOk();
+        $this->assertNotEmpty($res->json('data.items'));
+        $this->assertEquals(100 + 50, round((float) collect($res->json('data.items'))->sum('quantity'), 2));
+
+        // 收发存汇总穿透：product_id → 库存流水
+        $res = $this->getJson('admin/business/report/procurement/drill?dimension=stock_detail_summary&product_id='.$product->id);
+        $res->assertOk();
+        $this->assertNotEmpty($res->json('data.items'));
+        $this->assertEquals(100, round((float) collect($res->json('data.items'))->sum('change_qty'), 2));
+
+        // 价格方案穿透：product_id → 标准售价 + 等级方案价
+        $res = $this->getJson('admin/business/report/procurement/drill?dimension=price_plan&product_id='.$product->id);
+        $res->assertOk();
+        $items = collect($res->json('data.items'));
+        $this->assertContains('标准售价', $items->pluck('item'));
+        $lv1Name = DB::table('customer_levels')->where('code', 'LV1')->value('name');
+        $this->assertContains($lv1Name.' 方案价', $items->pluck('item'), '挂了方案价的等级应出现在穿透明细');
+    }
+
+    public function test_procurement_drill_requires_payload(): void
+    {
+        $this->seedProcurementData();
+
+        // 缺载荷 → 422
+        $this->getJson('admin/business/report/procurement/drill?dimension=stock_in')->assertStatus(422);
+        $this->getJson('admin/business/report/procurement/drill?dimension=purchase')->assertStatus(422);
+
+        // 单据不存在 → 404
+        $this->getJson('admin/business/report/procurement/drill?dimension=stock_in&order_no=NOPE')
+            ->assertStatus(404);
+    }
 }
