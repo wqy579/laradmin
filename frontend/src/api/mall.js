@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
 /**
- * F5 分销增值（行程地图 + 分销商城）—— 第 1-2 块。
+ * F5 分销增值（行程地图 + 分销商城 + 短信）
  * baseURL 已含 /admin 前缀，此处相对路径即为 admin/f5/...
  */
 export default {
@@ -34,5 +34,18 @@ export default {
 		reject: (id, data) => request.post(`f5/mall/orders/${id}/reject`, data),
 		cancel: (id, data) => request.post(`f5/mall/orders/${id}/cancel`, data),
 		warehouses: () => request.get('f5/mall/orders/warehouses'),
+	},
+
+	// —— 短信 ——
+	sms: {
+		list: (params) => request.get('f5/sms/templates', { params }),
+		add: (data) => request.post('f5/sms/templates', data),
+		update: (id, data) => request.put(`f5/sms/templates/${id}`, data),
+		remove: (id) => request.delete(`f5/sms/templates/${id}`),
+		toggle: (id, data) => request.post(`f5/sms/templates/${id}/toggle`, data),
+		preview: (data) => request.post('f5/sms/preview', data),
+		records: (params) => request.get('f5/sms/records', { params }),
+		send: (data) => request.post('f5/sms/records/send', data),
+		resend: (id) => request.post(`f5/sms/records/${id}/resend`),
 	},
 }
