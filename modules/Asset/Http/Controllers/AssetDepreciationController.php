@@ -31,6 +31,7 @@ class AssetDepreciationController extends Controller
             'code' => $i['asset_no'],
             'name' => $i['asset_name'],
             'original' => $i['original_value'],
+            'residual_rate' => $i['residual_rate'],
             'month_amount' => $i['month_amount'],
             'depreciated' => $i['depreciated'],
             'net' => $i['net'],
