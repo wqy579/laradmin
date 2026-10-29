@@ -86,11 +86,19 @@ onMounted(() => { filters.start_period = new Date().getFullYear() + '-01'; filte
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding-bottom: 12px; }
 .lbl { font-size: 14px; color: #606266; }
-.amt { text-align: right; display: inline-block; width: 100%; }
+.amt { text-align: right; display: inline-block; width: 100%; font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
 .non-leaf { font-weight: 700; }
 :deep(.non-leaf-row) { background: #fafafa !important; font-weight: 700; }
 :deep(.unbalanced-row) { background: #fef0f0 !important; color: #f56c6c; font-weight: 700; }
 .balance-hint { margin-top: 12px; font-size: 14px; font-weight: 700; text-align: right; }
 .balance-hint.ok { color: #67c23a; }
 .balance-hint.err { color: #f56c6c; }
+/* DS：表头 44px 13px/600、明细行 41px、合计行加粗（vxe-grid 选择器） */
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-header--column .vxe-cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.vxe-body--row) { height: 41px !important; }
+:deep(.vxe-body--column .vxe-cell) { font-size: var(--font-base); }
+:deep(.vxe-footer--row .vxe-cell) { font-weight: 600; }
+/* DS：sTable 分页条 52px（页面级覆盖共享组件默认 50px） */
+:deep(.sTable-page) { height: 52px !important; }
 </style>

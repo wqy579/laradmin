@@ -133,4 +133,9 @@ onMounted(() => load())
 .check-item.warn { background: #fdf6ec; color: #e6a23c; }
 .check-title { font-weight: 700; }
 .check-detail { color: #606266; margin-left: 8px; }
+/* DS：表头 44px 13px/600、明细行 41px（原生 el-table，size=small 覆盖） */
+:deep(.el-table th.el-table__cell) { height: 44px; }
+:deep(.el-table th.el-table__cell .cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.el-table .el-table__body .el-table__row) { height: 41px; }
+:deep(.el-table .el-table__body td.el-table__cell .cell) { font-size: var(--font-base); }
 </style>

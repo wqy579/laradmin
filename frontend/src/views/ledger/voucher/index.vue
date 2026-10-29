@@ -145,6 +145,12 @@ onMounted(() => load())
 .filter { display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; }
 .btn-bar { height: 50px; display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--border-lighter); padding-top: 12px; margin-bottom: 12px; }
 .link { color: var(--color-primary); cursor: pointer; }
-.amt { color: var(--text-primary); font-weight: 500; text-align: right; display: inline-block; width: 100%; }
+.amt { color: var(--text-primary); font-weight: 500; text-align: right; display: inline-block; width: 100%; font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
 .amt-red { color: var(--color-danger); }
+/* DS：表头 44px 13px/600、明细行 41px、分页 52px（vxe-grid / sTable 页面级覆盖） */
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-header--column .vxe-cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.vxe-body--row) { height: 41px !important; }
+:deep(.vxe-body--column .vxe-cell) { font-size: var(--font-base); }
+:deep(.sTable-page) { height: 52px !important; }
 </style>

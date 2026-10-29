@@ -52,7 +52,7 @@
 					<el-tag :style="{ background: tagBg(row.category), color: tagColor(row.category), border: 'none' }" size="small">{{ categoryLabel(row.category) }}</el-tag>
 				</template>
 				<template #balance_direction="{ row }">
-					<span :style="{ color: row.balance_direction === 'debit' ? '#409EFF' : '#B8823A' }">{{ row.balance_direction === 'debit' ? '借' : '贷' }}</span>
+					<span :style="{ color: row.balance_direction === 'debit' ? '#409EFF' : '#E6A23C' }">{{ row.balance_direction === 'debit' ? '借' : '贷' }}</span>
 				</template>
 				<template #aux_types="{ row }">
 					<template v-if="row.aux_types && row.aux_types.length">
@@ -107,11 +107,11 @@ const columns = [
 ]
 
 const categoryLabel = (c) => ({ asset: '资产类', liability: '负债类', common: '共同类', equity: '所有者权益类', cost: '成本类', profit_loss: '损益类' }[c] || c)
-// 科目类别彩色标签：DS 四色方案（资产蓝 / 负债橙 / 权益+共同紫 / 损益+成本绿）
-const tagColor = (c) => ({ asset: '#409EFF', liability: '#E6A23C', common: '#9B59B6', equity: '#9B59B6', cost: '#67C23A', profit_loss: '#67C23A' }[c] || '#606266')
-const tagBg = (c) => ({ asset: '#ECF5FF', liability: '#FDF6EC', common: '#F5F0FA', equity: '#F5F0FA', cost: '#F0F9EB', profit_loss: '#F0F9EB' }[c] || '#F4F4F5')
-// 科目名称前图标：DS 五色（资产蓝/负债橙/权益紫/成本青/损益绿）
-const categoryColor = (c) => ({ asset: '#409EFF', liability: '#E6A23C', common: '#909399', equity: '#9B59B6', cost: '#1ABC9C', profit_loss: '#67C23A' }[c] || '#606266')
+// 科目类别彩色标签：DS 语义色（资产蓝 / 负债橙 / 共同灰 / 权益绿 / 成本绿 / 损益绿）
+const tagColor = (c) => ({ asset: '#409EFF', liability: '#E6A23C', common: '#909399', equity: '#67C23A', cost: '#67C23A', profit_loss: '#67C23A' }[c] || '#606266')
+const tagBg = (c) => ({ asset: '#ECF5FF', liability: '#FDF6EC', common: '#F4F4F5', equity: '#F0F9EB', cost: '#F0F9EB', profit_loss: '#F0F9EB' }[c] || '#F4F4F5')
+// 科目名称前图标：DS 语义色（资产蓝/负债橙/共同灰/权益绿/成本绿/损益绿）
+const categoryColor = (c) => ({ asset: '#409EFF', liability: '#E6A23C', common: '#909399', equity: '#67C23A', cost: '#67C23A', profit_loss: '#67C23A' }[c] || '#606266')
 const categoryIcon = (c) => ({ asset: 'ElIconCoin', liability: 'ElIconWallet', common: 'ElIconSetting', equity: 'ElIconTrophyBase', cost: 'ElIconHistogram', profit_loss: 'ElIconTrendCharts' }[c] || 'ElIconDocument')
 const auxLabel = (a) => ({ customer: '客户', supplier: '供应商', employee: '员工', department: '部门', project: '项目' }[a] || a)
 
