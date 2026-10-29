@@ -8313,6 +8313,30 @@
     },
     {
         "method": "GET",
+        "uri": "admin/dashboard/preference/layout",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardPreferenceController@layout",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/dashboard/preference/layout",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardPreferenceController@saveLayout",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/dashboard/product-rank",
         "name": "admin.",
         "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@productRank",

@@ -59,15 +59,24 @@ function updateMetrics() {
 
 useResizeObserver(containerRef, updateMetrics)
 
-const maxY = computed(() => Math.max(...props.data.map((d) => d.value)) * 1.2)
-const minY = computed(() => Math.min(...props.data.map((d) => d.value)) * 0.8)
+// 空数据保护（E8 硬性要求）：无数据时不得抛错、不得出现 NaN，渲染空态占位。
+// 关键是把 maxY/minY 兜到安全区间，否则 Math.max(...[]) 得 -Infinity，
+// (maxY-minY) 得 -Infinity，yTicks 全是 NaN，SVG 输出 NaN 坐标。
+const hasData = computed(() => props.data.length > 0)
+
+const maxY = computed(() => (hasData.value ? Math.max(...props.data.map((d) => d.value)) * 1.2 : 1))
+const minY = computed(() => (hasData.value ? Math.min(...props.data.map((d) => d.value)) * 0.8 : 0))
 
 const chartWidth = computed(() => Math.max(containerWidth.value - padding.left - padding.right, 100))
 const chartHeight = computed(() => Math.max(containerHeight.value - padding.top - padding.bottom, 100))
 
 const points = computed(() => {
+	if (!hasData.value) return []
 	return props.data.map((d, i) => {
-		const x = padding.left + (i / (props.data.length - 1)) * chartWidth.value
+		// 单点数据时 (i/(n-1)) 除零得 NaN，x 落到区间中点
+		const x = props.data.length === 1
+			? padding.left + chartWidth.value / 2
+			: padding.left + (i / (props.data.length - 1)) * chartWidth.value
 		const y = padding.top + chartHeight.value - ((d.value - minY.value) / (maxY.value - minY.value)) * chartHeight.value
 		return { x, y, value: d.value, label: d.month }
 	})
@@ -94,6 +103,7 @@ const areaD = computed(() => {
 })
 
 const yTicks = computed(() => {
+	if (!hasData.value) return [0, 0, 0, 0, 0]
 	const ticks = []
 	const step = (maxY.value - minY.value) / 4
 	for (let i = 0; i <= 4; i++) {
@@ -114,7 +124,8 @@ onMounted(updateMetrics)
 			<span class="chart-widget__title">{{ title }}</span>
 		</div>
 		<div ref="containerRef" class="chart-widget__body">
-			<svg :width="containerWidth" :height="containerHeight" class="chart-line__svg">
+			<el-empty v-if="!hasData" description="暂无数据" :image-size="60" class="chart-widget__empty" />
+			<svg v-else :width="containerWidth" :height="containerHeight" class="chart-line__svg">
 				<g class="chart-line__grid">
 					<line
 						v-for="(tick, i) in yTicks"
@@ -129,11 +140,11 @@ onMounted(updateMetrics)
 				</g>
 
 				<g class="chart-line__y-axis">
-					<text v-for="(tick, i) in yTicks" :key="i" :x="padding.left - 10" :y="padding.top + chartHeight - ((tick - minY) / (maxY - minY)) * chartHeight + 4" text-anchor="end" fill="var(--el-text-color-secondary)" font-size="11">{{ Math.round(tick / 1000) }}k</text>
+					<text v-for="(tick, i) in yTicks" :key="i" :x="padding.left - 10" :y="padding.top + chartHeight - ((tick - minY) / (maxY - minY)) * chartHeight + 4" text-anchor="end" fill="var(--el-text-color-secondary)" font-size="12">{{ Math.round(tick / 1000) }}k</text>
 				</g>
 
 				<g class="chart-line__x-axis">
-					<text v-for="(point, i) in points" :key="i" :x="point.x" :y="padding.top + chartHeight + 16" text-anchor="middle" fill="var(--el-text-color-secondary)" font-size="11">
+					<text v-for="(point, i) in points" :key="i" :x="point.x" :y="padding.top + chartHeight + 16" text-anchor="middle" fill="var(--el-text-color-secondary)" font-size="12">
 						{{ point.label }}
 					</text>
 				</g>
@@ -204,6 +215,15 @@ onMounted(updateMetrics)
 	flex: 1;
 	position: relative;
 	min-height: 0;
+}
+
+/* E8 空态占位：铺满图表区，纸箱插图居中 */
+.chart-widget__empty {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .chart-line__svg {
