@@ -524,14 +524,14 @@ onMounted(() => {
 .ac-progress {
 	height: 6px;
 	background: var(--bg-hover);
-	border-radius: 3px;
+	border-radius: var(--radius-sm);
 	overflow: hidden;
 	margin-top: 4px;
 }
 .ac-bar {
 	height: 100%;
 	background: var(--color-primary);
-	border-radius: 3px;
+	border-radius: var(--radius-sm);
 	transition: width 0.3s;
 }
 .ac-dep {
