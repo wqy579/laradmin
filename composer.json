@@ -51,7 +51,9 @@
             "Tests\\Dashboard\\": "modules/Dashboard/tests/",
             "Tests\\Member\\": "modules/Member/tests/",
             "Tests\\Ledger\\": "modules/Ledger/tests/",
-            "Tests\\Cash\\": "modules/Cash/tests/"
+            "Tests\\Cash\\": "modules/Cash/tests/",
+            "Tests\\Hr\\": "modules/Hr/tests/",
+            "Tests\\Agreement\\": "modules/Agreement/tests/"
         }
     },
   "scripts": {

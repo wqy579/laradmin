@@ -3,10 +3,12 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Agreement\Seeders\AgreementSeeder;
 use Modules\Auth\Seeders\AuthSeeder;
 use Modules\Business\Seeders\BusinessDataSeeder;
 use Modules\Business\Seeders\BusinessSeeder;
 use Modules\Cash\Seeders\CashSeeder;
+use Modules\Hr\Seeders\HrSeeder;
 use Modules\Ledger\Seeders\LedgerSeeder;
 use Modules\Performance\Seeders\PerformanceMenuSeeder;
 use Modules\System\Seeders\SystemSeeder;
@@ -44,6 +46,8 @@ class DatabaseSeeder extends Seeder
             BusinessDataSeeder::class,
             PerformanceMenuSeeder::class,
             CashSeeder::class,
+            HrSeeder::class,
+            AgreementSeeder::class,
         ]);
     }
 }

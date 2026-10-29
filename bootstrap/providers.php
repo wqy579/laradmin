@@ -1,6 +1,7 @@
 <?php
 
 use App\Providers\AppServiceProvider;
+use Modules\Agreement\Providers\AgreementServiceProvider;
 use Modules\Auth\Providers\AuthServiceProvider;
 use Modules\BorrowReturn\Providers\BorrowReturnServiceProvider;
 use Modules\Business\Providers\BusinessServiceProvider;
@@ -8,6 +9,7 @@ use Modules\Cash\Providers\CashServiceProvider;
 use Modules\Dashboard\Providers\DashboardServiceProvider;
 use Modules\Delivery\Providers\DeliveryServiceProvider;
 use Modules\Exchange\Providers\ExchangeServiceProvider;
+use Modules\Hr\Providers\HrServiceProvider;
 use Modules\Ledger\Providers\LedgerServiceProvider;
 use Modules\Member\Providers\MemberServiceProvider;
 use Modules\Miniapp\Providers\MiniappServiceProvider;
@@ -38,4 +40,6 @@ return [
     DashboardServiceProvider::class,
     PerformanceServiceProvider::class,
     CashServiceProvider::class,
+    HrServiceProvider::class,
+    AgreementServiceProvider::class,
 ];
