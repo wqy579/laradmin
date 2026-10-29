@@ -1,5 +1,5 @@
 <template>
-	<div class="f5-sms-rec-page">
+	<div class="f5-sms-rec-page f5-page">
 		<!-- 查询区 -->
 		<div class="rec-query">
 			<el-form inline :model="query" @submit.prevent>
@@ -110,10 +110,14 @@ async function resend(row) {
 onMounted(load)
 </script>
 
+<style>
+@import '../../_shared.css';
+</style>
+
 <style scoped>
 .f5-sms-rec-page { padding: 16px 20px; }
-.rec-query { background: #fff; padding: 16px 20px 0; border: 1px solid #ebeef5; border-radius: 4px; margin-bottom: 16px; }
+.rec-query { background: #fff; padding: 16px 20px; border-bottom: 1px solid #ebeef5; }
 .rec-no { font-family: monospace; color: #606266; }
 .rec-content { color: #606266; }
-.rec-pager { display: flex; justify-content: flex-end; margin-top: 16px; }
+.rec-pager { display: flex; justify-content: flex-end; align-items: center; height: 52px; }
 </style>

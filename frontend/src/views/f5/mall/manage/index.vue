@@ -1,5 +1,5 @@
 <template>
-	<div class="f5-manage-page">
+	<div class="f5-manage-page f5-page">
 		<!-- 商品上架管理 -->
 		<div class="mg-card">
 			<div class="mg-head">
@@ -152,7 +152,7 @@
 		</div>
 
 		<!-- 上架/编辑弹窗 -->
-		<el-dialog v-model="shelfDlg" :title="shelfForm.id ? '编辑上架信息' : '上架商品'" width="560px">
+		<el-dialog v-model="shelfDlg" class="f5-dialog" :title="shelfForm.id ? '编辑上架信息' : '上架商品'" width="560px">
 			<el-form :model="shelfForm" label-width="100px">
 				<el-form-item v-if="!shelfForm.id" label="选择商品" required>
 					<el-select v-model="shelfForm.product_id" filterable remote :remote-method="searchOptions" :loading="optionsLoading" placeholder="搜索商品名称/编码" style="width: 100%">
@@ -179,7 +179,7 @@
 		</el-dialog>
 
 		<!-- 订单详情弹窗 -->
-		<el-dialog v-model="detailDlg" title="订单详情" width="760px">
+		<el-dialog v-model="detailDlg" class="f5-dialog" title="订单详情" width="760px">
 			<template v-if="detail">
 				<div class="mg-detail-head">
 					<div class="mg-detail-no">{{ detail.order_no }}</div>
@@ -430,6 +430,10 @@ onMounted(() => {
 })
 </script>
 
+<style>
+@import '../../_shared.css';
+</style>
+
 <style scoped>
 .f5-manage-page { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
 .mg-card { background: #fff; border: 1px solid #ebeef5; border-radius: 4px; }
@@ -437,13 +441,13 @@ onMounted(() => {
 .mg-title { font-size: 15px; color: #303133; font-weight: 500; }
 .mg-sub { font-size: 12px; color: #909399; font-weight: 400; margin-left: 10px; }
 .mg-actions { display: flex; gap: 8px; }
-.mg-query { padding: 12px 20px 0; }
+.mg-query { padding: 16px 20px; border-bottom: 1px solid #ebeef5; }
 .mg-prod-name { font-size: 13px; color: #303133; }
 .mg-prod-code { font-size: 12px; color: #909399; }
 .mg-prices { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #606266; font-variant-numeric: tabular-nums; }
 .mg-amount { font-variant-numeric: tabular-nums; font-weight: 600; }
 .mg-muted { color: #909399; font-size: 12px; }
-.mg-pager { display: flex; justify-content: flex-end; padding: 12px 20px; }
+.mg-pager { display: flex; justify-content: flex-end; align-items: center; height: 52px; }
 .mg-card-order { margin-top: 0; }
 .mg-detail-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .mg-detail-no { font-size: 16px; font-weight: 600; color: #303133; }
