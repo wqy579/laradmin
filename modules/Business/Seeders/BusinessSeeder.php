@@ -322,7 +322,10 @@ class BusinessSeeder extends Seeder
             ['name' => 'finance.profit', 'title' => '利润查询', 'parent' => 'finance', 'path' => '/business/profit', 'sort' => 4],
             ['name' => 'finance.balance', 'title' => '余额查询', 'parent' => 'finance', 'path' => '/business/balance', 'sort' => 5],
             ['name' => 'finance.expense-item', 'title' => '费用单', 'parent' => 'finance', 'path' => '/business/expenses', 'sort' => 6],
-            ['name' => 'finance.other-income', 'title' => '其他收入', 'parent' => 'finance', 'path' => '/business/other-incomes', 'sort' => 7],
+            // B9：其它收入单接真实数据后，单数路径与其重复注册的复数路径统一为单数
+            ['name' => 'finance.other-income', 'title' => '其他收入', 'parent' => 'finance', 'path' => '/business/other-income', 'component' => 'business/other-income/index', 'sort' => 7],
+            // B9：一般费用单接真实数据（此前仅有 systemRoutes 静态入口，无菜单记录）
+            ['name' => 'finance.general-expense', 'title' => '一般费用单', 'parent' => 'finance', 'path' => '/business/general-expense', 'component' => 'business/general-expense/index', 'sort' => 26],
             ['name' => 'finance.balance-overview', 'title' => '余额总览', 'parent' => 'finance', 'path' => '/business/balance-overview', 'sort' => 8],
             ['name' => 'finance.receivable', 'title' => '应收账款', 'parent' => 'finance', 'path' => '/business/receivable', 'sort' => 9],
             ['name' => 'finance.payable', 'title' => '应付账款', 'parent' => 'finance', 'path' => '/business/payable', 'sort' => 10],
@@ -336,6 +339,7 @@ class BusinessSeeder extends Seeder
                 'type' => 'menu',
                 'parent_id' => $parentId,
                 'path' => $menu['path'],
+                'component' => $menu['component'] ?? null,
                 'sort' => $menu['sort'],
                 'status' => 1,
             ]);
@@ -405,6 +409,12 @@ class BusinessSeeder extends Seeder
             ['name' => 'fin:iou:confirm', 'title' => '欠条确认', 'parent' => 'finance.iou-confirm', 'sort' => 1],
             // 资金看板（B8）
             ['name' => 'fin:fund-dashboard:view', 'title' => '查看资金看板', 'parent' => 'finance.fund-dashboard', 'sort' => 1],
+            // 一般费用单（B9）
+            ['name' => 'fin:general-expense:view', 'title' => '查看一般费用单', 'parent' => 'finance.general-expense', 'sort' => 1],
+            ['name' => 'fin:general-expense:edit', 'title' => '编辑一般费用单', 'parent' => 'finance.general-expense', 'sort' => 2],
+            ['name' => 'fin:general-expense:approve', 'title' => '审核一般费用单', 'parent' => 'finance.general-expense', 'sort' => 3],
+            // 其它收入单（B9，只读）
+            ['name' => 'fin:other-income:view', 'title' => '查看其它收入单', 'parent' => 'finance.other-income', 'sort' => 1],
         ];
 
         $superRoleId = DB::table('auth_role')->where('code', 'super_admin')->value('id');

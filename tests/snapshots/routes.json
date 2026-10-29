@@ -2528,10 +2528,70 @@
         ]
     },
     {
+        "method": "POST",
+        "uri": "admin/business/general-expense",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "GET",
         "uri": "admin/business/general-expense/statistics",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@statistics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/general-expense/{id}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/general-expense/{id}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/general-expense/{id}",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/general-expense/{id}/approve",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@approve",
         "middleware": [
             "api",
             "stock.snapshot",
@@ -3430,30 +3490,6 @@
     {
         "method": "GET",
         "uri": "admin/business/other-income/statistics",
-        "name": "admin.",
-        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@statistics",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/other-incomes",
-        "name": "admin.",
-        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@index",
-        "middleware": [
-            "api",
-            "stock.snapshot",
-            "auth.check:admin",
-            "log.request"
-        ]
-    },
-    {
-        "method": "GET",
-        "uri": "admin/business/other-incomes/statistics",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@statistics",
         "middleware": [
@@ -7629,6 +7665,534 @@
     },
     {
         "method": "GET",
+        "uri": "admin/cash/accounts/options",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashAccountController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/accounts/{id}/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashAccountController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/accounts/{id}/flows",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashAccountController@flows",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/card-txns",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashCardController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/card-txns/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashCardController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/card-txns/options",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashCardController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/card-txns/{id}/refund",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashCardController@refund",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/dashboard/summary",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDashboardController@summary",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/dashboard/trend",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDashboardController@trend",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/handover",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/handover/batch-confirm",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@batchConfirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover/options",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover/orders",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@orders",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/handover/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/handover/{id}/confirm",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@confirm",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/grants",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/grants",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/grants/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/grants/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/cash/integral/grants/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/grants/{id}/audit",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@audit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/grants/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/grants/{id}/void",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralGrantController@void",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/ledger/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralLedgerController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/ledger/flows",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralLedgerController@flows",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/ledger/members",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralLedgerController@members",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/rules",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/rules",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/rules/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/cash/integral/rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/cash/integral/rules/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/rules/{id}/toggle",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralRuleController@toggle",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/verifies",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/verifies",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/verifies/export",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/verifies/member-summary",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@memberSummary",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/integral/verifies/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/cash/integral/verifies/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/verifies/{id}/audit",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@audit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/verifies/{id}/submit",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@submit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/integral/verifies/{id}/void",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashIntegralVerifyController@void",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/dashboard/brand-proportion",
         "name": "admin.",
         "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@brandProportion",
@@ -8796,6 +9360,54 @@
         "uri": "admin/perf/sales-targets",
         "name": "admin.",
         "action": "Modules\\Performance\\Http\\Controllers\\SalesTargetController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/salesman-order/customer-item",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesmanOrderSummaryController@customerItem",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/salesman-order/export",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesmanOrderSummaryController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/salesman-order/items",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesmanOrderSummaryController@items",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/perf/salesman-order/salesman",
+        "name": "admin.",
+        "action": "Modules\\Performance\\Http\\Controllers\\SalesmanOrderSummaryController@salesman",
         "middleware": [
             "api",
             "stock.snapshot",

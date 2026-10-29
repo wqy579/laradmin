@@ -81,17 +81,20 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [SupplierPaymentController::class, 'index']);
         Route::get('/statistics', [SupplierPaymentController::class, 'statistics']);
     });
-    // 财务：一般费用单
+    // 财务：一般费用单（B9）：完整 CRUD + 审核，数据源 expenses 表
+    // 注：/{id} 用 whereNumber 收紧，避免吞掉 /statistics。
     Route::prefix('business/general-expense')->group(function () {
         Route::get('/', [GeneralExpenseController::class, 'index']);
         Route::get('/statistics', [GeneralExpenseController::class, 'statistics']);
+        Route::get('/{id}', [GeneralExpenseController::class, 'show'])->whereNumber('id');
+        Route::post('/', [GeneralExpenseController::class, 'store']);
+        Route::put('/{id}', [GeneralExpenseController::class, 'update'])->whereNumber('id');
+        Route::post('/{id}/approve', [GeneralExpenseController::class, 'approve'])->whereNumber('id');
+        Route::delete('/{id}', [GeneralExpenseController::class, 'destroy'])->whereNumber('id');
     });
-    // 财务：其它收入单（兼容单复数两种前端路径）
+    // 财务：其它收入单（B9）：只读自 Order 的 receives（receive_type=2），不加写接口
+    // 旧复数路径 business/other-incomes 为重复注册，已并入本单数前缀。
     Route::prefix('business/other-income')->group(function () {
-        Route::get('/', [OtherIncomeController::class, 'index']);
-        Route::get('/statistics', [OtherIncomeController::class, 'statistics']);
-    });
-    Route::prefix('business/other-incomes')->group(function () {
         Route::get('/', [OtherIncomeController::class, 'index']);
         Route::get('/statistics', [OtherIncomeController::class, 'statistics']);
     });

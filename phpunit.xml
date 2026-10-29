@@ -56,6 +56,9 @@
         <testsuite name="Performance">
             <directory>modules/Performance/tests</directory>
         </testsuite>
+        <testsuite name="Cash">
+            <directory>modules/Cash/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

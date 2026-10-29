@@ -10,6 +10,7 @@ use Modules\Performance\Http\Controllers\DashboardController;
 use Modules\Performance\Http\Controllers\DeliveryUncollectedController;
 use Modules\Performance\Http\Controllers\ProfitController;
 use Modules\Performance\Http\Controllers\ReturnSummaryController;
+use Modules\Performance\Http\Controllers\SalesmanOrderSummaryController;
 use Modules\Performance\Http\Controllers\SalesTargetController;
 use Modules\Performance\Http\Controllers\StockWarningController;
 
@@ -117,5 +118,13 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // ---- 退货汇总单（退货类型×渠道大类小类×仓库×日期）----
     Route::prefix('perf/reports')->group(function () {
         Route::get('/return-summary', [ReturnSummaryController::class, 'index']);
+    });
+
+    // ---- 业务员订单汇总（商品明细 / 客户商品汇总 / 业务员汇总 / 导出）----
+    Route::prefix('perf/salesman-order')->group(function () {
+        Route::get('/items', [SalesmanOrderSummaryController::class, 'items']);
+        Route::get('/customer-item', [SalesmanOrderSummaryController::class, 'customerItem']);
+        Route::get('/salesman', [SalesmanOrderSummaryController::class, 'salesman']);
+        Route::get('/export', [SalesmanOrderSummaryController::class, 'export']);
     });
 });

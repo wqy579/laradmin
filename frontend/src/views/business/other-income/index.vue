@@ -1,123 +1,222 @@
 <template>
-	<div class="biz-list">
-		<div class="toolbar">
-			<div class="left-panel">
-				<el-input v-model="filters.keyword" placeholder="搜索" clearable size="small" style="width:160px" @keyup.enter="fetchData" />
-				<el-select v-model="filters.status" placeholder="状态" clearable size="small" style="width:100px" @change="fetchData">
-					<el-option label="草稿" :value="0" />
-					<el-option label="已审核" :value="1" />
-				</el-select>
-				<el-button size="small" @click="fetchData">查询</el-button>
+	<div class="oi-page fin-page">
+		<!-- 筛选区 -->
+		<div class="oi-filter fin-filter">
+			<span class="label">单号</span>
+			<el-input
+				v-model="search.keyword"
+				clearable
+				placeholder="收入单号"
+				size="small"
+				style="width: 180px"
+				@keyup.enter="onSearch"
+				@clear="onSearch"
+			/>
+			<span class="label">状态</span>
+			<el-select v-model="search.status" clearable placeholder="全部状态" size="small" style="width: 120px" @change="onSearch">
+				<el-option label="草稿" :value="0" />
+				<el-option label="已审核" :value="1" />
+			</el-select>
+			<span class="label">收入日期</span>
+			<el-date-picker
+				v-model="search.daterange"
+				type="daterange"
+				size="small"
+				style="width: 240px"
+				start-placeholder="开始日期"
+				end-placeholder="结束日期"
+				value-format="YYYY-MM-DD"
+				@change="onSearch"
+			/>
+			<div class="filter-actions fin-toolbar">
+				<el-button type="primary" @click="onSearch">查询</el-button>
+				<el-button @click="resetSearch">重置</el-button>
 			</div>
-			<el-button type="primary" size="small" @click="handleCreate">新增其它收入</el-button>
 		</div>
-		<sTable ref="tableRef" tableName="other_income" :data="tableData" :columns="columns" :loading="loading" height="100%" stripe>
-			<template #status="{ row }">
-				<el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 1 ? '已审核' : '草稿' }}</el-tag>
-			</template>
-			<template #action="{ row }">
-				<el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-				<el-button v-if="row.status === 0" type="success" link size="small" @click="handleApprove(row)">审核</el-button>
-			</template>
-		</sTable>
 
-		<el-dialog v-model="dialogVisible" :title="dialogTitle" width="800px" top="3vh" destroy-on-close>
-			<div class="section-title">基本信息</div>
-			<el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :inline="true">
-				<el-form-item label="往来单位">
-					<el-select v-model="form.customer_id" placeholder="选择客户" filterable clearable style="width:180px">
-						<el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
-					</el-select>
-				</el-form-item>
-				<el-form-item label="收入日期">
-					<el-date-picker v-model="form.income_date" type="date" value-format="YYYY-MM-DD" style="width:160px" />
-				</el-form-item>
-				<el-form-item label="经手人">
-					<el-select v-model="form.handler_id" placeholder="请选择" clearable filterable style="width:140px">
-						<el-option v-for="e in employees" :key="e.id" :label="e.real_name || e.name" :value="e.id" />
-					</el-select>
-				</el-form-item>
-				<el-form-item label="备注">
-					<el-input v-model="form.remark" style="width:180px" />
-				</el-form-item>
-			</el-form>
+		<!-- 工具条：数据来自收款单（其它收款），本域只读 -->
+		<div class="oi-toolbar fin-toolbar">
+			<span class="toolbar-title">其它收入单</span>
+			<span class="toolbar-tip">数据来自收款模块（其它收款），财务域只读</span>
+		</div>
 
-			<div class="section-title">明细信息</div>
-			<el-table :data="form.items" size="small" border style="margin-bottom:8px">
-				<el-table-column label="收入科目" width="180">
+		<!-- 表格区 -->
+		<div class="oi-content">
+			<el-table :data="rows" border stripe height="100%" v-loading="loading" :show-summary="true" :summary-method="summaryMethod">
+				<el-table-column prop="receive_no" label="单号" width="160" align="left">
 					<template #default="{ row }">
-						<el-select v-model="row.income_type" placeholder="选择科目" size="small" style="width:100%">
-							<el-option label="销售返利" value="销售返利" />
-							<el-option label="租赁收入" value="租赁收入" />
-							<el-option label="服务费" value="服务费" />
-							<el-option label="利息收入" value="利息收入" />
-							<el-option label="其他" value="其他" />
-						</el-select>
+						<span class="tabular">{{ row.receive_no || '-' }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column label="金额" width="120">
+				<el-table-column label="往来单位" width="180" align="left">
+					<template #default="{ row }">{{ row.customer?.name || '-' }}</template>
+				</el-table-column>
+				<el-table-column prop="amount" label="金额" width="140" align="right">
 					<template #default="{ row }">
-						<el-input-number v-model="row.amount" :precision="2" :min="0" size="small" style="width:100%" @change="calcTotal" />
+						<span class="tabular">{{ fmtMoney(row.amount) }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column label="摘要">
-					<template #default="{ row }"><el-input v-model="row.summary" size="small" placeholder="摘要" /></template>
+				<el-table-column prop="receive_date" label="收入日期" width="120" align="center">
+					<template #default="{ row }">
+						<span class="tabular">{{ fmtDate(row.receive_date) }}</span>
+					</template>
 				</el-table-column>
-				<el-table-column label="操作" width="60" align="center">
-					<template #default="{ $index }"><el-button type="danger" link size="small" @click="form.items.splice($index, 1); calcTotal()">删</el-button></template>
+				<el-table-column prop="payment_method" label="付款方式" width="110" align="center">
+					<template #default="{ row }">{{ row.payment_method || '-' }}</template>
 				</el-table-column>
+				<el-table-column label="经手人" width="110" align="left">
+					<template #default="{ row }">{{ row.handler?.name || '-' }}</template>
+				</el-table-column>
+				<el-table-column prop="status" label="状态" width="90" align="center">
+					<template #default="{ row }">
+						<el-tag size="small" :type="row.status === 1 ? 'success' : 'info'">{{ row.status === 1 ? '已审核' : '草稿' }}</el-tag>
+					</template>
+				</el-table-column>
+				<el-table-column prop="remark" label="备注" min-width="160" align="left" show-overflow-tooltip>
+					<template #default="{ row }">{{ row.remark || '-' }}</template>
+				</el-table-column>
+				<template #empty>
+					<FinEmpty />
+				</template>
 			</el-table>
-			<el-button type="success" size="small" @click="form.items.push({ income_type: '', amount: 0, summary: '' })">添加</el-button>
+		</div>
 
-			<div class="section-title" style="margin-top:8px">合计</div>
-			<span style="color:#67c23a;font-weight:bold;font-size:16px">¥{{ form.amount.toFixed(2) }}</span>
-
-			<template #footer>
-				<el-button @click="dialogVisible = false">取消</el-button>
-				<el-button type="warning" @click="handleSubmit">提交(S)</el-button>
-			</template>
-		</el-dialog>
+		<!-- 分页 -->
+		<div class="oi-pager fin-pager">
+			<el-pagination
+				background
+				layout="total, prev, pager, next"
+				:total="total"
+				:page-size="pageSize"
+				:current-page="page"
+				@current-change="onPageChange"
+			/>
+		</div>
 	</div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import sTable from '@/components/sTable/index.vue'
 import businessApi from '@/api/business'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
-const tableRef = ref(null)
-const formRef = ref(null)
+const fmtMoney = (v) =>
+	Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmtDate = (v) => (v ? String(v).slice(0, 10) : '-')
+
 const loading = ref(false)
-const tableData = ref([])
-const customers = ref([])
-const employees = ref([])
-const dialogVisible = ref(false)
-const dialogTitle = ref('')
-const filters = reactive({ keyword: '', status: null })
-const form = reactive({ id: null, customer_id: null, income_date: '', handler_id: null, remark: '', amount: 0, items: [{ income_type: '', amount: 0, summary: '' }] })
-const rules = { income_date: [{ required: true, message: '请选择日期', trigger: 'change' }] }
-const columns = [
-	{ prop: 'income_no', title: '单号', width: 140 },
-	{ prop: 'customer_name', title: '往来单位', width: 150 },
-	{ prop: 'amount', title: '金额', width: 100, align: 'right' },
-	{ prop: 'income_date', title: '日期', width: 100 },
-	{ prop: 'status', title: '状态', width: 80, slots: { default: 'status' } },
-	{ prop: 'remark', title: '备注', showOverflowTooltip: true },
-	{ prop: 'action', title: '操作', width: 120, slots: { default: 'action' } },
-]
-const calcTotal = () => { form.amount = form.items.reduce((s, i) => s + Number(i.amount || 0), 0) }
-const handleCreate = () => { Object.assign(form, { id: null, customer_id: null, income_date: new Date().toISOString().slice(0,10), handler_id: null, remark: '', amount: 0, items: [{ income_type: '', amount: 0, summary: '' }] }); dialogTitle.value = '新增其它收入'; dialogVisible.value = true }
-const handleEdit = (row) => { Object.assign(form, row); dialogTitle.value = '编辑其它收入'; dialogVisible.value = true }
-const handleSubmit = async () => { await formRef.value.validate(); try { ElMessage.success('保存成功'); dialogVisible.value = false; fetchData() } catch {} }
-const handleApprove = async (row) => { try { await ElMessageBox.confirm('确定审核?'); ElMessage.success('审核成功'); fetchData() } catch {} }
-async function fetchData() { loading.value = true; try { /* 无独立接口，暂空 */ } finally { loading.value = false } }
-onMounted(() => { businessApi.customer.list.get({ page_size: 9999 }).then(r => { if (r.code === 200) customers.value = r.data?.list || [] }); businessApi.employee.list.get({ is_active: 1, page_size: 9999 }).then(r => { if (r.code === 200) employees.value = r.data?.list || [] }) })
+const page = ref(1)
+const pageSize = 20
+const rows = ref([])
+const total = ref(0)
+
+const search = reactive({ keyword: '', status: null, daterange: [] })
+
+const refresh = async () => {
+	loading.value = true
+	try {
+		const params = { page: page.value, page_size: pageSize }
+		if (search.keyword) params.keyword = search.keyword
+		if (search.status !== null && search.status !== '') params.status = search.status
+		if (search.daterange?.length === 2) {
+			params.start_date = search.daterange[0]
+			params.end_date = search.daterange[1]
+		}
+		const res = await businessApi.finance.otherIncome.list.get(params)
+		const data = res?.data ?? {}
+		rows.value = data.list || []
+		total.value = data.total || 0
+	} catch {
+		rows.value = []
+		total.value = 0
+	} finally {
+		loading.value = false
+	}
+}
+
+const onSearch = () => {
+	page.value = 1
+	refresh()
+}
+const onPageChange = (p) => {
+	page.value = p
+	refresh()
+}
+const resetSearch = () => {
+	search.keyword = ''
+	search.status = null
+	search.daterange = []
+	onSearch()
+}
+
+const summaryMethod = ({ columns }) => {
+	const sum = rows.value.reduce((s, r) => s + Number(r.amount || 0), 0)
+	return columns.map((col, i) => {
+		if (i === 0) return '合计'
+		if (col.property === 'amount') return fmtMoney(sum)
+		return ''
+	})
+}
+
+onMounted(refresh)
 </script>
 
+<style>
+@import '../../finance/_shared.css';
+</style>
+
 <style scoped>
-.biz-list { height: 100%; display: flex; flex-direction: column; }
-.toolbar { display: flex; justify-content: space-between; padding: 8px; }
-.left-panel { display: flex; gap: 8px; }
-.section-title { background: #f5f5f5; color: #333; font-size: 14px; padding: 8px 12px; margin-bottom: 8px; border-left: 3px solid #67c23a; }
+.oi-page {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+.oi-filter {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+}
+.filter-actions {
+	margin-left: auto;
+	display: flex;
+	gap: 12px;
+}
+.oi-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 20px;
+	background: var(--bg-card);
+}
+.toolbar-title {
+	font-size: var(--font-h3);
+	font-weight: 600;
+	color: var(--text-primary);
+}
+.toolbar-tip {
+	font-size: var(--font-aux);
+	color: var(--text-secondary);
+}
+.oi-content {
+	flex: 1;
+	min-height: 0;
+	padding: 0 12px;
+}
+.oi-pager {
+	padding: 0 12px;
+}
+.tabular {
+	font-variant-numeric: tabular-nums;
+}
+:deep(.el-table) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
+}
+:deep(.el-table__footer td) {
+	background: var(--bg-hover);
+	color: var(--text-primary);
+	font-weight: 600;
+}
 </style>

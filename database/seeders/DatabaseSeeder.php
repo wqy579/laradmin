@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Modules\Auth\Seeders\AuthSeeder;
 use Modules\Business\Seeders\BusinessDataSeeder;
 use Modules\Business\Seeders\BusinessSeeder;
+use Modules\Cash\Seeders\CashSeeder;
 use Modules\Ledger\Seeders\LedgerSeeder;
 use Modules\Performance\Seeders\PerformanceMenuSeeder;
 use Modules\System\Seeders\SystemSeeder;
@@ -42,6 +43,7 @@ class DatabaseSeeder extends Seeder
             LedgerSeeder::class,
             BusinessDataSeeder::class,
             PerformanceMenuSeeder::class,
+            CashSeeder::class,
         ]);
     }
 }

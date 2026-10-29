@@ -789,6 +789,21 @@ const businessApi = {
 			reject: { post: (type, id, params) => request.post(`business/finance-fund-orders/${type}/${id}/reject`, params) },
 			repay: { post: (type, id, params) => request.post(`business/finance-fund-orders/${type}/${id}/repay`, params) },
 		},
+		// 一般费用单（B9）：expenses 表，完整 CRUD + 审核
+		generalExpense: {
+			list: { get: (params) => request.get('business/general-expense', { params }) },
+			detail: { get: (id) => request.get(`business/general-expense/${id}`) },
+			add: { post: (params) => request.post('business/general-expense', params) },
+			update: { put: (id, params) => request.put(`business/general-expense/${id}`, params) },
+			approve: { post: (id) => request.post(`business/general-expense/${id}/approve`) },
+			delete: { delete: (id) => request.delete(`business/general-expense/${id}`) },
+			statistics: { get: (params) => request.get('business/general-expense/statistics', { params }) },
+		},
+		// 其它收入单（B9）：只读自 Order 的 receives（receive_type=2），无写接口
+		otherIncome: {
+			list: { get: (params) => request.get('business/other-income', { params }) },
+			statistics: { get: (params) => request.get('business/other-income/statistics', { params }) },
+		},
 	},
 
 	// 内部邮件（Office 模块）

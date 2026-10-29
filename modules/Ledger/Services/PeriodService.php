@@ -16,7 +16,8 @@ use Modules\Ledger\Models\VoucherEntry;
  *  ② 试算是否平衡；
  *  ③ 业务单据是否都已生成凭证（提示性黄色警告，不阻止结账；自动生成机制第四阶段联调，人工核对）；
  *  ④ 损益类科目是否需要结转（提供「自动生成结转损益凭证」按钮）；
- *  ⑤ 应收应付期间与现金流水是否平衡（提示性）。
+ *  ⑤ 应收应付期间与现金流水是否平衡（提示性）；
+ *  ⑥ 本期收入上交款（D2 cash_handover）是否已全部确认（提示性，供业务域月结 Step2 取数）。
  *
  * 反结账仅允许从最后一个已结账期间逆向操作，需二次确认并记录操作日志。
  */
@@ -99,6 +100,24 @@ class PeriodService
             'passed' => true,
             'blocking' => false,
             'detail' => '提示性检查，请人工核对',
+        ];
+
+        // ⑥ 本期收入上交款是否已全部确认（D2，提示性，不阻止结账）
+        // 业务域月结 Step2（FinanceMonthCloseController / FinanceMonthCloseService，另一台机器负责）消费本项，
+        // 故未确认张数在此统一对外暴露，不要改动 B 域代码；跨域按裸表读，不引入 Cash 模型。
+        $pendingHandover = DB::table('cash_handover')
+            ->where('status', 'pending')
+            ->whereBetween('handover_date', [
+                date('Y-m-01', strtotime($period.'-01')),
+                date('Y-m-t', strtotime($period.'-01')),
+            ])
+            ->count();
+        $checks[] = [
+            'key' => 'handover_pending',
+            'title' => '收入上交款已全部确认',
+            'passed' => $pendingHandover === 0,
+            'blocking' => false,
+            'detail' => $pendingHandover > 0 ? '存在未确认的收入上交款 '.$pendingHandover.' 单，请出纳先到「上交款查询」确认' : '无未确认的收入上交款',
         ];
 
         $blockingPassed = true;
