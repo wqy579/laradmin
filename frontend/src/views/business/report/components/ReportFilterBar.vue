@@ -192,6 +192,26 @@
 						<el-checkbox v-model="model.only_warning" size="small">只看预警商品</el-checkbox>
 					</div>
 
+					<!-- 采购/入出库/费用报表族（E6）专属：供应商与费用类型 -->
+					<div class="rp-field" v-else-if="key === 'supplier_ids'">
+						<span class="rp-label">供应商</span>
+						<div class="rp-control">
+							<el-select v-model="model.supplier_ids" multiple collapse-tags collapse-tags-tooltip filterable
+								clearable size="small" style="width: 100%">
+								<el-option v-for="o in options.suppliers" :key="o.id" :label="`${o.code} ${o.name}`" :value="o.id" />
+							</el-select>
+						</div>
+					</div>
+					<div class="rp-field" v-else-if="key === 'expense_types'">
+						<span class="rp-label">费用类型</span>
+						<div class="rp-control">
+							<el-select v-model="model.expense_types" multiple collapse-tags collapse-tags-tooltip clearable
+								size="small" style="width: 100%">
+								<el-option v-for="o in options.expense_types" :key="o" :label="o" :value="o" />
+							</el-select>
+						</div>
+					</div>
+
 					<!-- 单据 -->
 					<div class="rp-field" v-else-if="key === 'sale_types'">
 						<span class="rp-label">销售类型</span>
@@ -371,6 +391,7 @@ const options = reactive({
 	warehouses: [], brands: [], main_categories: [], sub_categories: [],
 	customer_levels: [], customer_categories: [], channel_categories: [],
 	channel_sub_categories: [], payment_methods: [], salesmen: [], delivery_persons: [],
+	suppliers: [], expense_types: [],
 })
 const templates = ref([])
 const currentTemplate = ref(null)
