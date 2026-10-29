@@ -183,14 +183,18 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Download } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import cashApi from '@/api/cash'
 import { saveBlob } from '@/utils/fileDownload'
 import { HANDOVER_STATUS, fmtMoney, fmtCount, fmtDay } from '../shared'
 
 const router = useRouter()
+const route = useRoute()
 
-const activeTab = ref('pending')
+// 出纳工作台的「去处理」带 ?status=pending 穿透进来，非法值回落默认页签
+const TAB_NAMES = ['pending', 'confirmed', 'all']
+const queryTab = TAB_NAMES.includes(route.query.status) ? route.query.status : 'pending'
+const activeTab = ref(queryTab)
 const filters = reactive({ salesman_id: '', account_id: '', no: '', start_date: '', end_date: '' })
 const dateRange = ref([])
 const rows = ref([])
