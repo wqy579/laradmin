@@ -11,7 +11,7 @@
 				:size="config.size"
 				:border="config.border"
 				:stripe="config.stripe"
-				:loading="loading"
+				:loading="loading && !skeleton"
 				:sort-config="sortConfig"
 				:filter-config="filterConfig"
 				:floating-filter-config="floatingFilterConfig"
@@ -77,6 +77,39 @@
 					/>
 				</template>
 			</vxe-grid>
+			<!-- 首屏骨架屏：API 慢/超时时第一屏先渲染「表头 + 占位行」，杜绝长时间白屏。
+			     仅在 skeleton 开启且 loading 时显示；用绝对定位盖住表格，loading 结束即消失。 -->
+			<div v-if="skeleton && loading" class="skeleton-mask">
+				<div class="skeleton-head">
+					<div
+						v-for="(col, i) in skeletonColumns"
+						:key="'h' + i"
+						class="skeleton-cell"
+						:style="{ width: col.width }"
+					>
+						<span class="skeleton-bar" style="width: 45%"></span>
+					</div>
+				</div>
+				<div
+					v-for="row in skeletonRows"
+					:key="'r' + row"
+					class="skeleton-row"
+				>
+					<div
+						v-for="(col, i) in skeletonColumns"
+						:key="'c' + row + i"
+						class="skeleton-cell"
+						:style="{ width: col.width, textAlign: col.align || 'left' }"
+					>
+						<span
+							class="skeleton-bar"
+							:style="{
+								width: skeletonBarWidth(col),
+							}"
+						></span>
+					</div>
+				</div>
+			</div>
 		</div>
 		<div class="sTable-page" v-if="!hidePagination || !hideDo">
 			<div class="sTable-pagination">
@@ -172,6 +205,7 @@ const props = defineProps({
 	border: { type: Boolean, default: false },
 	stripe: { type: Boolean, default: false },
 	loading: { type: Boolean, default: false },
+	skeleton: { type: Boolean, default: false },
 	emptyText: { type: String, default: '暂无数据' },
 	total: { type: Number, default: 0 },
 	currentPage: { type: Number, default: 1 },
@@ -479,6 +513,29 @@ const renderColumns = computed(() => {
 		})
 })
 
+// ==================== 骨架屏（首屏加载占位） ====================
+// 取可见列（过滤隐藏列）作为骨架列：宽度/对齐与真实表头一致，
+// 让骨架形状贴近真实表格，避免首屏闪烁感。
+const skeletonColumns = computed(() => {
+	return renderColumns.value
+		.filter((col) => !col.type) // 跳过 checkbox 等类型列
+		.map((col) => ({
+			width: (col.width || 100) + 'px',
+			align: col.align || 'left',
+		}))
+})
+
+// 占位行数：跟随分页 pageSize，最多 12 行，最少 5 行（首屏视觉饱满）
+const skeletonRows = computed(() => {
+	const n = Number(props.pageSize) || 10
+	return Math.min(12, Math.max(5, n))
+})
+
+function skeletonBarWidth(col) {
+	// 固定列按列宽一半的条，避免撑破；对齐列给较窄条，模拟文字
+	return col.align === 'right' ? '50%' : col.align === 'center' ? '38%' : '58%'
+}
+
 // ==================== 三、表格配置 ====================
 
 const _height = computed(() => {
@@ -629,6 +686,7 @@ defineExpose({
 .sTable-table {
 	flex: 1;
 	min-height: 0;
+	position: relative;
 }
 
 .sTable-page {
@@ -656,6 +714,56 @@ defineExpose({
 
 .sTable-do :deep(.el-button.is-circle .el-icon) {
 	font-size: inherit;
+}
+
+/* 骨架屏：绝对定位盖住表格区，行高对齐 vxe 默认 41px，避免真实行加载时跳动 */
+.skeleton-mask {
+	position: absolute;
+	inset: 0;
+	background: #fff;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 5;
+}
+
+.skeleton-head {
+	display: flex;
+	height: 41px;
+	border-bottom: 1px solid #ebeef5;
+	background: #f5f7fa;
+}
+
+.skeleton-row {
+	display: flex;
+	height: 41px;
+	border-bottom: 1px solid #f2f6fc;
+}
+
+.skeleton-cell {
+	display: flex;
+	align-items: center;
+	padding: 0 12px;
+	flex-shrink: 0;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.skeleton-bar {
+	display: inline-block;
+	height: 14px;
+	border-radius: 4px;
+	background: linear-gradient(90deg, #f0f2f5 25%, #e6e8eb 37%, #f0f2f5 63%);
+	background-size: 400% 100%;
+	animation: skeleton-shimmer 1.4s ease infinite;
+}
+
+@keyframes skeleton-shimmer {
+	0% {
+		background-position: 100% 50%;
+	}
+	100% {
+		background-position: 0 50%;
+	}
 }
 
 /* 浮动筛选输入框 */

@@ -283,10 +283,11 @@ class AuthFeatureTest extends TestCase
 
     // ---------------------------------------------------------------- 登录限流
 
-    public function test_login_rate_limit_5_attempts_per_15_minutes(): void
+    public function test_login_rate_limit_10_attempts_per_15_minutes(): void
     {
-        // RateLimitMiddleware: login → max_attempts=5, decay_minutes=15，按 username+IP 计数
-        for ($i = 0; $i < 5; $i++) {
+        // BUG-06 治理：login → max_attempts=10, decay_minutes=15，按 username 计数。
+        // 前 10 次（错误密码）应 401，第 11 次起被限流返回 429。
+        for ($i = 0; $i < 10; $i++) {
             $this->postJson('/admin/auth/login', [
                 'username' => 'rl_probe_user',
                 'password' => 'bad-password',
@@ -299,16 +300,18 @@ class AuthFeatureTest extends TestCase
         ]);
 
         $response->assertStatus(429)
-            ->assertJsonPath('code', 429);
-        $this->assertStringContainsString('请求过于频繁', (string) $response->json('message'));
-        $this->assertIsInt($response->json('data.retry_after'), '限流响应应携带 retry_after');
-        $this->assertGreaterThan(0, $response->json('data.retry_after'));
+            ->assertJsonPath('code', 429)
+            ->assertJsonPath('message', '操作频繁，请稍后再试');
+        // 验收结构：retry_after 在顶层，且为整数秒
+        $this->assertArrayHasKey('retry_after', $response->json());
+        $this->assertIsInt($response->json('retry_after'));
+        $this->assertGreaterThan(0, $response->json('retry_after'));
     }
 
     public function test_login_rate_limit_is_per_username(): void
     {
-        // 用尽 one_user 的配额
-        for ($i = 0; $i < 5; $i++) {
+        // 用尽 one_user 的配额（10 次）
+        for ($i = 0; $i < 10; $i++) {
             $this->postJson('/admin/auth/login', [
                 'username' => 'rl_user_a',
                 'password' => 'bad',
@@ -328,7 +331,7 @@ class AuthFeatureTest extends TestCase
         // 计数键只按账号（见 RateLimitMiddleware::resolveSignatures）：
         // 轮换出口 IP 换不来新配额。laravel-s 会把客户端自带的 X-Real-IP
         // 无条件写进 REMOTE_ADDR，IP 维度在 laravel-s 下是客户端可控的。
-        for ($i = 1; $i <= 5; $i++) {
+        for ($i = 1; $i <= 10; $i++) {
             $this->call('POST', '/admin/auth/login', [
                 'username' => 'rl_ip_rotate',
                 'password' => 'bad',

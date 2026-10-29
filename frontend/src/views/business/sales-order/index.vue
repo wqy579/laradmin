@@ -375,6 +375,7 @@
         :columns="columns"
         :searchForm="searchForm"
         :loading="loading"
+        skeleton
         :total="total"
         :currentPage="paginationProps.currentPage"
         :pageSize="paginationProps.pageSize"
