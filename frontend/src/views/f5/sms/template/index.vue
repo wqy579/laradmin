@@ -1,5 +1,5 @@
 <template>
-	<div class="f5-sms-page">
+	<div class="f5-sms-page f5-page">
 		<!-- 查询区 -->
 		<div class="sms-query">
 			<el-form inline :model="query" @submit.prevent>
@@ -65,7 +65,7 @@
 		</div>
 
 		<!-- 编辑弹窗（含变量实时预览） -->
-		<el-dialog v-model="dlg" :title="form.id ? '编辑模板' : '新建模板'" width="700px">
+		<el-dialog v-model="dlg" class="f5-dialog" :title="form.id ? '编辑模板' : '新建模板'" width="700px">
 			<el-form :model="form" label-width="90px">
 				<el-form-item label="编码" required>
 					<el-input v-model="form.code" placeholder="如 ORDER_NOTIFY，字母/数字/下划线" :disabled="!!form.id" />
@@ -100,7 +100,7 @@
 		</el-dialog>
 
 		<!-- 发送弹窗 -->
-		<el-dialog v-model="sendDlg" title="发送短信" width="520px">
+		<el-dialog v-model="sendDlg" class="f5-dialog" title="发送短信" width="520px">
 			<el-form :model="sendForm" label-width="90px">
 				<el-form-item label="模板">
 					<span>{{ sendForm.template_name }}</span>
@@ -304,14 +304,18 @@ async function doSend() {
 onMounted(load)
 </script>
 
+<style>
+@import '../../_shared.css';
+</style>
+
 <style scoped>
 .f5-sms-page { padding: 16px 20px; }
-.sms-query { background: #fff; padding: 16px 20px 0; border: 1px solid #ebeef5; border-radius: 4px; margin-bottom: 16px; }
+.sms-query { background: #fff; padding: 16px 20px; border-bottom: 1px solid #ebeef5; }
 .sms-code { font-family: monospace; color: #409eff; }
 .sms-content { color: #606266; }
 .sms-var { margin-right: 4px; }
 .sms-muted { color: #909399; font-size: 12px; }
-.sms-pager { display: flex; justify-content: flex-end; margin-top: 16px; }
+.sms-pager { display: flex; justify-content: flex-end; align-items: center; height: 52px; }
 .sms-hint { font-size: 12px; color: #909399; margin-top: 4px; }
 .sms-examples { width: 100%; }
 .sms-example-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
