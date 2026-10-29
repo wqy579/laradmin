@@ -429,4 +429,83 @@ class PricePlanFeatureTest extends TestCase
 
         $this->assertSame(12.0, $result['price'], '过期特价不得生效');
     }
+
+    // ==================================================================
+    // 报废查询：商品/仓库/期间筛选 + 合计（F7-BRIEF 第 2 项）
+    // ==================================================================
+
+    public function test_stock_adjust_index_filters_by_product_and_returns_summary(): void
+    {
+        $this->actingAsAdmin();
+
+        $productA = $this->makeProduct();
+        $productB = $this->makeProduct();
+        $warehouse = $this->makeWarehouse();
+        Stock::create(['product_id' => $productA->id, 'warehouse_id' => $warehouse->id, 'quantity' => 10]);
+        Stock::create(['product_id' => $productB->id, 'warehouse_id' => $warehouse->id, 'quantity' => 20]);
+
+        // 两笔报废单：A 单 -5，B 单 -8（均 ≤ 库存）
+        foreach ([[$productA, -5], [$productB, -8]] as [$p, $qty]) {
+            $store = $this->postJson('/admin/business/stock-adjust', [
+                'warehouse_id' => $warehouse->id,
+                'adjust_date' => now()->toDateString(),
+                'adjust_type' => 'stock_loss',
+                'reason' => '报废',
+                'items' => [['product_id' => $p->id, 'adjust_qty' => $qty, 'unit_cost' => 2.0]],
+            ]);
+            $store->assertOk();
+            $adjustId = $store->json('data.id');
+            $this->postJson("/admin/business/stock-adjust/{$adjustId}/submit")->assertOk();
+            $this->postJson("/admin/business/stock-adjust/{$adjustId}/approve")->assertOk();
+        }
+
+        // 按商品筛选：仅命中 A 的调整单
+        $res = $this->getJson('/admin/business/stock-adjust?adjust_type=stock_loss&product_id='.$productA->id);
+        $res->assertOk();
+        $rows = collect($res->json('data.list'));
+        $this->assertSame(1, $rows->count(), '按商品筛选应只命中含该商品的调整单');
+
+        // 合计与筛选一致（整表 total_qty = -5）
+        $summary = $res->json('data.summary');
+        $this->assertNotNull($summary, '列表应带合计');
+        $this->assertSame(-5.0, (float) $summary['total_qty'], '合计调整数量应为 -5');
+        $this->assertSame(1, (int) $summary['count']);
+
+        // 无商品筛选：合计覆盖两笔（-5 + -8 = -13）
+        $resAll = $this->getJson('/admin/business/stock-adjust?adjust_type=stock_loss');
+        $resAll->assertOk();
+        $summaryAll = $resAll->json('data.summary');
+        $this->assertSame(-13.0, (float) $summaryAll['total_qty'], '全量合计应为 -13');
+        $this->assertSame(2, (int) $summaryAll['count']);
+    }
+
+    // ==================================================================
+    // 盘点明细导出（F7-BRIEF 第 6 项）
+    // ==================================================================
+
+    public function test_stocktaking_export_returns_csv(): void
+    {
+        $this->actingAsAdmin();
+
+        $product = $this->makeProduct();
+        $warehouse = $this->makeWarehouse();
+        Stock::create(['product_id' => $product->id, 'warehouse_id' => $warehouse->id, 'quantity' => 8]);
+
+        $store = $this->postJson('/admin/business/stocktaking', [
+            'warehouse_id' => $warehouse->id,
+            'check_date' => now()->toDateString(),
+            'items' => [['product_id' => $product->id, 'actual_qty' => 6]],
+        ]);
+        $store->assertOk();
+        $checkId = $store->json('data.id');
+
+        $export = $this->get("/admin/business/stocktaking/{$checkId}/export");
+        $export->assertOk();
+        $this->assertStringContainsString('text/csv', $export->headers->get('content-type'));
+        $this->assertStringContainsString('attachment', $export->headers->get('content-disposition'));
+        $this->assertStringContainsString($product->code, $export->getContent());
+        $this->assertStringContainsString('账面数量', $export->getContent());
+        // 差异 = 实盘 6 - 账面 8 = -2
+        $this->assertStringContainsString('-2', $export->getContent());
+    }
 }

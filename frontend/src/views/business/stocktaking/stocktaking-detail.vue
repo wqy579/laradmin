@@ -1,5 +1,9 @@
 <template>
 	<div v-loading="loading">
+		<div class="detail-toolbar">
+			<span class="detail-title">盘点明细</span>
+			<el-button type="primary" size="small" :loading="exporting" @click="onExport">导出明细</el-button>
+		</div>
 		<div class="base">
 			<div><label>盘点单号：</label>{{ detail.check_no }}</div>
 			<div><label>仓库：</label>{{ detail.warehouse?.name || '-' }}</div>
@@ -35,10 +39,12 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
+import { downloadApiResponse } from '@/utils/download'
 
 const props = defineProps({ id: { type: [Number, String], required: true } })
 const detail = ref({})
 const loading = ref(false)
+const exporting = ref(false)
 const typeMap = { full: '全面盘点', sample: '抽盘', adjust: '异动盘点' }
 const statusMap = { draft: '待盘点', in_progress: '盘点中', pending: '待审核', approved: '已审核', cancelled: '已取消' }
 
@@ -56,9 +62,23 @@ onMounted(async () => {
 
 function rowClass({ row }) { return row.diff_qty > 0 ? 'row-profit' : row.diff_qty < 0 ? 'row-loss' : '' }
 function fmtMoney(v) { return Number(v ?? 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
+
+async function onExport() {
+	exporting.value = true
+	try {
+		const res = await businessApi.stocktaking.export(props.id)
+		downloadApiResponse(res, `盘点明细_${props.id}.csv`)
+	} catch (e) {
+		ElMessage.error(e?.response?.data?.message || '导出失败')
+	} finally {
+		exporting.value = false
+	}
+}
 </script>
 
 <style scoped>
+.detail-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 0 0 12px; }
+.detail-title { font-size: 15px; font-weight: 600; color: #303133; }
 .base { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; padding: 0 0 14px; font-size: 14px; color: #333; }
 .base label { color: #999; }
 .up { color: #52c41a; font-weight: 500; }

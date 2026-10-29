@@ -175,6 +175,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [StocktakingController::class, 'index']);
         Route::post('/', [StocktakingController::class, 'store']);
         Route::get('/{id}', [StocktakingController::class, 'show']);
+        Route::get('/{id}/export', [StocktakingController::class, 'export']);
         Route::put('/{id}', [StocktakingController::class, 'update']);
         Route::delete('/{id}', [StocktakingController::class, 'destroy']);
         Route::post('/{id}/submit', [StocktakingController::class, 'submit']);

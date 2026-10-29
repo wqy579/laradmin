@@ -6488,6 +6488,18 @@
         ]
     },
     {
+        "method": "GET",
+        "uri": "admin/business/stocktaking/{id}/export",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\StocktakingController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "POST",
         "uri": "admin/business/stocktaking/{id}/reject",
         "name": "admin.",
