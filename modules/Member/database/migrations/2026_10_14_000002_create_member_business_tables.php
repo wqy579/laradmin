@@ -85,7 +85,7 @@ return new class extends Migration
         if (! Schema::hasTable('point_orders')) {
             Schema::create('point_orders', function (Blueprint $table) {
                 $table->id();
-                $table->string('order_no', 32)->unique()->comment('兑换单号 DH+Ymd+6位流水');
+                $table->string('order_no', 32)->unique()->comment('兑换单号 JF-yyyymm-####，按月连续不跳号（D7 编号正式化）');
                 $table->unsignedBigInteger('member_id')->comment('会员ID');
                 $table->string('member_no', 32)->nullable()->comment('会员编号快照');
                 $table->string('member_name', 100)->nullable()->comment('会员名称快照');

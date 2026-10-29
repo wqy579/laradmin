@@ -48,7 +48,7 @@
 				height="100%"
 				show-summary
 				:summary-method="summaries"
-				empty-text="当前筛选条件下暂无数据"
+				class="fin-table--dense"
 				@row-dblclick="openFlows"
 			>
 				<el-table-column prop="member_no" label="会员编号" width="150" align="center">
@@ -59,23 +59,23 @@
 						<span class="link" @click="openFlows(row)">{{ row.member_name || '—' }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="points_open" label="期初积分" width="120" align="right">
+				<el-table-column prop="points_open" label="期初积分" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_open) }}</span></template>
 				</el-table-column>
-				<el-table-column prop="points_grant" label="本期发放" width="120" align="right">
+				<el-table-column prop="points_grant" label="本期发放" width="120" align="right" header-align="right">
 					<template #default="{ row }">
 						<span class="tabular pts-num--up">{{ signed(row.points_grant) }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="points_verify" label="本期核销" width="120" align="right">
+				<el-table-column prop="points_verify" label="本期核销" width="120" align="right" header-align="right">
 					<template #default="{ row }">
 						<span class="tabular pts-num--down">{{ row.points_verify ? `-${fmtInt(row.points_verify)}` : '0' }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="points_close" label="期末积分" width="120" align="right">
+				<el-table-column prop="points_close" label="期末积分" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular pts-num--total">{{ fmtInt(row.points_close) }}</span></template>
 				</el-table-column>
-				<el-table-column prop="points_current" label="实时余额" width="120" align="right">
+				<el-table-column prop="points_current" label="实时余额" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_current) }}</span></template>
 				</el-table-column>
 				<el-table-column label="操作" width="80" align="center" fixed="right">
@@ -83,13 +83,13 @@
 						<el-button link type="primary" size="small" @click.stop="openFlows(row)">流水</el-button>
 					</template>
 				</el-table-column>
-				<template #empty><span class="pts-empty">当前筛选条件下暂无数据</span></template>
+				<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 			</el-table>
 			<div class="pts-hint">提示：期初 + 本期发放 − 本期核销 = 期末，双击行或点击会员名可查看该会员的积分流水</div>
 		</div>
 
 		<!-- 分页 -->
-		<div class="pts-pager">
+		<div class="pts-pager fin-pager">
 			<el-pagination
 				background
 				layout="total, prev, pager, next, jumper, sizes"
@@ -112,28 +112,28 @@
 				<span>核销 <b class="tabular pts-num--down">{{ current.points_verify ? `-${fmtInt(current.points_verify)}` : '0' }}</b></span>
 				<span>期末 <b class="tabular">{{ fmtInt(current.points_close) }}</b></span>
 			</div>
-			<el-table v-loading="flowsLoading" :data="flows" border size="small" height="calc(100% - 60px)" empty-text="该会员在统计期间内暂无积分流水">
+			<el-table v-loading="flowsLoading" :data="flows" border size="small" height="calc(100% - 60px)" class="fin-table--dense">
 				<el-table-column prop="date" label="发生时间" width="150" align="center">
 					<template #default="{ row }"><span class="tabular">{{ row.date || '—' }}</span></template>
 				</el-table-column>
 				<el-table-column prop="consume_type_label" label="类型" width="100" align="center">
 					<template #default="{ row }">{{ row.consume_type_label || row.consume_type || '—' }}</template>
 				</el-table-column>
-				<el-table-column label="积分变动" width="110" align="right">
+				<el-table-column label="积分变动" width="110" align="right" header-align="right">
 					<template #default="{ row }">
 						<span class="tabular" :class="Number(row.points) >= 0 ? 'pts-num--up' : 'pts-num--down'">{{ signed(row.points) }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="points_after" label="变动后余额" width="110" align="right">
+				<el-table-column prop="points_after" label="变动后余额" width="110" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_after) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="related_order_no" label="来源单号" min-width="140" show-overflow-tooltip>
 					<template #default="{ row }"><span class="tabular">{{ row.related_order_no || '—' }}</span></template>
 				</el-table-column>
 				<el-table-column prop="remark" label="备注" min-width="140" show-overflow-tooltip />
-				<template #empty><span class="pts-empty">该会员在统计期间内暂无积分流水</span></template>
+				<template #empty><FinEmpty text="该会员在统计期间内暂无积分流水" /></template>
 			</el-table>
-			<div class="pts-pager">
+			<div class="pts-pager fin-pager">
 				<el-pagination
 					background
 					small
@@ -156,6 +156,7 @@ import { useTable } from '@/hooks/useTable'
 import { usePermission } from '@/composables/usePermission'
 import businessApi from '@/api/business'
 import cashApi from '@/api/cash'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const route = useRoute()
 const { has: hasPerm } = usePermission()
@@ -310,6 +311,7 @@ watch(
 </script>
 
 <style>
+@import '../../finance/_shared.css';
 @import '../_shared.css';
 </style>
 
@@ -378,5 +380,17 @@ watch(
 	color: var(--text-primary);
 	font-family: var(--font-numeric);
 	font-variant-numeric: tabular-nums;
+}
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+.pts-query :deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+.pts-query :deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+.pts-query :deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
 }
 </style>

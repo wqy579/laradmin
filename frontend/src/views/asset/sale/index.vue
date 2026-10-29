@@ -1,5 +1,5 @@
 <template>
-	<div class="asset-page">
+	<div class="fin-page asset-page">
 		<div class="asset-head">
 			<div class="asset-title">资产变卖单</div>
 			<div class="asset-sub">仅可选择「在用」资产；保存后资产状态改为「已售」，自动计算变卖损益并出凭证</div>
@@ -119,7 +119,8 @@
 					<span class="panel-title">变卖流水</span>
 					<span class="panel-count tabular">共 {{ sales.length }} 条</span>
 				</div>
-				<el-table :data="sales" border size="small" height="100%" empty-text="暂无变卖记录" row-key="id">
+				<el-table :data="sales" border size="small" class="fin-table--dense" height="100%" empty-text="暂无变卖记录" row-key="id">
+					<template #empty><FinEmpty text="暂无变卖记录" /></template>
 					<el-table-column prop="id" label="单号" width="110">
 						<template #default="{ row }"><span class="tabular">{{ row.id }}</span></template>
 					</el-table-column>
@@ -146,6 +147,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import assetApi from '@/api/asset'
 import { fmtMoney, fmtDay } from '../shared'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 /* ---------- 表单 ---------- */
 const formRef = ref(null)
@@ -262,6 +264,10 @@ onMounted(() => {
 	loadSales()
 })
 </script>
+
+<style>
+@import '../../finance/_shared.css';
+</style>
 
 <style scoped>
 .asset-page {
@@ -433,5 +439,17 @@ onMounted(() => {
 }
 :deep(.el-table th.el-table__cell .cell) {
 	font-weight: 600;
+}
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+:deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+:deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+:deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
 }
 </style>

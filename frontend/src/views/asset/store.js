@@ -44,7 +44,7 @@ export function addPurchase(form) {
 	const seq = ++purchaseSeq
 	const card = {
 		id: `AST${String(state.cards.length + 1).padStart(5, '0')}`,
-		code: `FA-${String(new Date(form.buy_date).getFullYear()).padStart(4, '0')}-${String(seq).padStart(5, '0')}`,
+		code: `ZC-${new Date(form.buy_date).getFullYear()}${String(new Date(form.buy_date).getMonth() + 1).padStart(2, '0')}-${String(seq).padStart(4, '0')}`,
 		name: form.name,
 		category: form.category,
 		buy_date: form.buy_date,

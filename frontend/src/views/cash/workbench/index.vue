@@ -1,5 +1,5 @@
 <template>
-	<div class="page">
+	<div class="page fin-page">
 		<div class="page-header">
 			<span class="title">出纳工作台</span>
 			<span class="subtitle">{{ fmtDay(today()) }}</span>
@@ -106,6 +106,9 @@ const cards = computed(() => [
 
 const hasTrend = computed(() => trend.value.some((d) => Number(d.income) !== 0 || Number(d.expense) !== 0))
 
+// 读取设计令牌值（供 ECharts 使用，避免私造色值；与 tokens.css 保持一致）
+const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || ''
+
 const drawTrend = () => {
 	if (trendChart) {
 		trendChart.dispose()
@@ -118,19 +121,19 @@ const drawTrend = () => {
 			trigger: 'axis',
 			valueFormatter: (v) => fmtMoney(v),
 		},
-		legend: { data: ['收入', '支出'], right: 20, top: 8, textStyle: { fontSize: 12, color: '#909399' } },
-		grid: { left: 70, right: 30, top: 48, bottom: 32, borderColor: '#EBEEF5' },
+		legend: { data: ['收入', '支出'], right: 20, top: 8, textStyle: { fontSize: 12, color: cssVar('--text-secondary') } },
+		grid: { left: 70, right: 30, top: 48, bottom: 32, borderColor: cssVar('--border-lighter') },
 		xAxis: {
 			type: 'category',
 			boundaryGap: false,
 			data: trend.value.map((d) => (d.date || '').slice(5)),
-			axisLine: { lineStyle: { color: '#EBEEF5' } },
-			axisLabel: { fontSize: 12, color: '#909399' },
+			axisLine: { lineStyle: { color: cssVar('--border-lighter') } },
+			axisLabel: { fontSize: 12, color: cssVar('--text-secondary') },
 		},
 		yAxis: {
 			type: 'value',
-			splitLine: { lineStyle: { color: '#EBEEF5' } },
-			axisLabel: { fontSize: 12, color: '#909399', formatter: (v) => Number(v || 0).toLocaleString('zh-CN') },
+			splitLine: { lineStyle: { color: cssVar('--border-lighter') } },
+			axisLabel: { fontSize: 12, color: cssVar('--text-secondary'), formatter: (v) => Number(v || 0).toLocaleString('zh-CN') },
 		},
 		series: [
 			{
@@ -140,8 +143,8 @@ const drawTrend = () => {
 				symbol: 'circle',
 				symbolSize: 6,
 				data: trend.value.map((d) => Number(d.income) || 0),
-				itemStyle: { color: '#F56C6C' },
-				lineStyle: { color: '#F56C6C' },
+				itemStyle: { color: cssVar('--color-danger') },
+				lineStyle: { color: cssVar('--color-danger') },
 			},
 			{
 				name: '支出',
@@ -150,8 +153,8 @@ const drawTrend = () => {
 				symbol: 'circle',
 				symbolSize: 6,
 				data: trend.value.map((d) => Number(d.expense) || 0),
-				itemStyle: { color: '#67C23A' },
-				lineStyle: { color: '#67C23A' },
+				itemStyle: { color: cssVar('--color-success') },
+				lineStyle: { color: cssVar('--color-success') },
 			},
 		],
 	})
@@ -202,6 +205,10 @@ onBeforeUnmount(() => {
 	}
 })
 </script>
+
+<style>
+@import '../../finance/_shared.css';
+</style>
 
 <style scoped>
 .page {
@@ -280,7 +287,7 @@ onBeforeUnmount(() => {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: #fafafa;
+	background: var(--bg-hover);
 	border: 1px dashed var(--border-base);
 	border-radius: 4px;
 }

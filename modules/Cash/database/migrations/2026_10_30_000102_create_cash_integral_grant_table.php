@@ -17,7 +17,7 @@ return new class extends Migration
     {
         Schema::create('cash_integral_grant', function (Blueprint $table) {
             $table->id();
-            $table->string('grant_no', 32)->comment('发放单号 JF+Ymd+6位流水');
+            $table->string('grant_no', 32)->comment('发放单号 JF-yyyymm-####，按月连续不跳号（D7 编号正式化）');
             $table->date('grant_date')->comment('发放日期');
             $table->string('grant_type', 20)->default('daily')->comment('类型：daily 日常 / activity 活动 / compensate 补偿 / other 其他');
             $table->unsignedBigInteger('total_points')->default(0)->comment('积分合计 = 明细之和');
