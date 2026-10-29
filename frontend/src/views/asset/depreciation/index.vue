@@ -18,11 +18,8 @@
 					value-format="YYYY-MM"
 					placeholder="选择年月"
 					style="width: 160px"
+					@change="loadPreview"
 				/>
-				<span class="f-label">类别</span>
-				<el-select v-model="fCategory" placeholder="全部" clearable style="width: 140px">
-					<el-option v-for="c in ASSET_CATEGORIES" :key="c.value" :label="c.label" :value="c.value" />
-				</el-select>
 				<el-button @click="onReset">重置</el-button>
 			</div>
 		</div>
@@ -71,6 +68,9 @@
 					<el-table-column prop="original" label="原值" width="130" align="right" header-align="right">
 						<template #default="{ row }"><span class="tabular">{{ fmtMoney(row.original) }}</span></template>
 					</el-table-column>
+					<el-table-column prop="residual_rate" label="残值率" width="90" align="right" header-align="right">
+						<template #default="{ row }"><span class="tabular">{{ Number(row.residual_rate || 0).toFixed(2) }}%</span></template>
+					</el-table-column>
 					<el-table-column prop="month_amount" label="本月折旧额" width="140" align="right" header-align="right">
 						<template #default="{ row }"><span class="tabular strong">{{ fmtMoney(row.month_amount) }}</span></template>
 					</el-table-column>
@@ -108,24 +108,19 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check } from '@element-plus/icons-vue'
-import { ASSET_CATEGORIES, fmtMoney, fmtMonth, mockDepreciationItems } from '../shared'
-import { listCards, runDepreciation, listDepRuns, currentMonth } from '../store'
+import assetApi from '@/api/asset'
+import { fmtMoney, fmtMonth, curMonth } from '../shared'
 
-const period = ref(currentMonth())
-const fCategory = ref('')
+const period = ref(curMonth())
 const running = ref(false)
 
-const items = computed(() => {
-	const all = mockDepreciationItems(listCards(), period.value)
-	return fCategory.value ? all.filter((i) => i.category === fCategory.value) : all
-})
-
+const items = ref([])
+const runs = ref([])
 const totalAmount = computed(() => items.value.reduce((s, i) => s + Number(i.month_amount || 0), 0))
 const afterNet = computed(() => items.value.reduce((s, i) => s + Number(i.after_net || 0), 0))
-const runs = computed(() => listDepRuns())
 
 const summaryMethod = ({ columns }) =>
 	columns.map((col, i) => {
@@ -137,9 +132,29 @@ const summaryMethod = ({ columns }) =>
 		return ''
 	})
 
+async function loadPreview() {
+	if (!period.value) return
+	try {
+		const res = await assetApi.depreciation.preview.get({ month: period.value })
+		const data = res.data || {}
+		items.value = data.list || []
+	} catch (e) {
+		ElMessage.error(e.message || '加载应折明细失败')
+	}
+}
+
+async function loadRuns() {
+	try {
+		const res = await assetApi.depreciation.runs.get({ page: 1, page_size: 100 })
+		runs.value = (res.data || {}).list || []
+	} catch (e) {
+		ElMessage.error(e.message || '加载折旧流水失败')
+	}
+}
+
 const onReset = () => {
-	period.value = currentMonth()
-	fCategory.value = ''
+	period.value = curMonth()
+	loadPreview()
 }
 
 const onRun = () => {
@@ -153,20 +168,26 @@ const onRun = () => {
 			cancelButtonText: '取消',
 			type: 'warning',
 		}
-	).then(() => {
+	).then(async () => {
 		running.value = true
-		// TODO(api) POST /api/asset/depreciation —— 当前写 mock
-		setTimeout(() => {
-			const run = runDepreciation(period.value)
+		try {
+			const res = await assetApi.depreciation.run({ month: period.value })
+			const run = res.data || {}
+			const msg = `折旧单 ${run.batch_no} 已生成<br/>计提 ${run.count} 项资产，本月折旧 ¥${fmtMoney(run.amount)}<br/>凭证：借 管理费用-折旧 / 贷 累计折旧`
+			ElMessageBox.alert(msg, '计提成功', { dangerouslyUseHTMLString: true, confirmButtonText: '确定' })
+			await Promise.all([loadPreview(), loadRuns()])
+		} catch (e) {
+			ElMessage.error(e.message || '计提失败')
+		} finally {
 			running.value = false
-			ElMessageBox.alert(
-				`折旧单 ${run.id} 已生成<br/>计提 ${run.count} 项资产，本月折旧 ¥${fmtMoney(run.amount)}<br/>凭证：借 折旧费用 / 贷 累计折旧`,
-				'计提成功',
-				{ dangerouslyUseHTMLString: true, confirmButtonText: '确定' }
-			)
-		}, 400)
+		}
 	}).catch(() => {})
 }
+
+onMounted(() => {
+	loadPreview()
+	loadRuns()
+})
 </script>
 
 <style scoped>

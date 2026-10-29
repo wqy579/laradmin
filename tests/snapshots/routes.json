@@ -129,6 +129,150 @@
         ]
     },
     {
+        "method": "GET",
+        "uri": "admin/asset/cards",
+        "name": "admin.asset.cards.index",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetCardController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/cards/options",
+        "name": "admin.asset.cards.options",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetCardController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/asset/depreciations",
+        "name": "admin.asset.depreciations.store",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetDepreciationController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/depreciations/preview",
+        "name": "admin.asset.depreciations.preview",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetDepreciationController@preview",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/depreciations/records",
+        "name": "admin.asset.depreciations.records",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetDepreciationController@records",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/depreciations/runs",
+        "name": "admin.asset.depreciations.runs",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetDepreciationController@runs",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/purchases",
+        "name": "admin.asset.purchases.index",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetPurchaseController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/asset/purchases",
+        "name": "admin.asset.purchases.store",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetPurchaseController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/purchases/options",
+        "name": "admin.asset.purchases.options",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetPurchaseController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/sales",
+        "name": "admin.asset.sales.index",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetSaleController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/asset/sales",
+        "name": "admin.asset.sales.store",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetSaleController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/asset/sales/options",
+        "name": "admin.asset.sales.options",
+        "action": "Modules\\Asset\\Http\\Controllers\\AssetSaleController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "POST",
         "uri": "admin/auth/change-password",
         "name": "admin.",
@@ -8460,6 +8604,30 @@
         "uri": "admin/dashboard/metrics",
         "name": "admin.",
         "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardController@metrics",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/dashboard/preference/layout",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardPreferenceController@layout",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/dashboard/preference/layout",
+        "name": "admin.",
+        "action": "Modules\\Dashboard\\Http\\Controllers\\DashboardPreferenceController@saveLayout",
         "middleware": [
             "api",
             "stock.snapshot",

@@ -66,6 +66,12 @@ service.interceptors.response.use(
 				case 422:
 					message = response.data?.message || '参数验证失败'
 					break
+				case 429:
+					// BUG-06 治理：登录/接口被限流。后端固定下发 message「操作频繁，请稍后再试」，
+					// 这里直接取，绝不落到 default 分支的「请求失败（429）」——页面不白屏、只轻提示。
+					// retry_after（秒）在顶层，需要倒计时展示时从这里取。
+					message = response.data?.message || '操作频繁，请稍后再试'
+					break
 				default:
 					message = response.data?.message || `请求失败（${response.status}）`
 			}

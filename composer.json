@@ -53,7 +53,8 @@
             "Tests\\Ledger\\": "modules/Ledger/tests/",
             "Tests\\Cash\\": "modules/Cash/tests/",
             "Tests\\Hr\\": "modules/Hr/tests/",
-            "Tests\\Agreement\\": "modules/Agreement/tests/"
+            "Tests\\Agreement\\": "modules/Agreement/tests/",
+            "Tests\\Asset\\": "modules/Asset/tests/"
         }
     },
   "scripts": {

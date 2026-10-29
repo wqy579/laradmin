@@ -22,6 +22,18 @@ const fmt = (n, prefix = '') => {
   return prefix + Number(n).toLocaleString('zh-CN')
 }
 
+// E8：把用户保存的布局从后端读回并覆盖本地 localStorage。
+// 后端按 user_id 存的是权威布局（跨浏览器/跨设备一致），本地持久化只是兜底缓存。
+// 从未保存过时后端返回 data.layout = null，此时保留本地默认/缓存布局。
+async function loadSavedLayout() {
+  try {
+    const res = await businessApi.dashboard.preference.getLayout()
+    if (res?.data?.layout) store.dashboardLayout = res.data.layout
+  } catch (e) {
+    // 拉取失败静默：布局偏好是增强项，失败不应阻断仪表盘数据渲染
+  }
+}
+
 onMounted(async () => {
   // allSettled 而非 all：任一端点失败不能拖垮其余。
   // 用 all 时 brandProportion 一个 500 会 reject 整个 Promise，coreMetrics/salesTrend
@@ -38,42 +50,47 @@ onMounted(async () => {
   if (dataOf(trendRes)?.data?.list) salesTrendList.value = dataOf(trendRes).data.list
   if (dataOf(brandRes)?.data?.list) brandProportionList.value = dataOf(brandRes).data.list
   if (dataOf(topRes)?.data?.list) brandTop10List.value = dataOf(topRes).data.list
+
+  // 布局读回放在数据之后：两件事互不依赖，先后无所谓，但保证同一渲染周期内完成
+  await loadSavedLayout()
 })
 
-// 用真实数据覆盖 widget 的硬编码 props；对应字段无数据时回退默认 props
-function computeWidgetProps(widgetId, defaultProps) {
+// 用真实数据覆盖 widget 的硬编码 props；对应字段无数据时回退默认 props。
+// icon 取 widget 注册表顶层的 cfg.icon（StatCard 的图标块需要它，且不在 cfg.props 里）。
+function computeWidgetProps(widgetId, defaultProps, icon) {
   const m = coreMetrics.value
+  const base = { ...defaultProps, ...(icon ? { icon } : {}) }
   switch (widgetId) {
     case 'stat-users':
       return m
-        ? { ...defaultProps, label: '总客户数', value: fmt(m.total_customer_count), trend: m.customer_growth ?? 0, subValue: '今日新增' }
-        : defaultProps
+        ? { ...base, label: '总客户数', value: fmt(m.total_customer_count), trend: m.customer_growth ?? 0, subValue: '今日新增' }
+        : base
     case 'stat-orders':
       return m
-        ? { ...defaultProps, label: '总订单数', value: fmt(m.total_order_count), trend: m.order_ratio ?? 0, subValue: '较昨日' }
-        : defaultProps
+        ? { ...base, label: '总订单数', value: fmt(m.total_order_count), trend: m.order_ratio ?? 0, subValue: '较昨日' }
+        : base
     case 'stat-revenue':
       return m
-        ? { ...defaultProps, label: '总收入', value: fmt(m.total_sales_amount, '¥'), trend: m.sales_ratio ?? 0, subValue: '较昨日' }
-        : defaultProps
+        ? { ...base, label: '总收入', value: fmt(m.total_sales_amount, '¥'), trend: m.sales_ratio ?? 0, subValue: '较昨日' }
+        : base
     case 'stat-visits':
       return m
-        ? { ...defaultProps, label: '今日利润', value: fmt(m.total_profit, '¥'), trend: m.profit_ratio ?? 0, subValue: '较昨日' }
-        : defaultProps
+        ? { ...base, label: '今日利润', value: fmt(m.total_profit, '¥'), trend: m.profit_ratio ?? 0, subValue: '较昨日' }
+        : base
     case 'chart-line':
       return salesTrendList.value.length
-        ? { ...defaultProps, title: '销售趋势', data: salesTrendList.value.map((d) => ({ month: d.label, value: d.amount })) }
-        : defaultProps
+        ? { ...base, title: '销售趋势', data: salesTrendList.value.map((d) => ({ month: d.label, value: d.amount })) }
+        : base
     case 'chart-bar':
       return brandProportionList.value.length
-        ? { ...defaultProps, title: '品牌销售占比', data: brandProportionList.value.map((d) => ({ category: d.name, value: d.value })) }
-        : defaultProps
+        ? { ...base, title: '品牌销售占比', data: brandProportionList.value.map((d) => ({ category: d.name, value: d.value })) }
+        : base
     case 'chart-brand-top10':
       return brandTop10List.value.length
-        ? { ...defaultProps, title: '品牌销售TOP10', data: brandTop10List.value }
-        : defaultProps
+        ? { ...base, title: '品牌销售TOP10', data: brandTop10List.value }
+        : base
     default:
-      return defaultProps
+      return base
   }
 }
 
@@ -130,6 +147,26 @@ function layoutUpdated(newLayout) {
 	store.dashboardLayout = newLayout
 }
 
+// E8：编辑完成时把当前布局持久化到后端用户偏好表。
+// 每次「完成」覆写整表（PUT /dashboard/preference/layout），与 store 单一来源一致。
+async function finishEdit() {
+	store.dashboardEditMode = false
+	await persistLayout()
+}
+
+async function persistLayout() {
+	try {
+		await businessApi.dashboard.preference.saveLayout(store.dashboardLayout)
+	} catch (e) {
+		// 保存失败不打断交互：本地已持久化，下次编辑完成再试
+	}
+}
+
+async function handleReset() {
+	store.resetDashboardLayout()
+	await persistLayout()
+}
+
 function handleAdd(widgetId) {
 	store.addDashboardWidget(widgetId)
 	showPanel.value = false
@@ -143,7 +180,7 @@ function getWidget(item) {
 function getWidgetProps(item) {
 	const cfg = getWidgetConfig(item.widgetId)
 	if (!cfg) return {}
-	return computeWidgetProps(item.widgetId, cfg.props)
+	return computeWidgetProps(item.widgetId, cfg.props, cfg.icon)
 }
 </script>
 
@@ -163,9 +200,9 @@ function getWidgetProps(item) {
 			<div class="home-page__header-right">
 				<el-button v-if="!store.dashboardEditMode" icon="ElIconSetting" :size="headerButtonSize" @click="store.dashboardEditMode = true">编辑</el-button>
 				<el-button-group v-else>
-					<el-button type="primary" icon="ElIconCheck" :size="headerButtonSize" @click="store.dashboardEditMode = false">完成</el-button>
+					<el-button type="primary" icon="ElIconCheck" :size="headerButtonSize" @click="finishEdit">完成</el-button>
 					<el-button icon="ElIconPlus" :size="headerButtonSize" @click="showPanel = true">添加</el-button>
-					<el-button icon="ElIconRefreshRight" :size="headerButtonSize" @click="store.resetDashboardLayout()">重置</el-button>
+					<el-button icon="ElIconRefreshRight" :size="headerButtonSize" @click="handleReset">重置</el-button>
 				</el-button-group>
 			</div>
 		</div>

@@ -726,6 +726,11 @@ const businessApi = {
 		financeOverview: { get: (params) => request.get('dashboard/finance-overview', { params }) },
 		brandProportion: { get: (params) => request.get('dashboard/brand-proportion', { params }) },
 		brandTop10: { get: (params) => request.get('dashboard/brand-top10', { params }) },
+		// E8：仪表盘编辑布局按用户持久化（读 / 整表覆写）
+		preference: {
+			getLayout: () => request.get('dashboard/preference/layout'),
+			saveLayout: (layout) => request.put('dashboard/preference/layout', { layout }),
+		},
 	},
 
 	// ============ 消息中心 ============

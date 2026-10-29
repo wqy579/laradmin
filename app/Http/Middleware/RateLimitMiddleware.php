@@ -15,7 +15,11 @@ class RateLimitMiddleware
     protected $defaultDecayMinutes = 1;
 
     protected $routeLimits = [
-        'login' => ['max_attempts' => 5, 'decay_minutes' => 15],
+        // BUG-06 治理：登录限流从 5 次/15 分钟放宽到 10 次/15 分钟。
+        // 5 次对于正常用户偏紧（录单页 6 次加载有 4 次等不到首屏，录单员需 reload，
+        // 一次 reload 往往连带几次 401 重登），但 10 次仍足以挡住暴力破解。
+        // 不要删限流，只调阈值。
+        'login' => ['max_attempts' => 10, 'decay_minutes' => 15],
         'register' => ['max_attempts' => 3, 'decay_minutes' => 60],
         'password.reset' => ['max_attempts' => 3, 'decay_minutes' => 60],
         'password.email' => ['max_attempts' => 3, 'decay_minutes' => 60],
@@ -37,14 +41,15 @@ class RateLimitMiddleware
         foreach ($signatures as $key) {
             if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
                 $seconds = RateLimiter::availableIn($key);
-                $minutes = ceil($seconds / 60);
 
+                // BUG-06 治理：前端拦截器按「HTTP 429 + code=429」识别限流，弹出轻提示
+                // 「操作频繁，请稍后再试」。message 必须固定为这句，前端不再拼分钟数——
+                // 秒数经 data.retry_after 下发，由前端自己决定展示方式。
+                // retry_after 放到顶层，与验收结构 {"code":429,"message":..,"retry_after":N} 一致。
                 return response()->json([
                     'code' => 429,
-                    'message' => "请求过于频繁，请在 {$minutes} 分钟后重试",
-                    'data' => [
-                        'retry_after' => $seconds,
-                    ],
+                    'message' => '操作频繁，请稍后再试',
+                    'retry_after' => $seconds,
                 ], 429);
             }
         }

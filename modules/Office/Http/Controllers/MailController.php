@@ -291,21 +291,31 @@ class MailController extends Controller
 
     public function batchDelete(Request $request): JsonResponse
     {
-        $validated = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
+        $ids = $this->batchIds($request);
+        // 空数组直接返回成功，不报错（BUG-07 要求：前端误传空选中集时不产生 500/422）
+        if ($ids === []) {
+            return $this->success(['deleted' => 0], '已移入回收站 0 封');
+        }
+
         $userId = (int) auth('admin')->id();
         $now = now();
 
-        $count = DB::table('mail_recipients')
-            ->whereIn('mail_id', $validated['ids'])
-            ->where('user_id', $userId)
-            ->whereNull('deleted_at')
-            ->update(['deleted_at' => $now, 'updated_at' => $now]);
+        // 批量操作必须包事务：任一表更新失败则整体回滚，避免「部分删、部分留」
+        $count = DB::transaction(function () use ($ids, $userId, $now) {
+            $count = DB::table('mail_recipients')
+                ->whereIn('mail_id', $ids)
+                ->where('user_id', $userId)
+                ->whereNull('deleted_at')
+                ->update(['deleted_at' => $now, 'updated_at' => $now]);
 
-        $count += DB::table('mails')
-            ->whereIn('id', $validated['ids'])
-            ->where('from_user_id', $userId)
-            ->whereNull('deleted_at')
-            ->update(['deleted_at' => $now, 'updated_at' => $now]);
+            $count += DB::table('mails')
+                ->whereIn('id', $ids)
+                ->where('from_user_id', $userId)
+                ->whereNull('deleted_at')
+                ->update(['deleted_at' => $now, 'updated_at' => $now]);
+
+            return $count;
+        });
 
         return $this->success(['deleted' => $count], "已移入回收站 {$count} 封");
     }
@@ -330,19 +340,61 @@ class MailController extends Controller
 
     private function batchSetRead(Request $request, bool $read): JsonResponse
     {
-        $validated = $request->validate(['ids' => 'required|array', 'ids.*' => 'integer']);
-        $userId = (int) auth('admin')->id();
+        $ids = $this->batchIds($request);
+        // 空数组直接返回成功，不报错（BUG-07 要求）
+        if ($ids === []) {
+            return $this->success(['updated' => 0], $read ? '已标记 0 封为已读' : '已标记 0 封为未读');
+        }
 
-        $count = DB::table('mail_recipients')
-            ->whereIn('mail_id', $validated['ids'])
-            ->where('user_id', $userId)
-            ->update([
-                'is_read' => $read,
-                'read_at' => $read ? now() : null,
-                'updated_at' => now(),
-            ]);
+        $userId = (int) auth('admin')->id();
+        $now = now();
+
+        $count = DB::transaction(function () use ($ids, $userId, $read, $now) {
+            return DB::table('mail_recipients')
+                ->whereIn('mail_id', $ids)
+                ->where('user_id', $userId)
+                ->update([
+                    'is_read' => $read,
+                    'read_at' => $read ? $now : null,
+                    'updated_at' => $now,
+                ]);
+        });
 
         return $this->success(['updated' => $count], $read ? "已标记 {$count} 封为已读" : "已标记 {$count} 封为未读");
+    }
+
+    /**
+     * 批量接口统一入参解析（BUG-07）。
+     *
+     * 规则：
+     *  - ids 必须是数组（否则 422）；
+     *  - 过滤掉非整数项（"abc"、1.5、true），防止 whereIn 拿到脏值；
+     *  - 过滤掉越权 id——批量操作只作用于「当前登录用户」的记录，
+     *    其它用户/发件人的 id 在 where user_id 层已挡，这里再按存在性兜底。
+     *
+     * 注意：返回的是「清洗后」的数组。前端误传空数组时返回 []（不抛错），
+     * 由调用方短路为「0 条成功」，满足验收「空数组不报错」。
+     */
+    private function batchIds(Request $request): array
+    {
+        // 注意不能用 required|array：Laravel 的 required 把空数组当成「缺失」而判 422，
+        // 而本接口的契约是「空数组 = 无操作 = 返回成功」。present 只要求键存在，
+        // 空数组通过。
+        //
+        // 不用 ids.* => integer：那会因单个脏项（"abc"、1.5、null）把整批判 422，
+        // 违反「过滤非整数」的要求。这里只校验「必须是数组」，脏项在下面逐项过滤。
+        $validated = $request->validate([
+            'ids' => 'present|array',
+        ]);
+
+        $raw = $validated['ids'] ?? [];
+
+        // 逐项清洗：只保留「整数或纯数字字符串」且为正，统一转 int 供 whereIn。
+        // intval 会把 "12" 转 12；"abc"/1.5/true/null 全部丢弃——过滤而非整批 422。
+        return array_values(array_filter(
+            array_map(fn ($id) => is_int($id) || (is_string($id) && ctype_digit($id)) ? intval($id) : -1, $raw),
+            fn ($id) => $id > 0
+        ));
     }
 
     /** 四个信箱各自的查询 */

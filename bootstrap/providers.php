@@ -2,6 +2,7 @@
 
 use App\Providers\AppServiceProvider;
 use Modules\Agreement\Providers\AgreementServiceProvider;
+use Modules\Asset\Providers\AssetServiceProvider;
 use Modules\Auth\Providers\AuthServiceProvider;
 use Modules\BorrowReturn\Providers\BorrowReturnServiceProvider;
 use Modules\Business\Providers\BusinessServiceProvider;
@@ -42,4 +43,5 @@ return [
     CashServiceProvider::class,
     HrServiceProvider::class,
     AgreementServiceProvider::class,
+    AssetServiceProvider::class,
 ];

@@ -65,6 +65,9 @@ class ArchitectureTest extends TestCase
         'Exchange->Order',  // 换货单客户快照引用 Order 的 Customer 主数据表
         'Dashboard->Stock',  // 大屏聚合读 Stock 的库存/商品/品牌主数据（含测试夹具构造商品/仓库）
         'Dashboard->Order',  // 大屏聚合读 Order 的销售单/客户主数据（含测试夹具构造客户）
+        'Dashboard->Auth',   // E8 仪表盘编辑布局按用户持久化：dashboard_user_preference.user_id
+        // 引用 Auth 的 auth_user（与 Order->Auth、Member->Auth 同理）；仪表盘自身不维护人员主数据，
+        // 内核无 User 契约，抽契约只会把一次 user_id 外键落库变成跨模块调用
         'Member->Order',  // 会员档案绑定客户（members.customer_id 1:0..1），引用 Order 的
         // Customer 主数据表；销售订单也落 member_id 快照，同库同事务，抽契约收益低
         'Member->Auth',   // 储值/兑换单据记录审核人，引用 Auth 的用户表（与 Order->Auth 同理）
@@ -101,6 +104,11 @@ class ArchitectureTest extends TestCase
         'Agreement->Order', // 协议档案的客户下拉引用 Order 的 Customer 主数据表（与 Exchange->Order 同理），
         //   协议域不维护客户主数据，customer_name 是冗余快照
         'Agreement->Report', // 协议档案导出复用 ReportFilter::csv，与 Performance->Report 完全同因
+        'Asset->Auth',          // 资产卡片/购置单的使用部门与使用人回显名称，belongsTo Auth 的部门与用户表
+        //   （与 Ledger->Auth、Cash->Auth 同因）；Asset 不维护人员主数据，内核亦无 User/Department 契约
+        'Asset->Ledger',        // 购置单勾选「同时登记现金支出凭证」时调 Ledger 的 VoucherService 生成
+        //   现金支出凭证（借 1601 固定资产 / 贷 1001 库存现金）——凭证入口必须唯一，绝不在 Asset 内
+        //   自建凭证；只调用其公开服务方法，不改 A 域代码（与 Order->Member 同理的服务调用）
     ];
 
     /**

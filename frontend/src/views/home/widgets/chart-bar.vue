@@ -53,15 +53,20 @@ function updateMetrics() {
 
 useResizeObserver(containerRef, updateMetrics)
 
-const maxY = computed(() => Math.max(...props.data.map((d) => d.value)) * 1.2)
+// 空数据保护（E8 硬性要求）：无数据时不得抛错、不得出现 NaN，渲染空态占位。
+// maxY 兜底避免 Math.max(...[]) 得 -Infinity；barGap 除以 0 得 Infinity 一并封死。
+const hasData = computed(() => props.data.length > 0)
+
+const maxY = computed(() => (hasData.value ? Math.max(...props.data.map((d) => d.value)) * 1.2 : 1))
 
 const chartWidth = computed(() => Math.max(containerWidth.value - padding.left - padding.right, 100))
 const chartHeight = computed(() => Math.max(containerHeight.value - padding.top - padding.bottom, 100))
 
-const barWidth = computed(() => Math.max((chartWidth.value / props.data.length) * 0.6, 20))
-const barGap = computed(() => chartWidth.value / props.data.length)
+const barWidth = computed(() => (hasData.value ? Math.max((chartWidth.value / props.data.length) * 0.6, 20) : 20))
+const barGap = computed(() => (hasData.value ? chartWidth.value / props.data.length : 0))
 
 const bars = computed(() => {
+	if (!hasData.value) return []
 	return props.data.map((d, i) => {
 		const x = padding.left + i * barGap.value + (barGap.value - barWidth.value) / 2
 		const height = (d.value / maxY.value) * chartHeight.value
@@ -71,6 +76,7 @@ const bars = computed(() => {
 })
 
 const yTicks = computed(() => {
+	if (!hasData.value) return [0, 0, 0, 0, 0]
 	const ticks = []
 	const step = maxY.value / 4
 	for (let i = 0; i <= 4; i++) {
@@ -91,17 +97,18 @@ onMounted(updateMetrics)
 			<span class="chart-widget__title">{{ title }}</span>
 		</div>
 		<div ref="containerRef" class="chart-widget__body">
-			<svg :width="containerWidth" :height="containerHeight" class="chart-bar__svg">
+			<el-empty v-if="!hasData" description="暂无数据" :image-size="60" class="chart-widget__empty" />
+			<svg v-else :width="containerWidth" :height="containerHeight" class="chart-bar__svg">
 				<g class="chart-bar__grid">
 					<line v-for="(tick, i) in yTicks" :key="i" :x1="padding.left" :y1="padding.top + chartHeight - (tick / maxY) * chartHeight" :x2="padding.left + chartWidth" :y2="padding.top + chartHeight - (tick / maxY) * chartHeight" stroke="var(--el-border-color-lighter)" stroke-width="1" />
 				</g>
 
 				<g class="chart-bar__y-axis">
-					<text v-for="(tick, i) in yTicks" :key="i" :x="padding.left - 10" :y="padding.top + chartHeight - (tick / maxY) * chartHeight + 4" text-anchor="end" fill="var(--el-text-color-secondary)" font-size="11">{{ Math.round(tick / 1000) }}k</text>
+					<text v-for="(tick, i) in yTicks" :key="i" :x="padding.left - 10" :y="padding.top + chartHeight - (tick / maxY) * chartHeight + 4" text-anchor="end" fill="var(--el-text-color-secondary)" font-size="12">{{ Math.round(tick / 1000) }}k</text>
 				</g>
 
 				<g class="chart-bar__x-axis">
-					<text v-for="(bar, i) in bars" :key="i" :x="bar.x + bar.width / 2" :y="padding.top + chartHeight + 16" text-anchor="middle" fill="var(--el-text-color-secondary)" font-size="11">
+					<text v-for="(bar, i) in bars" :key="i" :x="bar.x + bar.width / 2" :y="padding.top + chartHeight + 16" text-anchor="middle" fill="var(--el-text-color-secondary)" font-size="12">
 						{{ bar.label }}
 					</text>
 				</g>
@@ -161,6 +168,15 @@ onMounted(updateMetrics)
 	flex: 1;
 	position: relative;
 	min-height: 0;
+}
+
+/* E8 空态占位：铺满图表区，纸箱插图居中 */
+.chart-widget__empty {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 .chart-bar__svg {
