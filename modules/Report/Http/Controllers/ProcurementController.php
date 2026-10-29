@@ -180,7 +180,8 @@ class ProcurementController extends Controller
         $this->applyDateRange($purchase, $params, 'pa.apply_date');
 
         $purchaseMap = $purchase
-            ->groupBy('pa.supplier_id')
+            // supplier_name 与 supplier_id 同一行，groupBy 一并带上满足 only_full_group_by
+            ->groupBy('pa.supplier_id', 'pa.supplier_name')
             ->selectRaw('
                 pa.supplier_id, COALESCE(pa.supplier_name, \'\') as supplier_name,
                 COALESCE(MAX(s.code), \'\') as supplier_code,
