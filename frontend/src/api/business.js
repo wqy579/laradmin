@@ -888,6 +888,13 @@ const businessApi = {
 			get: (params) => request.get('business/report/stock-analysis', { params }),
 			export: { get: (params) => request.get('business/report/stock-analysis/export', { params, responseType: 'blob' }) },
 		},
+
+		// 采购+入出库+费用+价格报表（E6，8 个维度：采购/入库/调拨/报废/入库汇总/收发存/费用/价格方案）
+		procurement: {
+			get: (params) => request.get('business/report/procurement', { params }),
+			export: { get: (params) => request.get('business/report/procurement/export', { params, responseType: 'blob' }) },
+			drill: { get: (params) => request.get('business/report/procurement/drill', { params }) },
+		},
 	},
 }
 

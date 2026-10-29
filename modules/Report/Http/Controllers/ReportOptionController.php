@@ -42,6 +42,8 @@ class ReportOptionController extends Controller
                 ['value' => 'only', 'label' => '仅显示零销售'],
             ],
             'warehouses' => DB::table('warehouses')->where('is_active', 1)->orderBy('code')->get(['id', 'code', 'name']),
+            'suppliers' => DB::table('suppliers')->where('is_active', 1)->orderBy('code')->get(['id', 'code', 'name']),
+            'expense_types' => $this->distinctValues('expenses', 'expense_type'),
             'brands' => DB::table('brands')->where('is_active', 1)->orderBy('sort')->orderBy('name')->get(['id', 'code', 'name']),
             'main_categories' => DB::table('product_categories')->where('is_main', 1)->where('is_active', 1)->orderBy('sort_order')->get(['id', 'name']),
             'sub_categories' => DB::table('product_categories')->where('is_main', 0)->where('is_active', 1)->orderBy('sort_order')->get(['id', 'name']),

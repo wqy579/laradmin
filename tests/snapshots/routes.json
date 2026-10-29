@@ -4857,6 +4857,42 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/report/procurement",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\ProcurementController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/procurement/drill",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\ProcurementController@drill",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/procurement/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\ProcurementController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/report/sales",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\SalesReportController@index",
