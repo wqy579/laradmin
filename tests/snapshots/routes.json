@@ -8721,6 +8721,342 @@
     },
     {
         "method": "GET",
+        "uri": "admin/f5/mall/orders",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallOrderController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/mall/orders",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallOrderController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/mall/orders/warehouses",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallOrderController@warehouses",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/mall/orders/{id}",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallOrderController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/mall/orders/{id}/accept",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallOrderController@accept",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/mall/orders/{id}/cancel",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallOrderController@cancel",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/mall/orders/{id}/reject",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallOrderController@reject",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/mall/products",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/mall/products",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/mall/products/options",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/mall/products/sync-price",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@syncPrice",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/f5/mall/products/{id}",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/f5/mall/products/{id}",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/mall/products/{id}/toggle",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@toggle",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/mall/shop/catalog",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@catalog",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/mall/shop/customers",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MallProductController@shopCustomers",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/map/customers",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MapController@customers",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/map/salesmen",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MapController@salesmen",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/map/trajectory",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\MapController@trajectory",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/sms/preview",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@preview",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/sms/records",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@records",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/sms/records/send",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@send",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/sms/records/{id}/resend",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@resend",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/f5/sms/templates",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/sms/templates",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/f5/sms/templates/{id}",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/f5/sms/templates/{id}",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/f5/sms/templates/{id}/toggle",
+        "name": "admin.",
+        "action": "Modules\\Mall\\Http\\Controllers\\SmsController@toggle",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/hr/commission-flows",
         "name": "admin.",
         "action": "Modules\\Hr\\Http\\Controllers\\CommissionFlowController@index",

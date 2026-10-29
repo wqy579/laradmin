@@ -68,6 +68,9 @@
         <testsuite name="Asset">
             <directory>modules/Asset/tests</directory>
         </testsuite>
+        <testsuite name="Mall">
+            <directory>modules/Mall/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

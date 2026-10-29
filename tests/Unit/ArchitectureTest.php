@@ -109,6 +109,14 @@ class ArchitectureTest extends TestCase
         'Asset->Ledger',        // 购置单勾选「同时登记现金支出凭证」时调 Ledger 的 VoucherService 生成
         //   现金支出凭证（借 1601 固定资产 / 贷 1001 库存现金）——凭证入口必须唯一，绝不在 Asset 内
         //   自建凭证；只调用其公开服务方法，不改 A 域代码（与 Order->Member 同理的服务调用）
+        'Mall->Stock',      // 分销商城商品池/价/库存读 Stock 的 products 主数据（单一数据源：商城价
+        //   不落独立价格列，一律读 products 当前三档价），下单冻结库存复用 StockService::freeze
+        //   （与 Order->Stock、Cash->Order 同理：同库同事务，抽契约收益低于耦合成本）
+        'Mall->Order',      // 商城下单必须走 F1 通道生成订货申报单：调 Order 的 SalesOrder/
+        //   SalesOrderItem 建单并回写 mall_orders.sales_order_id/no，同库同事务
+        //   （与 BorrowReturn->Order、Cash->Order 同理；验收硬要求「商城单须生成申报单」）
+        'Mall->Auth',       // 下单/发送记录操作人回显姓名，belongsTo Auth 的用户表
+        //   （与 Ledger->Auth、Cash->Auth 同因）；商城域不维护人员主数据，内核亦无 User 契约
     ];
 
     /**

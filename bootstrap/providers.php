@@ -12,6 +12,7 @@ use Modules\Delivery\Providers\DeliveryServiceProvider;
 use Modules\Exchange\Providers\ExchangeServiceProvider;
 use Modules\Hr\Providers\HrServiceProvider;
 use Modules\Ledger\Providers\LedgerServiceProvider;
+use Modules\Mall\Providers\MallServiceProvider;
 use Modules\Member\Providers\MemberServiceProvider;
 use Modules\Miniapp\Providers\MiniappServiceProvider;
 use Modules\Office\Providers\OfficeServiceProvider;
@@ -44,4 +45,5 @@ return [
     HrServiceProvider::class,
     AgreementServiceProvider::class,
     AssetServiceProvider::class,
+    MallServiceProvider::class,
 ];
