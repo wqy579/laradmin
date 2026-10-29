@@ -63,6 +63,8 @@ class MigrationSmokeTest extends TestCase
             // 总账管理
             'ledger_subjects', 'ledger_opening_balances', 'ledger_vouchers', 'ledger_voucher_entries',
             'ledger_periods', 'ledger_voucher_templates',
+            // E8 仪表盘用户布局偏好
+            'dashboard_user_preference',
         ];
         foreach ($expectedTables as $table) {
             $this->assertTrue(Schema::hasTable($table), "缺少数据表 {$table}");
