@@ -68,6 +68,9 @@
 					<el-table-column prop="original" label="原值" width="130" align="right" header-align="right">
 						<template #default="{ row }"><span class="tabular">{{ fmtMoney(row.original) }}</span></template>
 					</el-table-column>
+					<el-table-column prop="residual_rate" label="残值率" width="90" align="right" header-align="right">
+						<template #default="{ row }"><span class="tabular">{{ Number(row.residual_rate || 0).toFixed(2) }}%</span></template>
+					</el-table-column>
 					<el-table-column prop="month_amount" label="本月折旧额" width="140" align="right" header-align="right">
 						<template #default="{ row }"><span class="tabular strong">{{ fmtMoney(row.month_amount) }}</span></template>
 					</el-table-column>

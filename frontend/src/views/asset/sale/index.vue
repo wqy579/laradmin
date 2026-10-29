@@ -416,11 +416,12 @@ onMounted(() => {
 .pnl-row.total .pnl-v {
 	font-size: var(--font-h3);
 }
+/* 损益配色（DS 约定）：盈利红 #F56C6C、亏损绿 #67C23A */
 .pnl-up {
-	color: var(--color-success);
+	color: var(--color-danger);
 }
 .pnl-down {
-	color: var(--color-danger);
+	color: var(--color-success);
 }
 
 .form-foot {
