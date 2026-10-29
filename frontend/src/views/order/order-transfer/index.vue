@@ -365,6 +365,12 @@ onMounted(() => {
 
 <style scoped>
 /* 沿用 perf 域视觉规范：表体 14px #606266，行高 48px，表头 #F5F7FA */
+.perf-list {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	overflow: auto;
+}
 .perf-filter {
 	display: flex;
 	align-items: center;

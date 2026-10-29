@@ -129,6 +129,107 @@ class VisitReminderController extends Controller
         ]));
     }
 
+    /**
+     * F3 拜访提醒 · 统计（4 KPI 卡）
+     *
+     * 返回：待提醒 / 已提醒 / 本月应访 / 本月覆盖率（已访 ÷ 应访 × 100）。
+     * 应访 = 本月业务员名下线路（routes）挂载的启用客户数；已访 = 本月有签到记录的去重客户数。
+     */
+    public function stats(): JsonResponse
+    {
+        $monthStart = now()->startOfMonth()->toDateString();
+        $monthEnd = now()->endOfMonth()->toDateString();
+
+        $pending = DB::table('visit_reminders')->where('status', 'pending')->count();
+        $sent = DB::table('visit_reminders')->where('status', 'sent')->count();
+        $cancelled = DB::table('visit_reminders')->where('status', 'cancelled')->count();
+        $todayPending = DB::table('visit_reminders')
+            ->where('status', 'pending')
+            ->whereDate('visit_date', now()->toDateString())
+            ->count();
+
+        // 应访：本月生效线路（routes → customers is_active=1 且挂了线路）的客户总量
+        $planCustomers = (int) DB::table('customers')
+            ->where('is_active', 1)
+            ->whereNotNull('route_id')
+            ->count();
+        // 已访：本月有签到记录的去重客户数（口径与 VisitLogController::achievement 一致）
+        $reachedCustomers = DB::table('visit_logs')
+            ->whereBetween('checkin_time', [$monthStart.' 00:00:00', $monthEnd.' 23:59:59'])
+            ->distinct()
+            ->count('customer_id');
+
+        $coverageRate = $planCustomers > 0 ? round($reachedCustomers / $planCustomers * 100, 1) : 0;
+
+        return $this->success([
+            'pending' => $pending,
+            'sent' => $sent,
+            'cancelled' => $cancelled,
+            'today_pending' => $todayPending,
+            'plan_customers' => $planCustomers,
+            'reached_customers' => $reachedCustomers,
+            'coverage_rate' => $coverageRate,
+        ]);
+    }
+
+    /**
+     * F3 拜访提醒 · 批量提醒
+     *
+     * 将多个待提醒记录一次性置为「已提醒」（站内信 + 短信占位），逐条留痕。
+     * 仅 pending 可发送；其余跳过并计数。返回 { sent, skipped, ids }。
+     */
+    public function batchSend(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'integer',
+        ]);
+
+        $ids = array_values(array_unique(array_map('intval', $validated['ids'])));
+
+        $admin = auth('admin')->user();
+        $sent = 0;
+        $skipped = 0;
+        $sentIds = [];
+
+        DB::transaction(function () use ($ids, $admin, &$sent, &$skipped, &$sentIds) {
+            foreach ($ids as $id) {
+                $reminder = DB::table('visit_reminders')->find($id);
+                if (! $reminder || $reminder->status !== 'pending') {
+                    $skipped++;
+
+                    continue;
+                }
+
+                DB::table('visit_reminders')->where('id', $id)->update([
+                    'status' => 'sent',
+                    'sent_at' => now(),
+                    'sent_by' => $admin?->id,
+                    'updated_at' => now(),
+                ]);
+
+                $this->log(
+                    $id,
+                    $reminder->remind_no,
+                    '已提醒',
+                    $reminder->status,
+                    'sent',
+                    $admin,
+                    '批量提醒已发送给业务员（站内信 + 短信占位）：'.$reminder->content
+                );
+
+                $sent++;
+                $sentIds[] = $id;
+            }
+        });
+
+        return $this->success([
+            'sent' => $sent,
+            'skipped' => $skipped,
+            'ids' => $sentIds,
+        ], '批量提醒完成');
+    }
+
     public function send(int $id, Request $request): JsonResponse
     {
         $reminder = DB::table('visit_reminders')->find($id);

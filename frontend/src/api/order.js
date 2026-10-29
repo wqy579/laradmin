@@ -33,5 +33,8 @@ export default {
 		create: (data) => request.post('business/visit-reminder', data),
 		send: (id) => request.post(`business/visit-reminder/${id}/send`),
 		cancel: (id) => request.delete(`business/visit-reminder/${id}`),
+		// F3：4 KPI 卡统计 + 批量提醒
+		stats: () => request.get('business/visit-reminder/stats'),
+		batchSend: (ids) => request.post('business/visit-reminder/batch-send', { ids }),
 	},
 }

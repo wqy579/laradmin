@@ -7544,6 +7544,30 @@
         ]
     },
     {
+        "method": "POST",
+        "uri": "admin/business/visit-reminder/batch-send",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\VisitReminderController@batchSend",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/visit-reminder/stats",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\VisitReminderController@stats",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "DELETE",
         "uri": "admin/business/visit-reminder/{id}",
         "name": "admin.",
