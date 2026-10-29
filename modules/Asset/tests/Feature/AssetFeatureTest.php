@@ -107,12 +107,17 @@ class AssetFeatureTest extends TestCase
 
     public function test_voucher_only_when_checked_and_save_survives_without_it(): void
     {
-        // 未勾选：购置单正常保存，且一张凭证都不生成
+        // 全套用例共用同一 MySQL 库，且部分 Ledger 用例（VoucherQueryTest / VoucherExportTest）
+        // 不走 RefreshDatabase，会在库里留下凭证行。这里先取基线，只断言「不新增」，
+        // 而不是断言绝对计数——否则只要前置用例留下一行，本用例就会误报。
+        $baseline = Voucher::count();
+
+        // 未勾选：购置单正常保存，且一张凭证都不生成（相对基线零增量）
         $this->postJson('/admin/asset/purchases', $this->purchasePayload(['register_voucher' => false]))
             ->assertOk()
             ->assertJsonPath('data.voucher_id', null);
         $this->assertNull(AssetPurchase::first()->voucher_id);
-        $this->assertSame(0, Voucher::count());
+        $this->assertSame($baseline, Voucher::count());
 
         // 勾选：生成一张「借固定资产 / 贷库存现金」的平衡凭证并回写 voucher_id
         $this->postJson('/admin/asset/purchases', $this->purchasePayload([
@@ -124,7 +129,7 @@ class AssetFeatureTest extends TestCase
 
         $second = AssetPurchase::orderByDesc('id')->first();
         $this->assertNotNull($second->voucher_id);
-        $this->assertSame(1, Voucher::count());
+        $this->assertSame($baseline + 1, Voucher::count());
 
         $voucher = Voucher::with('entries')->find($second->voucher_id);
         $this->assertSame('88000.00', number_format((float) $voucher->total_debit, 2, '.', ''));
