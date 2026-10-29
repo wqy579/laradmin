@@ -140,7 +140,7 @@ onMounted(() => load())
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; }
 .page-header { height: 50px; background: var(--bg-card); border-bottom: 1px solid var(--border-light); padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+.title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; }
 .btn-bar { height: 50px; display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--border-lighter); padding-top: 12px; margin-bottom: 12px; }

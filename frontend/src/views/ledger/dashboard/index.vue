@@ -134,7 +134,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 <style scoped>
 .page {
 	padding: 16px;
-	background: #f0f2f5;
+	background: var(--bg-body);
 	min-height: 100%;
 }
 
@@ -146,7 +146,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 }
 
 .page-header .title {
-	font-size: 18px;
+	font-size: 20px;
 	font-weight: 700;
 	color: #303133;
 }
