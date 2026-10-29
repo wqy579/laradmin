@@ -263,7 +263,7 @@ onBeforeUnmount(() => {
 }
 
 .page-header .title {
-	font-size: 18px;
+	font-size: var(--font-h2);
 	font-weight: 700;
 	color: #303133;
 }

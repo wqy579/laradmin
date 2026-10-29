@@ -273,7 +273,7 @@ function digitsToChinese(num) {
 .attach-body { flex: 1; min-width: 0; }
 .entry-table { margin-bottom: 8px; }
 .acct-table { width: 100%; border-collapse: collapse; }
-.acct-table th { background: var(--bg-hover); color: var(--text-regular); font-size: 14px; font-weight: 500; height: 44px; border: 1px solid var(--border-lighter); text-align: center; }
+.acct-table th { background: var(--bg-hover); color: var(--text-regular); font-size: 14px; font-weight: 600; height: 44px; border: 1px solid var(--border-lighter); text-align: center; }
 .acct-table td { border: 1px solid var(--border-lighter); padding: 4px 8px; }
 .acct-table td .amt-cell { width: 100%; text-align: right; }
 .del-icon { color: var(--color-danger); cursor: pointer; font-size: 16px; }

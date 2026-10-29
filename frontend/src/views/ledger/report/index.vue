@@ -175,7 +175,7 @@ onMounted(() => {
 .rpt-sub { font-size: 14px; color: #606266; text-align: center; margin-bottom: 12px; }
 .bs-table, .is-table { width: 100%; border-collapse: collapse; }
 .bs-table th, .bs-table td, .is-table th, .is-table td { border: 1px solid #ebeef5; padding: 8px; font-size: 14px; text-align: center; }
-.bs-table th, .is-table th { background: #f5f7fa; color: #606266; font-weight: 600; }
+.bs-table th, .is-table th { background: #f5f7fa; color: #606266; font-weight: 600; height: 44px; }
 .amt { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
 .bold { font-weight: 700; }
 .total { background: #fafafa; }

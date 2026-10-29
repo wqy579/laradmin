@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import StatCard from '@/views/home/widgets/stat-card.vue'
+import FinEmpty from '@/views/finance/_FinEmpty.vue'
 import ledgerApi from '@/api/ledger'
 
 const router = useRouter()
@@ -111,6 +112,9 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 				</div>
 			</template>
 			<el-table :data="recentVouchers" v-loading="loading" empty-text="暂无凭证" row-class-name="recent-card__row" @row-click="(row) => go('/ledger/voucher-query')">
+				<template #empty>
+					<FinEmpty text="暂无凭证" />
+				</template>
 				<el-table-column prop="voucher_no" label="凭证字号" width="150" />
 				<el-table-column prop="voucher_date" label="日期" width="120" />
 				<el-table-column prop="summary" label="摘要" min-width="200" show-overflow-tooltip />
