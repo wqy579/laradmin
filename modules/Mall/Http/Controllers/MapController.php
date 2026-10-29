@@ -71,9 +71,11 @@ class MapController extends Controller
             ])
             ->map(function ($p, $index) {
                 $p->seq = $index + 1;
-                // 轨迹点用拜访定位；缺拜访定位则回落客户档案坐标
-                $p->lat = $p->checkin_lat ?? $p->customer_lat;
-                $p->lng = $p->checkin_lng ?? $p->customer_lng;
+                // 轨迹点用拜访定位；缺拜访定位则回落客户档案坐标。
+                // 统一 cast 成 float：MySQL DECIMAL 列读出来是 '30.8800000' 字符串，
+                // SQLite 是原生 float，两端类型不一致会让前端拿不到数字。
+                $p->lat = $p->checkin_lat !== null ? (float) $p->checkin_lat : ($p->customer_lat !== null ? (float) $p->customer_lat : null);
+                $p->lng = $p->checkin_lng !== null ? (float) $p->checkin_lng : ($p->customer_lng !== null ? (float) $p->customer_lng : null);
                 $p->has_location = $p->lat !== null && $p->lng !== null;
 
                 return $p;
