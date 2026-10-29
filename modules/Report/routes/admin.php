@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Report\Http\Controllers\CombinedReportController;
 use Modules\Report\Http\Controllers\CustomerReportController;
 use Modules\Report\Http\Controllers\PriceRankController;
+use Modules\Report\Http\Controllers\ProcurementController;
 use Modules\Report\Http\Controllers\RecentPriceController;
 use Modules\Report\Http\Controllers\ReportColumnController;
 use Modules\Report\Http\Controllers\ReportOptionController;
@@ -102,6 +103,13 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::prefix('stock-analysis')->group(function () {
             Route::get('/', [StockAnalysisController::class, 'index']);
             Route::get('/export', [StockAnalysisController::class, 'export']);
+        });
+
+        // 采购+入出库+费用+价格报表（E6，8 个维度：采购汇总/入库明细/调拨明细/报废报损/
+        // 入库汇总/收发存汇总/费用查询/价格方案）
+        Route::prefix('procurement')->group(function () {
+            Route::get('/', [ProcurementController::class, 'index']);
+            Route::get('/export', [ProcurementController::class, 'export']);
         });
     });
 });

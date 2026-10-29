@@ -62,6 +62,8 @@ class ReportFilter
             'sub_category_ids' => self::toArray($request->input('sub_category_ids')),
             'product_ids' => self::toArray($request->input('product_ids')),
             'warehouse_ids' => self::toArray($request->input('warehouse_ids')),
+            'supplier_ids' => self::toArray($request->input('supplier_ids')),
+            'expense_types' => self::toStringArray($request->input('expense_types')),
             'product_keyword' => $request->input('product_keyword'),
             'product_code' => $request->input('product_code'),
             'product_name' => $request->input('product_name'),
@@ -272,6 +274,25 @@ class ReportFilter
         }
 
         return array_values(array_map('intval', $value));
+    }
+
+    /**
+     * 字符串数组版 toArray：费用类型这类非数字枚举（expense_type 是自由文本 varchar），
+     * 不能 intval，否则 "差旅费" → 0 全部失效。同样把标量/逗号串/数组收敛成字符串数组。
+     */
+    public static function toStringArray(mixed $value): array
+    {
+        if ($value === null || $value === '' || $value === []) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            $value = array_filter($value, fn ($v) => $v !== null && $v !== '');
+        } else {
+            $value = explode(',', (string) $value);
+        }
+
+        return array_values(array_map('strval', $value));
     }
 
     /** 分页器转前端统一结构（list + total + page + page_size） */
