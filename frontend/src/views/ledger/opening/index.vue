@@ -128,7 +128,7 @@ onMounted(() => { period.value = new Date().toISOString().slice(0, 7); load() })
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; }
 .page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 20px; font-weight: 700; color: #303133; }
+.title { font-size: 16px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
 .lbl { font-size: 14px; color: #606266; }

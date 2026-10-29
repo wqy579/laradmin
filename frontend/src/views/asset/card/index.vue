@@ -340,7 +340,7 @@ onMounted(() => {
 	padding: var(--space-lg) var(--space-xl) 0;
 }
 .asset-title {
-	font-size: var(--font-h1);
+	font-size: 16px;
 	font-weight: 600;
 	color: var(--text-primary);
 }

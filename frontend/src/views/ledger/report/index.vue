@@ -140,7 +140,7 @@ const doPrint = (id, title) => {
 	const html = document.getElementById(id)?.innerHTML
 	const w = window.open('', '_blank', 'width=1000,height=700')
 	w.document.write(`<html><head><title>${title}</title><style>
-		.rpt-title{font-size:20px;font-weight:700;text-align:center;margin:16px 0;}
+		.rpt-title{font-size:16px;font-weight:700;text-align:center;margin:16px 0;}
 		.rpt-sub{font-size:14px;color:#606266;text-align:center;margin-bottom:12px;}
 		table{width:100%;border-collapse:collapse;}
 		th,td{border:1px solid #303133;padding:6px 8px;font-size:14px;text-align:center;}
@@ -165,13 +165,13 @@ onMounted(() => {
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; }
 .page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 20px; font-weight: 700; color: #303133; }
+.title { font-size: 16px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
 .report-tabs :deep(.el-tabs__item) { font-size: 14px; color: #606266; }
 .report-tabs :deep(.is-active) { color: #409eff; }
 .report-filter { display: flex; gap: 12px; align-items: center; padding: 12px 0; flex-wrap: wrap; }
 .lbl { font-size: 14px; color: #606266; }
-.rpt-title { font-size: 20px; font-weight: 700; text-align: center; color: #303133; margin: 16px 0; }
+.rpt-title { font-size: 16px; font-weight: 700; text-align: center; color: #303133; margin: 16px 0; }
 .rpt-sub { font-size: 14px; color: #606266; text-align: center; margin-bottom: 12px; }
 .bs-table, .is-table { width: 100%; border-collapse: collapse; }
 .bs-table th, .bs-table td, .is-table th, .is-table td { border: 1px solid #ebeef5; padding: 8px; font-size: 14px; text-align: center; }
