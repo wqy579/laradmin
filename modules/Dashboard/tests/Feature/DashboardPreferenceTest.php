@@ -4,7 +4,6 @@ namespace Tests\Dashboard\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Modules\Auth\Models\User;
 use Tests\TestCase;
 
 /**
@@ -47,10 +46,20 @@ class DashboardPreferenceTest extends TestCase
 
         $row = DB::table('dashboard_user_preference')->where('user_id', $user->id)->first();
         $this->assertNotNull($row, '保存后应有该用户一行');
-        $this->assertSame($layout, json_decode($row->layout, true), '库里存的布局应与提交一致');
+        // MySQL 的 json 列会按字母序重排对象键（h,i,w,x,y），SQLite 保持插入序（i,x,y,w,h）。
+        // 布局项是无序键值对象，比较前归一化键序，避免断言被存储引擎差异误伤。
+        $this->assertSame(
+            $this->normalizeLayout($layout),
+            $this->normalizeLayout(json_decode($row->layout, true)),
+            '库里存的布局应与提交一致'
+        );
 
         $readBack = $this->getJson('/admin/dashboard/preference/layout')->assertOk();
-        $this->assertSame($layout, $readBack->json('data.layout'), '读回应与保存一致');
+        $this->assertSame(
+            $this->normalizeLayout($layout),
+            $this->normalizeLayout($readBack->json('data.layout')),
+            '读回应与保存一致'
+        );
     }
 
     public function test_save_layout_is_scoped_per_user(): void
@@ -98,6 +107,29 @@ class DashboardPreferenceTest extends TestCase
 
         $this->assertSame(1, (int) DB::table('dashboard_user_preference')->count(), '重复保存应覆写而非新增行');
         $row = DB::table('dashboard_user_preference')->first();
-        $this->assertSame($second, json_decode($row->layout, true));
+        // 同上：MySQL json 列重排键序，比较前归一化。
+        $this->assertSame(
+            $this->normalizeLayout($second),
+            $this->normalizeLayout(json_decode($row->layout, true))
+        );
+    }
+
+    /**
+     * 把布局项按键名排序后返回，消除 MySQL json 列（字母序）与 SQLite（插入序）的键序差异。
+     * 布局项是 {i,x,y,w,h} 无序键值对象，语义与键序无关；键排序后逐项一致即可判定等价。
+     */
+    private function normalizeLayout(?array $layout): array
+    {
+        if ($layout === null) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($layout as $item) {
+            ksort($item);
+            $normalized[] = $item;
+        }
+
+        return $normalized;
     }
 }
