@@ -91,7 +91,7 @@ onMounted(() => load())
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; }
 .page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 20px; font-weight: 700; color: #303133; }
+.title { font-size: 16px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding-bottom: 12px; }
 .btn-bar { height: 40px; display: flex; gap: 8px; align-items: center; border-top: 1px solid #ebeef5; padding-top: 8px; margin-bottom: 8px; }

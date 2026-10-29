@@ -146,7 +146,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 }
 
 .page-header .title {
-	font-size: 20px;
+	font-size: 16px;
 	font-weight: 700;
 	color: #303133;
 }

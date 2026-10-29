@@ -124,7 +124,7 @@ onMounted(() => load())
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; }
 .page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 20px; font-weight: 700; color: #303133; }
+.title { font-size: 16px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
 .check-list { display: flex; flex-direction: column; gap: 12px; }
 .check-item { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: 4px; font-size: 14px; }

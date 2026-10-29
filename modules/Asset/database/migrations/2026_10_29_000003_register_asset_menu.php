@@ -20,7 +20,7 @@ return new class extends Migration
     public function up(): void
     {
         $menus = [
-            ['name' => 'asset', 'title' => '固定资产', 'parent_name' => null, 'path' => '/asset/purchase', 'component' => '', 'sort' => 15, 'icon' => 'ElIconBox'],
+            ['name' => 'asset', 'title' => '固定资产', 'parent_name' => null, 'path' => '/asset/purchase', 'component' => '', 'sort' => 19, 'icon' => 'ElIconBox'],
             ['name' => 'asset.purchase', 'title' => '资产购置单', 'parent_name' => 'asset', 'path' => '/asset/purchase', 'component' => 'asset/purchase/index', 'sort' => 1, 'icon' => null],
             ['name' => 'asset.card', 'title' => '固定资产台账', 'parent_name' => 'asset', 'path' => '/asset/card', 'component' => 'asset/card/index', 'sort' => 2, 'icon' => null],
             ['name' => 'asset.depreciation', 'title' => '资产折旧单', 'parent_name' => 'asset', 'path' => '/asset/depreciation', 'component' => 'asset/depreciation/index', 'sort' => 3, 'icon' => null],

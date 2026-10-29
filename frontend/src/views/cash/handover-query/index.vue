@@ -359,7 +359,7 @@ onMounted(async () => {
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; display: flex; flex-direction: column; }
 .page-header { height: 50px; background: var(--bg-card); border-bottom: 1px solid var(--border-lighter); padding: 0 var(--space-xl); display: flex; align-items: center; justify-content: space-between; }
-.title { font-size: var(--font-h1); font-weight: 600; color: var(--text-primary); }
+.title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .card { flex: 1; margin: var(--space-lg) var(--space-xl); display: flex; flex-direction: column; }
 
 .query-tabs { margin-top: calc(-1 * var(--space-md)); }

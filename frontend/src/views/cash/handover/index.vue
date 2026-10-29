@@ -460,7 +460,7 @@ onMounted(async () => {
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; }
 .page-header { height: 50px; background: var(--bg-card); border-bottom: 1px solid var(--border-lighter); padding: 0 var(--space-xl); display: flex; align-items: center; }
-.title { font-size: var(--font-h1); font-weight: 600; color: var(--text-primary); }
+.title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .body { display: flex; gap: var(--space-lg); padding: var(--space-lg) var(--space-xl); align-items: stretch; }
 
 .list-card { width: 460px; flex-shrink: 0; display: flex; flex-direction: column; }

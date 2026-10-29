@@ -149,7 +149,7 @@ onMounted(() => load())
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; padding: 0; }
 .page-header { height: 50px; background: #fff; border-bottom: 1px solid var(--border-lighter); padding: 0 20px; display: flex; align-items: center; }
-.title { font-size: 20px; font-weight: 700; color: #303133; }
+.title { font-size: 16px; font-weight: 700; color: #303133; }
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; flex-wrap: wrap; padding: 0 0 16px 0; }
 .btn-bar { height: 50px; display: flex; gap: 8px; align-items: center; border-top: 1px solid #ebeef5; padding-top: 12px; margin-bottom: 12px; }
