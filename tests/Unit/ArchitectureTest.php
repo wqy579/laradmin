@@ -89,6 +89,11 @@ class ArchitectureTest extends TestCase
         'Cash->Auth',       // 上交款单确认人落 confirmed_by、积分发放单落 operator_id/audited_by，
         //   belongsTo Auth 的用户表回显姓名（与 Ledger->Auth、Order->Auth 同理）；
         //   出纳域不维护人员主数据，内核亦无 User 契约
+        'Asset->Auth',          // 资产卡片/购置单的使用部门与使用人回显名称，belongsTo Auth 的部门与用户表
+        //   （与 Ledger->Auth、Cash->Auth 同因）；Asset 不维护人员主数据，内核亦无 User/Department 契约
+        'Asset->Ledger',        // 购置单勾选「同时登记现金支出凭证」时调 Ledger 的 VoucherService 生成
+        //   现金支出凭证（借 1601 固定资产 / 贷 1001 库存现金）——凭证入口必须唯一，绝不在 Asset 内
+        //   自建凭证；只调用其公开服务方法，不改 A 域代码（与 Order->Member 同理的服务调用）
     ];
 
     /**

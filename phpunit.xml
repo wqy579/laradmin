@@ -59,6 +59,9 @@
         <testsuite name="Cash">
             <directory>modules/Cash/tests</directory>
         </testsuite>
+        <testsuite name="Asset">
+            <directory>modules/Asset/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

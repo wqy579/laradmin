@@ -199,6 +199,13 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/* ========== 应收账龄（E7 应收款明细，沿用 C4 四色板） ========== */
+/* 未到期/1~30 天：绿 #67C23A；31~60 天：橙 #E6A23E；61~90 天：红 #F56C6C；91+ 天：深红 #C0392B */
+.rp-aging-ok { color: #67c23a; }
+.rp-aging-warn { color: #e6a23e; }
+.rp-aging-danger { color: #f56c6c; }
+.rp-aging-critical { color: #c0392b; font-weight: 700; }
+
 /* ========== 综合报表概览卡片 ========== */
 .rp-cards {
 	display: grid;
