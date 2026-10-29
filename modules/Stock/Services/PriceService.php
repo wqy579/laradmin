@@ -9,7 +9,8 @@ use Modules\Stock\Models\CustomerLevel;
 /**
  * 订单自动取价引擎。
  *
- * 优先级：促销价 > 商品等级单独价 > 等级默认折扣价 > 标准售价(price_small)。
+ * 优先级：客户特价 > 促销价 > 商品等级单独价 > 等级默认折扣价 > 标准售价(price_small)。
+ * 客户特价来自 customer_special_price（F7 客户特价落账），
  * 促销部分复用 PromotionService 的限时折扣/特价结果。
  */
 class PriceService
@@ -23,6 +24,26 @@ class PriceService
      */
     public function resolve(?int $customerId, int $productId, float $standardPrice): array
     {
+        // 0) 客户特价：F7 落账的 客户×商品 特价，最高优先级（特价 > 等级价 > 默认价）。
+        if ($customerId) {
+            $sp = DB::table('customer_special_price')
+                ->where('customer_id', $customerId)
+                ->where('product_id', $productId)
+                ->where('status', true)
+                ->when(true, function ($q) {
+                    $q->where(function ($w) {
+                        $w->whereNull('start_date')->orWhere('start_date', '<=', now()->toDateString());
+                    })->where(function ($w) {
+                        $w->whereNull('end_date')->orWhere('end_date', '>=', now()->toDateString());
+                    });
+                })
+                ->orderByDesc('id')
+                ->first();
+            if ($sp && (float) $sp->price > 0) {
+                return ['price' => round((float) $sp->price, 2), 'source' => '客户特价'];
+            }
+        }
+
         // 1) 促销价：用 calculate 看该商品是否被促销覆盖
         if ($customerId) {
             $calc = $this->promotions->calculate($customerId, [[
