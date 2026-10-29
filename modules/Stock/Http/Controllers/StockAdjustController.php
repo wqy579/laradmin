@@ -61,7 +61,7 @@ class StockAdjustController extends Controller
         return $this->success(['list' => $products, 'total' => $products->count()]);
     }
 
-    /** 列表（分页 + 仓库/状态/日期/单号筛选） */
+    /** 列表（分页 + 商品/仓库/状态/日期/单号筛选） */
     public function index(Request $request)
     {
         $query = $this->applyFilters(StockAdjust::with('warehouse'), $request);
@@ -71,7 +71,29 @@ class StockAdjustController extends Controller
 
         $paginator = $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
 
-        return $this->paginated($paginator);
+        // 合计：与列表同一套筛选（不含分页），汇总调整数量 / 调整金额。
+        // 合计行与筛选条件严格一致，避免与列表数字对不上。
+        $summaryQuery = $this->applyFilters(StockAdjust::query(), $request);
+        $summary = (clone $summaryQuery)
+            ->selectRaw('COALESCE(SUM(total_qty), 0) as total_qty, COALESCE(SUM(total_amount), 0) as total_amount, COUNT(*) as count')
+            ->first();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'success',
+            'data' => [
+                'list' => $paginator->items(),
+                'total' => $paginator->total(),
+                'page' => $paginator->currentPage(),
+                'page_size' => $paginator->perPage(),
+                'last_page' => $paginator->lastPage(),
+                'summary' => [
+                    'total_qty' => round((float) $summary->total_qty, 2),
+                    'total_amount' => round((float) $summary->total_amount, 2),
+                    'count' => (int) $summary->count,
+                ],
+            ],
+        ]);
     }
 
     /**
@@ -130,6 +152,19 @@ class StockAdjustController extends Controller
         }
         if ($request->filled('adjust_no')) {
             $query->where('adjust_no', 'like', '%'.trim((string) $request->input('adjust_no')).'%');
+        }
+        // 商品筛选：任一明细行命中该商品即命中（明细在 stock_adjust_items，一对多）。
+        // 用 whereHas + exists 子查询，避免 join 后分页/合计因一对多重复计数。
+        $productIds = $request->input('product_ids');
+        if (is_array($productIds) && count(array_filter($productIds)) > 0) {
+            $ids = array_values(array_filter(array_map('intval', $productIds)));
+            $query->whereHas('items', function ($q) use ($ids) {
+                $q->whereIn('product_id', $ids);
+            });
+        } elseif ($request->filled('product_id')) {
+            $query->whereHas('items', function ($q) use ($request) {
+                $q->where('product_id', (int) $request->input('product_id'));
+            });
         }
 
         return $query;

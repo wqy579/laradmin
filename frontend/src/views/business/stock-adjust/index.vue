@@ -24,6 +24,9 @@
 				<el-option label="库存溢余" value="stock_gain" />
 				<el-option label="其他" value="other" />
 			</el-select>
+			<el-select v-model="searchForm.product_id" placeholder="全部商品" clearable filterable style="width:200px">
+				<el-option v-for="p in products" :key="p.id" :label="p.name + (p.code ? ' (' + p.code + ')' : '')" :value="p.id" />
+			</el-select>
 			<el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width:140px">
 				<el-option label="草稿" value="draft" />
 				<el-option label="待审核" value="pending" />
@@ -42,6 +45,15 @@
 			<el-input v-model="searchForm.adjust_no" placeholder="输入调整单号" clearable style="width:180px" @keyup.enter="search" />
 			<el-button type="primary" @click="search">查询</el-button>
 			<el-button @click="resetSearch">重置</el-button>
+		</div>
+
+		<!-- 合计栏（与当前筛选一致的汇总） -->
+		<div class="summary-bar" v-if="summary">
+			<span>共 <b>{{ summary.count }}</b> 张调整单</span>
+			<span class="sep">|</span>
+			<span>调整数量合计：<b :class="qtyClass(summary.total_qty)">{{ qtyFormat(summary.total_qty) }}</b></span>
+			<span class="sep">|</span>
+			<span>调整金额合计：<b>¥{{ fmtMoney(Math.abs(summary.total_amount)) }}</b></span>
 		</div>
 
 		<!-- 列表 -->
@@ -144,14 +156,16 @@ import StockAdjustAudit from './stock-adjust-audit.vue'
 import StockAdjustDetail from './stock-adjust-detail.vue'
 
 const warehouses = ref([])
+const products = ref([])
 const data = ref([])
 const total = ref(0)
 const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const tableRef = ref(null)
+const summary = ref(null)
 
-const searchForm = reactive({ warehouse_id: '', adjust_type: '', status: '', adjust_no: '' })
+const searchForm = reactive({ warehouse_id: '', adjust_type: '', status: '', adjust_no: '', product_id: '' })
 const dateRange = ref([])
 
 const typeMeta = {
@@ -200,7 +214,7 @@ async function fetchData() {
 	loading.value = true
 	try {
 		const params = { page: currentPage.value, page_size: pageSize.value }
-		;['warehouse_id', 'adjust_type', 'status', 'adjust_no'].forEach((k) => {
+		;['warehouse_id', 'adjust_type', 'status', 'adjust_no', 'product_id'].forEach((k) => {
 			if (searchForm[k] !== '' && searchForm[k] != null) params[k] = searchForm[k]
 		})
 		if (dateRange.value && dateRange.value.length === 2) {
@@ -211,6 +225,7 @@ async function fetchData() {
 		const d = res.data || {}
 		data.value = (d.list || []).map((r) => ({ ...r, warehouse_name: r.warehouse?.name || '-' }))
 		total.value = d.total || 0
+		summary.value = d.summary || null
 	} catch (e) {
 		ElMessage.error(e?.response?.data?.message || '数据加载失败')
 	} finally {
@@ -225,9 +240,16 @@ async function fetchWarehouses() {
 	} catch (e) { /* 忽略 */ }
 }
 
+async function fetchProducts() {
+	try {
+		const res = await businessApi.product.list.get({ per_page: 9999, page: 1 })
+		products.value = res.data?.list || res.data?.data || []
+	} catch (e) { /* 忽略 */ }
+}
+
 function search() { currentPage.value = 1; fetchData() }
 function resetSearch() {
-	searchForm.warehouse_id = ''; searchForm.adjust_type = ''; searchForm.status = ''; searchForm.adjust_no = ''
+	searchForm.warehouse_id = ''; searchForm.adjust_type = ''; searchForm.status = ''; searchForm.adjust_no = ''; searchForm.product_id = ''
 	dateRange.value = []; search()
 }
 function onPageChange(p) { currentPage.value = p; fetchData() }
@@ -267,7 +289,7 @@ async function onExport() {
 	exporting.value = true
 	try {
 		const params = new URLSearchParams()
-		;['warehouse_id', 'adjust_type', 'status', 'adjust_no'].forEach((k) => {
+		;['warehouse_id', 'adjust_type', 'status', 'adjust_no', 'product_id'].forEach((k) => {
 			if (searchForm[k] !== '' && searchForm[k] != null) params.set(k, searchForm[k])
 		})
 		if (dateRange.value && dateRange.value.length === 2) {
@@ -365,7 +387,7 @@ async function docancel(row) {
 	}
 }
 
-onMounted(() => { fetchWarehouses(); fetchData() })
+onMounted(() => { fetchWarehouses(); fetchProducts(); fetchData() })
 </script>
 
 <style scoped>
@@ -374,6 +396,9 @@ onMounted(() => { fetchWarehouses(); fetchData() })
 .page-title { font-size: 18px; font-weight: bold; color: #333; }
 .header-actions { display: flex; gap: 8px; }
 .filter-bar { margin-top: 12px; background: #fff; border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.summary-bar { margin-top: 12px; background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 4px; padding: 8px 16px; font-size: 13px; color: #333; display: flex; align-items: center; gap: 8px; }
+.summary-bar .sep { color: #c0c4cc; }
+.summary-bar b { color: #409eff; font-weight: 600; }
 .table-card { margin-top: 12px; flex: 1; background: #fff; border-radius: 4px; padding: 8px; overflow: hidden; display: flex; flex-direction: column; }
 .num-up { color: #52c41a; font-weight: 500; }
 .num-down { color: #f5222d; font-weight: 500; }

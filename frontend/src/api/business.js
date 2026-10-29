@@ -188,6 +188,7 @@ const businessApi = {
 	stocktaking: {
 		list: { get: (params) => request.get('business/stocktaking', { params }) },
 		detail: { get: (id) => request.get(`business/stocktaking/${id}`) },
+		export: (id) => request.get(`business/stocktaking/${id}/export`, { responseType: 'blob' }),
 		create: { post: (params) => request.post('business/stocktaking', params) },
 		update: { put: (id, params) => request.put(`business/stocktaking/${id}`, params) },
 		delete: { delete: (id) => request.delete(`business/stocktaking/${id}`) },
