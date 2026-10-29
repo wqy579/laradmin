@@ -18,7 +18,7 @@ return new class extends Migration
     public function up(): void
     {
         $menus = [
-            ['name' => 'cash', 'title' => '出纳管理', 'parent_name' => null, 'path' => '/cash/account-flow', 'component' => '', 'sort' => 14, 'icon' => 'ElIconMoney'],
+            ['name' => 'cash', 'title' => '出纳管理', 'parent_name' => null, 'path' => '/cash/account-flow', 'component' => '', 'sort' => 18, 'icon' => 'ElIconMoney'],
             ['name' => 'cash.workbench', 'title' => '出纳工作台', 'parent_name' => 'cash', 'path' => '/cash/workbench', 'component' => 'cash/workbench/index', 'sort' => 7, 'icon' => null],
         ];
 

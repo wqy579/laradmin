@@ -26,7 +26,7 @@ class CashSeeder extends Seeder
     private function registerMenus(): void
     {
         $menus = [
-            ['name' => 'cash', 'title' => '出纳管理', 'parent_name' => null, 'path' => '/cash/account-flow', 'component' => null, 'sort' => 14, 'icon' => 'ElIconMoney'],
+            ['name' => 'cash', 'title' => '出纳管理', 'parent_name' => null, 'path' => '/cash/account-flow', 'component' => null, 'sort' => 18, 'icon' => 'ElIconMoney'],
             ['name' => 'cash.account-flow', 'title' => '现金账户', 'parent_name' => 'cash', 'path' => '/cash/account-flow', 'component' => 'cash/account-flow/index', 'sort' => 1, 'icon' => null],
             ['name' => 'cash.card', 'title' => '刷卡记录', 'parent_name' => 'cash', 'path' => '/cashier/card', 'component' => 'cashier/card/index', 'sort' => 2, 'icon' => null],
             ['name' => 'cash.handover', 'title' => '收入上交款', 'parent_name' => 'cash', 'path' => '/cash/handover', 'component' => 'cash/handover/index', 'sort' => 3, 'icon' => null],
