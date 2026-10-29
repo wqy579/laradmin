@@ -129,7 +129,7 @@ class PointOrderController extends Controller
             $totalPoints = $pointsUnit * $quantity;
 
             return PointOrder::create([
-                'order_no' => MemberService::generateNo('point_order', 'point_orders', 'order_no'),
+                'order_no' => MemberService::generateNoByMonth('JF', 'point_orders', 'order_no'),
                 'member_id' => $member->id,
                 'member_no' => $member->member_no,
                 'member_name' => $member->name,

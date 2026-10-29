@@ -6,6 +6,9 @@
  * 斜向 45° 平铺的「演示数据」水印，并加一条顶部 warning 提示条。
  * 接真实后端后（配置开关 FINANCE_DEMO_WATERMARK 置 false），组件整体消失。
  *
+ * D7 扩展：同时覆盖 D 三域（出纳 cash / 固定资产 asset / 积分 points），
+ * 由 DOMAIN_DEMO_WATERMARK 开关控制；正式数据上线后置 false 自动消失。
+ *
  * 设计（遵循 DS 规范）：
  *  - 水印斜向 45° 平铺，文字「演示数据」橙色 #E6A23C、12px、透明度 0.15、
  *    pointer-events:none —— 不可误点、不拦截任何交互。
@@ -13,7 +16,7 @@
  */
 import config from '../../config'
 
-const show = config.FINANCE_DEMO_WATERMARK !== false
+const show = config.FINANCE_DEMO_WATERMARK !== false && config.DOMAIN_DEMO_WATERMARK !== false
 </script>
 
 <template>
@@ -21,7 +24,7 @@ const show = config.FINANCE_DEMO_WATERMARK !== false
 		<!-- 顶部提示条：warning 底 + 图标 + 文案（正常流，将页面内容下推） -->
 		<div class="demo-watermark-bar">
 			<el-icon :size="14"><ElIconWarning /></el-icon>
-			<span>当前为演示数据，接真实后端后自动消失</span>
+			<span>当前为演示数据，正式数据上线前请勿作为决策依据</span>
 		</div>
 		<!-- 水印层：斜向 45° 平铺，覆盖整块内容区；pointer-events:none 不可误点 -->
 		<div class="demo-watermark-layer" aria-hidden="true" />

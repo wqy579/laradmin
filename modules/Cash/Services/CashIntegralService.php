@@ -174,7 +174,7 @@ class CashIntegralService
                 CashIntegralGrantItem::query()->where('grant_id', $grant->id)->delete();
             } else {
                 $grant = CashIntegralGrant::create([
-                    'grant_no' => MemberService::generateNo('JF', 'cash_integral_grant', 'grant_no'),
+                    'grant_no' => MemberService::generateNoByMonth('JF', 'cash_integral_grant', 'grant_no'),
                     'grant_date' => $data['grant_date'],
                     'grant_type' => $data['grant_type'],
                     'total_points' => $total,

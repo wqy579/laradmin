@@ -1,5 +1,5 @@
 <template>
-	<div class="page">
+	<div class="page fin-page">
 		<div class="page-header">
 			<span class="title">刷卡收款记录</span>
 			<el-button @click="onExport">
@@ -9,6 +9,7 @@
 
 		<el-card shadow="never" class="card">
 			<div class="filter">
+				<span class="label">刷卡日期</span>
 				<el-date-picker
 					v-model="dateRange"
 					type="daterange"
@@ -19,13 +20,17 @@
 					style="width:240px"
 					@change="onDateChange"
 				/>
+				<span class="label">客户</span>
 				<el-select v-model="filters.customer_id" placeholder="客户" clearable filterable style="width:160px">
 					<el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
 				</el-select>
+				<span class="label">业务员</span>
 				<el-select v-model="filters.salesman_id" placeholder="业务员" clearable filterable style="width:130px">
 					<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
 				</el-select>
+				<span class="label">卡号后四位</span>
 				<el-input v-model="filters.card_last4" placeholder="卡号后四位" clearable maxlength="4" style="width:110px" />
+				<span class="label">状态</span>
 				<el-select v-model="filters.status" placeholder="状态" clearable style="width:110px">
 					<el-option label="成功" value="success" />
 					<el-option label="失败" value="fail" />
@@ -62,7 +67,7 @@
 				show-summary
 				:summary-method="summaryMethod"
 				height="calc(100% - 265px)"
-				empty-text="暂无刷卡记录"
+				class="fin-table--dense"
 			>
 				<el-table-column prop="serial_no" label="流水号" width="150">
 					<template #default="{ row }"><span class="tabular">{{ row.serial_no }}</span></template>
@@ -82,12 +87,12 @@
 				<el-table-column label="卡号" width="140" align="center">
 					<template #default="{ row }"><span class="tabular">{{ row.card_no_masked || '—' }}</span></template>
 				</el-table-column>
-				<el-table-column label="金额" width="130" align="right">
+				<el-table-column label="金额" width="130" align="right" header-align="right">
 					<template #default="{ row }">
 						<span class="tabular amt" :class="row.amount < 0 ? 'neg' : ''">{{ fmtMoney(row.amount) }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column label="手续费" width="90" align="right">
+				<el-table-column label="手续费" width="90" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular">{{ fmtMoney(row.fee) }}</span></template>
 				</el-table-column>
 				<el-table-column label="状态" width="90" align="center">
@@ -110,9 +115,10 @@
 						</el-tooltip>
 					</template>
 				</el-table-column>
+				<template #empty><FinEmpty text="暂无刷卡记录" /></template>
 			</el-table>
 
-			<div class="pager">
+			<div class="pager fin-pager">
 				<el-pagination
 					v-model:current-page="page"
 					v-model:page-size="pageSize"
@@ -134,6 +140,7 @@ import { Download } from '@element-plus/icons-vue'
 import cashApi from '@/api/cash'
 import { saveBlob } from '@/utils/fileDownload'
 import { fmtMoney, fmtCount, fmtDateTime } from '@/views/cash/shared'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const customers = ref([])
 const salesmen = ref([])
@@ -243,13 +250,18 @@ onMounted(async () => {
 })
 </script>
 
+<style>
+@import '../../finance/_shared.css';
+</style>
+
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; display: flex; flex-direction: column; }
 .page-header { height: 50px; background: var(--bg-card); border-bottom: 1px solid var(--border-lighter); padding: 0 var(--space-xl); display: flex; align-items: center; justify-content: space-between; }
 .title { font-size: var(--font-h1); font-weight: 600; color: var(--text-primary); }
 .card { flex: 1; margin: var(--space-lg) var(--space-xl); display: flex; flex-direction: column; }
 
-.filter { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-bottom: var(--space-md); }
+.filter { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-bottom: var(--space-md); align-items: center; }
+.filter .label { font-size: var(--font-aux); color: var(--text-regular); white-space: nowrap; }
 .pager { display: flex; justify-content: flex-end; padding-top: var(--space-md); }
 
 .stat-strip { display: flex; gap: var(--space-lg); margin-bottom: var(--space-md); }
@@ -262,8 +274,20 @@ onMounted(async () => {
 .amt { color: var(--text-primary); font-weight: 500; }
 .amt.neg { color: var(--color-danger); }
 /* 连凯对标：状态 Tag 成功=绿 #67C23A / 已退款=橙 #E6A23C / 失败=红 #F56C6C，自绘以锁精确色值 */
-.st-tag { display: inline-block; padding: 0 8px; height: 22px; line-height: 22px; font-size: 12px; border-radius: 3px; color: #fff; }
-.st-success { background: #67C23A; }
-.st-refund { background: #E6A23C; }
-.st-fail { background: #F56C6C; }
+.st-tag { display: inline-block; padding: 0 8px; height: 22px; line-height: 22px; font-size: var(--font-aux); border-radius: 3px; color: #fff; }
+.st-success { background: var(--color-success); }
+.st-refund { background: var(--color-warning); }
+.st-fail { background: var(--color-danger); }
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+.fin-page :deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+.fin-page :deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+.fin-page :deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
+}
 </style>

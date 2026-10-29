@@ -33,6 +33,11 @@ const defaultConfig = {
 	// 未接真实后端前 = true，finance 各页挂「演示数据」水印 + 顶部提示条；
 	// 接真实后端后置 false，水印与提示条自动消失。
 	FINANCE_DEMO_WATERMARK: true,
+
+	// D7 三域（出纳 cash / 固定资产 asset / 积分 points）「演示数据」水印开关
+	// 与 FINANCE_DEMO_WATERMARK 同规则：未接真实后端前 = true；
+	// 正式数据上线后置 false，水印与提示条自动消失。
+	DOMAIN_DEMO_WATERMARK: true,
 }
 
 // 合并 public/config.js 中的覆盖配置

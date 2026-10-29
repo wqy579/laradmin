@@ -48,7 +48,7 @@
 
 		<!-- 列表 -->
 		<div class="pts-table">
-			<el-table v-loading="loading" :data="data" row-key="id" stripe border height="100%" empty-text="当前筛选条件下暂无数据">
+			<el-table v-loading="loading" :data="data" row-key="id" stripe border height="100%" class="fin-table--dense">
 				<el-table-column type="selection" width="45" align="center" />
 				<el-table-column prop="verify_no" label="核销单号" width="170" align="center">
 					<template #default="{ row }">
@@ -64,10 +64,10 @@
 						<span v-if="row.member_no" class="count">{{ row.member_no }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="points" label="核销积分" width="120" align="right">
+				<el-table-column prop="points" label="核销积分" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular points">-{{ fmtInt(row.points) }}</span></template>
 				</el-table-column>
-				<el-table-column prop="points_after" label="核销后余额" width="120" align="right">
+				<el-table-column prop="points_after" label="核销后余额" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular">{{ isNil(row.points_after) ? '—' : fmtInt(row.points_after) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="verify_type_label" label="类型" width="90" align="center">
@@ -97,12 +97,12 @@
 						<el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
 					</template>
 				</el-table-column>
-				<template #empty><span class="pts-empty">当前筛选条件下暂无数据</span></template>
+				<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 			</el-table>
 		</div>
 
 		<!-- 分页 -->
-		<div class="pts-pager">
+		<div class="pts-pager fin-pager">
 			<el-pagination
 				background
 				layout="total, prev, pager, next, jumper, sizes"
@@ -202,6 +202,7 @@ import { usePermission } from '@/composables/usePermission'
 import { saveBlob } from '@/utils/fileDownload'
 import businessApi from '@/api/business'
 import cashApi from '@/api/cash'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const router = useRouter()
 const { has: hasPerm } = usePermission()
@@ -399,6 +400,7 @@ searchMembers('')
 </script>
 
 <style>
+@import '../../finance/_shared.css';
 @import '../_shared.css';
 </style>
 
@@ -443,5 +445,17 @@ searchMembers('')
 	color: var(--color-success);
 	font-family: var(--font-numeric);
 	font-variant-numeric: tabular-nums;
+}
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+.pts-use :deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+.pts-use :deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+.pts-use :deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
 }
 </style>
