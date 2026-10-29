@@ -4893,6 +4893,42 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/report/receivable",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\ReceivableController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/receivable/drill",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\ReceivableController@drill",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/report/receivable/export",
+        "name": "admin.",
+        "action": "Modules\\Report\\Http\\Controllers\\ReceivableController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/report/sales",
         "name": "admin.",
         "action": "Modules\\Report\\Http\\Controllers\\SalesReportController@index",

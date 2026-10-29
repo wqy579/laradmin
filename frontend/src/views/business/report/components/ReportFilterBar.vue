@@ -26,6 +26,15 @@
 						</div>
 					</div>
 
+					<!-- 截止日期（应收账龄类：默认今天，未结清单按此日算账龄） -->
+					<div class="rp-field" v-else-if="key === 'as_of_date'">
+						<span class="rp-label">截止日期</span>
+						<div class="rp-control">
+							<el-date-picker v-model="model.as_of_date" type="date" size="small" style="width: 100%"
+								placeholder="截止日期" value-format="YYYY-MM-DD" />
+						</div>
+					</div>
+
 					<div class="rp-field" v-else-if="key === 'start_time'">
 						<span class="rp-label">开始时间</span>
 						<div class="rp-control">

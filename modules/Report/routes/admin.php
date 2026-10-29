@@ -5,6 +5,7 @@ use Modules\Report\Http\Controllers\CombinedReportController;
 use Modules\Report\Http\Controllers\CustomerReportController;
 use Modules\Report\Http\Controllers\PriceRankController;
 use Modules\Report\Http\Controllers\ProcurementController;
+use Modules\Report\Http\Controllers\ReceivableController;
 use Modules\Report\Http\Controllers\RecentPriceController;
 use Modules\Report\Http\Controllers\ReportColumnController;
 use Modules\Report\Http\Controllers\ReportOptionController;
@@ -111,6 +112,13 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
             Route::get('/', [ProcurementController::class, 'index']);
             Route::get('/export', [ProcurementController::class, 'export']);
             Route::get('/drill', [ProcurementController::class, 'drill']);
+        });
+
+        // 应收+余额+考勤+访店报表（E7，4 个维度：应收款明细/客户余额一览/业务员考勤/业务访店行程）
+        Route::prefix('receivable')->group(function () {
+            Route::get('/', [ReceivableController::class, 'index']);
+            Route::get('/export', [ReceivableController::class, 'export']);
+            Route::get('/drill', [ReceivableController::class, 'drill']);
         });
     });
 });
