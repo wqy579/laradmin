@@ -1377,6 +1377,126 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/customer-special-price",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/customer-special-price",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/customer-special-price/options",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/customer-special-price/plans",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@plans",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/business/customer-special-price/plans",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@storePlan",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/customer-special-price/plans/{id}",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@destroyPlan",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/customer-special-price/plans/{id}",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@updatePlan",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/customer-special-price/resolve",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@resolve",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/business/customer-special-price/{id}",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/business/customer-special-price/{id}",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\CustomerSpecialPriceController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/customer-statement",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\StatementController@index",

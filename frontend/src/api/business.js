@@ -242,6 +242,20 @@ const businessApi = {
 		calculate: { post: (params) => request.post('business/product-price/calculate', params) },
 	},
 
+	// F7 价格方案 + 客户特价
+	customerSpecialPrice: {
+		options: { get: () => request.get('business/customer-special-price/options') },
+		plans: { get: (params) => request.get('business/customer-special-price/plans', { params }) },
+		planCreate: { post: (params) => request.post('business/customer-special-price/plans', params) },
+		planUpdate: { put: (id, params) => request.put(`business/customer-special-price/plans/${id}`, params) },
+		planDelete: { delete: (id) => request.delete(`business/customer-special-price/plans/${id}`) },
+		list: { get: (params) => request.get('business/customer-special-price', { params }) },
+		create: { post: (params) => request.post('business/customer-special-price', params) },
+		update: { put: (id, params) => request.put(`business/customer-special-price/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/customer-special-price/${id}`) },
+		resolve: { get: (params) => request.get('business/customer-special-price/resolve', { params }) },
+	},
+
 	// 成本价格
 	costPrice: {
 		list: { get: (params) => request.get('business/cost-price', { params }) },

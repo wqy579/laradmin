@@ -189,6 +189,18 @@ const systemRoutes = [
 				meta: { title: 'price-batch' },
 			},
 			{
+				path: '/business/price-plan',
+				name: 'PricePlan',
+				component: () => import('../views/business/price-plan/index.vue'),
+				meta: { title: 'price-plan' },
+			},
+			{
+				path: '/business/customer-special-price',
+				name: 'CustomerSpecialPrice',
+				component: () => import('../views/business/customer-special-price/index.vue'),
+				meta: { title: 'customer-special-price' },
+			},
+			{
 				path: '/business/return',
 				name: 'Return',
 				component: () => import('../views/business/return/index.vue'),
