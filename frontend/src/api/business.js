@@ -895,6 +895,13 @@ const businessApi = {
 			export: { get: (params) => request.get('business/report/procurement/export', { params, responseType: 'blob' }) },
 			drill: { get: (params) => request.get('business/report/procurement/drill', { params }) },
 		},
+
+		// 应收+余额+考勤+访店报表（E7，4 个维度：应收款明细/客户余额一览/业务员考勤/业务访店行程）
+		receivable: {
+			get: (params) => request.get('business/report/receivable', { params }),
+			export: { get: (params) => request.get('business/report/receivable/export', { params, responseType: 'blob' }) },
+			drill: { get: (params) => request.get('business/report/receivable/drill', { params }) },
+		},
 	},
 }
 

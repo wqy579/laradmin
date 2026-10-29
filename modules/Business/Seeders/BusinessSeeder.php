@@ -448,6 +448,7 @@ class BusinessSeeder extends Seeder
             ['name' => 'report.price-rank', 'title' => '排行/价格', 'parent' => 'report', 'path' => '/business/report/price-rank', 'component' => 'business/report/price-rank/index', 'sort' => 8],
             ['name' => 'report.stock-analysis', 'title' => '库存分析', 'parent' => 'report', 'path' => '/business/report/stock-analysis', 'component' => 'business/report/stock-analysis/index', 'sort' => 9],
             ['name' => 'report.procurement', 'title' => '采购/费用', 'parent' => 'report', 'path' => '/business/report/procurement', 'component' => 'business/report/procurement/index', 'sort' => 10],
+            ['name' => 'report.receivable', 'title' => '应收/访店', 'parent' => 'report', 'path' => '/business/report/receivable', 'component' => 'business/report/receivable/index', 'sort' => 11],
             ['name' => 'report.history', 'title' => '经营历程', 'parent' => 'report', 'path' => '/business/history', 'component' => 'business/history/index', 'sort' => 6],
         ];
 
