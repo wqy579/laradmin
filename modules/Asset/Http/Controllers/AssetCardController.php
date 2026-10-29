@@ -65,7 +65,7 @@ class AssetCardController extends Controller
             ->map(fn ($d) => ['id' => (int) $d->id, 'name' => (string) $d->name]);
 
         $statuses = collect([
-            AssetCard::STATUS_INUSE, AssetCard::STATUS_IDLE, AssetCard::STATUS_DISPOSED,
+            AssetCard::STATUS_INUSE, AssetCard::STATUS_IDLE, AssetCard::STATUS_DISPOSED, AssetCard::STATUS_SOLD,
         ])->map(fn ($s) => ['value' => $s, 'label' => AssetCard::statusLabel($s)]);
 
         $suppliers = DB::table('asset_purchase')

@@ -29,6 +29,8 @@ class AssetSeeder extends Seeder
             ['name' => 'asset', 'title' => '固定资产', 'parent_name' => null, 'path' => '/asset/purchase', 'component' => null, 'sort' => 15, 'icon' => 'ElIconBox'],
             ['name' => 'asset.purchase', 'title' => '资产购置单', 'parent_name' => 'asset', 'path' => '/asset/purchase', 'component' => 'asset/purchase/index', 'sort' => 1, 'icon' => null],
             ['name' => 'asset.card', 'title' => '固定资产台账', 'parent_name' => 'asset', 'path' => '/asset/card', 'component' => 'asset/card/index', 'sort' => 2, 'icon' => null],
+            ['name' => 'asset.depreciation', 'title' => '资产折旧单', 'parent_name' => 'asset', 'path' => '/asset/depreciation', 'component' => 'asset/depreciation/index', 'sort' => 3, 'icon' => null],
+            ['name' => 'asset.sale', 'title' => '资产变卖单', 'parent_name' => 'asset', 'path' => '/asset/sale', 'component' => 'asset/sale/index', 'sort' => 4, 'icon' => null],
         ];
 
         foreach ($menus as $menu) {
@@ -48,6 +50,10 @@ class AssetSeeder extends Seeder
             ['name' => 'asset.purchase.view', 'alias' => 'asset:purchase', 'title' => '查看购置单', 'parent_name' => 'asset.purchase', 'sort' => 1],
             ['name' => 'asset.purchase.create', 'alias' => 'asset:purchase:create', 'title' => '新增购置单', 'parent_name' => 'asset.purchase', 'sort' => 2],
             ['name' => 'asset.card.view', 'alias' => 'asset:view', 'title' => '查看资产台账', 'parent_name' => 'asset.card', 'sort' => 1],
+            ['name' => 'asset.depreciation.view', 'alias' => 'asset:depreciate', 'title' => '查看折旧单', 'parent_name' => 'asset.depreciation', 'sort' => 1],
+            ['name' => 'asset.depreciation.run', 'alias' => 'asset:depreciate:run', 'title' => '计提折旧', 'parent_name' => 'asset.depreciation', 'sort' => 2],
+            ['name' => 'asset.sale.view', 'alias' => 'asset:sale', 'title' => '查看变卖单', 'parent_name' => 'asset.sale', 'sort' => 1],
+            ['name' => 'asset.sale.create', 'alias' => 'asset:sale:create', 'title' => '新增变卖单', 'parent_name' => 'asset.sale', 'sort' => 2],
         ];
 
         foreach ($buttons as $btn) {
