@@ -160,4 +160,6 @@ onMounted(() => load())
 .dash { color: #909399; }
 :deep(.vxe-header--row) { height: 44px !important; }
 :deep(.vxe-body--row.row--current > .vxe-body--column) { background-color: #ECF5FF; color: #409EFF; }
+/* DS：sTable 分页条 52px（页面级覆盖共享组件默认 50px） */
+:deep(.sTable-page) { height: 52px !important; }
 </style>

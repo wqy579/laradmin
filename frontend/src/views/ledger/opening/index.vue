@@ -25,32 +25,32 @@
 				<el-table-column label="年初余额借方" width="160" align="right">
 					<template #default="{ row }">
 						<el-input-number v-if="row.is_leaf && !periodClosed" v-model="row.opening_debit" :precision="2" :controls="false" size="small" class="amt-input" @change="recompute(row)" />
-						<span v-else>{{ fmt(row.opening_debit) }}</span>
+						<span v-else class="tabular">{{ fmt(row.opening_debit) }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column label="年初余额贷方" width="160" align="right">
 					<template #default="{ row }">
 						<el-input-number v-if="row.is_leaf && !periodClosed" v-model="row.opening_credit" :precision="2" :controls="false" size="small" class="amt-input" @change="recompute(row)" />
-						<span v-else>{{ fmt(row.opening_credit) }}</span>
+						<span v-else class="tabular">{{ fmt(row.opening_credit) }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column label="本期累计借方" width="140" align="right">
 					<template #default="{ row }">
 						<el-input-number v-if="row.is_leaf && !periodClosed" v-model="row.year_debit" :precision="2" :controls="false" size="small" class="amt-input" @change="recompute(row)" />
-						<span v-else>{{ fmt(row.year_debit) }}</span>
+						<span v-else class="tabular">{{ fmt(row.year_debit) }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column label="本期累计贷方" width="140" align="right">
 					<template #default="{ row }">
 						<el-input-number v-if="row.is_leaf && !periodClosed" v-model="row.year_credit" :precision="2" :controls="false" size="small" class="amt-input" @change="recompute(row)" />
-						<span v-else>{{ fmt(row.year_credit) }}</span>
+						<span v-else class="tabular">{{ fmt(row.year_credit) }}</span>
 					</template>
 				</el-table-column>
 				<el-table-column prop="current_debit" label="当前期初借方" width="140" align="right">
-					<template #default="{ row }">{{ fmt(row.current_debit) }}</template>
+					<template #default="{ row }"><span class="tabular">{{ fmt(row.current_debit) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="current_credit" label="当前期初贷方" width="140" align="right">
-					<template #default="{ row }">{{ fmt(row.current_credit) }}</template>
+					<template #default="{ row }"><span class="tabular">{{ fmt(row.current_credit) }}</span></template>
 				</el-table-column>
 			</el-table>
 		</el-card>
