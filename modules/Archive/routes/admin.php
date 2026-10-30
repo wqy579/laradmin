@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Archive\Http\Controllers\CompanyController;
 use Modules\Archive\Http\Controllers\DivisionController;
+use Modules\Archive\Http\Controllers\DownloadFileController;
+use Modules\Archive\Http\Controllers\HelpDocController;
 use Modules\Archive\Http\Controllers\OpeningWizardController;
 
 // =============================================================================
@@ -53,5 +55,30 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::post('/import', [OpeningWizardController::class, 'import']);
         Route::post('/lock', [OpeningWizardController::class, 'lock']);
         Route::post('/unlock', [OpeningWizardController::class, 'unlock']);
+    });
+
+    // 帮助中心（F6 第三批）：同样是静态段先于 {doc}
+    Route::prefix('data/help')->group(function () {
+        Route::post('/preview', [HelpDocController::class, 'preview']);
+        Route::get('/categories', [HelpDocController::class, 'categories']);
+        Route::get('/', [HelpDocController::class, 'index']);
+        Route::post('/', [HelpDocController::class, 'store']);
+        Route::get('/{doc}', [HelpDocController::class, 'show']);
+        Route::put('/{doc}', [HelpDocController::class, 'update']);
+        Route::delete('/{doc}', [HelpDocController::class, 'destroy']);
+        Route::post('/{doc}/read', [HelpDocController::class, 'read']);
+        Route::post('/{doc}/publish', [HelpDocController::class, 'publish']);
+        Route::post('/{doc}/withdraw', [HelpDocController::class, 'withdraw']);
+    });
+
+    // 下载中心：download 是动作型子路径，放在 {file} 参数路由之后不影响匹配
+    Route::prefix('data/download')->group(function () {
+        Route::get('/categories', [DownloadFileController::class, 'categories']);
+        Route::get('/', [DownloadFileController::class, 'index']);
+        Route::post('/', [DownloadFileController::class, 'store']);
+        Route::get('/{file}', [DownloadFileController::class, 'show']);
+        Route::put('/{file}', [DownloadFileController::class, 'update']);
+        Route::delete('/{file}', [DownloadFileController::class, 'destroy']);
+        Route::get('/{file}/download', [DownloadFileController::class, 'download']);
     });
 });

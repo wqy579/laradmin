@@ -46,6 +46,37 @@ const dataApi = {
 			}),
 		template: (kind) => request.get(`data/opening/template/${kind}`, { responseType: 'blob' }),
 	},
+	// 帮助中心（F6 第三批）
+	help: {
+		list: { get: (params) => request.get('data/help', { params }) },
+		categories: { get: (params) => request.get('data/help/categories', { params }) },
+		detail: { get: (id) => request.get(`data/help/${id}`) },
+		add: { post: (data) => request.post('data/help', data) },
+		edit: { put: (id, data) => request.put(`data/help/${id}`, data) },
+		delete: { delete: (id) => request.delete(`data/help/${id}`) },
+		// 阅读数只在「阅读」这个动作上 +1，编辑时打开详情不算
+		read: { post: (id) => request.post(`data/help/${id}/read`) },
+		publish: { post: (id) => request.post(`data/help/${id}/publish`) },
+		withdraw: { post: (id) => request.post(`data/help/${id}/withdraw`) },
+		// 预览必须由后端净化后再回显：前端直接 v-html 原始正文等于管理员自 XSS，
+		// 而且会渲染出「存进去根本不存在」的标签（所见非所得）
+		preview: { post: (data) => request.post('data/help/preview', data) },
+	},
+	// 下载中心（F6 第三批）
+	download: {
+		list: { get: (params) => request.get('data/download', { params }) },
+		categories: { get: (params) => request.get('data/download/categories', { params }) },
+		detail: { get: (id) => request.get(`data/download/${id}`) },
+		// 上传走手动 FormData（不用 el-upload 的 action）：action 直传带不上 JWT 头，
+		// 而且后端的安全拒绝原因（"探测到 text/html"）会被 el-upload 的回调丢掉
+		upload: (data) =>
+			request.post('data/download', data, {
+				headers: { 'Content-Type': 'multipart/form-data' },
+			}),
+		edit: { put: (id, data) => request.put(`data/download/${id}`, data) },
+		delete: { delete: (id) => request.delete(`data/download/${id}`) },
+		download: (id) => request.get(`data/download/${id}/download`, { responseType: 'blob' }),
+	},
 }
 
 export default dataApi

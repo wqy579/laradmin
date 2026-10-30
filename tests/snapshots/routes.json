@@ -8913,6 +8913,210 @@
     },
     {
         "method": "GET",
+        "uri": "admin/data/download",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DownloadFileController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/download",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DownloadFileController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/download/categories",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DownloadFileController@categories",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/data/download/{file}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DownloadFileController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/download/{file}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DownloadFileController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/data/download/{file}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DownloadFileController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/download/{file}/download",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\DownloadFileController@download",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/help",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/help",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/help/categories",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@categories",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/help/preview",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@preview",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/data/help/{doc}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/data/help/{doc}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@show",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "PUT",
+        "uri": "admin/data/help/{doc}",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@update",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/help/{doc}/publish",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@publish",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/help/{doc}/read",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@read",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/data/help/{doc}/withdraw",
+        "name": "admin.",
+        "action": "Modules\\Archive\\Http\\Controllers\\HelpDocController@withdraw",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/data/opening",
         "name": "admin.",
         "action": "Modules\\Archive\\Http\\Controllers\\OpeningWizardController@show",
