@@ -22,7 +22,9 @@ class BusinessSeeder extends Seeder
             ['name' => 'price', 'title' => '价格管理', 'parent_id' => 0, 'path' => '/business/cost-prices', 'sort' => 3, 'status' => 1, 'meta' => ['icon' => 'ElIconMoney']],
             ['name' => 'inventory', 'title' => '库存管理', 'parent_id' => 0, 'path' => '/business/stock-check', 'sort' => 4, 'status' => 1, 'meta' => ['icon' => 'ElIconBox']],
             ['name' => 'order', 'title' => '订单管理', 'parent_id' => 0, 'path' => '/business/sales-order', 'sort' => 5, 'status' => 1, 'meta' => ['icon' => 'ElIconDocument']],
-            ['name' => 'finance', 'title' => '财务管理', 'parent_id' => 0, 'path' => '/business/payment', 'sort' => 6, 'status' => 1, 'meta' => ['icon' => 'ElIconWallet']],
+            // QA-12：分组行的 path 指向第一个子路由，须与 finance.payment 保持一致，
+            // 否则点顶级菜单会落到已被「付款管理」占用的 /business/payment。
+            ['name' => 'finance', 'title' => '财务管理', 'parent_id' => 0, 'path' => '/business/receive', 'sort' => 6, 'status' => 1, 'meta' => ['icon' => 'ElIconWallet']],
             ['name' => 'report', 'title' => '报表管理', 'parent_id' => 0, 'path' => '/business/report/sales', 'sort' => 7, 'status' => 1, 'meta' => ['icon' => 'ElIconDataBoard']],
             ['name' => 'office', 'title' => '办公管理', 'parent_id' => 0, 'path' => '/business/mail', 'sort' => 8, 'status' => 1, 'meta' => ['icon' => 'ElIconMemo']],
             ['name' => 'visit', 'title' => '拜访管理', 'parent_id' => 0, 'path' => '/business/route', 'sort' => 9, 'status' => 1, 'meta' => ['icon' => 'ElIconLocation']],
@@ -133,7 +135,12 @@ class BusinessSeeder extends Seeder
         foreach ([
             ['name' => 'member.list', 'title' => '会员档案', 'path' => '/business/member', 'component' => 'business/member/index', 'sort' => 1],
             ['name' => 'member.level', 'title' => '会员等级', 'path' => '/business/member-level', 'component' => 'business/member-level/index', 'sort' => 2],
-            ['name' => 'member.point-rule', 'title' => '积分规则', 'path' => '/business/point-rule', 'component' => 'business/point-rule/index', 'sort' => 3],
+            // QA-12：与「出纳管理 → 积分规则」(/points/rule) 同名不同物——本页管 Member 域
+            // point_rules 键值配置（会员等级倍率/抵扣比例，SalesOrderController 结算积分时读取），
+            // /points/rule 管 Cash 域 cash_integral_rule（按金额×比例发放的规则单据），二者互不替代。
+            // 简报建议下线本页，但那是唯一能编辑生效中会员积分倍率的界面，删了会让销售单积分
+            // 口径失联可配置，故这里只改名消歧、不删入口，是否下线待产品确认。
+            ['name' => 'member.point-rule', 'title' => '会员积分倍率', 'path' => '/business/point-rule', 'component' => 'business/point-rule/index', 'sort' => 3],
             ['name' => 'member.recharge', 'title' => '储值充值', 'path' => '/business/member-recharge', 'component' => 'business/member-recharge/index', 'sort' => 4],
             ['name' => 'member.exchange', 'title' => '积分兑换', 'path' => '/business/point-exchange', 'component' => 'business/point-exchange/index', 'sort' => 5],
             ['name' => 'member.consume-log', 'title' => '消费记录', 'path' => '/business/member-consume-log', 'component' => 'business/member-consume-log/index', 'sort' => 6],
@@ -308,8 +315,13 @@ class BusinessSeeder extends Seeder
 
         // 财务管理子菜单
         $financeMenus = [
-            ['name' => 'finance.payment', 'title' => '收款单', 'parent' => 'finance', 'path' => '/business/payment', 'sort' => 1],
-            ['name' => 'finance.supplier-payment', 'title' => '付款单', 'parent' => 'finance', 'path' => '/business/supplier-payment', 'sort' => 2],
+            // QA-12：「收款单」原先指向 /business/payment，而该页（views/business/payment）
+            // 实为供应商付款列表——菜单名与页面内容相反，且真正的收款页 /business/receive
+            // 只有静态兜底路由、没有菜单行，侧边栏进不去。此处改指向真实收款页并合并为
+            // 单一「收款管理」入口；/business/payment 的静态路由与接口保留（财务统计调用方仍用）。
+            ['name' => 'finance.payment', 'title' => '收款管理', 'parent' => 'finance', 'path' => '/business/receive', 'component' => 'business/receive/index', 'sort' => 1],
+            // 同因：/business/supplier-payment 页面标题为「供应商付款」，菜单名对齐页面
+            ['name' => 'finance.supplier-payment', 'title' => '供应商付款', 'parent' => 'finance', 'path' => '/business/supplier-payment', 'sort' => 2],
             ['name' => 'finance.expense', 'title' => '费用管理', 'parent' => 'finance', 'path' => '/business/expense', 'sort' => 3],
             ['name' => 'finance.profit', 'title' => '利润查询', 'parent' => 'finance', 'path' => '/business/profit', 'sort' => 4],
             ['name' => 'finance.balance', 'title' => '余额查询', 'parent' => 'finance', 'path' => '/business/balance', 'sort' => 5],
