@@ -56,6 +56,7 @@ class MallOrderController extends Controller
             'customer_id' => 'required|integer',
             'warehouse_id' => 'nullable|integer',
             'order_date' => 'nullable|date',
+            'idempotency_key' => 'nullable|string|max:64',
             'receiver_name' => 'nullable|string|max:50',
             'receiver_phone' => 'nullable|string|max:30',
             'receiver_address' => 'nullable|string|max:255',

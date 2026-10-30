@@ -51,7 +51,7 @@
 						<g v-for="(p, idx) in trajPoints" :key="'p'+p.id">
 							<circle :cx="p.x" :cy="p.y" r="11" :fill="idx === playIndex ? '#E6A23C' : '#409EFF'" :class="{ 'mp-point-active': idx === playIndex }" />
 							<text :x="p.x" :y="p.y + 4" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">{{ p.seq }}</text>
-							<text :x="p.x" :y="p.y - 16" text-anchor="middle" font-size="11" fill="#303133">{{ p.customer_name }}</text>
+							<text :x="p.x" :y="p.y - 16" text-anchor="middle" font-size="12" fill="#303133">{{ p.customer_name }}</text>
 						</g>
 
 						<!-- 回放游标 -->
@@ -60,7 +60,7 @@
 						</g>
 					</svg>
 					<div v-if="!trajPoints.length" class="mp-empty">
-						<el-empty description="该业务员当天没有带经纬度的拜访记录" :image-size="90" />
+						<FinEmpty text="该业务员当天没有带经纬度的拜访记录" />
 					</div>
 				</div>
 
@@ -81,6 +81,9 @@
 						<el-slider v-model="progress" :min="0" :max="Math.max(trajPoints.length - 1, 1)" :step="1" :disabled="!canPlay" @input="onSeek" />
 					</div>
 					<span class="mp-progress-text">{{ playIndex + 1 }} / {{ trajPoints.length }}</span>
+				</div>
+				<div v-if="traj.downsampled" class="mp-downsampled">
+					轨迹点共 {{ traj.total_count }} 个，超过阈值已抽稀为 {{ traj.rendered_count }} 个渲染点（不丢首尾）
 				</div>
 			</div>
 
@@ -114,6 +117,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search, VideoPlay, VideoPause } from '@element-plus/icons-vue'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 import mallApi from '@/api/mall'
 
 const query = reactive({ date: '', employee_id: null })
@@ -121,7 +125,7 @@ const salesmen = ref([])
 const customers = ref([])
 const showCustomers = ref(true)
 
-const traj = reactive({ date: '', employee_name: '', points: [], located_count: 0, total_count: 0 })
+const traj = reactive({ date: '', employee_name: '', points: [], located_count: 0, total_count: 0, rendered_count: 0, downsampled: false })
 const loading = ref(false)
 
 // 回放状态
@@ -223,6 +227,8 @@ async function loadTrajectory() {
 				points: res.data?.points || [],
 				located_count: res.data?.located_count || 0,
 				total_count: res.data?.total_count || 0,
+				rendered_count: res.data?.rendered_count || 0,
+				downsampled: !!res.data?.downsampled,
 			})
 		}
 	} catch {
@@ -268,6 +274,7 @@ onUnmounted(stopTimer)
 .mp-progress { flex: 1; }
 .mp-progress :deep(.el-slider) { margin: 0 8px; }
 .mp-progress-text { font-size: 12px; color: #606266; width: 52px; text-align: right; font-variant-numeric: tabular-nums; }
+.mp-downsampled { font-size: 12px; color: #e6a23c; margin-top: 8px; padding: 6px 12px; background: #fdf6ec; border-radius: 4px; }
 .mp-point-active { filter: drop-shadow(0 0 4px rgba(230, 162, 60, 0.8)); }
 .mp-cursor { filter: drop-shadow(0 0 6px rgba(230, 162, 60, 0.9)); animation: mp-pulse 1.2s ease-in-out infinite; }
 @keyframes mp-pulse { 0%, 100% { r: 7; } 50% { r: 10; } }
@@ -279,11 +286,11 @@ onUnmounted(stopTimer)
 .mp-ol li { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px dashed #ebeef5; cursor: pointer; }
 .mp-ol li:hover { background: #f5f7fa; }
 .mp-ol li.mp-li-active { background: #fdf6ec; }
-.mp-seq { width: 20px; height: 20px; border-radius: 50%; background: #409eff; color: #fff; font-size: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mp-seq { width: 20px; height: 20px; border-radius: 50%; background: #409eff; color: #fff; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .mp-li-active .mp-seq { background: #e6a23c; }
 .mp-li-main { flex: 1; min-width: 0; }
 .mp-li-name { font-size: 13px; color: #303133; }
-.mp-li-addr { font-size: 11px; color: #909399; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mp-li-addr { font-size: 12px; color: #909399; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mp-li-time { font-size: 12px; color: #606266; font-variant-numeric: tabular-nums; }
 .mp-empty-list { padding: 40px 0; text-align: center; color: #909399; font-size: 13px; }
 </style>

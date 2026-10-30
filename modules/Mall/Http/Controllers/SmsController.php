@@ -5,21 +5,26 @@ namespace Modules\Mall\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
-use Modules\Auth\Models\User as AdminUser;
 use Modules\Mall\Models\SmsRecord;
 use Modules\Mall\Models\SmsTemplate;
+use Modules\Mall\Services\SmsSendService;
 
 /**
  * F5 短信 —— 模板 CRUD + 变量实时预览 + 发送记录。
  *
  * 模板体用 {变量名} 占位，variables 存 {变量名: 示例值}，预览即替换。
- * 发送：变量实际值传入 → render 替换 → 落 sms_records（pending）→
+ * 发送：变量实际值传入 → render 替换 → 频控校验 → 落 sms_records（pending）→
  * 模拟网关异步置 success（无真实网关配置，状态机与记录结构真实，
  * 供后续接入短信服务商时替换发送内核）。
+ *
+ * 加固（F5-HARDENING 第 2 项）：发送/重发统一走 SmsSendService，
+ * 频控超限、重试超限、退避期均以明确错误返回（不静默丢弃）。
  */
 class SmsController extends Controller
 {
     use ResponseTrait;
+
+    public function __construct(private SmsSendService $sms) {}
 
     /** 模板列表 */
     public function index(Request $request)
@@ -172,72 +177,27 @@ class SmsController extends Controller
             'variables' => 'nullable|array',
         ]);
 
-        $template = SmsTemplate::findOrFail((int) $validated['template_id']);
-        if ($template->status !== 1) {
-            return $this->error('该模板已停用', 422);
-        }
-
         try {
-            $content = $template->render($validated['variables'] ?? []);
+            $record = $this->sms->send($validated, (int) auth('admin')->id());
         } catch (\DomainException $e) {
             return $this->error($e->getMessage(), 422);
         }
 
-        $operator = AdminUser::find(auth('admin')->id());
-        $record = SmsRecord::create([
-            'send_no' => $this->nextSendNo(),
-            'template_id' => $template->id,
-            'template_code' => $template->code,
-            'template_name' => $template->name,
-            'mobile' => $validated['mobile'],
-            'receiver_name' => $validated['receiver_name'] ?? null,
-            'content' => $content,
-            'variables' => $validated['variables'] ?? null,
-            'status' => 'pending',
-            'created_by' => auth('admin')->id(),
-            'creator_name' => $operator?->real_name ?: $operator?->username,
-        ]);
-
-        // 模拟网关：无真实服务商配置，置 pending 后由调度置成功。
-        // 状态机真实（pending/success/failed），接入真实网关时替换此处。
-        $record->update(['status' => 'success', 'sent_at' => now()]);
-
-        return $this->created($this->recordCard($record->fresh()), '发送成功');
+        return $this->created($this->recordCard($record), '发送成功');
     }
 
-    /** 失败重发：复制原记录重新走发送 */
+    /** 失败重发：复制原记录重新走发送（受重试上限与退避约束） */
     public function resend(Request $request, int $id)
     {
         $original = SmsRecord::findOrFail($id);
-        $template = SmsTemplate::find($original->template_id);
-        if (! $template || $template->status !== 1) {
-            return $this->error('模板不存在或已停用，无法重发', 422);
-        }
 
         try {
-            $content = $template->render($original->variables ?? []);
+            $record = $this->sms->resend($original, (int) auth('admin')->id());
         } catch (\DomainException $e) {
             return $this->error($e->getMessage(), 422);
         }
 
-        $operator = AdminUser::find(auth('admin')->id());
-        $record = SmsRecord::create([
-            'send_no' => $this->nextSendNo(),
-            'template_id' => $template->id,
-            'template_code' => $template->code,
-            'template_name' => $template->name,
-            'mobile' => $original->mobile,
-            'receiver_name' => $original->receiver_name,
-            'content' => $content,
-            'variables' => $original->variables,
-            'status' => 'pending',
-            'created_by' => auth('admin')->id(),
-            'creator_name' => $operator?->real_name ?: $operator?->username,
-        ]);
-
-        $record->update(['status' => 'success', 'sent_at' => now()]);
-
-        return $this->created($this->recordCard($record->fresh()), '重发成功');
+        return $this->created($this->recordCard($record), '重发成功');
     }
 
     // ---------- helpers ----------
@@ -286,19 +246,13 @@ class SmsController extends Controller
             'status_label' => SmsRecord::statusLabel($r->status),
             'status_tag_type' => SmsRecord::statusTagType($r->status),
             'error_message' => $r->error_message,
+            'elapsed_ms' => (int) $r->elapsed_ms,
+            'retry_count' => (int) $r->retry_count,
+            'request_summary' => $r->request_summary,
+            'response_summary' => $r->response_summary,
             'sent_at' => $r->sent_at?->toDateTimeString(),
             'creator_name' => $r->creator_name,
             'created_at' => $r->created_at?->toDateTimeString(),
         ];
-    }
-
-    /** 生成发送编号 SMS+YmdHis+4位 */
-    private function nextSendNo(): string
-    {
-        do {
-            $no = 'SMS'.date('YmdHis').str_pad((string) random_int(0, 9999), 4, '0', STR_PAD_LEFT);
-        } while (SmsRecord::where('send_no', $no)->exists());
-
-        return $no;
     }
 }

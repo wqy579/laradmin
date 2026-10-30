@@ -122,6 +122,58 @@ class MapTrajectoryTest extends TestCase
         $this->getJson('/admin/f5/map/trajectory')->assertStatus(422);
     }
 
+    public function test_trajectory_downsamples_over_thousand_points_and_keeps_ends(): void
+    {
+        $visitor = $this->makeAdmin(['real_name' => '业务员甲']);
+        $customer = $this->makeCustomer(['latitude' => 30.5, 'longitude' => 120.1]);
+        $today = now()->toDateString();
+
+        // 1500 点：超过 MAX_TRAJECTORY_POINTS=1000，应抽稀且保留首尾。
+        $count = 1500;
+        $ids = [];
+        for ($i = 0; $i < $count; $i++) {
+            $log = $this->makeVisit(
+                $visitor->id,
+                $customer->id,
+                $today.' '.sprintf('08:%02d:%02d', intdiv($i, 60), $i % 60),
+                30.5 + $i * 0.0001,
+                120.1 + $i * 0.0001
+            );
+            $ids[] = $log->id;
+        }
+
+        $resp = $this->getJson('/admin/f5/map/trajectory?employee_id='.$visitor->id.'&date='.$today)->assertOk();
+
+        $this->assertTrue($resp->json('data.downsampled'), '超过阈值应标记抽稀');
+        $this->assertSame($count, $resp->json('data.total_count'), '原始总数不丢');
+        $this->assertLessThanOrEqual(1000, $resp->json('data.rendered_count'), '渲染点数不得超过阈值');
+        $this->assertGreaterThan(0, $resp->json('data.rendered_count'));
+
+        $points = $resp->json('data.points');
+        // 首尾点必保留（不丢关键端点）
+        $this->assertSame($ids[0], $points[0]['id'], '首点必须保留');
+        $this->assertSame($ids[$count - 1], $points[count($points) - 1]['id'], '尾点必须保留');
+        // seq 仍连续编号
+        $this->assertSame(range(1, count($points)), array_column($points, 'seq'));
+    }
+
+    public function test_trajectory_under_threshold_not_downsampled(): void
+    {
+        $visitor = $this->makeAdmin(['real_name' => '业务员甲']);
+        $customer = $this->makeCustomer(['latitude' => 30.5, 'longitude' => 120.1]);
+        $today = now()->toDateString();
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->makeVisit($visitor->id, $customer->id, $today.' '.sprintf('09:%02d:00', $i), 30.5 + $i, 120.1 + $i);
+        }
+
+        $resp = $this->getJson('/admin/f5/map/trajectory?employee_id='.$visitor->id.'&date='.$today)->assertOk();
+
+        $this->assertFalse($resp->json('data.downsampled'));
+        $this->assertSame(5, $resp->json('data.rendered_count'));
+        $this->assertSame(5, $resp->json('data.total_count'));
+    }
+
     private function makeVisit(int $employeeId, int $customerId, string $checkinTime, ?float $lat, ?float $lng): VisitLog
     {
         return VisitLog::create([

@@ -16,7 +16,7 @@ class MallOrder extends Model
     protected $table = 'mall_orders';
 
     protected $fillable = [
-        'order_no', 'customer_id', 'customer_name', 'warehouse_id', 'order_date',
+        'order_no', 'idempotency_key', 'customer_id', 'customer_name', 'warehouse_id', 'order_date',
         'total_amount', 'total_qty', 'paid_amount', 'status',
         'receiver_name', 'receiver_phone', 'receiver_address',
         'sales_order_id', 'sales_order_no', 'created_by', 'creator_name',

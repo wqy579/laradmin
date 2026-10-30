@@ -2,6 +2,7 @@
 
 namespace Modules\Mall\Services;
 
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Modules\Auth\Models\User as AdminUser;
@@ -37,6 +38,15 @@ class MallOrderService
      */
     public function placeOrder(array $payload, int $operatorId): MallOrder
     {
+        // 幂等键（可选）：同一键重复提交返回已建订单，不产生第二条申报单。
+        $idempotencyKey = $payload['idempotency_key'] ?? null;
+        if ($idempotencyKey !== null && $idempotencyKey !== '') {
+            $existing = MallOrder::where('idempotency_key', $idempotencyKey)->first();
+            if ($existing) {
+                return $existing->load('items');
+            }
+        }
+
         $items = $payload['items'] ?? [];
         if ($items === [] || count($items) > 200) {
             throw new \DomainException('请选择至少一个商品（单笔最多 200 行）');
@@ -67,6 +77,7 @@ class MallOrderService
             // 1) 商城订单
             $mallOrder = MallOrder::create([
                 'order_no' => $this->nextMallOrderNo(),
+                'idempotency_key' => $idempotencyKey !== null && $idempotencyKey !== '' ? $idempotencyKey : null,
                 'customer_id' => $customerId,
                 'customer_name' => $customer->name,
                 'warehouse_id' => $warehouseId,
@@ -116,6 +127,16 @@ class MallOrderService
             ]);
 
             DB::commit();
+        } catch (QueryException $e) {
+            DB::rollBack();
+            // 幂等键唯一约束并发竞态：另一请求已建成，返回已建订单。
+            if ($idempotencyKey !== null && $idempotencyKey !== '' && $this->isUniqueViolation($e)) {
+                $existing = MallOrder::where('idempotency_key', $idempotencyKey)->first();
+                if ($existing) {
+                    return $existing->load('items');
+                }
+            }
+            throw $e;
         } catch (\Throwable $e) {
             DB::rollBack();
             throw $e;
@@ -254,6 +275,14 @@ class MallOrderService
             : $large * $conv + $small;
 
         return (int) round($qty);
+    }
+
+    /** 判断是否唯一约束冲突（SQLite/MySQL 报错码不同，统一按消息判断） */
+    private function isUniqueViolation(QueryException $e): bool
+    {
+        $msg = strtolower($e->getMessage());
+
+        return str_contains($msg, 'unique') || str_contains($msg, 'duplicate') || str_contains($msg, '1062');
     }
 
     /** 生成商城订单号 MALL+Ymd+6位 */

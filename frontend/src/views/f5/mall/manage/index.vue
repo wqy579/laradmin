@@ -438,7 +438,7 @@ onMounted(() => {
 .f5-manage-page { padding: 16px 20px; display: flex; flex-direction: column; gap: 16px; }
 .mg-card { background: #fff; border: 1px solid #ebeef5; border-radius: 4px; }
 .mg-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-bottom: 1px solid #ebeef5; }
-.mg-title { font-size: 15px; color: #303133; font-weight: 500; }
+.mg-title { font-size: 14px; color: #303133; font-weight: 500; }
 .mg-sub { font-size: 12px; color: #909399; font-weight: 400; margin-left: 10px; }
 .mg-actions { display: flex; gap: 8px; }
 .mg-query { padding: 16px 20px; border-bottom: 1px solid #ebeef5; }
@@ -454,5 +454,5 @@ onMounted(() => {
 .mg-desc { margin-bottom: 12px; }
 .mg-detail-table { margin-bottom: 12px; }
 .mg-detail-total { display: flex; justify-content: flex-end; align-items: baseline; gap: 12px; font-size: 14px; color: #303133; padding-top: 8px; }
-.mg-detail-total-amt { font-size: 20px; font-weight: 700; color: #f56c6c; font-variant-numeric: tabular-nums; }
+.mg-detail-total-amt { font-size: 16px; font-weight: 700; color: #f56c6c; font-variant-numeric: tabular-nums; }
 </style>
