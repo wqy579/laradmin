@@ -157,6 +157,22 @@ class MapTrajectoryTest extends TestCase
         $this->assertSame(range(1, count($points)), array_column($points, 'seq'));
     }
 
+    public function test_trajectory_empty_when_no_visits(): void
+    {
+        $visitor = $this->makeAdmin(['real_name' => '业务员甲']);
+        $today = now()->toDateString();
+
+        // 该业务员当天没有拜访记录：应 200 + 空 points，且不报错、不白屏（前端走 FinEmpty 空态）。
+        $resp = $this->getJson('/admin/f5/map/trajectory?employee_id='.$visitor->id.'&date='.$today)->assertOk();
+
+        $this->assertSame('未知', $resp->json('data.employee_name'), '无记录时回退占位文案');
+        $this->assertSame([], $resp->json('data.points'), '应为空点序列');
+        $this->assertSame(0, $resp->json('data.total_count'));
+        $this->assertSame(0, $resp->json('data.rendered_count'));
+        $this->assertFalse($resp->json('data.downsampled'));
+        $this->assertSame(0, $resp->json('data.located_count'));
+    }
+
     public function test_trajectory_under_threshold_not_downsampled(): void
     {
         $visitor = $this->makeAdmin(['real_name' => '业务员甲']);
