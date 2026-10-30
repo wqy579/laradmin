@@ -5,6 +5,7 @@ namespace Tests\Member\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Modules\Member\Http\Controllers\MemberController;
 use Modules\Member\Models\Member;
 use Modules\Member\Models\MemberConsumeLog;
 use Modules\Member\Models\MemberLevel;
@@ -738,6 +739,46 @@ class MemberFeatureTest extends TestCase
             ->assertOk()
             ->assertJsonCount(1, 'data.list');
         $this->assertSame($m2->id, $this->getJson('/admin/business/member?status=0')->json('data.list.0.id'));
+    }
+
+    /**
+     * 全表导出封顶（PERF-AUDIT-A）：导出必须 limit 到 EXPORT_LIMIT，
+     * 避免大库整表载入内存生成 CSV。用 50000+ 会员验证恰好截断到上限。
+     */
+    public function test_member_export_caps_at_limit(): void
+    {
+        // 直接批量插 50010 条（绕过 Eloquent 事件，速度快）
+        $limit = MemberController::EXPORT_LIMIT;
+        $rows = [];
+        $now = now();
+        for ($i = 0; $i < $limit + 10; $i++) {
+            $rows[] = [
+                'member_no' => 'HY'.now()->format('Ymd').str_pad((string) $i, 6, '0', STR_PAD_LEFT),
+                'name' => '批量会员'.$i,
+                'level_id' => MemberLevel::where('level_no', 'LV0')->firstOrFail()->id,
+                'points' => 0, 'balance' => 0, 'total_consume' => 0, 'total_orders' => 0,
+                'status' => 1, 'register_date' => now()->toDateString(),
+                'created_at' => $now, 'updated_at' => $now,
+            ];
+            if (count($rows) === 1000) {
+                DB::table('members')->insert($rows);
+                $rows = [];
+            }
+        }
+        if ($rows) {
+            DB::table('members')->insert($rows);
+        }
+        $this->assertGreaterThan($limit, DB::table('members')->count());
+
+        $response = $this->getJson('/admin/business/member/export')->assertOk();
+        $csv = $response->getContent();
+        $this->assertStringStartsWith("\u{FEFF}", $csv);
+
+        // 数据行数 = 表头(1) + 标题行(1) + 空行(1) + 会员行(≤limit)
+        $lines = substr_count($csv, "\n");
+        // 第一行为 BOM 标题「会员档案」，第二行为列头，第三行为空，随后是数据行
+        $dataRows = substr_count($csv, "\n") - 3;
+        $this->assertSame($limit, $dataRows, "导出应恰好截断到 EXPORT_LIMIT（{$limit}），实际 {$dataRows}");
     }
 
     /** 会员统计概览 */

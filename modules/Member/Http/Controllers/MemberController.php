@@ -19,6 +19,9 @@ use Modules\Order\Models\Customer;
  */
 class MemberController extends Controller
 {
+    /** 导出最大行数上限：全表导出必须封顶，避免大库整表载入内存生成 CSV */
+    public const EXPORT_LIMIT = 50000;
+
     use ResponseTrait;
 
     public function __construct(private MemberService $memberService) {}
@@ -237,6 +240,7 @@ class MemberController extends Controller
             ->leftJoin('customers', 'customers.id', '=', 'members.customer_id')
             ->select(['members.*', 'customers.name as customer_name_live'])
             ->orderByDesc('members.id')
+            ->limit(self::EXPORT_LIMIT)
             ->get();
 
         $csv = "\u{FEFF}"; // BOM：Excel 正确识别 UTF-8

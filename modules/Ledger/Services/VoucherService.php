@@ -28,7 +28,7 @@ class VoucherService
     /** 分页筛选列表 */
     public function list(array $filters, int $page, int $pageSize): array
     {
-        $q = Voucher::query()->with('entries');
+        $q = Voucher::query()->with(['entries', 'reversal:id,voucher_no']);
 
         if (! empty($filters['voucher_no'])) {
             $q->where('voucher_no', 'like', '%'.trim($filters['voucher_no']).'%');
@@ -82,7 +82,7 @@ class VoucherService
 
     public function detail(int $id): array
     {
-        $voucher = Voucher::with('entries.subject')->findOrFail($id);
+        $voucher = Voucher::with(['entries.subject', 'reversal:id,voucher_no'])->findOrFail($id);
 
         return $this->formatVoucher($voucher, true);
     }
@@ -401,6 +401,23 @@ class VoucherService
         $periodDebit = 0.0;
         $periodCredit = 0.0;
 
+        // 对方科目一次性批量取回：两条 whereIn 查询覆盖所有相关凭证，
+        // 避免逐分录/逐凭证查库（N+1）。
+        // 与原逻辑等价：借方分录 → 同凭证贷方科目名；贷方分录 → 同凭证借方科目名。
+        $voucherIds = $entries->pluck('voucher_id')->unique()->all();
+        $creditSubjectsByVoucher = VoucherEntry::whereIn('voucher_id', $voucherIds)
+            ->where('credit_amount', '>', 0)
+            ->get(['voucher_id', 'subject_name'])
+            ->groupBy('voucher_id')
+            ->map(fn ($rows) => $rows->pluck('subject_name')->implode('、'))
+            ->all();
+        $debitSubjectsByVoucher = VoucherEntry::whereIn('voucher_id', $voucherIds)
+            ->where('debit_amount', '>', 0)
+            ->get(['voucher_id', 'subject_name'])
+            ->groupBy('voucher_id')
+            ->map(fn ($rows) => $rows->pluck('subject_name')->implode('、'))
+            ->all();
+
         $rows[] = [
             'date' => null,
             'voucher_no' => null,
@@ -421,16 +438,10 @@ class VoucherService
                 ? $running + $debit - $credit
                 : $running + $credit - $debit;
 
-            // 对方科目：同一凭证里相反方向的分录
-            $opposite = VoucherEntry::where('voucher_id', $entry->voucher_id)
-                ->where('id', '!=', $entry->id)
-                ->where(function ($q) use ($debit) {
-                    if ($debit > 0) {
-                        $q->where('credit_amount', '>', 0);
-                    } else {
-                        $q->where('debit_amount', '>', 0);
-                    }
-                })->pluck('subject_name')->implode('、');
+            // 对方科目：同一凭证里相反方向的分录（已批量预取，避免 N+1）
+            $opposite = $debit > 0
+                ? ($creditSubjectsByVoucher[$entry->voucher_id] ?? '')
+                : ($debitSubjectsByVoucher[$entry->voucher_id] ?? '');
 
             $rows[] = [
                 'date' => $entry->voucher?->voucher_date?->format('Y-m-d'),
@@ -628,7 +639,9 @@ class VoucherService
             'is_red' => (bool) $voucher->is_red,
             'auto_audit' => (bool) $voucher->auto_audit,
             'red_of_voucher_no' => $voucher->red_of_id
-                ? Voucher::whereKey($voucher->red_of_id)->value('voucher_no')
+                ? ($voucher->relationLoaded('reversal')
+                    ? $voucher->reversal?->voucher_no
+                    : Voucher::whereKey($voucher->red_of_id)->value('voucher_no'))
                 : null,
             'summary' => $firstSummary,
             'amount_chinese' => AmountChinese::convert((float) $voucher->total_debit),
