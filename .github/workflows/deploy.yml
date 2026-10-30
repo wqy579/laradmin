@@ -94,11 +94,14 @@ jobs:
             # 注意 sed 的定界符用 # 避开 location 里的 /；幂等性靠「该 token 已在分组里就跳过」保证。
             # 2026-10-14：ledger 同型事故——/admin/ledger/* GET 被 try_files 兜成 SPA index.html
             # （200 text/html），POST 由 nginx 直接 405，验收误判「后端零实现」。
+            # 2026-10-31：QA-02 同型事故第三例——Cash(D1~D8)/Asset(D3~D4) 两模块用顶层前缀
+            # /admin/cash/*、/admin/asset/*，白名单没跟进，11 个页面全部拿到 517B index.html，
+            # 表象被记成「后端未部署」。故新增 cash / asset 两个 token。
             ensure_nginx_proxy() {
               local cfg="/www/server/panel/vhost/nginx/laravel.qjwykj.com.conf"
               if [ ! -f "$cfg" ]; then echo "nginx 站点配置不存在，跳过白名单校验"; return 0; fi
               local changed=0 token
-              for token in dashboard ledger; do
+              for token in dashboard ledger cash asset; do
                 if grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg"; then
                   echo "nginx 代理白名单已含 $token"
                   continue
@@ -283,8 +286,10 @@ jobs:
             # （2026-10-14 漏配导致 /admin/ledger/* 全部被 try_files 兜成 HTML，
             # 验收误判「后端零实现」——content-type 探测就是给这类事故上的保险）。
             # 任一被 try_files 兜成 HTML 即判失败——否则整个模块静默失效而部署标绿。
+            # 2026-10-31：补 cash / asset 两个前缀（QA-02 元凶）。这两个前缀此前只被
+            # ensure_nginx_proxy 自愈，不在探测名单里，故「自愈没跑成」也不会红。
             route_ok=1
-            for path in dashboard/core-metrics business/notice ledger/subjects; do
+            for path in dashboard/core-metrics business/notice ledger/subjects cash/accounts/options asset/cards; do
               ok=0 ct=''
               for i in 1 2 3; do
                 ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \
