@@ -1,5 +1,6 @@
 <template>
 	<div class="page">
+		<BookInitNotice />
 		<div class="page-header"><span class="title">财务月结</span></div>
 		<el-card shadow="never" class="card">
 			<el-collapse v-model="activeYears">
@@ -63,6 +64,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ledgerApi from '@/api/ledger'
+import BookInitNotice from '../components/BookInitNotice.vue'
 
 const years = ref([])
 const activeYears = ref([])

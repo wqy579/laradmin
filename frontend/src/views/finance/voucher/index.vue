@@ -1,9 +1,16 @@
 <template>
   <div class="voucher-page fin-page">
+    <!-- ============ 数据源提示（QA-06/QA-11：凭证唯一数据源=总账） ============ -->
+    <el-alert class="voucher-notice" type="info" show-icon :closable="false">
+      凭证录入与审核请前往
+      <span class="voucher-notice__link" @click="goLedgerVoucher">总账管理 → 记账凭证</span>
+      ，本页为财务视角只读查询
+    </el-alert>
+
     <!-- ============ 筛选卡 ============ -->
     <div class="voucher-filter fin-filter">
       <span class="label">凭证号</span>
-      <el-input v-model="search.no" placeholder="模糊匹配" clearable size="small" style="width: 180px" @keyup.enter="refresh" @clear="refresh" />
+      <el-input v-model="search.voucher_no" placeholder="模糊匹配" clearable size="small" style="width: 180px" @keyup.enter="refresh" @clear="refresh" />
       <span class="label">日期</span>
       <el-date-picker
         v-model="search.dateRange"
@@ -17,33 +24,32 @@
         @change="refresh"
       />
       <span class="label">科目</span>
-      <el-tree-select
-        v-model="search.subject"
-        :data="subjectTree"
-        :props="{ label: 'label', children: 'children', value: 'value' }"
-        node-key="value"
-        check-strictly
+      <!-- ledger 侧按分录末级科目精确匹配，故用末级科目下拉（凭证分录本就只允许末级科目） -->
+      <el-select
+        v-model="search.subject_id"
         filterable
         clearable
         placeholder="全部科目"
         size="small"
-        style="width: 180px"
+        style="width: 200px"
         @change="refresh"
-      />
+      >
+        <el-option v-for="s in subjectOptions" :key="s.id" :label="s.label" :value="s.id" />
+      </el-select>
       <span class="label">经手人</span>
-      <el-input v-model="search.employee" placeholder="制单人" clearable size="small" style="width: 130px" @keyup.enter="refresh" @clear="refresh" />
+      <el-input v-model="search.maker_name" placeholder="制单人" clearable size="small" style="width: 130px" @keyup.enter="refresh" @clear="refresh" />
       <span class="label">状态</span>
       <el-select v-model="search.status" clearable placeholder="全部" size="small" style="width: 110px" @change="refresh">
         <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
       </el-select>
-      <el-checkbox v-model="search.includeReversed" @change="refresh">含红冲</el-checkbox>
+      <el-checkbox v-model="search.includeRed" @change="refresh">含红冲</el-checkbox>
       <div class="voucher-actions fin-toolbar">
         <el-button type="primary" @click="refresh">查询</el-button>
         <el-button @click="resetSearch">重置</el-button>
       </div>
       <div style="flex: 1" />
       <div class="voucher-actions fin-toolbar">
-        <el-button v-permission="'fin:voucher:export'" @click="exportData">导出</el-button>
+        <el-button v-permission="'fin:voucher:export'" :loading="exporting" @click="exportData">导出</el-button>
       </div>
     </div>
 
@@ -54,39 +60,38 @@
       <el-button v-permission="'fin:voucher:view'" :disabled="!activeVoucher" @click="printActive">打印</el-button>
     </div>
 
-    <!-- ============ 凭证表（分录级，按凭证分组） ============ -->
+    <!-- ============ 凭证表（凭证头级，分录在查看抽屉内展开） ============ -->
     <div class="voucher-table" v-loading="loading">
-      <el-table :data="entryRows" border stripe :row-class-name="rowClassName" @row-click="onRowClick" show-summary :summary-method="summaryMethod">
+      <el-table :data="vouchers" border stripe @row-click="onRowClick">
         <el-table-column type="index" label="序号" width="50" align="center">
-          <template #default="{ $index }"><span style="color: var(--text-secondary)">{{ $index + 1 }}</span></template>
+          <template #default="{ $index }"><span style="color: var(--text-secondary)">{{ (page - 1) * pageSize + $index + 1 }}</span></template>
         </el-table-column>
-        <el-table-column prop="no" label="凭证号" width="160" align="left" show-overflow-tooltip>
+        <el-table-column prop="voucher_no" label="凭证号" width="160" align="left" show-overflow-tooltip>
           <template #default="{ row }">
-            <span class="tabular" :class="{ 'voucher-no--red': row.is_red }">{{ row.no }}</span>
+            <span class="tabular" :class="{ 'voucher-no--red': row.is_red }">{{ row.voucher_no }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="date" label="日期" width="110" align="center">
-          <template #default="{ row }"><span class="tabular">{{ row.date }}</span></template>
+        <el-table-column prop="voucher_date" label="日期" width="110" align="center">
+          <template #default="{ row }"><span class="tabular">{{ row.voucher_date }}</span></template>
         </el-table-column>
-        <el-table-column label="科目" width="170" align="left" show-overflow-tooltip>
-          <template #default="{ row }"><span class="tabular">{{ row.subject }} {{ row.subject_name }}</span></template>
+        <el-table-column prop="period" label="期间" width="90" align="center">
+          <template #default="{ row }"><span class="tabular">{{ row.period }}</span></template>
         </el-table-column>
-        <el-table-column label="品牌" width="110" align="left" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.brand_name || '-' }}</template>
+        <el-table-column prop="summary" label="摘要" min-width="200" align="left" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.summary || '-' }}</template>
         </el-table-column>
-        <el-table-column label="客户/供应商" width="140" align="left" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.partner || '-' }}</template>
-        </el-table-column>
-        <el-table-column prop="abstract" label="摘要" min-width="200" align="left" show-overflow-tooltip />
-        <el-table-column label="借方金额" width="120" align="right">
+        <el-table-column label="借方合计" width="130" align="right">
           <template #default="{ row }">
-            <span class="tabular" :class="{ 'voucher-amt--red': row.is_red }">{{ row.debit ? fmtMoney(row.debit) : '-' }}</span>
+            <span class="tabular" :class="{ 'voucher-amt--red': row.is_red }">{{ fmtMoney(row.total_debit) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="贷方金额" width="120" align="right">
+        <el-table-column label="贷方合计" width="130" align="right">
           <template #default="{ row }">
-            <span class="tabular" :class="{ 'voucher-amt--red': row.is_red }">{{ row.credit ? fmtMoney(row.credit) : '-' }}</span>
+            <span class="tabular" :class="{ 'voucher-amt--red': row.is_red }">{{ fmtMoney(row.total_credit) }}</span>
           </template>
+        </el-table-column>
+        <el-table-column prop="maker_name" label="制单人" width="110" align="left" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.maker_name || '-' }}</template>
         </el-table-column>
         <el-table-column label="状态" width="90" align="center">
           <template #default="{ row }">
@@ -95,11 +100,9 @@
         </el-table-column>
         <el-table-column label="操作" width="130" align="right">
           <template #default="{ row }">
-            <template v-if="row._groupFirst">
-              <!-- 查询视图：仅查看/打印，录入/审核/红冲走 ledger 模块（BUG-10） -->
-              <el-button link type="primary" size="small" @click.stop="openView(row._voucher)">查看</el-button>
-              <el-button link type="primary" size="small" v-if="row._voucher.status === 'audited'" @click.stop="printOne(row._voucher)">打印</el-button>
-            </template>
+            <!-- 查询视图：仅查看/打印，录入/审核/红冲走 ledger 模块（BUG-10） -->
+            <el-button link type="primary" size="small" @click.stop="openView(row)">查看</el-button>
+            <el-button link type="primary" size="small" v-if="row.status === 'audited'" @click.stop="printOne(row)">打印</el-button>
           </template>
         </el-table-column>
         <template #empty>
@@ -108,33 +111,44 @@
       </el-table>
     </div>
 
+    <div class="voucher-pager fin-pager">
+      <el-pagination
+        background
+        layout="total, prev, pager, next"
+        :total="total"
+        :page-size="pageSize"
+        :current-page="page"
+        @current-change="onPageChange"
+      />
+    </div>
+
     <!-- ============ 凭证只读查看抽屉（查询视图，BUG-10） ============ -->
     <el-drawer v-model="viewVisible" size="720px" :title="viewNo" destroy-on-close>
-      <div v-if="view" class="v-view">
+      <div v-if="view" v-loading="viewLoading" class="v-view">
         <div class="v-view__meta">
-          <span>凭证号：{{ view.no }}</span>
-          <span>日期：{{ view.date }}</span>
-          <span>制单人：{{ view.employee }}</span>
-          <span>附单据：{{ view.attachment_count }} 张</span>
+          <span>凭证号：{{ view.voucher_no }}</span>
+          <span>日期：{{ view.voucher_date }}</span>
+          <span>制单人：{{ view.maker_name || '-' }}</span>
+          <span>附单据：{{ view.attachments_count || 0 }} 张</span>
           <span>状态：{{ view.status_label }}</span>
         </div>
-        <el-table :data="view.items" border stripe class="fin-table--dense" size="small" :show-summary="true" :summary-method="viewSummary">
+        <el-table :data="view.entries" border stripe class="fin-table--dense" size="small" :show-summary="true" :summary-method="viewSummary">
           <el-table-column type="index" label="序号" width="52" align="center" />
           <el-table-column label="科目" min-width="150" align="left">
-            <template #default="{ row }"><span class="tabular">{{ row.subject }} {{ row.subject_name }}</span></template>
+            <template #default="{ row }"><span class="tabular">{{ row.subject_code }} {{ row.subject_name }}</span></template>
           </el-table-column>
           <el-table-column label="品牌" width="100" align="left">
             <template #default="{ row }">{{ row.brand_name || '-' }}</template>
           </el-table-column>
           <el-table-column label="客户/供应商" width="130" align="left">
-            <template #default="{ row }">{{ row.partner || '-' }}</template>
+            <template #default="{ row }">{{ row.aux_name || '-' }}</template>
           </el-table-column>
-          <el-table-column prop="abstract" label="摘要" min-width="160" align="left" />
+          <el-table-column prop="summary" label="摘要" min-width="160" align="left" />
           <el-table-column label="借方" width="110" align="right">
-            <template #default="{ row }"><span class="tabular">{{ fmtMoney(row.debit) }}</span></template>
+            <template #default="{ row }"><span class="tabular">{{ fmtMoney(row.debit_amount) }}</span></template>
           </el-table-column>
           <el-table-column label="贷方" width="110" align="right">
-            <template #default="{ row }"><span class="tabular">{{ fmtMoney(row.credit) }}</span></template>
+            <template #default="{ row }"><span class="tabular">{{ fmtMoney(row.credit_amount) }}</span></template>
           </el-table-column>
         </el-table>
         <p class="v-view__remark" v-if="view.remark">备注：{{ view.remark }}</p>
@@ -145,10 +159,15 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import businessApi from '@/api/business'
+import { saveBlob } from '@/utils/fileDownload'
 import ledgerApi from '@/api/ledger'
 import FinEmpty from '../_FinEmpty.vue'
+
+// QA-06/QA-11：凭证唯一数据源为 Ledger，本页直接取 ledgerApi.voucher.*（不再走 Business 兼容接口）
+const router = useRouter()
+const goLedgerVoucher = () => router.push('/ledger/voucher')
 
 /* ---------- 金额格式化 ---------- */
 function fmtMoney(v) {
@@ -168,140 +187,105 @@ const STATUS_TAG = { draft: 'info', submitted: 'warning', audited: 'success' }
 
 /* ---------- 数据 ---------- */
 const loading = ref(false)
-const vouchers = ref([]) // 凭证头数组（查询视图，真实 ledger）
-const subjectTree = ref([])
-const activeVoucher = ref(null) // 工具条「打印」的目标（最近点击行所属凭证）
+const exporting = ref(false)
+const viewLoading = ref(false)
+const vouchers = ref([]) // 凭证头数组（ledger/vouchers 分页返回）
+const subjectOptions = ref([]) // 末级科目下拉（ledger/subjects/options）
+const activeVoucher = ref(null) // 工具条「打印」的目标（最近点击行）
+const total = ref(0)
+const page = ref(1)
+const pageSize = 30
 
 const search = reactive({
-  no: '',
+  voucher_no: '',
   dateRange: null,
-  subject: '',
-  employee: '',
+  subject_id: '',
+  maker_name: '',
   status: '',
-  includeReversed: false,
+  includeRed: false,
 })
 
 onMounted(() => {
-  loadSubjectTree()
+  loadSubjectOptions()
   refresh()
 })
 
-/* ---------- 科目树（ledger，machine-a） ---------- */
-const mapSubjectTree = (nodes) =>
-  (nodes || []).map((n) => ({
-    label: `${n.code} ${n.name}`,
-    value: n.code,
-    children: mapSubjectTree(n.children || []),
-  }))
-
-const loadSubjectTree = async () => {
+/* ---------- 科目下拉（ledger 末级科目；ledger 侧按分录 subject_id 精确匹配） ---------- */
+const loadSubjectOptions = async () => {
   try {
-    const res = await ledgerApi.subject.tree.get()
-    subjectTree.value = mapSubjectTree(res?.data?.tree || [])
+    const res = await ledgerApi.subject.options.get()
+    subjectOptions.value = res?.data?.options || []
   } catch {
-    subjectTree.value = []
+    subjectOptions.value = []
   }
 }
 
-/* ---------- 查询（后端筛选分页，真实 ledger 凭证） ---------- */
-const load = async () => {
+/* 当前筛选条件 → ledger/vouchers 查询参数（列表与导出共用） */
+function queryParams() {
   const params = {
-    page: 1,
-    page_size: 1000,
-    no: search.no || undefined,
+    voucher_no: search.voucher_no || undefined,
     status: search.status || undefined,
-    employee: search.employee || undefined,
-    subject: search.subject || undefined,
-    include_red: search.includeReversed ? 1 : 0,
+    subject_id: search.subject_id || undefined,
+    maker_name: search.maker_name || undefined,
+    include_red: search.includeRed ? 1 : 0,
   }
   if (search.dateRange?.length === 2) {
     params.start_date = search.dateRange[0]
     params.end_date = search.dateRange[1]
   }
+  return params
+}
+
+/* ---------- 查询（后端筛选分页，真实 ledger 凭证） ---------- */
+const load = async () => {
   loading.value = true
   try {
-    const res = await businessApi.finance.voucher.get(params)
-    const data = res?.data?.data ?? res?.data ?? {}
+    const res = await ledgerApi.voucher.list.get({ ...queryParams(), page: page.value, page_size: pageSize })
+    const data = res?.data ?? {}
     vouchers.value = data.list ?? []
+    total.value = data.total ?? 0
   } catch {
     vouchers.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
 }
 
-/* 分录级行（同凭证并列，组间分割）—— 后端已按凭证分组返回 */
-const entryRows = computed(() => {
-  const rows = []
-  vouchers.value.forEach((v) => {
-    v.items.forEach((it, i) => {
-      rows.push({
-        ...it,
-        no: v.no,
-        date: v.date,
-        status: v.status,
-        status_label: v.status_label,
-        is_red: !!v.is_red,
-        _voucher: v,
-        _groupFirst: i === 0,
-      })
-    })
-  })
-  return rows
-})
-
-function rowClassName({ row }) {
-  return row._groupFirst ? 'voucher-row--group' : ''
+function refresh() {
+  page.value = 1
+  load()
 }
 
-function refresh() {
+function onPageChange(p) {
+  page.value = p
   load()
 }
 
 function resetSearch() {
   Object.assign(search, {
-    no: '',
+    voucher_no: '',
     dateRange: null,
-    subject: '',
-    employee: '',
+    subject_id: '',
+    maker_name: '',
     status: '',
-    includeReversed: false,
+    includeRed: false,
   })
   refresh()
 }
 
 function onRowClick(row) {
-  activeVoucher.value = row._voucher
+  activeVoucher.value = row
 }
 
-/* ---------- 合计行 ---------- */
-function summaryMethod({ columns }) {
-  const sums = entryRows.value.reduce(
-    (acc, r) => {
-      acc.debit += Number(r.debit || 0)
-      acc.credit += Number(r.credit || 0)
-      return acc
-    },
-    { debit: 0, credit: 0 },
-  )
-  const arr = []
-  columns.forEach((col, i) => {
-    if (i === 1) arr[i] = '合计'
-    else if (i === 7) arr[i] = '借方合计 ¥' + fmtMoney(sums.debit)
-    else if (i === 8) arr[i] = '贷方合计 ¥' + fmtMoney(sums.credit)
-    else arr[i] = ''
-  })
-  return arr
-}
-
-/* ---------- 查看抽屉 ---------- */
+/* ---------- 查看抽屉（分录走 ledger 凭证详情，列表不含 entries） ---------- */
 const viewVisible = ref(false)
 const view = ref(null)
-const viewNo = computed(() => (view.value ? `凭证详情 ${view.value.no}` : '凭证详情'))
+const viewNo = computed(() => (view.value ? `凭证详情 ${view.value.voucher_no}` : '凭证详情'))
 
 function viewSummary({ columns }) {
-  const d = (view.value?.items || []).reduce((s, it) => s + Number(it.debit || 0), 0)
-  const c = (view.value?.items || []).reduce((s, it) => s + Number(it.credit || 0), 0)
+  const d = (view.value?.entries || []).reduce((s, it) => s + Number(it.debit_amount || 0), 0)
+  const c = (view.value?.entries || []).reduce((s, it) => s + Number(it.credit_amount || 0), 0)
   return columns.map((col, i) => {
     if (i === 0) return '合计'
     if (i === 5) return fmtMoney(d)
@@ -310,83 +294,75 @@ function viewSummary({ columns }) {
   })
 }
 
-function openView(v) {
-  view.value = v
+async function openView(row) {
+  if (!row) return
+  view.value = { ...row, entries: [] } // 先用凭证头占位，避免抽屉空白
   viewVisible.value = true
+  viewLoading.value = true
+  try {
+    const res = await ledgerApi.voucher.detail.get(row.id)
+    view.value = res?.data?.voucher || view.value
+  } catch {
+    ElMessage.error('凭证详情加载失败')
+  } finally {
+    viewLoading.value = false
+  }
 }
 
-/* ---------- 导出 ---------- */
-function saveBlob(blob, filename) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+/* ---------- 导出（ledger/vouchers/export 直接返回 CSV 流，按当前筛选导出全集） ---------- */
+async function exportData() {
+  exporting.value = true
+  try {
+    const blob = await ledgerApi.voucher.export(queryParams())
+    saveBlob(blob, '财务凭证.csv')
+    ElMessage.success('导出成功')
+  } catch {
+    ElMessage.error('导出失败')
+  } finally {
+    exporting.value = false
+  }
 }
 
-function exportData() {
-  const header = ['凭证号', '日期', '科目编码', '科目名称', '品牌', '客户/供应商', '摘要', '借方金额', '贷方金额', '状态']
-  const lines = entryRows.value.map((r) => [
-    r.no,
-    r.date,
-    r.subject,
-    r.subject_name,
-    r.brand_name || '',
-    r.partner || '',
-    r.abstract,
-    r.debit || '',
-    r.credit || '',
-    r.status_label,
-  ])
-  const sums = lines.reduce((acc, r) => ({ d: acc.d + Number(r[7] || 0), c: acc.c + Number(r[8] || 0) }), { d: 0, c: 0 })
-  lines.push(['合计', '', '', '', '', '', '', sums.d, sums.c, ''])
-  const csv = [header, ...lines].map((r) => r.map((c) => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n')
-  saveBlob(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), '财务凭证.csv')
-  ElMessage.success('已导出 ' + entryRows.value.length + ' 条分录')
-}
-
-/* ---------- 打印 ---------- */
+/* ---------- 打印（分录取自 ledger 凭证详情） ---------- */
 function voucherPrintHtml(v) {
-  const rows = v.items
+  const entries = v.entries || []
+  const rows = entries
     .map(
       (it, i) =>
         '<tr><td>' +
         (i + 1) +
         '</td><td>' +
-        it.subject +
+        (it.subject_code || '') +
         ' ' +
-        it.subject_name +
+        (it.subject_name || '') +
         '</td><td>' +
         (it.brand_name || '-') +
         '</td><td>' +
-        (it.partner || '-') +
+        (it.aux_name || '-') +
         '</td><td>' +
-        (it.abstract || '') +
+        (it.summary || '') +
         '</td><td style="text-align:right">' +
-        (it.debit ? fmtMoney(it.debit) : '') +
+        (it.debit_amount ? fmtMoney(it.debit_amount) : '') +
         '</td><td style="text-align:right">' +
-        (it.credit ? fmtMoney(it.credit) : '') +
+        (it.credit_amount ? fmtMoney(it.credit_amount) : '') +
         '</td></tr>',
     )
     .join('')
-  const dSum = v.items.reduce((s, it) => s + Number(it.debit || 0), 0)
-  const cSum = v.items.reduce((s, it) => s + Number(it.credit || 0), 0)
+  const dSum = entries.reduce((s, it) => s + Number(it.debit_amount || 0), 0)
+  const cSum = entries.reduce((s, it) => s + Number(it.credit_amount || 0), 0)
   return (
     '<html><head><meta charset="utf-8"><title>' +
-    v.no +
+    v.voucher_no +
     '</title><style>body{font-family:SimSun,serif;padding:24px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #303133;padding:6px 10px;font-size:13px}th{background:#f5f7fa}h2{text-align:center}.meta{margin:8px 0 16px}.meta span{margin-right:24px}</style></head><body>' +
     '<h2>记账凭证</h2>' +
     '<div class="meta"><span>凭证号：' +
-    v.no +
+    v.voucher_no +
     '</span><span>日期：' +
-    v.date +
+    v.voucher_date +
     '</span><span>制单人：' +
-    (v.employee || '-') +
+    (v.maker_name || '-') +
     '</span><span>附单据：' +
-    v.attachment_count +
+    (v.attachments_count || 0) +
     ' 张</span></div>' +
     '<table><thead><tr><th>序号</th><th>科目</th><th>品牌</th><th>客户/供应商</th><th>摘要</th><th>借方</th><th>贷方</th></tr></thead><tbody>' +
     rows +
@@ -413,12 +389,23 @@ function printVoucherDoc(v) {
   setTimeout(() => w.print(), 300)
 }
 
-function printOne(v) {
-  printVoucherDoc(v)
+// 列表行只有凭证头，打印前按 id 取详情（含分录）
+async function printRow(row) {
+  if (!row) return
+  try {
+    const res = await ledgerApi.voucher.detail.get(row.id)
+    printVoucherDoc(res?.data?.voucher || row)
+  } catch {
+    ElMessage.error('凭证详情加载失败')
+  }
+}
+
+function printOne(row) {
+  printRow(row)
 }
 
 function printActive() {
-  if (activeVoucher.value) printVoucherDoc(activeVoucher.value)
+  printRow(activeVoucher.value)
 }
 </script>
 
@@ -429,6 +416,15 @@ function printActive() {
 <style scoped>
 .voucher-page {
   padding: 12px;
+}
+
+/* 数据源提示条（沿用 el-alert info 现有写法，不新造配色） */
+.voucher-notice {
+  margin-bottom: 12px;
+}
+.voucher-notice__link {
+  color: var(--color-primary);
+  cursor: pointer;
 }
 
 /* 筛选卡（白底/padding/标签由 _shared.css .fin-filter 提供） */

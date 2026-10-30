@@ -66,12 +66,17 @@ service.interceptors.response.use(
 				case 422:
 					message = response.data?.message || '参数验证失败'
 					break
-				case 429:
+				case 429: {
 					// BUG-06 治理：登录/接口被限流。后端固定下发 message「操作频繁，请稍后再试」，
 					// 这里直接取，绝不落到 default 分支的「请求失败（429）」——页面不白屏、只轻提示。
-					// retry_after（秒）在顶层，需要倒计时展示时从这里取。
-					message = response.data?.message || '操作频繁，请稍后再试'
+					// QA-14：retry_after（整数秒，顶层字段；缺失时退回标准 Retry-After 头）
+					// 拼进提示，登录被限速时用户看得到还要等多久，而不是只有一句「稍后再试」
+					// 然后反复点，把 15 分钟窗口一次次续上。
+					const retryAfter = Number(response.data?.retry_after ?? response.headers?.['retry-after'])
+					const base = response.data?.message || '操作频繁，请稍后再试'
+					message = Number.isFinite(retryAfter) && retryAfter > 0 ? `${base}（约 ${retryAfter} 秒后重试）` : base
 					break
+				}
 				default:
 					message = response.data?.message || `请求失败（${response.status}）`
 			}
@@ -84,9 +89,15 @@ service.interceptors.response.use(
 		const isSessionExpired = response?.status === 401 && userStore.token
 
 		if (!isSessionExpired) {
+			// QA-14 白屏真因：ElMessage.error(msg, opts) 的第二参是 appContext，不是 options。
+			// 传 { grouping: true } 会被当成 Vue 的应用上下文塞进 createComponentInstance，
+			// 内部 Object.create(appContext.provides) 拿到 undefined → TypeError。
+			// 于是每条非 2xx 响应都在拦截器里同步抛错：中文提示根本没弹出来，
+			// reject 出去的理由还被换成英文 TypeError 文本——登录 429 就是这么白屏的。
+			// 要走 options 形态只能用基础调用 ElMessage({...})，type 写在对象里。
 			// grouping: true 让拦截器这里与调用方 catch 里弹出的同一句合并成一条（带次数角标），
 			// 否则每次失败都会看到两条一模一样的提示。
-			ElMessage.error(message, { grouping: true })
+			ElMessage({ message, type: 'error', grouping: true })
 		}
 
 		if (response?.status === 401) {

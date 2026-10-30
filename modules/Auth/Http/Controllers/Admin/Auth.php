@@ -3,6 +3,7 @@
 namespace Modules\Auth\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\RateLimitMiddleware;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -13,9 +14,12 @@ class Auth extends Controller
 {
     protected $authService;
 
-    public function __construct(AuthService $authService)
+    protected $rateLimit;
+
+    public function __construct(AuthService $authService, RateLimitMiddleware $rateLimit)
     {
         $this->authService = $authService;
+        $this->rateLimit = $rateLimit;
     }
 
     /**
@@ -27,6 +31,12 @@ class Auth extends Controller
             $validated = $request->validated();
 
             $result = $this->authService->login($validated);
+
+            // QA-14：登录成功即清空该账号的限流计数。
+            // rate.limit 是「进控制器就先 hit」，成功那次也占一格——输错 9 次再输对 1 次，
+            // 第 11 次正常登录会被自己之前的失败拖进 429，表现为「密码明明对了却登不进、
+            // 页面卡在登录页」。失败才该计数，成功必须归零。
+            $this->rateLimit->clearRateLimit($request, 'login');
 
             return response()->json([
                 'code' => 200,

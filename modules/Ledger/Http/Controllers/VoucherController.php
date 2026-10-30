@@ -5,7 +5,9 @@ namespace Modules\Ledger\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Modules\Ledger\Models\Voucher;
+use Modules\Ledger\Services\VoucherGenerateService;
 use Modules\Ledger\Services\VoucherService;
 
 /**
@@ -15,7 +17,10 @@ class VoucherController extends Controller
 {
     use ResponseTrait;
 
-    public function __construct(private VoucherService $service) {}
+    public function __construct(
+        private VoucherService $service,
+        private VoucherGenerateService $generateService,
+    ) {}
 
     public function index(Request $request)
     {
@@ -246,6 +251,49 @@ class VoucherController extends Controller
         );
 
         return $this->success(['template' => ['id' => $template->id, 'name' => $template->name]], '模板保存成功');
+    }
+
+    /**
+     * 单张业务单据手动补生成凭证（QA-05）。
+     *
+     * 审核动作已内联触发生成，本接口用于「审核时生成失败」或历史存量单据的人工补跑。
+     * 幂等：同一张单据重复调用只返回已生成的凭证，不会长出重复凭证。
+     */
+    public function generateFromBusiness(Request $request)
+    {
+        $validated = $request->validate([
+            'bill_type' => ['required', 'string', Rule::in(Voucher::SOURCE_TYPES)],
+            'bill_id' => 'required|integer|min:1',
+        ]);
+
+        $user = $request->input('auth_user');
+
+        try {
+            $voucher = $this->generateService->generateFromBusiness(
+                $validated['bill_type'],
+                (int) $validated['bill_id'],
+                ['maker_id' => $user?->id ?? 0, 'maker_name' => $user?->real_name ?? $user?->username ?? '系统']
+            );
+        } catch (\DomainException $e) {
+            return $this->error($e->getMessage(), 422);
+        }
+
+        if (! $voucher) {
+            return $this->error('该单据无需生成凭证（金额为零或口径不产出凭证）', 422);
+        }
+
+        // 一张单据可能产出多张（销售出库 = 收入 + 成本），把同单据的全部凭证都回给前端
+        $all = Voucher::listBySource($validated['bill_type'], (int) $validated['bill_id']);
+
+        return $this->success([
+            'voucher' => $this->service->detail($voucher->id),
+            'vouchers' => $all->map(fn (Voucher $v) => [
+                'id' => $v->id,
+                'voucher_no' => $v->voucher_no,
+                'source_seq' => $v->source_seq,
+                'total_debit' => (float) $v->total_debit,
+            ])->all(),
+        ], '凭证生成成功，请在记账凭证中复核后审核入账');
     }
 
     public function export(Request $request)

@@ -1,5 +1,6 @@
 <template>
 	<div class="page">
+		<BookInitNotice />
 		<div class="page-header">
 			<span class="title">期初余额</span>
 		</div>
@@ -61,6 +62,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ledgerApi from '@/api/ledger'
+import BookInitNotice from '../components/BookInitNotice.vue'
 
 const period = ref('')
 const rows = ref([])

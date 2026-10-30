@@ -21,6 +21,12 @@ class PeriodController extends Controller
         return $this->success($this->service->list());
     }
 
+    /** 账套开账状态（QA-10：未开账时前端显示「账套初始化中」提示条） */
+    public function bootStatus()
+    {
+        return $this->success($this->service->bootStatus());
+    }
+
     public function check(string $period)
     {
         try {

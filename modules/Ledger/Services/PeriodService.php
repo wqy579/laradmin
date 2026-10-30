@@ -3,6 +3,7 @@
 namespace Modules\Ledger\Services;
 
 use Illuminate\Support\Facades\DB;
+use Modules\Ledger\Models\OpeningBalance;
 use Modules\Ledger\Models\Period;
 use Modules\Ledger\Models\Subject;
 use Modules\Ledger\Models\Voucher;
@@ -14,7 +15,7 @@ use Modules\Ledger\Models\VoucherEntry;
  * 结账检查（点「结账」后弹出检查窗，逐项打勾）：
  *  ① 本期凭证是否全部审核（存在未审核凭证则红字列出张数并阻止）；
  *  ② 试算是否平衡；
- *  ③ 业务单据是否都已生成凭证（提示性黄色警告，不阻止结账；自动生成机制第四阶段联调，人工核对）；
+ *  ③ 业务单据是否都已生成凭证（提示性黄色警告，不阻止结账；按溯源列真实统计漏生成张数）；
  *  ④ 损益类科目是否需要结转（提供「自动生成结转损益凭证」按钮）；
  *  ⑤ 应收应付期间与现金流水是否平衡（提示性）；
  *  ⑥ 本期收入上交款（D2 cash_handover）是否已全部确认（提示性，供业务域月结 Step2 取数）。
@@ -26,6 +27,7 @@ class PeriodService
     public function __construct(
         private VoucherService $voucherService,
         private SubjectService $subjectService,
+        private VoucherGenerateService $generateService,
     ) {}
 
     /** 期间列表（按年度折叠） */
@@ -43,6 +45,17 @@ class PeriodService
         }
 
         return ['years' => $years];
+    }
+
+    /**
+     * 账套开账状态（QA-10）：期初余额是否已录入。
+     *
+     * 判定口径：ledger_opening_balances 存在任意一行即视为已开账（期初余额保存
+     * 即为「确认开账」动作）。未开账时前端各总账页顶部显示「账套初始化中」提示条。
+     */
+    public function bootStatus(): array
+    {
+        return ['opened' => OpeningBalance::query()->exists()];
     }
 
     /** 结账检查 */
@@ -72,15 +85,23 @@ class PeriodService
             'detail' => $balanced ? '借贷平衡' : '借贷不平衡',
         ];
 
-        // ③ 业务单据是否都已生成凭证（保持提示性黄色警告，不阻止结账）
-        // 业务单据→凭证的自动生成机制（VoucherGenerateService::generateFromBusiness）尚未打通，
-        // ledger_vouchers 无 bill_type/bill_id 关联字段可统计，硬造统计是假数据，故只做人工核对提示。
+        // ③ 业务单据是否都已生成凭证（QA-05 真实统计；保持提示性黄色警告，不阻止结账）
+        // 统计口径：ledger_vouchers.(source_type, source_id, source_seq) 溯源列 +
+        // 各生成策略的「已审核单据」定义（VoucherGenerateService::coverage）。
+        // 不分期：上月漏生成的单据在本月结账时同样需要暴露，否则会被一路带下去。
+        $coverage = $this->generateService->coverage();
+        $missing = $coverage['missing'];
         $checks[] = [
             'key' => 'business_voucher',
             'title' => '业务单据已生成凭证',
-            'passed' => true,
+            'passed' => $missing === 0,
             'blocking' => false,
-            'detail' => '业务单据自动生成凭证尚未联调（第四阶段），请人工核对已审核单据是否已生成凭证',
+            'detail' => $missing === 0
+                ? '已审核单据 '.$coverage['audited'].' 张均已生成凭证'
+                : '已审核单据 '.$coverage['audited'].' 张中有 '.$missing.' 张未生成凭证，可执行 php artisan ledger:generate-vouchers 补生成',
+            'audited_count' => $coverage['audited'],
+            'missing_count' => $missing,
+            'type_detail' => $coverage['types'],
         ];
 
         // ④ 损益类科目是否需要结转

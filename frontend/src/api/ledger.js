@@ -38,6 +38,8 @@ const ledgerApi = {
 		reverse: { post: (id) => request.post(`ledger/vouchers/${id}/reverse`) },
 		redReverse: { post: (id) => request.post(`ledger/vouchers/${id}/red-reverse`) },
 		subjectLedger: { get: (params) => request.get('ledger/vouchers/subject-ledger', { params }) },
+		// 业务单据手动补生成凭证（QA-05）：params = { bill_type, bill_id }
+		generateFromBusiness: { post: (params) => request.post('ledger/vouchers/generate-from-business', params) },
 		templates: { get: () => request.get('ledger/vouchers/templates') },
 		saveTemplate: { post: (params) => request.post('ledger/vouchers/templates', params) },
 		export: (params) => request.get('ledger/vouchers/export', { params, responseType: 'blob' }),
@@ -45,6 +47,7 @@ const ledgerApi = {
 	// 财务月结
 	period: {
 		list: { get: () => request.get('ledger/periods') },
+		bootStatus: { get: () => request.get('ledger/periods/boot-status') },
 		check: { post: (period) => request.post(`ledger/periods/${period}/check`) },
 		carryForward: { post: (period) => request.post(`ledger/periods/${period}/carry-forward`) },
 		close: { post: (period) => request.post(`ledger/periods/${period}/close`) },
