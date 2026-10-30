@@ -165,6 +165,28 @@ class PricePlanFeatureTest extends TestCase
     // 报废 ≤ 库存双校验：stock_adjusts adjust_type=stock_loss
     // ==================================================================
 
+    public function test_stock_loss_adjust_rejects_zero_quantity(): void
+    {
+        $this->actingAsAdmin();
+
+        $product = $this->makeProduct();
+        $warehouse = $this->makeWarehouse();
+        Stock::create(['product_id' => $product->id, 'warehouse_id' => $warehouse->id, 'quantity' => 10]);
+
+        // 数量 0 必须被拒（与 stock_out 的 min:1 口径一致，避免"空调整单"静默跳过）
+        $this->postJson('/admin/business/stock-adjust', [
+            'warehouse_id' => $warehouse->id,
+            'adjust_date' => now()->toDateString(),
+            'adjust_type' => 'stock_loss',
+            'reason' => '数量为 0 的调整',
+            'items' => [['product_id' => $product->id, 'adjust_qty' => 0, 'unit_cost' => 2.0]],
+        ])->assertStatus(422);
+
+        // 未生成任何调整单 / 流水
+        $this->assertSame(0, DB::table('stock_adjusts')->count());
+        $this->assertSame(0, DB::table('stocks_history')->where('related_type', 'StockAdjust')->count());
+    }
+
     public function test_stock_loss_adjust_rejects_overstock_on_approve(): void
     {
         $this->actingAsAdmin();
