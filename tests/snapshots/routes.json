@@ -6357,6 +6357,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/stock/export",
+        "name": "admin.",
+        "action": "Modules\\Stock\\Http\\Controllers\\StockController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/stock/statistics",
         "name": "admin.",
         "action": "Modules\\Stock\\Http\\Controllers\\StockController@statistics",

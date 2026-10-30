@@ -50,14 +50,49 @@ class StockService
             });
         }
 
-        $paginator = $query->orderBy('id', 'desc')
-            ->paginate((int) $request->integer('per_page', 20));
+        // useTable 发 page_size，历史调用点（销售单/出库弹窗）发 per_page —— 两个都认，
+        // 只认 per_page 会让页面每页恒 20（QA-13）。
+        $perPage = (int) ($request->integer('page_size') ?: $request->integer('per_page', 20));
+        $paginator = $query->orderBy('id', 'desc')->paginate($perPage);
 
+        // 契约与 paginated() 信封对齐（data.list/total/…），并保留 data.data 行数组别名
+        // ——弹窗消费者与既有测试都读它（QA-13）。
         return [
-            'data' => $paginator,
+            'data' => [
+                'list' => $paginator->items(),
+                'total' => $paginator->total(),
+                'page' => $paginator->currentPage(),
+                'page_size' => $paginator->perPage(),
+                'last_page' => $paginator->lastPage(),
+                'data' => $paginator->items(),
+            ],
             'products' => Product::where('is_active', true)->orderBy('name')->get(),
             'warehouses' => Warehouse::where('is_active', true)->where('type', 'normal')->get(),
         ];
+    }
+
+    /** 库存列表导出：与 query 同一套筛选，不分页（QA-13 导出按钮） */
+    public function queryForExport(Request $request)
+    {
+        $query = Stock::with(['product', 'warehouse']);
+
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
+        }
+        if ($request->filled('brand_id')) {
+            $query->whereHas('product', fn ($q) => $q->where('brand_id', (int) $request->brand_id));
+        }
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
+        if ($request->filled('keyword')) {
+            $query->whereHas('product', function ($q) use ($request) {
+                $q->where('name', 'like', '%'.$request->keyword.'%')
+                    ->orWhere('code', 'like', '%'.$request->keyword.'%');
+            });
+        }
+
+        return $query->orderBy('id', 'desc')->limit(50000)->get();
     }
 
     /** 入库：记录不存在则创建，存在则累加数量 */
