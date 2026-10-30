@@ -94,11 +94,18 @@ jobs:
             # 注意 sed 的定界符用 # 避开 location 里的 /；幂等性靠「该 token 已在分组里就跳过」保证。
             # 2026-10-14：ledger 同型事故——/admin/ledger/* GET 被 try_files 兜成 SPA index.html
             # （200 text/html），POST 由 nginx 直接 405，验收误判「后端零实现」。
+            # 2026-10-31：QA-03 同型事故——F 外围三个顶层前缀 hr（工资/提成流水）、
+            #     agr（协议管理）、f5（轨迹地图/商城/短信）不在白名单里，9 个页面接口
+            #     全部被兜成 index.html，表象同样是「后端未部署」。
+            #     新增顶层前缀时必须同时加进下面的 token 与第 6.5 步探测，
+            #     tests/Feature/NginxProxyWhitelistTest.php 会钉住这一点。
+            # token 列表按 frontend/src/api/*.js 实际调用的全部顶层前缀给全：
+            # 自愈逻辑「已含则跳过」，多列没有副作用，漏列才会出事故。
             ensure_nginx_proxy() {
               local cfg="/www/server/panel/vhost/nginx/laravel.qjwykj.com.conf"
               if [ ! -f "$cfg" ]; then echo "nginx 站点配置不存在，跳过白名单校验"; return 0; fi
               local changed=0 token
-              for token in dashboard ledger; do
+              for token in auth business system perf cash ledger data asset dashboard hr agr f5; do
                 if grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg"; then
                   echo "nginx 代理白名单已含 $token"
                   continue
@@ -283,8 +290,9 @@ jobs:
             # （2026-10-14 漏配导致 /admin/ledger/* 全部被 try_files 兜成 HTML，
             # 验收误判「后端零实现」——content-type 探测就是给这类事故上的保险）。
             # 任一被 try_files 兜成 HTML 即判失败——否则整个模块静默失效而部署标绿。
+            # 每个顶层前缀都要有一条：hr/agr/f5 是 QA-03 补的（漏配时 9 个页面全空）。
             route_ok=1
-            for path in dashboard/core-metrics business/notice ledger/subjects; do
+            for path in dashboard/core-metrics business/notice ledger/subjects hr/payrolls agr/agreements f5/sms/templates; do
               ok=0 ct=''
               for i in 1 2 3; do
                 ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \

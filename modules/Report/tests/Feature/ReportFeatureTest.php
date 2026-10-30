@@ -679,6 +679,46 @@ class ReportFeatureTest extends TestCase
         $this->assertEquals(7, $daysCol['danger_below']);
     }
 
+    /**
+     * QA-07：库存分析 tab 必须给全「周转率 / 可销天数 / 超期预警」。
+     * 周转率 = 期间出库 ÷ 现库存；超期天数 = 今天 − 有效期至（未设效期为 null）。
+     */
+    public function test_stock_analysis_dimension_carries_turnover_and_overdue(): void
+    {
+        // 现库存 100、窗口内出库 150 → 周转率 1.5；已过期 10 天 → 超期 10
+        $over = $this->makeStockedProduct('ANA_OVER', 100, ['expiry_days' => -10]);
+        $this->makeStockOuts($over->id, 150, 30);
+
+        // 未到期（+30 天）→ 超期 0、状态正常；零出库 → 周转率 0
+        $fresh = $this->makeStockedProduct('ANA_FRESH', 100, ['expiry_days' => 30]);
+
+        // 未设效期 → overdue_days null、状态「未设效期」
+        $this->makeStockedProduct('ANA_NOEXP', 50);
+
+        $res = $this->getJson('admin/business/report/stock-analysis?dimension=analysis');
+        $res->assertOk();
+        $rows = collect($res->json('data.list'))->keyBy('product_code');
+
+        $this->assertEquals(1.5, round((float) $rows['ANA_OVER']['turnover_rate'], 2));
+        $this->assertEquals(10, (int) $rows['ANA_OVER']['overdue_days']);
+        $this->assertSame('超期', $rows['ANA_OVER']['overdue_level']);
+
+        $this->assertEquals(0, round((float) $rows['ANA_FRESH']['turnover_rate'], 2));
+        $this->assertEquals(0, (int) $rows['ANA_FRESH']['overdue_days']);
+        $this->assertSame('正常', $rows['ANA_FRESH']['overdue_level']);
+
+        $this->assertNull($rows['ANA_NOEXP']['overdue_days']);
+        $this->assertSame('未设效期', $rows['ANA_NOEXP']['overdue_level']);
+
+        // 简报点名的三列必须在列定义里
+        foreach (['turnover_rate', 'sellable_days', 'overdue_days'] as $prop) {
+            $this->assertNotNull(
+                collect($res->json('data.columns'))->firstWhere('prop', $prop),
+                "库存分析缺少 {$prop} 列"
+            );
+        }
+    }
+
     public function test_stock_analysis_gain_loss_direction_colors(): void
     {
         $this->seedStockCheck();
