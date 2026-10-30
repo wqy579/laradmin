@@ -226,7 +226,7 @@ class StockAdjustController extends Controller
             'reason' => 'nullable|string|max:500',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.adjust_qty' => 'required|numeric',
+            'items.*.adjust_qty' => 'required|numeric|not_in:0',
             'items.*.unit_cost' => 'nullable|numeric|min:0',
             'items.*.remark' => 'nullable|string|max:255',
         ]);
@@ -324,7 +324,7 @@ class StockAdjustController extends Controller
             'reason' => 'nullable|string|max:500',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
-            'items.*.adjust_qty' => 'required|numeric',
+            'items.*.adjust_qty' => 'required|numeric|not_in:0',
             'items.*.unit_cost' => 'nullable|numeric|min:0',
             'items.*.remark' => 'nullable|string|max:255',
         ]);
