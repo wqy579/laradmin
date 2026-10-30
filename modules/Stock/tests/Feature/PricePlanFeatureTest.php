@@ -133,8 +133,10 @@ class PricePlanFeatureTest extends TestCase
         $planId = $response->json('data.id');
         $this->assertNotNull($planId);
 
-        // 方案列表可见
-        $list = $this->getJson('/admin/business/customer-special-price/plans')->assertOk();
+        // 方案列表可见：迁移会落 4 条默认方案（QA-08 两页空表修复），所以不能再断言
+        // total=1，改为按编码精确筛本次新建的方案——测的是「新建的能查到」，
+        // 默认方案的存在性由 PricePlanSeedTest 负责。
+        $list = $this->getJson('/admin/business/customer-special-price/plans?keyword=TP20261028')->assertOk();
         $this->assertSame(1, (int) $list->json('data.total'));
         $this->assertSame('国庆特价', $list->json('data.list.0.name'));
 

@@ -119,8 +119,13 @@ class CashHandoverService
         }
     }
 
-    /** 收款状态口径：与 Order 模块收款核销保持一致 */
-    private function syncPaymentStatus(SalesOrder $order): void
+    /**
+     * 收款状态口径：与 Order 模块收款核销保持一致
+     *
+     * 公开给「撤销上交款回写」复用（CashDemoSeeder 重跑时要把演示上交额从订单
+     * 已收款里退回去）：这条 已收款/部分收款 判定是财务口径，只能有一处。
+     */
+    public function syncPaymentStatus(SalesOrder $order): void
     {
         $total = (float) $order->total_amount;
         $paid = (float) $order->paid_amount;

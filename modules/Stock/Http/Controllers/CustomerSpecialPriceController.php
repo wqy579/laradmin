@@ -220,10 +220,19 @@ class CustomerSpecialPriceController extends Controller
                 $join->on('plp.product_id', '=', 'p.id')
                     ->on('plp.level_id', '=', 'c.level_id');
             })
+            // 生效窗口必须与 PriceService::resolve 一致，否则已过期的特价在「价格解析」里
+            // 仍显示为命中特价，而下单实际取的是等级价——预览与成交口径打架。
             ->leftJoin('customer_special_price as csp', function ($join) {
+                $today = now()->toDateString();
                 $join->on('csp.customer_id', '=', 'c.id')
                     ->on('csp.product_id', '=', 'p.id')
-                    ->where('csp.status', true);
+                    ->where('csp.status', true)
+                    ->where(function ($w) use ($today) {
+                        $w->whereNull('csp.start_date')->orWhere('csp.start_date', '<=', $today);
+                    })
+                    ->where(function ($w) use ($today) {
+                        $w->whereNull('csp.end_date')->orWhere('csp.end_date', '>=', $today);
+                    });
             })
             ->where('c.is_active', 1)
             ->where('p.is_active', 1);
