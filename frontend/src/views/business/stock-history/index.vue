@@ -103,4 +103,9 @@ onMounted(() => {
 .right-panel { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .text-success { color: #67c23a; font-weight: 600; }
 .text-danger { color: #f56c6c; font-weight: 600; }
+:deep(.vxe-body--column .vxe-cell) { font-variant-numeric: tabular-nums; }
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-header--column .vxe-cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.vxe-body--row) { height: 48px !important; }
+:deep(.vxe-body--row:nth-child(even)) { background-color: #FAFAFA; }
 </style>

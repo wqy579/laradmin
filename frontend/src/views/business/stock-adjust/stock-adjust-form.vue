@@ -49,6 +49,7 @@
 		<!-- 明细表格 -->
 		<div class="items-wrap" v-loading="loadingItems">
 			<el-table :data="items" height="400" size="small" border>
+				<template #empty><FinEmpty text="暂无数据" /></template>
 				<el-table-column type="index" label="序号" width="55" align="center" />
 				<el-table-column prop="product_code" label="商品编码" width="110" />
 				<el-table-column prop="product_name" label="商品名称" min-width="180" show-overflow-tooltip />
@@ -115,6 +116,7 @@
 				<el-button type="primary" @click="loadWarehouseProducts" style="margin-left:10px">搜索</el-button>
 			</div>
 			<el-table :data="filteredProductList" height="400" v-loading="loadingProducts" @selection-change="handleSelectionChange" border>
+				<template #empty><FinEmpty text="暂无数据" /></template>
 				<el-table-column type="selection" width="50" />
 				<el-table-column prop="product_code" label="编码" width="100" />
 				<el-table-column prop="product_name" label="名称" min-width="180" show-overflow-tooltip />
@@ -138,6 +140,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import businessApi from '@/api/business'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const props = defineProps({
 	visible: Boolean,
@@ -341,7 +344,8 @@ async function save(action) {
 .footer { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-top: 1px solid #ebeef5; background: #fafafa; }
 .summary { font-size: 14px; color: #606266; }
 .actions { display: flex; gap: 8px; }
-.num-up { color: #52c41a; font-weight: 500; }
-.num-down { color: #f5222d; font-weight: 500; }
+.num-up { color: #67C23A; font-weight: 500; }
+.num-down { color: #F56C6C; font-weight: 500; }
+:deep(.el-table .cell) { font-variant-numeric: tabular-nums; }
 .product-search { display: flex; align-items: center; padding: 16px; border-bottom: 1px solid #ebeef5; }
 </style>

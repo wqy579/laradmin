@@ -15,6 +15,7 @@
 			<div><label>备注：</label>{{ detail.remark || '-' }}</div>
 		</div>
 		<el-table :data="detail.items || []" size="small" border height="420" :row-class-name="rowClass">
+			<template #empty><FinEmpty text="暂无数据" /></template>
 			<el-table-column type="index" label="序号" width="55" align="center" />
 			<el-table-column prop="product_code" label="编码" width="110" />
 			<el-table-column prop="product_name" label="商品名称" min-width="160" show-overflow-tooltip />
@@ -40,6 +41,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import { downloadApiResponse } from '@/utils/download'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const props = defineProps({ id: { type: [Number, String], required: true } })
 const detail = ref({})
@@ -78,11 +80,12 @@ async function onExport() {
 
 <style scoped>
 .detail-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 0 0 12px; }
-.detail-title { font-size: 15px; font-weight: 600; color: #303133; }
-.base { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; padding: 0 0 14px; font-size: 14px; color: #333; }
-.base label { color: #999; }
-.up { color: #52c41a; font-weight: 500; }
-.down { color: #f5222d; font-weight: 500; }
+.detail-title { font-size: 16px; font-weight: 600; color: #303133; }
+.base { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; padding: 0 0 14px; font-size: 14px; color: #303133; }
+.base label { color: #909399; }
+.up { color: #67C23A; font-weight: 500; }
+.down { color: #F56C6C; font-weight: 500; }
 :deep(.row-profit) { background: #f6ffed !important; }
 :deep(.row-loss) { background: #fff2f0 !important; }
+:deep(.el-table .cell) { font-variant-numeric: tabular-nums; }
 </style>

@@ -23,7 +23,7 @@
 						<span class="main-count">{{ cat.count || 0 }}</span>
 					</div>
 				</div>
-				<div v-if="!mainCategories.length" class="panel-empty">暂无分类</div>
+				<FinEmpty v-if="!mainCategories.length" text="暂无分类" />
 			</div>
 		</aside>
 
@@ -47,7 +47,7 @@
 					<span class="sub-name">{{ sub.name }}</span>
 					<span class="sub-count">{{ sub.count || 0 }}</span>
 				</div>
-				<div v-if="!currentSubs.length" class="panel-empty">无子分类</div>
+				<FinEmpty v-if="!currentSubs.length" text="无子分类" />
 			</div>
 		</aside>
 
@@ -108,7 +108,7 @@
 						}">
 							{{ formatStock(row.quantity, row.unit_conversion, row.unit_conversion_medium, row.price_unit, row.barcode_medium_unit, row.price_unit_small) }}
 							<template v-if="row.quantity !== row.yesterday_qty">
-								<i :class="row.quantity > row.yesterday_qty ? 'el-icon-top' : 'el-icon-bottom'" style="margin-left: 2px; font-size: 11px;"></i>
+								<i :class="row.quantity > row.yesterday_qty ? 'el-icon-top' : 'el-icon-bottom'" style="margin-left: 2px; font-size: 12px;"></i>
 							</template>
 						</span>
 					</template>
@@ -133,6 +133,7 @@ import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import sTable from '@/components/sTable/index.vue'
 import { useResponsive } from '@/hooks/useResponsive'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 // ---- 面板折叠 ----
 const { isMobile } = useResponsive()
@@ -226,11 +227,11 @@ const columns = [
 	{ prop: 'spec', title: '规格', width: 90 },
 	{ prop: 'barcode', title: '条码', width: 130 },
 	{ prop: 'warehouse_name', title: '仓库', width: 120 },
-	{ prop: 'yesterday_qty', title: '昨日库存', width: 100, slots: { default: 'yesterday_qty' } },
-	{ prop: 'today_in', title: '今日入库', width: 100, slots: { default: 'today_in' } },
-	{ prop: 'today_out', title: '今日出库', width: 100, slots: { default: 'today_out' } },
-	{ prop: 'quantity', title: '当前库存', width: 110, slots: { default: 'quantity' } },
-	{ prop: 'frozen_qty', title: '冻结', width: 90 },
+	{ prop: 'yesterday_qty', title: '昨日库存', width: 100, align: 'right', slots: { default: 'yesterday_qty' } },
+	{ prop: 'today_in', title: '今日入库', width: 100, align: 'right', slots: { default: 'today_in' } },
+	{ prop: 'today_out', title: '今日出库', width: 100, align: 'right', slots: { default: 'today_out' } },
+	{ prop: 'quantity', title: '当前库存', width: 110, align: 'right', slots: { default: 'quantity' } },
+	{ prop: 'frozen_qty', title: '冻结', width: 90, align: 'right' },
 ]
 
 function fmt(v) {
@@ -342,7 +343,7 @@ onMounted(() => {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 8px 10px 6px;
+	padding: 8px 12px;
 	border-bottom: 1px solid var(--el-border-color-lighter);
 	flex-shrink: 0;
 }
@@ -372,7 +373,7 @@ onMounted(() => {
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	padding: 7px 10px;
+	padding: 8px 12px;
 	cursor: pointer;
 	font-size: 12px;
 	color: var(--el-text-color-regular);
@@ -383,14 +384,14 @@ onMounted(() => {
 .main-row.active { background: var(--el-color-primary-light-9); color: var(--el-color-primary); font-weight: 500; }
 .main-icon { flex-shrink: 0; font-size: 13px; color: var(--el-color-warning); }
 .main-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.main-count { font-size: 10px; color: var(--el-text-color-placeholder); flex-shrink: 0; }
+.main-count { font-size: 12px; color: var(--el-text-color-placeholder); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 
 .sub-item {
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	padding: 6px 10px 6px 20px;
-	font-size: 11px;
+	padding: 8px 12px 8px 16px;
+	font-size: 12px;
 	cursor: pointer;
 	color: var(--el-text-color-secondary);
 	border-bottom: 1px solid var(--el-border-color-lighter);
@@ -412,12 +413,14 @@ onMounted(() => {
 .toolbar { gap: 8px; flex-wrap: wrap; }
 .left-tools, .right-tools { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .summary-text { font-size: 12px; color: var(--el-text-color-regular); }
-.summary-text b { color: var(--el-color-primary); }
+.summary-text b { color: var(--el-color-primary); font-variant-numeric: tabular-nums; }
+.sub-count { font-variant-numeric: tabular-nums; }
+:deep(.vxe-body--column .vxe-cell) { font-variant-numeric: tabular-nums; }
 
 .selected-info {
 	display: flex;
 	align-items: center;
-	padding: 6px 10px;
+	padding: 8px 12px;
 	gap: 4px;
 	border-bottom: 1px solid var(--el-border-color-lighter);
 }

@@ -143,10 +143,10 @@ const columns = [
 	{ prop: 'check_date', title: '盘点日期', width: 120 },
 	{ prop: 'status', title: '状态', width: 100, slots: { default: 'status' } },
 	{ prop: 'total_skus', title: '商品种类', width: 90 },
-	{ prop: 'profit_qty', title: '盘盈数量', width: 100, slots: { default: 'profit_qty' } },
-	{ prop: 'loss_qty', title: '盘亏数量', width: 100, slots: { default: 'loss_qty' } },
-	{ prop: 'profit_amount', title: '盘盈金额', width: 120, slots: { default: 'profit_amount' } },
-	{ prop: 'loss_amount', title: '盘亏金额', width: 120, slots: { default: 'loss_amount' } },
+	{ prop: 'profit_qty', title: '盘盈数量', width: 100, align: 'right', slots: { default: 'profit_qty' } },
+	{ prop: 'loss_qty', title: '盘亏数量', width: 100, align: 'right', slots: { default: 'loss_qty' } },
+	{ prop: 'profit_amount', title: '盘盈金额', width: 120, align: 'right', slots: { default: 'profit_amount' } },
+	{ prop: 'loss_amount', title: '盘亏金额', width: 120, align: 'right', slots: { default: 'loss_amount' } },
 	{ prop: 'creator_name', title: '制单人', width: 100 },
 	{ prop: 'approved_by', title: '审核人', width: 100, slots: { default: 'approved_by' } },
 	{ prop: 'op', title: '操作', width: 200, fixed: 'right', slots: { default: 'op' } },
@@ -239,12 +239,17 @@ onMounted(() => { fetchWarehouses(); fetchData() })
 </script>
 
 <style scoped>
-.stocktaking-page { display: flex; flex-direction: column; height: 100%; background: #f0f2f5; padding: 16px; box-sizing: border-box; }
-.page-header { height: 56px; background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
-.page-title { font-size: 18px; font-weight: bold; color: #333; }
+.stocktaking-page { display: flex; flex-direction: column; height: 100%; background: #F2F3F5; padding: 16px; box-sizing: border-box; }
+.page-header { height: 56px; background: #fff; border: 1px solid #DCDFE6; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+.page-title { font-size: 16px; font-weight: bold; color: #303133; }
 .header-actions { display: flex; gap: 8px; }
 .filter-bar { margin-top: 12px; background: #fff; border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .table-card { margin-top: 12px; flex: 1; background: #fff; border-radius: 4px; padding: 8px; overflow: hidden; display: flex; flex-direction: column; }
-.num-up { color: #52c41a; font-weight: 500; }
-.num-down { color: #f5222d; font-weight: 500; }
+.num-up { color: #67C23A; font-weight: 500; }
+.num-down { color: #F56C6C; font-weight: 500; }
+
+:deep(.vxe-body--column .vxe-cell) { font-variant-numeric: tabular-nums; }
+:deep(.vxe-header--column) { height: 44px; }
+:deep(.vxe-body--row) { height: 48px; }
+:deep(.vxe-body--row:nth-child(even)) { background: #FAFAFA; }
 </style>
