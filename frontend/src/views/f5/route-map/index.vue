@@ -50,7 +50,7 @@
 						<!-- 轨迹点序号 -->
 						<g v-for="(p, idx) in trajPoints" :key="'p'+p.id">
 							<circle :cx="p.x" :cy="p.y" r="11" :fill="idx === playIndex ? '#E6A23C' : '#409EFF'" :class="{ 'mp-point-active': idx === playIndex }" />
-							<text :x="p.x" :y="p.y + 4" text-anchor="middle" font-size="10" fill="#fff" font-weight="600">{{ p.seq }}</text>
+							<text :x="p.x" :y="p.y + 4" text-anchor="middle" font-size="12" fill="#fff" font-weight="600">{{ p.seq }}</text>
 							<text :x="p.x" :y="p.y - 16" text-anchor="middle" font-size="12" fill="#303133">{{ p.customer_name }}</text>
 						</g>
 
@@ -107,7 +107,7 @@
 						<el-tag v-if="!p.has_location" size="small" type="info">无定位</el-tag>
 					</li>
 				</ol>
-				<div v-if="!(traj.points || []).length" class="mp-empty-list">暂无拜访记录</div>
+				<FinEmpty v-if="!(traj.points || []).length" text="暂无拜访记录" />
 			</div>
 		</div>
 	</div>
@@ -292,5 +292,4 @@ onUnmounted(stopTimer)
 .mp-li-name { font-size: 13px; color: #303133; }
 .mp-li-addr { font-size: 12px; color: #909399; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mp-li-time { font-size: 12px; color: #606266; font-variant-numeric: tabular-nums; }
-.mp-empty-list { padding: 40px 0; text-align: center; color: #909399; font-size: 13px; }
 </style>

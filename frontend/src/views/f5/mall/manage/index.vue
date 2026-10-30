@@ -35,6 +35,7 @@
 			</div>
 
 			<el-table :data="shelfList" v-loading="shelfLoading" border>
+				<template #empty><FinEmpty text="暂无上架商品" /></template>
 				<el-table-column label="商品" min-width="220">
 					<template #default="{ row }">
 						<div class="mg-prod">
@@ -108,6 +109,7 @@
 			</div>
 
 			<el-table :data="orderList" v-loading="orderLoading" border>
+				<template #empty><FinEmpty text="暂无商城订单" /></template>
 				<el-table-column label="商城订单号" min-width="160">
 					<template #default="{ row }">
 						<el-link type="primary" @click="openDetail(row)">{{ row.order_no }}</el-link>
@@ -228,6 +230,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
+import FinEmpty from '../../../finance/_FinEmpty.vue'
 import mallApi from '@/api/mall'
 
 const fmtPrice = (v) => Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
