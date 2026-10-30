@@ -28,7 +28,7 @@ class LedgerSeeder extends Seeder
     private function registerMenus(): void
     {
         $menus = [
-            ['name' => 'ledger', 'title' => '总账管理', 'parent_name' => null, 'path' => '/ledger/subject', 'component' => null, 'sort' => 13, 'icon' => 'ElIconNotebook'],
+            ['name' => 'ledger', 'title' => '总账管理', 'parent_name' => null, 'path' => '/ledger/subject', 'component' => null, 'sort' => 17, 'icon' => 'ElIconNotebook'],
             ['name' => 'ledger.dashboard', 'title' => '总账驾驶舱', 'parent_name' => 'ledger', 'path' => '/ledger/dashboard', 'component' => 'ledger/dashboard/index', 'sort' => 1, 'icon' => null],
             ['name' => 'ledger.subject', 'title' => '会计科目', 'parent_name' => 'ledger', 'path' => '/ledger/subject', 'component' => 'ledger/subject/index', 'sort' => 2, 'icon' => null],
             ['name' => 'ledger.opening', 'title' => '期初余额', 'parent_name' => 'ledger', 'path' => '/ledger/opening', 'component' => 'ledger/opening/index', 'sort' => 3, 'icon' => null],

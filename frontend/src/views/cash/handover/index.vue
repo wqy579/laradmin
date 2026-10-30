@@ -1,5 +1,5 @@
 <template>
-	<div class="page">
+	<div class="fin-page page">
 		<div class="page-header"><span class="title">收入上交款单</span></div>
 
 		<div class="body">
@@ -12,18 +12,22 @@
 					</el-button>
 				</div>
 				<div class="filter">
+					<span class="label">业务员</span>
 					<el-select v-model="filters.salesman_id" placeholder="业务员" clearable filterable style="width:120px">
 						<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
 					</el-select>
+					<span class="label">状态</span>
 					<el-select v-model="filters.status" placeholder="状态" clearable style="width:100px">
 						<el-option label="待确认" value="pending" />
 						<el-option label="已确认" value="confirmed" />
 					</el-select>
+					<span class="label">单号</span>
 					<el-input v-model="filters.no" placeholder="单号" clearable style="width:130px" @keyup.enter="onSearch" />
 					<el-button type="primary" :loading="loading" @click="onSearch">查询</el-button>
 					<el-button @click="resetFilter">重置</el-button>
 				</div>
-				<el-table v-loading="loading" :data="rows" stripe height="100%" empty-text="暂无单据" @row-click="openDetail">
+				<el-table v-loading="loading" :data="rows" stripe height="100%" class="fin-table--dense" @row-click="openDetail">
+					<template #empty><FinEmpty text="暂无单据" /></template>
 					<el-table-column prop="no" label="单号" width="130" show-overflow-tooltip>
 						<template #default="{ row }"><span class="tabular no">{{ row.no }}</span></template>
 					</el-table-column>
@@ -33,7 +37,7 @@
 					<el-table-column label="业务员" width="86" align="center">
 						<template #default="{ row }">{{ row.salesman_name || '—' }}</template>
 					</el-table-column>
-					<el-table-column label="金额" width="108" align="right">
+					<el-table-column label="金额" width="108" align="right" header-align="right">
 						<template #default="{ row }"><span class="tabular amt">{{ fmtMoney(row.amount) }}</span></template>
 					</el-table-column>
 					<el-table-column label="状态" width="82" align="center">
@@ -44,7 +48,7 @@
 						</template>
 					</el-table-column>
 				</el-table>
-				<div class="list-foot">
+				<div class="list-foot fin-pager">
 					<el-pagination
 						v-model:current-page="page"
 						small
@@ -116,7 +120,8 @@
 						<el-icon><Plus /></el-icon><span>关联订单</span>
 					</el-button>
 				</div>
-				<el-table :data="items" border height="300" empty-text="未关联订单" class="tabular">
+				<el-table :data="items" border height="300" class="fin-table--dense tabular">
+					<template #empty><FinEmpty text="未关联订单" /></template>
 					<el-table-column type="index" label="序号" width="50" align="center" />
 					<el-table-column label="订单号" width="150" show-overflow-tooltip>
 						<template #default="{ row }">
@@ -259,6 +264,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check, Plus } from '@element-plus/icons-vue'
 import cashApi from '@/api/cash'
 import { HANDOVER_STATUS, fmtMoney, fmtDay, today } from '../shared'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 /* ---------- 下拉选项 ---------- */
 const accounts = ref([])
@@ -447,10 +453,14 @@ onMounted(async () => {
 })
 </script>
 
+<style>
+@import '../../finance/_shared.css';
+</style>
+
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; }
 .page-header { height: 50px; background: var(--bg-card); border-bottom: 1px solid var(--border-lighter); padding: 0 var(--space-xl); display: flex; align-items: center; }
-.title { font-size: var(--font-h1); font-weight: 600; color: var(--text-primary); }
+.title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .body { display: flex; gap: var(--space-lg); padding: var(--space-lg) var(--space-xl); align-items: stretch; }
 
 .list-card { width: 460px; flex-shrink: 0; display: flex; flex-direction: column; }
@@ -461,6 +471,14 @@ onMounted(async () => {
 .list-foot { padding-top: var(--space-sm); display: flex; justify-content: flex-end; }
 
 .filter { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-bottom: var(--space-md); }
+/* DS：筛选区标签 12px #606266 */
+.filter .label {
+	font-size: var(--font-aux);
+	color: var(--text-regular);
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
+}
 
 .link { color: var(--color-primary); cursor: pointer; }
 .amt { color: var(--text-primary); font-weight: 500; }
@@ -483,4 +501,18 @@ onMounted(async () => {
 
 .picker-filter { display: flex; gap: var(--space-sm); margin-bottom: var(--space-md); }
 .picker-foot { display: flex; justify-content: flex-end; padding-top: var(--space-sm); }
+/* DS：分页条 52px（list-card 内底部） */
+.list-card .fin-pager { height: 52px; padding-top: var(--space-sm); }
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+.list-card :deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+.list-card :deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+.list-card :deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
+}
 </style>

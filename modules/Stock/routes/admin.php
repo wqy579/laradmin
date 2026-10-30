@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Stock\Http\Controllers\BrandController;
 use Modules\Stock\Http\Controllers\CostPriceController;
 use Modules\Stock\Http\Controllers\CustomerLevelController;
+use Modules\Stock\Http\Controllers\CustomerSpecialPriceController;
 use Modules\Stock\Http\Controllers\ProductController;
 use Modules\Stock\Http\Controllers\ProductPriceController;
 use Modules\Stock\Http\Controllers\StockAdjustController;
@@ -112,6 +113,20 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [ProductPriceController::class, 'index']);
         Route::put('/{productId}', [ProductPriceController::class, 'save']);
     });
+
+    // F7 价格方案 + 客户特价（静态路由先于 {id}，避免 options/resolve 被吞）
+    Route::get('business/customer-special-price/options', [CustomerSpecialPriceController::class, 'options']);
+    Route::get('business/customer-special-price/resolve', [CustomerSpecialPriceController::class, 'resolve']);
+    Route::get('business/customer-special-price/plans', [CustomerSpecialPriceController::class, 'plans']);
+    Route::post('business/customer-special-price/plans', [CustomerSpecialPriceController::class, 'storePlan']);
+    Route::prefix('business/customer-special-price')->group(function () {
+        Route::get('/', [CustomerSpecialPriceController::class, 'index']);
+        Route::post('/', [CustomerSpecialPriceController::class, 'store']);
+        Route::put('/plans/{id}', [CustomerSpecialPriceController::class, 'updatePlan']);
+        Route::delete('/plans/{id}', [CustomerSpecialPriceController::class, 'destroyPlan']);
+        Route::put('/{id}', [CustomerSpecialPriceController::class, 'update']);
+        Route::delete('/{id}', [CustomerSpecialPriceController::class, 'destroy']);
+    });
     // 库存核对与监控
     Route::get('business/stock-monitor', [StockCheckController::class, 'monitor']);
     Route::get('business/stock-check', [StockCheckController::class, 'index']);
@@ -160,6 +175,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/', [StocktakingController::class, 'index']);
         Route::post('/', [StocktakingController::class, 'store']);
         Route::get('/{id}', [StocktakingController::class, 'show']);
+        Route::get('/{id}/export', [StocktakingController::class, 'export']);
         Route::put('/{id}', [StocktakingController::class, 'update']);
         Route::delete('/{id}', [StocktakingController::class, 'destroy']);
         Route::post('/{id}/submit', [StocktakingController::class, 'submit']);

@@ -107,20 +107,24 @@ class ReportService
         $yearOccMap = []; // 年初就是期初
         $yearBalances = $this->aggregateSubjectBalances($yearOpeningMap, $yearOccMap);
 
-        $balanceByCode = function (string $code) use ($subjectBalances): float {
+        // 科目余额方向一次性批量取回（避免按 code 逐条查库）
+        $subjectDirections = Subject::query()->pluck('balance_direction', 'code');
+        $directionOf = function (string $code) use ($subjectDirections): string {
+            return $subjectDirections[$code] ?? 'debit';
+        };
+
+        $balanceByCode = function (string $code) use ($subjectBalances, $directionOf): float {
             $amt = $subjectBalances[$code] ?? ['debit' => 0, 'credit' => 0];
-            $subject = Subject::where('code', $code)->first();
-            $direction = $subject?->balance_direction ?? 'debit';
+            $direction = $directionOf($code);
 
             return $direction === 'debit'
                 ? round((float) $amt['debit'] - (float) $amt['credit'], 2)
                 : round((float) $amt['credit'] - (float) $amt['debit'], 2);
         };
 
-        $yearByCode = function (string $code) use ($yearBalances): float {
+        $yearByCode = function (string $code) use ($yearBalances, $directionOf): float {
             $amt = $yearBalances[$code] ?? ['debit' => 0, 'credit' => 0];
-            $subject = Subject::where('code', $code)->first();
-            $direction = $subject?->balance_direction ?? 'debit';
+            $direction = $directionOf($code);
 
             return $direction === 'debit'
                 ? round((float) $amt['debit'] - (float) $amt['credit'], 2)
@@ -198,11 +202,16 @@ class ReportService
         $monthOccMap = $this->occurrenceBetween($period, $period);
         $yearOccMap = $this->occurrenceBetween($yearStart, $period);
 
-        $monthByCode = function (string $code) use ($monthOccMap): float {
-            return $this->netByCode($code, $monthOccMap);
+        // 科目 id/余额方向一次性批量取回（避免按 code 逐条查库）
+        $subjectMeta = Subject::query()->get(['code', 'id', 'balance_direction'])
+            ->keyBy('code')->map(fn ($s) => ['id' => $s->id, 'direction' => $s->balance_direction])
+            ->all();
+
+        $monthByCode = function (string $code) use ($monthOccMap, $subjectMeta): float {
+            return $this->netByCode($code, $monthOccMap, $subjectMeta);
         };
-        $yearByCode = function (string $code) use ($yearOccMap): float {
-            return $this->netByCode($code, $yearOccMap);
+        $yearByCode = function (string $code) use ($yearOccMap, $subjectMeta): float {
+            return $this->netByCode($code, $yearOccMap, $subjectMeta);
         };
 
         $operatingRevenue = $monthByCode('6001') + $monthByCode('6051');
@@ -332,15 +341,15 @@ class ReportService
     }
 
     /** 某科目在某发生额map里的净额（贷方科目取贷-借，借方科目取借-贷） */
-    private function netByCode(string $code, array $occMap): float
+    private function netByCode(string $code, array $occMap, array $subjectMeta): float
     {
-        $subject = Subject::where('code', $code)->first();
-        if (! $subject) {
+        $meta = $subjectMeta[$code] ?? null;
+        if (! $meta) {
             return 0;
         }
-        $amt = $occMap[$subject->id] ?? ['debit' => 0, 'credit' => 0];
+        $amt = $occMap[$meta['id']] ?? ['debit' => 0, 'credit' => 0];
         // 收入类（贷方）净额 = 贷 - 借；成本费用类（借方）净额 = 借 - 贷
-        if ($subject->balance_direction === 'credit') {
+        if ($meta['direction'] === 'credit') {
             return round((float) $amt['credit'] - (float) $amt['debit'], 2);
         }
 

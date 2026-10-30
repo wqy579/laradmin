@@ -32,10 +32,10 @@
 
 		<!-- 列表 -->
 		<div class="pts-table">
-			<el-table v-loading="loading" :data="data" row-key="id" stripe border height="100%" empty-text="当前筛选条件下暂无数据">
+			<el-table v-loading="loading" :data="data" row-key="id" stripe border height="100%" class="fin-table--dense">
 				<el-table-column type="selection" width="45" align="center" />
 				<el-table-column prop="rule_name" label="规则名称" min-width="180" show-overflow-tooltip />
-				<el-table-column prop="ratio" label="积分比例" width="140" align="right">
+				<el-table-column prop="ratio" label="积分比例" width="140" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular ratio">1 : {{ fmtRatio(row.ratio) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="effective_date" label="生效日期" width="130" align="center">
@@ -57,12 +57,12 @@
 						<el-button v-if="can('delete')" link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
 					</template>
 				</el-table-column>
-				<template #empty><span class="pts-empty">当前筛选条件下暂无数据</span></template>
+				<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 			</el-table>
 		</div>
 
 		<!-- 分页 -->
-		<div class="pts-pager">
+		<div class="pts-pager fin-pager">
 			<el-pagination
 				background
 				layout="total, prev, pager, next, jumper, sizes"
@@ -113,6 +113,7 @@ import { useTable } from '@/hooks/useTable'
 import { usePermission } from '@/composables/usePermission'
 import { saveBlob } from '@/utils/fileDownload'
 import cashApi from '@/api/cash'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const { has: hasPerm } = usePermission()
 const can = (verb) => hasPerm(`cash.integral.rule.${verb}`)
@@ -231,6 +232,7 @@ const handleExport = async () => {
 </script>
 
 <style>
+@import '../../finance/_shared.css';
 @import '../_shared.css';
 </style>
 
@@ -265,5 +267,17 @@ const handleExport = async () => {
 	font-size: var(--font-aux);
 	color: var(--text-secondary);
 	line-height: 28px;
+}
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+.pts-rule :deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+.pts-rule :deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+.pts-rule :deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-	<div class="page">
+	<div class="fin-page page">
 		<div class="page-header">
 			<span class="title">上交款查询</span>
 			<el-button type="primary" plain size="small" @click="goForm">
@@ -15,6 +15,7 @@
 			</el-tabs>
 
 			<div class="filter">
+				<span class="label">日期</span>
 				<el-date-picker
 					v-model="dateRange"
 					type="daterange"
@@ -25,12 +26,15 @@
 					style="width:250px"
 					@change="onDateChange"
 				/>
+				<span class="label">上交人</span>
 				<el-select v-model="filters.salesman_id" placeholder="上交人" clearable filterable style="width:120px">
 					<el-option v-for="s in salesmen" :key="s.id" :label="s.name" :value="s.id" />
 				</el-select>
+				<span class="label">收款账户</span>
 				<el-select v-model="filters.account_id" placeholder="收款账户" clearable style="width:130px">
 					<el-option v-for="a in accounts" :key="a.id" :label="a.name" :value="a.id" />
 				</el-select>
+				<span class="label">上交单号</span>
 				<el-input v-model="filters.no" placeholder="上交单号" clearable style="width:160px" @keyup.enter="onSearch" />
 				<el-button type="primary" :loading="loading" @click="onSearch">查询</el-button>
 				<el-button @click="onReset">重置</el-button>
@@ -77,12 +81,13 @@
 				border
 				stripe
 				row-key="id"
+				class="fin-table--dense"
 				show-summary
 				:summary-method="summaryMethod"
 				height="calc(100% - 210px)"
-				empty-text="暂无上交款单"
 				@selection-change="onSelectionChange"
 			>
+				<template #empty><FinEmpty text="暂无上交款单" /></template>
 				<el-table-column type="selection" width="42" :selectable="(row) => row.status === 'pending'" />
 				<el-table-column prop="no" label="上交单号" width="140">
 					<template #default="{ row }"><span class="tabular">{{ row.no }}</span></template>
@@ -99,7 +104,7 @@
 				<el-table-column prop="order_count" label="订单数" width="80" align="right">
 					<template #default="{ row }"><span class="tabular">{{ row.order_count }}</span></template>
 				</el-table-column>
-				<el-table-column prop="amount" label="金额" width="130" align="right">
+				<el-table-column prop="amount" label="金额" width="130" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular amt">{{ fmtMoney(row.amount) }}</span></template>
 				</el-table-column>
 				<el-table-column label="确认时间" width="160" align="center">
@@ -127,7 +132,7 @@
 				</el-table-column>
 			</el-table>
 
-			<div class="pager">
+			<div class="pager fin-pager">
 				<el-pagination
 					v-model:current-page="page"
 					v-model:page-size="pageSize"
@@ -187,6 +192,7 @@ import { useRoute, useRouter } from 'vue-router'
 import cashApi from '@/api/cash'
 import { saveBlob } from '@/utils/fileDownload'
 import { HANDOVER_STATUS, fmtMoney, fmtCount, fmtDay } from '../shared'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -346,17 +352,29 @@ onMounted(async () => {
 })
 </script>
 
+<style>
+@import '../../finance/_shared.css';
+</style>
+
 <style scoped>
 .page { background: var(--bg-body); min-height: 100vh; display: flex; flex-direction: column; }
 .page-header { height: 50px; background: var(--bg-card); border-bottom: 1px solid var(--border-lighter); padding: 0 var(--space-xl); display: flex; align-items: center; justify-content: space-between; }
-.title { font-size: var(--font-h1); font-weight: 600; color: var(--text-primary); }
+.title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
 .card { flex: 1; margin: var(--space-lg) var(--space-xl); display: flex; flex-direction: column; }
 
 .query-tabs { margin-top: calc(-1 * var(--space-md)); }
-.query-tabs :deep(.el-tabs__item) { font-size: 15px; color: #606266; }
+.query-tabs :deep(.el-tabs__item) { font-size: 14px; color: #606266; }
 .query-tabs :deep(.is-active) { color: #409eff; }
 
 .filter { display: flex; gap: var(--space-sm); flex-wrap: wrap; padding-bottom: var(--space-md); }
+/* DS：筛选区标签 12px #606266 */
+.filter .label {
+	font-size: var(--font-aux);
+	color: var(--text-regular);
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
+}
 
 .stat-strip { display: flex; gap: var(--space-lg); margin-bottom: var(--space-md); }
 .stat { flex: 1; padding: var(--space-sm) var(--space-md); background: var(--bg-hover); border-radius: var(--radius-md); }
@@ -370,7 +388,21 @@ onMounted(async () => {
 
 .amt { color: var(--text-primary); font-weight: 500; }
 .pager { display: flex; justify-content: flex-end; padding-top: var(--space-md); }
+/* DS：分页条 52px（覆盖 _shared.css 的 fin-pager，因卡片内已有 padding-top） */
+.card .fin-pager { height: 52px; padding-top: 0; }
 
 .det-sub { margin: var(--space-lg) 0 var(--space-sm); font-size: var(--font-h3); font-weight: 600; color: var(--text-primary); }
 .empty-note { padding: var(--space-xl) 0; text-align: center; color: var(--text-secondary); font-size: var(--font-base); }
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+.card :deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+.card :deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+.card :deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
+}
 </style>

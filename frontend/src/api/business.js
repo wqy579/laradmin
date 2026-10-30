@@ -188,6 +188,7 @@ const businessApi = {
 	stocktaking: {
 		list: { get: (params) => request.get('business/stocktaking', { params }) },
 		detail: { get: (id) => request.get(`business/stocktaking/${id}`) },
+		export: (id) => request.get(`business/stocktaking/${id}/export`, { responseType: 'blob' }),
 		create: { post: (params) => request.post('business/stocktaking', params) },
 		update: { put: (id, params) => request.put(`business/stocktaking/${id}`, params) },
 		delete: { delete: (id) => request.delete(`business/stocktaking/${id}`) },
@@ -240,6 +241,20 @@ const businessApi = {
 		batch: { post: (params) => request.post('business/product-price/batch', params) },
 		history: { get: (params) => request.get('business/product-price/history', { params }) },
 		calculate: { post: (params) => request.post('business/product-price/calculate', params) },
+	},
+
+	// F7 价格方案 + 客户特价
+	customerSpecialPrice: {
+		options: { get: () => request.get('business/customer-special-price/options') },
+		plans: { get: (params) => request.get('business/customer-special-price/plans', { params }) },
+		planCreate: { post: (params) => request.post('business/customer-special-price/plans', params) },
+		planUpdate: { put: (id, params) => request.put(`business/customer-special-price/plans/${id}`, params) },
+		planDelete: { delete: (id) => request.delete(`business/customer-special-price/plans/${id}`) },
+		list: { get: (params) => request.get('business/customer-special-price', { params }) },
+		create: { post: (params) => request.post('business/customer-special-price', params) },
+		update: { put: (id, params) => request.put(`business/customer-special-price/${id}`, params) },
+		delete: { delete: (id) => request.delete(`business/customer-special-price/${id}`) },
+		resolve: { get: (params) => request.get('business/customer-special-price/resolve', { params }) },
 	},
 
 	// 成本价格

@@ -71,6 +71,9 @@
         <testsuite name="Archive">
             <directory>modules/Archive/tests</directory>
         </testsuite>
+        <testsuite name="Mall">
+            <directory>modules/Mall/tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

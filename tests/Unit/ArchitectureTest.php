@@ -121,6 +121,14 @@ class ArchitectureTest extends TestCase
         'Archive->Auth',        // 开账菜单/按钮权限迁移写 Auth 的 auth_permission 与角色授权，
         //   并与第一批 Archive->Auth 同因（Performance->Auth、Business->Auth 完全同因：
         //   菜单数据本就落在 Auth 的权限表上）；锁定人/操作人姓名也取 Auth 的 auth_user
+        'Mall->Stock',      // 分销商城商品池/价/库存读 Stock 的 products 主数据（单一数据源：商城价
+        //   不落独立价格列，一律读 products 当前三档价），下单冻结库存复用 StockService::freeze
+        //   （与 Order->Stock、Cash->Order 同理：同库同事务，抽契约收益低于耦合成本）
+        'Mall->Order',      // 商城下单必须走 F1 通道生成订货申报单：调 Order 的 SalesOrder/
+        //   SalesOrderItem 建单并回写 mall_orders.sales_order_id/no，同库同事务
+        //   （与 BorrowReturn->Order、Cash->Order 同理；验收硬要求「商城单须生成申报单」）
+        'Mall->Auth',       // 下单/发送记录操作人回显姓名，belongsTo Auth 的用户表
+        //   （与 Ledger->Auth、Cash->Auth 同因）；商城域不维护人员主数据，内核亦无 User 契约
     ];
 
     /**

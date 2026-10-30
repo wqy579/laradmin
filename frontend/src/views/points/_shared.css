@@ -31,26 +31,31 @@
 	border-radius: var(--radius-md);
 }
 
-/* 表格：表体 14px #606266；表头 #F5F7FA 14px/500 #606266；列表行 48px。
+/* 表格：表体 13px #303133；表头 #F5F7FA 13px/600 #606266；列表行 41px。
+ * D7 统一 DS：表头 44px 13px/600，明细行 41px 13px #303133（对齐 finance 简报口径）。
  * 斑马纹（stripe 属性）#FAFAFA、hover #F5F7FA 由 EP 变量默认+上方覆盖提供，
  * 页面内禁止再给 td/th 铺背景色或改行高，否则斑马纹被盖住。 */
 .pts-page .el-table {
-	font-size: var(--font-h3);
-	color: var(--text-regular);
+	font-size: var(--font-base);
+	color: var(--text-primary);
 }
 .pts-page .el-table th.el-table__cell {
 	background: var(--bg-hover);
 	color: var(--text-regular);
-	font-weight: 500;
-	font-size: var(--font-h3);
+	font-weight: 600;
+	font-size: var(--font-base);
 	height: 44px;
 }
 .pts-page .el-table .el-table__body .el-table__row {
-	height: 48px;
+	height: 41px;
 }
-/* 明细类表格行高 41px：<el-table class="pts-table--dense"> */
+/* 明细类表格行高 41px：<el-table class="pts-table--dense">（同上，保留兼容） */
 .pts-page .el-table.pts-table--dense .el-table__body .el-table__row {
 	height: 41px;
+}
+.pts-page .el-table .el-table__body td.el-table__cell .cell {
+	font-size: var(--font-base);
+	color: var(--text-primary);
 }
 /* 合计行数字等宽 */
 .pts-page .el-table__footer .cell {
@@ -70,7 +75,7 @@
 	height: 22px;
 	line-height: 22px;
 	font-size: var(--font-aux);
-	border-radius: 3px;
+	border-radius: var(--radius-sm);
 	color: #fff;
 }
 .pts-tag--draft {
@@ -95,14 +100,14 @@
 	flex-shrink: 0;
 }
 
-/* 空态：13px #909399 */
+/* 空态：14px #C0C4CC（DS 统一） */
 .pts-empty {
-	font-size: var(--font-base);
-	color: var(--text-secondary);
+	font-size: 14px;
+	color: #c0c4cc;
 }
 .pts-page .el-table__empty-text {
-	font-size: var(--font-base);
-	color: var(--text-secondary);
+	font-size: 14px;
+	color: #c0c4cc;
 	line-height: 1.6;
 }
 

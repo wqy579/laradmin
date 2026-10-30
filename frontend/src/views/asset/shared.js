@@ -149,7 +149,7 @@ export function mockAssetCards(count = 28) {
 
 		rows.push({
 			id: `AST${pad(i + 1, 5)}`,
-			code: `FA-${pad(buyYear, 2)}-${pad(i + 1, 5)}`,
+			code: `ZC-${buyYear}${pad(buyMonth)}-${pad(i + 1, 4)}`,
 			name,
 			category,
 			buy_date: buyDate,

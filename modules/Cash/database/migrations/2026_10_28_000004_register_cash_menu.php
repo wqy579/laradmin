@@ -20,7 +20,7 @@ return new class extends Migration
     public function up(): void
     {
         $menus = [
-            ['name' => 'cash', 'title' => '出纳管理', 'parent_name' => null, 'path' => '/cash/account-flow', 'component' => '', 'sort' => 14, 'icon' => 'ElIconMoney'],
+            ['name' => 'cash', 'title' => '出纳管理', 'parent_name' => null, 'path' => '/cash/account-flow', 'component' => '', 'sort' => 18, 'icon' => 'ElIconMoney'],
             ['name' => 'cash.account-flow', 'title' => '现金账户', 'parent_name' => 'cash', 'path' => '/cash/account-flow', 'component' => 'cash/account-flow/index', 'sort' => 1, 'icon' => null],
             ['name' => 'cash.card', 'title' => '刷卡记录', 'parent_name' => 'cash', 'path' => '/cashier/card', 'component' => 'cashier/card/index', 'sort' => 2, 'icon' => null],
         ];

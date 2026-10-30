@@ -48,7 +48,7 @@
 
 		<!-- 列表 -->
 		<div class="pts-table">
-			<el-table v-loading="loading" :data="data" row-key="id" stripe border height="100%" empty-text="当前筛选条件下暂无数据">
+			<el-table v-loading="loading" :data="data" row-key="id" stripe border height="100%" class="fin-table--dense">
 				<el-table-column type="selection" width="45" align="center" />
 				<el-table-column prop="grant_no" label="发放单号" width="170" align="center">
 					<template #default="{ row }">
@@ -67,7 +67,7 @@
 						<span v-if="row.member_count > 1" class="count">等 {{ row.member_count }} 人</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="total_points" label="发放积分" width="120" align="right">
+				<el-table-column prop="total_points" label="发放积分" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular points">{{ fmtInt(row.total_points) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="status" label="状态" width="100" align="center">
@@ -91,12 +91,12 @@
 						<el-button link type="primary" size="small" @click="openDetail(row)">详情</el-button>
 					</template>
 				</el-table-column>
-				<template #empty><span class="pts-empty">当前筛选条件下暂无数据</span></template>
+				<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 			</el-table>
 		</div>
 
 		<!-- 分页 -->
-		<div class="pts-pager">
+		<div class="pts-pager fin-pager">
 			<el-pagination
 				background
 				layout="total, prev, pager, next, jumper, sizes"
@@ -151,11 +151,11 @@
 						<el-input v-model="draft.remark" placeholder="明细备注（选填）" maxlength="255" size="small" style="width: 200px" @keyup.enter="addItem" />
 						<el-button type="primary" size="small" @click="addItem">添加明细</el-button>
 					</div>
-					<el-table :data="form.items" class="pts-table--dense" border height="100%" empty-text="请至少添加一条发放明细">
+					<el-table :data="form.items" class="pts-table--dense fin-table--dense" border height="100%">
 						<el-table-column label="会员" min-width="170" show-overflow-tooltip>
 							<template #default="{ row }">{{ memberLabel(row) }}</template>
 						</el-table-column>
-						<el-table-column label="发放积分" width="120" align="right">
+						<el-table-column label="发放积分" width="120" align="right" header-align="right">
 							<template #default="{ row }"><span class="tabular points">{{ fmtInt(row.points) }}</span></template>
 						</el-table-column>
 						<el-table-column label="备注" min-width="150" show-overflow-tooltip>
@@ -166,7 +166,7 @@
 								<el-button link type="danger" size="small" @click="removeItem($index)">删除</el-button>
 							</template>
 						</el-table-column>
-						<template #empty><span class="pts-empty">请至少添加一条发放明细</span></template>
+						<template #empty><FinEmpty text="请至少添加一条发放明细" /></template>
 					</el-table>
 				</div>
 			</div>
@@ -191,20 +191,20 @@
 				<el-descriptions-item label="审核时间">{{ detail.audited_at || '—' }}</el-descriptions-item>
 				<el-descriptions-item label="事由" :span="2">{{ detail.remark || '—' }}</el-descriptions-item>
 			</el-descriptions>
-			<el-table :data="detail.items || []" class="pts-table--dense" border max-height="360" style="margin-top: 16px" empty-text="暂无明细">
+			<el-table :data="detail.items || []" class="pts-table--dense fin-table--dense" border max-height="360" style="margin-top: 16px">
 				<el-table-column label="会员编号" width="140" align="center">
 					<template #default="{ row }"><span class="tabular">{{ row.member_no || '—' }}</span></template>
 				</el-table-column>
 				<el-table-column label="会员名称" min-width="150" show-overflow-tooltip>
 					<template #default="{ row }">{{ row.member_name || '—' }}</template>
 				</el-table-column>
-				<el-table-column label="发放积分" width="120" align="right">
+				<el-table-column label="发放积分" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular points">{{ fmtInt(row.points) }}</span></template>
 				</el-table-column>
 				<el-table-column label="备注" min-width="160" show-overflow-tooltip>
 					<template #default="{ row }">{{ row.remark || '—' }}</template>
 				</el-table-column>
-				<template #empty><span class="pts-empty">暂无明细</span></template>
+				<template #empty><FinEmpty text="暂无明细" /></template>
 			</el-table>
 			<template #footer>
 				<el-button @click="detailVisible = false">关闭</el-button>
@@ -221,6 +221,7 @@ import { usePermission } from '@/composables/usePermission'
 import { saveBlob } from '@/utils/fileDownload'
 import businessApi from '@/api/business'
 import cashApi from '@/api/cash'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const { has: hasPerm } = usePermission()
 const can = (verb) => hasPerm(`cash.integral.grant.${verb}`)
@@ -422,6 +423,7 @@ searchMembers('')
 </script>
 
 <style>
+@import '../../finance/_shared.css';
 @import '../_shared.css';
 </style>
 
@@ -466,6 +468,18 @@ searchMembers('')
 	color: var(--text-primary);
 	font-family: var(--font-numeric);
 	font-variant-numeric: tabular-nums;
+}
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+.pts-grant :deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+.pts-grant :deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+.pts-grant :deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
 }
 </style>
 

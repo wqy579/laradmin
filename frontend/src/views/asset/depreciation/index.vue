@@ -1,5 +1,5 @@
 <template>
-	<div class="asset-page">
+	<div class="fin-page asset-page">
 		<div class="asset-head">
 			<div class="head-row">
 				<div>
@@ -55,12 +55,15 @@
 					:data="items"
 					border
 					size="small"
+					class="fin-table--dense"
 					height="100%"
 					show-summary
 					:summary-method="summaryMethod"
 					empty-text="本期无应折资产（仅统计「在用」状态）"
 					row-key="id"
 				>
+					<template #empty><FinEmpty text="本期无应折资产" /></template>
+
 					<el-table-column prop="code" label="资产编号" width="130">
 						<template #default="{ row }"><span class="tabular">{{ row.code }}</span></template>
 					</el-table-column>
@@ -88,7 +91,8 @@
 				<div class="panel-head">
 					<span class="panel-title">折旧执行流水</span>
 				</div>
-				<el-table :data="runs" border size="small" height="100%" empty-text="暂无执行记录">
+				<el-table :data="runs" border size="small" class="fin-table--dense" height="100%" empty-text="暂无执行记录">
+					<template #empty><FinEmpty text="暂无执行记录" /></template>
 					<el-table-column prop="id" label="折旧单号" width="120">
 						<template #default="{ row }"><span class="tabular">{{ row.id }}</span></template>
 					</el-table-column>
@@ -113,6 +117,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Check } from '@element-plus/icons-vue'
 import assetApi from '@/api/asset'
 import { fmtMoney, fmtMonth, curMonth } from '../shared'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const period = ref(curMonth())
 const running = ref(false)
@@ -190,6 +195,10 @@ onMounted(() => {
 })
 </script>
 
+<style>
+@import '../../finance/_shared.css';
+</style>
+
 <style scoped>
 .asset-page {
 	height: 100%;
@@ -217,7 +226,7 @@ onMounted(() => {
 	gap: var(--space-md);
 }
 .asset-title {
-	font-size: var(--font-h1);
+	font-size: 16px;
 	font-weight: 600;
 	color: var(--text-primary);
 }
@@ -327,5 +336,17 @@ onMounted(() => {
 }
 :deep(.el-table__footer td .cell) {
 	font-weight: 600;
+}
+/* D3 简报口径：表头 44px 13px/600，明细行 41px（覆盖 _shared.css 的 14px/500 + 48px） */
+:deep(.el-table.fin-table--dense th.el-table__cell .cell) {
+	font-size: var(--font-base);
+	font-weight: 600;
+}
+:deep(.el-table.fin-table--dense .el-table__body .el-table__row) {
+	height: 41px;
+}
+:deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
+	color: var(--text-primary);
 }
 </style>

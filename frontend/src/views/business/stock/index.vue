@@ -80,8 +80,8 @@ const columns = [
 	{ prop: 'product.name', title: '产品名称', width: 150, showOverflowTooltip: true },
 	{ prop: 'product.code', title: '产品编码', width: 100 },
 	{ prop: 'warehouse.name', title: '仓库', width: 100 },
-	{ prop: 'quantity', title: '库存数量', width: 100, align: 'center', slots: { default: 'quantity_default' } },
-	{ prop: 'frozen_qty', title: '冻结库存', width: 110, align: 'center', slots: { default: 'frozen_qty_default' } },
+	{ prop: 'quantity', title: '库存数量', width: 100, align: 'right', slots: { default: 'quantity_default' } },
+	{ prop: 'frozen_qty', title: '冻结库存', width: 110, align: 'right', slots: { default: 'frozen_qty_default' } },
 	{ prop: 'cost_price', title: '成本价', width: 100, align: 'right' },
 	{ prop: 'total_amount', title: '库存金额', width: 120, align: 'right', slots: { default: 'total_amount_default' } },
 	{ prop: 'action_col', title: '操作', width: 120, align: 'center', fixed: 'right', slots: { default: 'action_default' } },
@@ -98,4 +98,9 @@ onMounted(() => {
 <style scoped>
 .toolbar { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
 .text-danger { color: var(--el-color-danger); }
+:deep(.vxe-body--column .vxe-cell) { font-variant-numeric: tabular-nums; }
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-header--column .vxe-cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.vxe-body--row) { height: 48px !important; }
+:deep(.vxe-body--row:nth-child(even)) { background-color: #FAFAFA; }
 </style>

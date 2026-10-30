@@ -122,7 +122,7 @@ class CashIntegralFeatureTest extends TestCase
             ->assertJsonPath('code', 200)
             ->json('data.grant_no');
 
-        $this->assertMatchesRegularExpression('/^JF\d{8}\d{6}$/', $grantNo);
+        $this->assertMatchesRegularExpression('/^JF-\d{6}-\d{4}$/', $grantNo);
         $grant = CashIntegralGrant::query()->where('grant_no', $grantNo)->firstOrFail();
         $this->assertSame(CashIntegralGrant::STATUS_DRAFT, (int) $grant->status);
         $this->assertSame(100, (int) $grant->total_points);

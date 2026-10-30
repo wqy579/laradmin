@@ -36,7 +36,8 @@ class MemberService
         'member' => 'HY',
         'recharge' => 'CZ',
         'product' => 'JP',
-        'point_order' => 'DH',
+        // D7 编号正式化：积分单号统一 JF-yyyymm-####
+        'point_order' => 'JF',
         'consume' => 'XH',
     ];
 
@@ -60,6 +61,27 @@ class MemberService
         $seq = $lastNo ? ((int) substr($lastNo, -6)) + 1 : 1;
 
         return $prefix.$dateStr.str_pad((string) $seq, 6, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * 生成按月递增单据号：前缀 + yyyymm + 4 位流水（D7 编号正式化）。
+     *
+     * 格式：JF-yyyymm-####（积分单号），按月连续不跳号。
+     * 查询当月已存在单据号的最大流水 +1，再 str_pad 到 4 位。
+     */
+    public static function generateNoByMonth(string $prefix, string $table, string $column, ?string $date = null): string
+    {
+        $month = $date ? substr($date, 0, 7) : now()->format('Ym');
+        $like = $prefix.'-'.$month.'-%';
+
+        $lastNo = DB::table($table)
+            ->where($column, 'like', $like)
+            ->orderByDesc($column)
+            ->value($column);
+
+        $seq = $lastNo ? ((int) substr($lastNo, -4)) + 1 : 1;
+
+        return sprintf('%s-%s-%04d', $prefix, $month, $seq);
     }
 
     /** 读取积分规则并解码 JSON 值；不存在返回默认值 */

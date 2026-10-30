@@ -18,7 +18,17 @@ const appStore = useAppStore()
 const userStore = useUserStore()
 
 // BUG-04 过渡期「演示数据」水印：仅财务域 finance 各页挂水印 + 顶部提示条
-const isFinanceRoute = computed(() => route.path.startsWith('/finance/'))
+// D7 扩展：三域（出纳 /cash/、固定资产 /asset/、积分 /points/ 及刷卡 /cashier/）同样挂水印
+// 验收补：总账 /ledger/（A 项目）同样挂水印
+const isFinanceRoute = computed(
+	() =>
+		route.path.startsWith('/finance/') ||
+		route.path.startsWith('/cash/') ||
+		route.path.startsWith('/cashier/') ||
+		route.path.startsWith('/asset/') ||
+		route.path.startsWith('/points/') ||
+		route.path.startsWith('/ledger/')
+)
 
 const { isMobile } = useResponsive()
 

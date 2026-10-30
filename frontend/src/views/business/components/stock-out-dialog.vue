@@ -14,6 +14,9 @@
 			<el-form-item label="出库数量" prop="quantity">
 				<el-input-number v-model="form.quantity" :min="1" :precision="0" style="width:100%" />
 			</el-form-item>
+			<el-form-item v-if="stockQty !== null" label="可用库存">
+				<span :class="stockQty < form.quantity ? 'text-danger' : 'text-ok'">{{ stockQty }}</span>
+			</el-form-item>
 			<el-form-item label="备注" prop="remark">
 				<el-input v-model="form.remark" type="textarea" :rows="2" placeholder="请输入备注" />
 			</el-form-item>
@@ -39,18 +42,40 @@ const form = ref({ product_id: null, warehouse_id: null, quantity: 1, remark: ''
 const rules = { product_id: [{ required: true, message: '请选择产品', trigger: 'change' }], warehouse_id: [{ required: true, message: '请选择仓库', trigger: 'change' }], quantity: [{ required: true, message: '请输入出库数量', trigger: 'change' }] }
 const visible = computed({ get: () => props.visible, set: (v) => emit('update:visible', v) })
 
+// 可用库存：按当前仓库/商品读取 stocks.quantity（即库存核对口径，冻结已扣）。
+// 客户端强校验：出库数量 ≤ 库存，与后端 StockService::stockOut() 的 422 一致。
+const stockQty = ref(null)
+const loadStock = async () => {
+	stockQty.value = null
+	if (!form.value.product_id || !form.value.warehouse_id) return
+	// stock.list（StockController）走 StockService::query，返回 { data: { data:[...], 分页 }, products, warehouses }
+	// ——行在 res.data?.data（无 code 字段），与 success() 的 { code, data:{ list } } 不同。
+	const res = await businessApi.stock.list.get({ product_id: form.value.product_id, warehouse_id: form.value.warehouse_id, per_page: 1 }).catch(() => null)
+	if (!res) return
+	const rows = res.data?.data || res.data?.list || []
+	stockQty.value = rows.length ? Number(rows[0].quantity ?? rows[0].available_qty ?? 0) : 0
+}
+
+watch(() => [form.value.product_id, form.value.warehouse_id], () => loadStock())
+
 watch(() => props.record, (val) => {
 	if (val) {
 		form.value = { product_id: val.product_id, warehouse_id: val.warehouse_id, quantity: val.quantity, remark: val.remark || '' }
 	} else {
 		form.value = { product_id: null, warehouse_id: null, quantity: 1, remark: '' }
 	}
+	loadStock()
 }, { immediate: true })
 
 const resetForm = () => { formRef.value?.resetFields() }
 
 const handleSubmit = async () => {
 	await formRef.value.validate()
+	// 客户端强校验：出库数量 ≤ 可用库存
+	if (stockQty.value !== null && Number(form.value.quantity) > Number(stockQty.value)) {
+		ElMessage.warning(`出库数量 ${form.value.quantity} 大于当前库存 ${stockQty.value}，无法出库`)
+		return
+	}
 	submitting.value = true
 	try {
 		const res = await businessApi.stockOut.add.post(form.value)
@@ -58,3 +83,8 @@ const handleSubmit = async () => {
 	} finally { submitting.value = false }
 }
 </script>
+
+<style scoped>
+.text-danger { color: var(--el-color-danger); font-weight: 600; font-variant-numeric: tabular-nums; }
+.text-ok { color: var(--el-color-success); font-weight: 600; font-variant-numeric: tabular-nums; }
+</style>

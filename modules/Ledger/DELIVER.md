@@ -162,3 +162,37 @@ Playwright 驱动本地构建（`127.0.0.1:8001`，`DB_CONNECTION=sqlite`）跑�
    - ① 新增科目弹窗打不开 → `SubjectForm.vue` 补 `defineExpose({ open })`（父组件 `openForm` 调 `formRef.open`，缺 expose 时 `TypeError: s.open is not a function`）。
    - ② 登录后侧边栏看不到「总账管理」→ `LedgerSeeder` / `000006` 的 meta 三元在「有 icon」分支只写 `{icon}`，丢掉 `hidden:false`；改为 icon 与 hidden 合并写入，并加迁移 `2026_10_14_000008` 回填已部署库（生产只跑 `migrate` 不跑 `db:seed`）+ 预置科目播种；回归钉子 `tests/Feature/LedgerMenuMetaTest.php`。
    - ③ `/admin/ledger/*` 线上 GET 返 HTML、POST 405 误判「后端零实现」→ 真因是宝塔 nginx 白名单漏 `ledger` 前缀（接口本身 401 JSON 正常）。`deploy.yml` 的 `ensure_nginx_proxy` 改为逐 token 幂等补 `dashboard`/`ledger`，步骤 6.5 探测加 `ledger/subjects`（content-type 非 JSON 即判部署失败）。
+
+## 八、收官验收与全站回归（2026-10-30 复核）
+
+> 分支 `feat/final-acceptance-audit`。本次为**复核验收**：main 已推进至 #90 之后（F5/F6/F7 合入），自有域（modules/Cash、Asset、points、Ledger）与 #90 验收点**字节一致**，复核零新增缺陷，**无代码改动**，本节为验收记录。
+
+### 三条门禁 — 全绿
+| 门禁 | 结果 |
+|---|---|
+| `vendor/bin/pint --test` | ✅ passed |
+| `php artisan test` | ✅ 655 通过 / 3 失败 / 1 跳过（44s） |
+| `npm run build`（frontend/） | ✅ 绿（26s，仅 chunk>1024kB 警告非错误） |
+
+- 3 个失败均为既有 `modules/Report/tests/Feature/ReportFeatureTest.php` sqlite-only 缺陷（`DATE_FORMAT` 在 sqlite 无此函数 → 500）：`customer report every dimension runs`、`customer report shipped uncollected marks overdue`、`customer report return rate mom computes mom change`。属 machine-e F7 域**禁改**；CI 走 MySQL 全绿，与 #89/#90 基线一致。
+- 路由快照 `tests/snapshots/routes.json` 与当前路由表一致（`RouteBaselineTest` 绿，无需重生成）。
+
+### 菜单与可达性 — 零 404 / 零 500 / 零白屏
+- `RouteBaselineTest` 绿：路由表与黄金快照精确一致；每条 class@method 控制器类/方法真实存在（杜绝 500）；前端 API 层声明的端点全部存在且要求鉴权。
+- `MenuNameGovernanceTest` 绿：整库种子后所有 `type=menu` 的 `name` 全局唯一且全英文；`InventoryMenuTest` 绿：每个菜单 `component` 均解析到真实前端视图（零白屏）。
+
+### DS 视觉走查（自有域 25 个视图文件，与 #90 字节一致）
+- 字号仅 12/13/14/16/24px：0 处越界；主色/成功/警告/危险/文本/边框/表头底色均走 token 或 EL 组件默认（`#606266` 等为 Element Plus 组件内部默认色，非 DS 偏差）。
+- 金额列右对齐 + `tabular-nums`、合计行加粗、表头 44px(13/600)、数据行 41px(13)、分页 52px：符合。
+- 「演示数据」水印：VoucherDetail `.vp-stamp` 24px / `pointer-events:none` / 旋转，符合 B7/D7。
+- 空态统一：points 14px `#C0C4CC`；ledger dashboard 有「暂无数据」NaN 防抖（BUG-08 符合）。
+
+### 待转交清单（非自有域，禁改，由编排层转交）
+1. **顶级菜单 sort 重复**：`auth`(sort=2) 与 `data`(sort=2) 同层并列（AuthSeeder / BusinessSeeder，machine-b 域）。建议：`data` 顶级 sort 2 → 3 顺延，或 `auth` 后移。
+2. **报表子菜单 sort 重复**：parent=40(report) 下 `report.procurement`(sort=10) 与 `report.salesman-order`(sort=10) 撞位（Report F7/e + Performance d 域）。建议：`report.salesman-order` 已在 C7 挪至 10，`report.procurement`(F7) 挪至 11 即可。
+
+> 以上 2 项均为**既有**（在 #90 验收点已存在），非本次引入；菜单 `name` 无重复、全英文，不影响 SPA 路由注册。
+
+### 结论
+三条门禁全绿、全站可达、自有域零 DS 偏差。本次复核无需改动代码，纯验收记录。
+

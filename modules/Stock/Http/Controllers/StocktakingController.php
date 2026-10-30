@@ -210,6 +210,49 @@ class StocktakingController extends Controller
         return $this->success($check);
     }
 
+    /** 盘点单明细导出 CSV：与详情同一份明细，含商品/账面/实盘/差异/盘点人。 */
+    public function export($id)
+    {
+        $check = StockCheck::with(['warehouse', 'items'])->find($id);
+        if (! $check) {
+            return $this->notFound('盘点单不存在');
+        }
+
+        $csv = "\u{FEFF}"; // BOM：Excel 正确识别 UTF-8
+        $csv .= "盘点单：{$check->check_no}\n";
+        $csv .= "仓库,盘点日期,盘点类型,状态\n";
+        $csv .= sprintf(
+            "%s,%s,%s,%s\n\n",
+            $this->csvCell($check->warehouse?->name ?? ''),
+            $check->check_date?->format('Y-m-d') ?? '',
+            $this->checkTypeLabel($check->check_type),
+            $this->checkStatusLabel($check->status)
+        );
+        $csv .= "序号,商品编码,商品名称,规格,单位,账面数量,实盘数量,差异数量,成本价,差异金额,盘点人\n";
+
+        foreach ($check->items as $i => $item) {
+            $csv .= sprintf(
+                "%d,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                $i + 1,
+                $this->csvCell($item->product_code),
+                $this->csvCell($item->product_name),
+                $this->csvCell($item->spec),
+                $this->csvCell($item->unit),
+                $item->book_qty,
+                $item->actual_qty,
+                $item->diff_qty,
+                number_format((float) $item->cost_price, 4, '.', ''),
+                number_format((float) $item->diff_amount, 2, '.', ''),
+                $this->csvCell($item->checker)
+            );
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="stock_check_'.$check->check_no.'.csv"',
+        ]);
+    }
+
     /** 更新盘点单（仅盘点中/待盘点可改）：整体替换明细并重算合计 */
     public function update(Request $request, $id)
     {
@@ -576,6 +619,7 @@ class StocktakingController extends Controller
             'check_in' => '盘盈入库', 'check_out' => '盘亏出库',
             'adjust_in' => '调整增加', 'adjust_out' => '调整减少',
             'sale_freeze' => '销售冻结', 'sale_unfreeze' => '销售解冻',
+            'transfer_out' => '调拨出库', 'transfer_in' => '调拨入库',
         ];
 
         $running = $opening;
@@ -630,6 +674,39 @@ class StocktakingController extends Controller
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    /** CSV 单元格转义：逗号/引号/换行会破坏列结构，统一加引号并把内部引号翻倍 */
+    private function csvCell(?string $value): string
+    {
+        $value = (string) $value;
+        if (preg_match('/[",\n\r]/', $value)) {
+            return '"'.str_replace('"', '""', $value).'"';
+        }
+
+        return $value;
+    }
+
+    private function checkTypeLabel(string $type): string
+    {
+        return match ($type) {
+            'full' => '全面盘点',
+            'sample' => '抽盘',
+            'adjust' => '异动盘点',
+            default => $type,
+        };
+    }
+
+    private function checkStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'draft' => '待盘点',
+            'in_progress' => '盘点中',
+            'pending' => '待审核',
+            'approved' => '已审核',
+            'cancelled' => '已取消',
+            default => $status,
+        };
     }
 
     /** 单号：前缀+Ymd+6位序号 */

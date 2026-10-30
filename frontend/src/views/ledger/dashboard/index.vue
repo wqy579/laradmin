@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import StatCard from '@/views/home/widgets/stat-card.vue'
+import FinEmpty from '@/views/finance/_FinEmpty.vue'
 import ledgerApi from '@/api/ledger'
 
 const router = useRouter()
@@ -111,14 +112,17 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 				</div>
 			</template>
 			<el-table :data="recentVouchers" v-loading="loading" empty-text="暂无凭证" row-class-name="recent-card__row" @row-click="(row) => go('/ledger/voucher-query')">
+				<template #empty>
+					<FinEmpty text="暂无凭证" />
+				</template>
 				<el-table-column prop="voucher_no" label="凭证字号" width="150" />
 				<el-table-column prop="voucher_date" label="日期" width="120" />
 				<el-table-column prop="summary" label="摘要" min-width="200" show-overflow-tooltip />
 				<el-table-column label="借方" width="140" align="right">
-					<template #default="{ row }">{{ fmt(row.total_debit) }}</template>
+					<template #default="{ row }"><span class="tabular">{{ fmt(row.total_debit) }}</span></template>
 				</el-table-column>
 				<el-table-column label="贷方" width="140" align="right">
-					<template #default="{ row }">{{ fmt(row.total_credit) }}</template>
+					<template #default="{ row }"><span class="tabular">{{ fmt(row.total_credit) }}</span></template>
 				</el-table-column>
 				<el-table-column label="状态" width="100" align="center">
 					<template #default="{ row }">
@@ -134,7 +138,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 <style scoped>
 .page {
 	padding: 16px;
-	background: #f0f2f5;
+	background: var(--bg-body);
 	min-height: 100%;
 }
 
@@ -146,7 +150,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 }
 
 .page-header .title {
-	font-size: 18px;
+	font-size: 16px;
 	font-weight: 700;
 	color: #303133;
 }
@@ -165,7 +169,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 
 .stat-grid__item {
 	cursor: pointer;
-	border-radius: 12px;
+	border-radius: var(--radius-lg);
 	transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -175,7 +179,7 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 }
 
 .recent-card {
-	border-radius: 12px;
+	border-radius: var(--radius-lg);
 }
 
 .recent-card__header {
@@ -197,12 +201,26 @@ const statusTagType = { draft: 'info', submitted: 'warning', audited: 'success',
 :deep(.el-table th.el-table__cell) {
 	background: #f5f7fa;
 	color: #909399;
-	font-weight: 500;
+	font-weight: 600;
+	height: 44px;
 }
 
-:deep(.el-table .el-table__cell) {
-	font-size: 14px;
+:deep(.el-table th.el-table__cell .cell) {
+	font-size: var(--font-base);
+}
+
+:deep(.el-table .el-table__body .el-table__row) {
+	height: 41px;
+}
+
+:deep(.el-table .el-table__body td.el-table__cell .cell) {
+	font-size: var(--font-base);
 	color: #606266;
+}
+
+.tabular {
+	font-variant-numeric: tabular-nums;
+	font-family: var(--font-numeric);
 }
 
 @media (max-width: 900px) {
