@@ -55,6 +55,8 @@
             "Tests\\Hr\\": "modules/Hr/tests/",
             "Tests\\Agreement\\": "modules/Agreement/tests/",
             "Tests\\Asset\\": "modules/Asset/tests/",
+            "Tests\\Performance\\": "modules/Performance/tests/",
+            "Tests\\Archive\\": "modules/Archive/tests/",
             "Tests\\Mall\\": "modules/Mall/tests/"
         }
     },
