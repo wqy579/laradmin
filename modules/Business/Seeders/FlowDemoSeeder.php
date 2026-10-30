@@ -56,6 +56,10 @@ class FlowDemoSeeder extends Seeder
             return;
         }
 
+        // 商品库存预警字段：让 E5 超期/安全库存维度在联调页有真实分级数据。
+        // 幂等：仅在字段当前为「未设置」（NULL / 0）时写入，不覆盖手工调整。
+        $this->seedProductWarnings($products, $now);
+
         // 顺序：先建库存基础，再建各业务单据
         $stockService = app(StockService::class);
         $this->seedStockIn($wh1, $supA, $products, $adminId, $today, $now, $stockService);
@@ -68,6 +72,8 @@ class FlowDemoSeeder extends Seeder
         $so1 = $this->seedSalesOrder($custA, $wh1, [$p1, $p3], 10, $adminId, $today, $now, 'approved');
         $so2 = $this->seedSalesOrder($custB, $wh1, [$p2, $p4], 5, $adminId, $yesterday, $now, 'pending');
         $so3 = $this->seedSalesOrder($custA, $wh1, [$p2], 20, $adminId, $lastWeek, $now, 'approved');
+        // 部分收款：approved 但未结清（应收款明细页有真实未收余额），40% 已收
+        $so4 = $this->seedSalesOrder($custB, $wh1, [$p3], 12, $adminId, $lastWeek, $now, 'approved', 0.4);
 
         $this->seedReceive($custA, $so1, $adminId, $today, $now);
         $this->seedPay($supA, $adminId, $today, $now);
@@ -96,6 +102,51 @@ class FlowDemoSeeder extends Seeder
     // ===== 库存 =====
     // 说明：不直接写 stocks 表（MigrationSmokeTest 基线：库存只能通过业务动作产生）。
     // 库存由下方 seedStockIn / seedStockOut / seedStockAdjust 通过 StockService 真实驱动。
+
+    /**
+     * 商品库存预警字段（保质期 / 安全库存）。
+     *
+     * 目标：E5 库存报表的「超期预警」「安全库存预警」两个维度在联调页能出真实分级数据
+     * （超期四级色 / 预警红），而不是 0 条空页——业务数据虽在，但 products.expiry_date
+     * 全 NULL、safety_stock 全 0 会把这些维度滤成空。
+     *
+     * 幂等：仅当字段当前为「未设置」时写入（expiry_date IS NULL / safety_stock = 0），
+     * 已设置的行原样保留，绝不覆盖手工配置。日期相对今天动态计算，保证重跑后
+     * 仍在「临期/超期」窗口内（不随日历推移退化成「正常」）。
+     */
+    private function seedProductWarnings(array $products, $now): void
+    {
+        // 分级覆盖：严重超期(已过 40 天) / 超期(已过 5 天) / 临期(剩 20 天) / 正常(剩 200 天)。
+        // 安全线：取大于当前现库存（演示流程结束后 P001≈158/P002≈153/P003≈200）→ P001/P002 预警(红)，
+        // P003 等于库存 → 注意；P004 安全线 0 = 不参与安全维度（避免 P005 无 expiry 又无库存时干扰）。
+        $templates = [
+            ['code' => 'P001', 'expiry_days' => -40, 'safety' => 200], // 严重超期 + 安全预警
+            ['code' => 'P002', 'expiry_days' => -5,  'safety' => 200], // 超期 + 安全预警
+            ['code' => 'P003', 'expiry_days' => 20,  'safety' => 200], // 临期 + 安全注意
+            ['code' => 'P004', 'expiry_days' => 200, 'safety' => 0],   // 正常(安全线 0 = 不参与安全维度)
+        ];
+
+        foreach ($products as $p) {
+            if (! $p) {
+                continue;
+            }
+            $tpl = collect($templates)->firstWhere('code', $p->code);
+            if (! $tpl) {
+                continue;
+            }
+
+            $updates = [];
+            if ($p->expiry_date === null) {
+                $updates['expiry_date'] = $now->copy()->addDays($tpl['expiry_days'])->format('Y-m-d');
+            }
+            if ((int) $p->safety_stock === 0 && $tpl['safety'] > 0) {
+                $updates['safety_stock'] = $tpl['safety'];
+            }
+            if ($updates) {
+                DB::table('products')->where('id', $p->id)->update($updates + ['updated_at' => $now]);
+            }
+        }
+    }
 
     // ===== 进货单（同时通过 StockService 真实入库，使库存查询页有数据） =====
     private function seedStockIn(int $whId, $supplier, array $products, int $adminId, string $date, $now, StockService $stockService): void
@@ -370,7 +421,7 @@ class FlowDemoSeeder extends Seeder
     }
 
     // ===== 销售订单 =====
-    private function seedSalesOrder($customer, int $whId, array $products, int $qty, int $adminId, string $date, $now, string $status): int
+    private function seedSalesOrder($customer, int $whId, array $products, int $qty, int $adminId, string $date, $now, string $status, ?float $paidRatio = null): int
     {
         $no = 'SO'.str_replace('-', '', $date).str_pad((string) $customer->id, 4, '0', STR_PAD_LEFT);
         if (DB::table('sales_orders')->where('order_no', $no)->exists()) {
@@ -403,6 +454,16 @@ class FlowDemoSeeder extends Seeder
                 'updated_at' => $now,
             ];
         }
+        // 收款比例：显式传 $paidRatio 时按比例算已收（用于「部分收款」的单据）；
+        // 不传则沿用历史行为（approved 全额已收 / 其它 0 已收）。
+        $totalAmount = round($totalAmount, 2);
+        if ($paidRatio !== null) {
+            $paid = round($totalAmount * $paidRatio, 2);
+            $paymentStatus = $paidRatio >= 1 ? 'paid' : ($paidRatio > 0 ? '部分收款' : 'unpaid');
+        } else {
+            $paid = $status === 'approved' ? $totalAmount : 0;
+            $paymentStatus = $status === 'approved' ? 'paid' : 'unpaid';
+        }
         $id = $this->insertSafe('sales_orders', [
             'order_no' => $no,
             // 生产库 order_type 是 enum('wholesale','retail')，dev 是 varchar；
@@ -411,9 +472,9 @@ class FlowDemoSeeder extends Seeder
             'customer_id' => $customer->id,
             'warehouse_id' => $whId,
             'order_date' => $date,
-            'total_amount' => round($totalAmount, 2),
+            'total_amount' => $totalAmount,
             'total_qty' => $totalQty,
-            'paid_amount' => $status === 'approved' ? round($totalAmount, 2) : 0,
+            'paid_amount' => $paid,
             'status' => $status,
             // 生产库 transferred_to 是 NOT NULL DEFAULT 0，不能传 null。
             'transferred_to' => 0,
@@ -424,7 +485,7 @@ class FlowDemoSeeder extends Seeder
             'approved_at' => $status === 'approved' ? $now : null,
             'remark' => '销售订单（演示）',
             'print_count' => 0,
-            'payment_status' => $status === 'approved' ? 'paid' : 'unpaid',
+            'payment_status' => $paymentStatus,
             'discount_amount' => 0,
             'delivery_date' => $date,
             'print_type' => 'a4',
