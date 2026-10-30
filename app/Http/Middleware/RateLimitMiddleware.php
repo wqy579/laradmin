@@ -40,17 +40,22 @@ class RateLimitMiddleware
 
         foreach ($signatures as $key) {
             if (RateLimiter::tooManyAttempts($key, $maxAttempts)) {
-                $seconds = RateLimiter::availableIn($key);
+                $seconds = max(1, RateLimiter::availableIn($key));
 
                 // BUG-06 治理：前端拦截器按「HTTP 429 + code=429」识别限流，弹出轻提示
                 // 「操作频繁，请稍后再试」。message 必须固定为这句，前端不再拼分钟数——
                 // 秒数经 data.retry_after 下发，由前端自己决定展示方式。
                 // retry_after 放到顶层，与验收结构 {"code":429,"message":..,"retry_after":N} 一致。
+                //
+                // QA-14：同一个秒数再写进标准 Retry-After 头。HTTP 语义下这是「多久之后可以
+                // 重试」的权威来源，网关/客户端（不解析业务 JSON 的那些）据此退避；
+                // 只放在 body 里等于只对自家 SPA 生效。
                 return response()->json([
                     'code' => 429,
                     'message' => '操作频繁，请稍后再试',
                     'retry_after' => $seconds,
-                ], 429);
+                ], 429)
+                    ->header('Retry-After', (string) $seconds);
             }
         }
 

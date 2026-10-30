@@ -8,6 +8,7 @@ use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -66,6 +67,20 @@ class Handler extends ExceptionHandler
                 'message' => '请求的资源不存在',
                 'data' => null,
             ], 404);
+        }
+
+        // QA-14：限流异常单独一条，形状与 RateLimitMiddleware 直出的 429 完全同构
+        // （code/message/retry_after + Retry-After 头）。放在通用 HttpException 之前，
+        // 否则将来若有路由改走框架的 throttle:，429 会退化成 message 为空、
+        // 没有 retry_after 的响应，前端只能显示兜底文案，也拿不到退避时长。
+        if ($e instanceof TooManyRequestsHttpException) {
+            $seconds = (int) ($e->getHeaders()['Retry-After'] ?? 60);
+
+            return response()->json([
+                'code' => 429,
+                'message' => '操作频繁，请稍后再试',
+                'retry_after' => $seconds,
+            ], 429, $e->getHeaders());
         }
 
         if ($e instanceof HttpException) {

@@ -81,7 +81,10 @@ userStore.setToken(data.token)
 				router.push(redirect)
 			})
 			.catch((err) => {
-				ElMessage.error(err.message || '登录失败')
+				// 拦截器已弹过同一句（含 429 的「操作频繁，请稍后再试（约 N 秒后重试）」）。
+				// grouping 必须与拦截器一致，否则同一句弹两条；这里保留是给拦截器之外的
+				// 异常兜底（如 store 赋值报错）——429 时页面必须停在登录页并显示提示，不能白屏。
+				ElMessage.error({ type: 'error', message: err.message || '登录失败', grouping: true })
 			})
 			.finally(() => {
 				loading.value = false
