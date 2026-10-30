@@ -1,5 +1,6 @@
 <template>
 	<div class="page">
+		<BookInitNotice />
 		<div class="page-header">
 			<span class="title">记账凭证</span>
 		</div>
@@ -55,6 +56,7 @@ import ledgerApi from '@/api/ledger'
 import sTable from '@/components/sTable/index.vue'
 import VoucherForm from '../components/VoucherForm.vue'
 import VoucherDetail from '../components/VoucherDetail.vue'
+import BookInitNotice from '../components/BookInitNotice.vue'
 
 const list = ref([])
 const total = ref(0)

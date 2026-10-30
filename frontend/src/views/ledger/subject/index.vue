@@ -1,5 +1,6 @@
 <template>
 	<div class="page">
+		<BookInitNotice />
 		<div class="page-header">
 			<span class="title">会计科目</span>
 		</div>
@@ -85,6 +86,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import ledgerApi from '@/api/ledger'
 import sTable from '@/components/sTable/index.vue'
 import SubjectForm from '../components/SubjectForm.vue'
+import BookInitNotice from '../components/BookInitNotice.vue'
 
 const treeData = ref([])
 const loading = ref(false)

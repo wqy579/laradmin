@@ -216,12 +216,29 @@ class LedgerFeatureTest extends TestCase
         $this->assertStringContainsString('负', AmountChinese::convert(-100));
     }
 
-    public function test_voucher_generate_service_stub_is_safe(): void
+    public function test_voucher_generate_service_is_safe_for_unknown_bill_types(): void
     {
-        // 三机协同：B 调用 generateFromBusiness 在 A 未合并前必须不报错
+        // 三机协同：B 侧对未纳入本服务口径的单据类型（存款/借款/折旧等）调用
+        // generateFromBusiness 必须「不报错」——保持返回 null 的占位语义。
         $svc = app(VoucherGenerateService::class);
-        $result = $svc->generateFromBusiness('receive', 1, ['amount' => 100]);
-        $this->assertNull($result);
+        $this->assertNull($svc->generateFromBusiness('deposit', 1, ['amount' => 100]));
+        $this->assertNull($svc->generateFromBusiness('loan', 7));
+        $this->assertNull($svc->generateFromBusiness('asset_depreciation', 7));
+    }
+
+    public function test_voucher_generate_service_rejects_missing_or_unaudited_bill(): void
+    {
+        // QA-05 起已接单的类型不再静默返回 null：单据不存在/未审核要显式抛错，
+        // 否则业务侧「审核时生成失败」会被吞成"成功"，凭证悄悄漏掉。
+        $this->seedSubjects();
+        $svc = app(VoucherGenerateService::class);
+
+        try {
+            $svc->generateFromBusiness('receive', 999999);
+            $this->fail('单据不存在应抛 DomainException');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('未找到来源单据', $e->getMessage());
+        }
     }
 
     public function test_period_check_reports_pending_handover_as_non_blocking(): void
