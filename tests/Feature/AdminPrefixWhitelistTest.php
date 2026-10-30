@@ -34,32 +34,31 @@ class AdminPrefixWhitelistTest extends TestCase
         'business',
         'system',
         // 2026-10-31 实测线上同样被 try_files 兜成 517B HTML，但归属其它机器，
-        // 待各自负责人补白名单（本轮只修 QA-01 的 perf 与 QA-04 的 data）
+        // 待各自负责人补白名单（QA-01 的 perf、QA-04 的 data、QA-02 的 cash/asset
+        // 已各自进白名单，不再列在这里——留在例外清单里等于给「把 token 删掉」开绿灯）
         'agr',
-        'cash',
         'f5',
         'hr',
-        // 危险：nginx 正则分支没有词边界，^/admin/(asset|…) 会连带匹配
-        // /admin/assets/*（前端构建产物），把静态资源一并代理进 Laravel → 后台整站白屏。
-        // 要先让站点侧把分支写成 (asset)(/|$) 这类带边界的形态，才能加 asset。
-        'asset',
         // 闭包路由 artisan migrate 的远程触发口，非前端调用；有意不暴露到公网
         'remote',
     ];
 
     /**
      * 在白名单里但故意没有 6.5 探针的前缀。
+     *
+     * asset 曾长期待在这里：站点 nginx 分支无词边界，裸 token `asset` 会连带匹配
+     * /admin/assets/*（前端构建产物）并 proxy_pass 进 Laravel，导致后台整站白屏。
+     * 现已改用带边界的 `asset/` 上线（只命中 /admin/asset/<子路径>，路由表里也不存在
+     * 裸 /admin/asset），探针 asset/cards 一并挂上。**风险仍在**：任何把这个 token
+     * 改回裸 `asset` 的改动都会重新误吞静态资源，由
+     * test_whitelist_tokens_do_not_shadow_static_assets 拦（该测试要求 public/admin
+     * 下真的存在构建产物才有效，见其内的 glob 说明）。
      */
-    private const KNOWN_UNPROBED = [
-        // nginx 分支无词边界，^/admin/(asset|…) 会连带匹配 /admin/assets/*（前端构建
-        // 产物），把静态资源一并代理进 Laravel。要安全地给 asset 加探针，得先让站点
-        // 侧把分支写成带边界的形态（(asset)(/|$)）。在此之前不加探针，避免误导。
-        'asset',
-    ];
+    private const KNOWN_UNPROBED = [];
 
     public function test_top_level_admin_prefixes_are_declared_in_deploy_whitelist_or_known_exception(): void
     {
-        $whitelisted = $this->deployWhitelistTokens();
+        $whitelisted = $this->deployWhitelistPrefixes();
 
         $undeclared = [];
         foreach ($this->topLevelAdminPrefixes() as $prefix) {
@@ -94,7 +93,7 @@ class AdminPrefixWhitelistTest extends TestCase
             $this->deployProbePaths()
         );
 
-        $unprobed = array_values(array_diff($this->deployWhitelistTokens(), $probed, self::KNOWN_UNPROBED));
+        $unprobed = array_values(array_diff($this->deployWhitelistPrefixes(), $probed, self::KNOWN_UNPROBED));
 
         $this->assertSame(
             [],
@@ -105,13 +104,16 @@ class AdminPrefixWhitelistTest extends TestCase
     }
 
     /**
-     * QA-01 / QA-04 的两个前缀必须在白名单里 —— 防止有人把这次修复改回去。
+     * QA-01 / QA-04 / QA-02 的四个前缀必须在白名单里 —— 防止有人把这次修复改回去。
+     *
+     * 比对用归一化后的前缀，故 asset 无论写成 asset 还是 asset/ 都算「在白名单里」：
+     * 本测试守的是「有没有」，形态对不对由于会误吞静态资源，另有 shadow 测试守。
      */
     public function test_qa_fixed_prefixes_remain_whitelisted(): void
     {
-        $whitelisted = $this->deployWhitelistTokens();
+        $whitelisted = $this->deployWhitelistPrefixes();
 
-        foreach (['perf', 'data'] as $prefix) {
+        foreach (['perf', 'data', 'cash', 'asset'] as $prefix) {
             $this->assertContains(
                 $prefix,
                 $whitelisted,
@@ -176,11 +178,34 @@ class AdminPrefixWhitelistTest extends TestCase
     }
 
     /**
-     * @return list<string> deploy.yml 中 ensure_nginx_proxy 的 for token in ... 列表
+     * deploy.yml 中 ensure_nginx_proxy 的 for token in ... 列表，**原样**返回。
+     *
+     * 不做归一化是刻意的：asset 写成带边界的 `asset/`，而静态防误吞那条测试要拿 token
+     * 去比 public/admin 下的目录名，剥掉斜杠会让 `asset/` 退化成本会误吞的裸 `asset`，
+     * 守卫当场瞎掉。需要跟「路由前缀」「探针首段」对齐时用 deployWhitelistPrefixes()。
+     *
+     * @return list<string>
      */
     private function deployWhitelistTokens(): array
     {
         return $this->shellLoopItems('/for token in ([^;]*); do/');
+    }
+
+    /**
+     * 同一份 token 列表，剥掉 nginx 边界后缀（`asset/` → `asset`）。
+     *
+     * 路由表 uri 与探针路径的首段都是不带边界的裸前缀，直接对数组做 diff 会误报
+     * 「asset 没进白名单 / asset/ 没探针」。归一化放在取数这一层，两条测试共用一处，
+     * 免得在断言里各写一遍 rtrim 而漏掉一条。
+     *
+     * @return list<string>
+     */
+    private function deployWhitelistPrefixes(): array
+    {
+        return array_values(array_unique(array_map(
+            fn (string $token) => rtrim($token, '/'),
+            $this->deployWhitelistTokens()
+        )));
     }
 
     /**
