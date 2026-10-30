@@ -122,6 +122,31 @@ class MapTrajectoryTest extends TestCase
         $this->getJson('/admin/f5/map/trajectory')->assertStatus(422);
     }
 
+    public function test_trajectory_single_point_renders_without_degenerate_polyline(): void
+    {
+        $visitor = $this->makeAdmin(['real_name' => '业务员甲']);
+        $customer = $this->makeCustomer(['latitude' => 30.5, 'longitude' => 120.1]);
+        $today = now()->toDateString();
+
+        // 单点位：前端不得因 spanLat/spanLng 为 0 白屏或画退化的折线，需正常返回唯一可定位点。
+        $this->makeVisit($visitor->id, $customer->id, $today.' 09:00:00', 30.5, 120.1);
+
+        $resp = $this->getJson('/admin/f5/map/trajectory?employee_id='.$visitor->id.'&date='.$today)->assertOk();
+
+        $this->assertFalse($resp->json('data.downsampled'), '单点不应抽稀');
+        $this->assertSame(1, $resp->json('data.total_count'));
+        $this->assertSame(1, $resp->json('data.rendered_count'));
+        $this->assertSame(1, $resp->json('data.located_count'));
+
+        $point = $resp->json('data.points.0');
+        $this->assertCount(1, $resp->json('data.points'));
+        $this->assertSame([1], array_column($resp->json('data.points'), 'seq'), '单点 seq 从 1 连续编号');
+        $this->assertTrue($point['has_location']);
+        $this->assertSame(30.5, $point['lat']);
+        $this->assertSame(120.1, $point['lng']);
+        $this->assertSame($customer->name, $point['customer_name']);
+    }
+
     public function test_trajectory_downsamples_over_thousand_points_and_keeps_ends(): void
     {
         $visitor = $this->makeAdmin(['real_name' => '业务员甲']);
