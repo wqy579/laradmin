@@ -8,8 +8,10 @@ use Illuminate\Support\Facades\DB;
 use Modules\Mall\Models\MallOrder;
 use Modules\Mall\Models\SmsRecord;
 use Modules\Mall\Models\SmsTemplate;
+use Modules\Mall\Services\MallOrderService;
 use Modules\Mall\Services\SmsSendService;
 use Modules\Order\Models\SalesOrder;
+use Modules\Stock\Exceptions\StockRuleException;
 use Modules\Stock\Models\Stock;
 use Tests\TestCase;
 
@@ -93,6 +95,30 @@ class MallHardeningTest extends TestCase
         ])->assertStatus(422);
 
         $this->assertSame(0, MallOrder::count(), '负数数量不得成单');
+    }
+
+    public function test_concurrent_oversell_race_returns_422_not_500(): void
+    {
+        // 并发下单竞态：预检（normalizeItems）通过后，另一事务先占满库存，
+        // 权威校验（lockForUpdate freeze）发现不足并抛 StockRuleException。
+        // 该异常是 RuntimeException 而非 DomainException——控制器必须单独映射为
+        // 422（明确报错），不能让 500 逃逸（F5-HARDENING 第 1 项并发正确性）。
+        [$product, $warehouse, $customer] = $this->orderFixture();
+
+        // 模拟服务在权威冻结时抛库存不足（复现 freeze 的 lockForUpdate 判定）。
+        $this->mock(MallOrderService::class)
+            ->shouldReceive('placeOrder')
+            ->once()
+            ->andThrow(new StockRuleException('库存不足（并发下单）'));
+
+        $resp = $this->postJson('/admin/f5/mall/orders', [
+            'customer_id' => $customer->id, 'warehouse_id' => $warehouse->id,
+            'items' => [['product_id' => $product->id, 'qty_large' => 2]],
+        ])->assertStatus(422);
+
+        $this->assertStringContainsString('库存不足', $resp->json('message'));
+        $this->assertSame(0, MallOrder::count(), '并发库存不足不得成单');
+        $this->assertSame(0, SalesOrder::count(), '并发库存不足不得生成申报单');
     }
 
     public function test_very_large_amount_does_not_overflow_or_crash(): void

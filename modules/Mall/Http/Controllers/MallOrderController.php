@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Modules\Mall\Models\MallOrder;
 use Modules\Mall\Models\MallOrderItem;
 use Modules\Mall\Services\MallOrderService;
+use Modules\Stock\Exceptions\StockRuleException;
 use Modules\Stock\Models\Warehouse;
 
 /**
@@ -70,6 +71,9 @@ class MallOrderController extends Controller
         try {
             $mallOrder = $this->service->placeOrder($validated, (int) auth('admin')->id());
         } catch (\DomainException $e) {
+            return $this->error($e->getMessage(), 422);
+        } catch (StockRuleException $e) {
+            // 并发下权威库存校验（lockForUpdate freeze）失败：明确报「库存不足」，不落 500。
             return $this->error($e->getMessage(), 422);
         }
 
