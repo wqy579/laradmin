@@ -14,7 +14,9 @@ class SmsRecord extends Model
     protected $fillable = [
         'send_no', 'template_id', 'template_code', 'template_name',
         'mobile', 'receiver_name', 'content', 'variables',
-        'status', 'error_message', 'sent_at', 'created_by', 'creator_name',
+        'status', 'error_message', 'sent_at',
+        'elapsed_ms', 'request_summary', 'response_summary', 'retry_count',
+        'created_by', 'creator_name',
     ];
 
     protected $casts = [
@@ -22,6 +24,8 @@ class SmsRecord extends Model
         'template_id' => 'integer',
         'created_by' => 'integer',
         'sent_at' => 'datetime',
+        'elapsed_ms' => 'integer',
+        'retry_count' => 'integer',
     ];
 
     public function template()

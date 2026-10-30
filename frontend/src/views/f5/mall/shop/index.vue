@@ -44,7 +44,7 @@
 					</div>
 				</div>
 			</div>
-			<el-empty v-else-if="!loading" description="暂无上架商品" />
+			<FinEmpty v-else-if="!loading" text="暂无上架商品" />
 		</div>
 
 		<!-- 分页 -->
@@ -73,7 +73,7 @@
 				</div>
 				<el-button type="primary" class="sp-checkout-btn" @click="checkoutOpen = true">去下单</el-button>
 			</div>
-			<el-empty v-else description="购物车是空的" />
+			<FinEmpty v-else text="购物车是空的" />
 		</el-drawer>
 
 		<!-- 下单对话框 -->
@@ -124,6 +124,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, ShoppingCart, Plus, Delete } from '@element-plus/icons-vue'
+import FinEmpty from '../../../finance/_FinEmpty.vue'
 import mallApi from '@/api/mall'
 
 const keyword = ref('')
@@ -202,6 +203,10 @@ async function loadWarehouses() {
 	} catch { /* 静默 */ }
 }
 
+// 客户端幂等键：同一购物车内容重复提交（双击/重试）复用同一键，
+// 后端只建一条订单与申报单（F5-HARDENING 第 1 项防重复提交）。
+let submitIdempotencyKey = null
+
 async function submitOrder() {
 	if (!checkout.customer_id) return ElMessage.warning('请选择分销商')
 	if (!checkout.warehouse_id) return ElMessage.warning('请选择提货仓库')
@@ -213,17 +218,24 @@ async function submitOrder() {
 	}))
 	if (!items.length) return ElMessage.warning('购物车为空')
 
+	// 首次点击生成键；成功后清空键，下次下单换新键。
+	if (!submitIdempotencyKey) {
+		submitIdempotencyKey = `shop-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+	}
+
 	submitting.value = true
 	try {
 		const res = await mallApi.order.create({
 			...checkout,
 			items,
+			idempotency_key: submitIdempotencyKey,
 		})
 		if (res.code === 200 || res.code === 201) {
 			ElMessage.success(`下单成功，申报单号：${res.data?.sales_order_no || ''}`)
 			cart.items = []
 			checkoutOpen.value = false
 			cartOpen.value = false
+			submitIdempotencyKey = null
 			// 刷新目录库存
 			loadCatalog()
 		} else {
@@ -251,7 +263,7 @@ onMounted(() => {
 <style scoped>
 .f5-shop-page { padding: 16px 20px; }
 .sp-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.sp-title h2 { margin: 0; font-size: 18px; color: #303133; }
+.sp-title h2 { margin: 0; font-size: 16px; color: #303133; }
 .sp-sub { font-size: 12px; color: #909399; margin-left: 8px; }
 .sp-actions { display: flex; align-items: center; gap: 10px; }
 .sp-cart-badge :deep(.el-badge__content) { background: #f56c6c; }
@@ -260,14 +272,14 @@ onMounted(() => {
 .sp-card:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08); }
 .sp-card-img { height: 160px; background: #f5f7fa; display: flex; align-items: center; justify-content: center; position: relative; }
 .sp-card-img img { max-width: 100%; max-height: 100%; object-fit: cover; }
-.sp-card-img-ph { font-size: 48px; color: #c0c4cc; font-weight: 600; }
+.sp-card-img-ph { font-size: 24px; color: #c0c4cc; font-weight: 600; }
 .sp-tag-sold { position: absolute; top: 8px; right: 8px; background: #fef0f0; color: #f56c6c; font-size: 12px; padding: 2px 8px; border-radius: 2px; }
 .sp-card-body { padding: 12px; }
 .sp-card-name { font-size: 14px; color: #303133; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-card-spec { font-size: 12px; color: #909399; margin-top: 2px; }
 .sp-card-slogan { font-size: 12px; color: #e6a23c; margin-top: 4px; min-height: 16px; }
 .sp-card-price { margin-top: 8px; display: flex; align-items: baseline; }
-.sp-price { font-size: 18px; color: #f56c6c; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sp-price { font-size: 16px; color: #f56c6c; font-weight: 600; font-variant-numeric: tabular-nums; }
 .sp-price-unit { font-size: 12px; color: #909399; }
 .sp-card-buy { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
 .sp-stock { font-size: 12px; color: #909399; }
@@ -275,12 +287,12 @@ onMounted(() => {
 .sp-cart-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px dashed #ebeef5; }
 .sp-cart-info { flex: 1; min-width: 0; }
 .sp-cart-name { font-size: 13px; color: #303133; }
-.sp-cart-spec { font-size: 11px; color: #909399; }
+.sp-cart-spec { font-size: 12px; color: #909399; }
 .sp-cart-qty { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.sp-qty-unit { font-size: 11px; color: #909399; }
+.sp-qty-unit { font-size: 12px; color: #909399; }
 .sp-cart-amt { font-size: 13px; color: #f56c6c; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 80px; text-align: right; }
 .sp-cart-total { display: flex; justify-content: space-between; padding: 14px 0; font-size: 14px; color: #303133; }
-.sp-cart-total-amt { font-size: 20px; color: #f56c6c; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sp-cart-total-amt { font-size: 16px; color: #f56c6c; font-weight: 700; font-variant-numeric: tabular-nums; }
 .sp-checkout-btn { width: 100%; }
 .sp-ck-summary { width: 100%; }
 .sp-ck-line { display: flex; justify-content: space-between; font-size: 13px; color: #606266; padding: 4px 0; }

@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\DB;
  */
 class MapController extends Controller
 {
+    /** 轨迹点渲染阈值：超过即抽稀，避免前端一次性渲染卡死（F5-HARDENING 第 3 项） */
+    public const MAX_TRAJECTORY_POINTS = 1000;
+
     /** 业务员下拉列表：有拜访日志的业务员（去重） */
     public function salesmen(Request $request)
     {
@@ -81,12 +84,37 @@ class MapController extends Controller
                 return $p;
             })->values();
 
+        // 大数据量抽稀：超过阈值按等距抽稀保留首尾点，避免前端一次性渲染卡死。
+        // 返回原始总数与是否抽稀标记，前端据此提示（不丢首尾关键点）。
+        $totalCount = $points->count();
+        $downsampled = false;
+        $rendered = $points;
+        if ($totalCount > self::MAX_TRAJECTORY_POINTS) {
+            $downsampled = true;
+            $step = (int) ceil($totalCount / self::MAX_TRAJECTORY_POINTS);
+            $kept = [];
+            foreach ($points as $i => $p) {
+                if ($i % $step === 0 || $i === $totalCount - 1) {
+                    $kept[] = $p;
+                }
+            }
+            // 抽稀后重编号 seq：前端回放以数组下标（seq-1）驱动，必须连续。
+            $rendered = collect($kept)->values()->map(function ($p, $idx) {
+                $p->seq = $idx + 1;
+
+                return $p;
+            });
+        }
+
         return $this->success([
             'date' => $date,
             'employee_name' => $points->first()->employee_name ?? '未知',
-            'points' => $points,
+            'points' => $rendered,
             'located_count' => $points->where('has_location', true)->count(),
-            'total_count' => $points->count(),
+            'total_count' => $totalCount,
+            'rendered_count' => $rendered->count(),
+            'downsampled' => $downsampled,
+            'max_points' => self::MAX_TRAJECTORY_POINTS,
         ]);
     }
 
