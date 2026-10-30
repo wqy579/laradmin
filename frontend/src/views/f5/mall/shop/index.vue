@@ -288,7 +288,7 @@ onMounted(() => {
 .sp-cart-name { font-size: 13px; color: #303133; }
 .sp-cart-spec { font-size: 12px; color: #909399; }
 .sp-cart-qty { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
-.sp-qty-unit { font-size: 12px; color: #909399; }
+.sp-qty-unit { font-size: 12px; color: #909399; font-variant-numeric: tabular-nums; }
 .sp-cart-amt { font-size: 13px; color: #f56c6c; font-weight: 600; font-variant-numeric: tabular-nums; min-width: 80px; text-align: right; }
 .sp-cart-total { display: flex; justify-content: space-between; padding: 14px 0; font-size: 14px; color: #303133; }
 .sp-cart-total-amt { font-size: 16px; color: #f56c6c; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -296,7 +296,7 @@ onMounted(() => {
 .sp-ck-summary { width: 100%; }
 .sp-ck-line { display: flex; justify-content: space-between; font-size: 13px; color: #606266; padding: 4px 0; }
 .sp-ck-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sp-ck-qty { margin: 0 12px; color: #909399; }
+.sp-ck-qty { margin: 0 12px; color: #909399; font-variant-numeric: tabular-nums; }
 .sp-ck-amt { font-variant-numeric: tabular-nums; }
 .sp-ck-grand { display: flex; justify-content: space-between; padding: 10px 0 0; border-top: 1px solid #ebeef5; margin-top: 8px; font-size: 14px; color: #303133; }
 .sp-ck-grand-amt { color: #f56c6c; font-weight: 700; font-variant-numeric: tabular-nums; }
