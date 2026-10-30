@@ -2,6 +2,7 @@
 
 namespace Modules\Ledger\Models;
 
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +25,7 @@ class Voucher extends Model
         'maker_id', 'maker_name', 'auditor_id', 'auditor_name',
         'audited_at', 'remark',
         'red_of_id', 'is_red', 'auto_audit',
+        'source_type', 'source_id', 'source_seq',
     ];
 
     protected $casts = [
@@ -35,6 +37,8 @@ class Voucher extends Model
         'total_credit' => 'decimal:2',
         'is_red' => 'boolean',
         'auto_audit' => 'boolean',
+        'source_id' => 'integer',
+        'source_seq' => 'integer',
     ];
 
     const STATUS_DRAFT = 'draft';
@@ -44,6 +48,46 @@ class Voucher extends Model
     const STATUS_AUDITED = 'audited';
 
     const STATUS_REVERSED = 'reversed';
+
+    /** 来源单据类型：销售出库/收款/付款/费用/库存调整（QA-05 业务单据生成凭证） */
+    const SOURCE_DELIVERY = 'delivery';
+
+    const SOURCE_RECEIVE = 'receive';
+
+    const SOURCE_PAY = 'pay';
+
+    const SOURCE_EXPENSE = 'expense';
+
+    const SOURCE_STOCK_ADJUST = 'stock_adjust';
+
+    /** 全部可生成的来源单据类型（也是生成器分发的键集合） */
+    public const SOURCE_TYPES = [
+        self::SOURCE_DELIVERY,
+        self::SOURCE_RECEIVE,
+        self::SOURCE_PAY,
+        self::SOURCE_EXPENSE,
+        self::SOURCE_STOCK_ADJUST,
+    ];
+
+    /** 按来源单据 + 序号取某一张凭证（生成器的幂等查询） */
+    public static function findBySource(string $sourceType, int $sourceId, int $seq = 1): ?self
+    {
+        return static::query()
+            ->where('source_type', $sourceType)
+            ->where('source_id', $sourceId)
+            ->where('source_seq', $seq)
+            ->first();
+    }
+
+    /** 某张来源单据已生成的全部凭证（按 seq 升序） */
+    public static function listBySource(string $sourceType, int $sourceId): EloquentCollection
+    {
+        return static::query()
+            ->where('source_type', $sourceType)
+            ->where('source_id', $sourceId)
+            ->orderBy('source_seq')
+            ->get();
+    }
 
     public function entries(): HasMany
     {

@@ -2,6 +2,7 @@
 
 namespace Modules\Ledger\Services;
 
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Modules\Ledger\Models\Period;
@@ -87,8 +88,49 @@ class VoucherService
         return $this->formatVoucher($voucher, true);
     }
 
-    /** 新建凭证（含分录） */
+    /** 取号并发冲突后的重试次数（见 create() 注释） */
+    private const CREATE_RETRY_TIMES = 3;
+
+    /**
+     * 新建凭证（含分录）。
+     *
+     * $data 可带来源单据三元组 source_type / source_id / source_seq（QA-05），
+     * 用于「一张业务单据生成了哪几张凭证」的溯源与幂等。
+     *
+     * 并发保护：凭证号由 nextVoucherNo() 的「查最大号 + 1」得出，不在任何锁里，
+     * 业务单据批量生成（QA-05 审核/命令行批量）会并发落到同一个号上。号与落库又
+     * 不可能完全重合在一个原子操作里（取号要在事务内、但 MySQL 不加锁读不到未提交行），
+     * 所以这里用 voucher_no 的唯一索引兜底：撞号抛 QueryException 后重新取号重试，
+     * 而不是引入 SELECT FOR UPDATE（会给整段事务加区间锁，批量生成反而更容易互相等待）。
+     */
     public function create(array $data, int $makerId, string $makerName): Voucher
+    {
+        for ($attempt = 1; ; $attempt++) {
+            try {
+                return $this->createInTransaction($data, $makerId, $makerName);
+            } catch (UniqueConstraintViolationException $e) {
+                // 同一单据被并发重复触发生成：不报错，把已存在的那张返回给调用方
+                if ($this->isSourceDuplicate($e) && ! empty($data['source_type']) && ! empty($data['source_id'])) {
+                    $existing = Voucher::findBySource(
+                        (string) $data['source_type'],
+                        (int) $data['source_id'],
+                        (int) ($data['source_seq'] ?? 1)
+                    );
+                    if ($existing) {
+                        return $existing->load('entries');
+                    }
+                }
+
+                if (! $this->isVoucherNoDuplicate($e) || $attempt >= self::CREATE_RETRY_TIMES) {
+                    throw $e;
+                }
+                // 错峰重试，避免两个进程反复取到同一个号
+                usleep(random_int(10_000, 80_000));
+            }
+        }
+    }
+
+    private function createInTransaction(array $data, int $makerId, string $makerName): Voucher
     {
         return DB::transaction(function () use ($data, $makerId, $makerName) {
             $entries = $this->normalizeEntries($data['entries'] ?? []);
@@ -117,6 +159,10 @@ class VoucherService
             $voucher->maker_name = $makerName;
             $voucher->remark = $data['remark'] ?? null;
             $voucher->auto_audit = (bool) ($data['auto_audit'] ?? false);
+            // 来源单据三元组：业务单据生成凭证的溯源与幂等凭据（手工凭证保持 NULL/1）
+            $voucher->source_type = $data['source_type'] ?? null;
+            $voucher->source_id = ! empty($data['source_id']) ? (int) $data['source_id'] : null;
+            $voucher->source_seq = (int) ($data['source_seq'] ?? 1);
             $voucher->save();
 
             // 录单时自动审核：制单人自审入账（等同审核动作，平衡校验与期间校验已在上方完成）
@@ -352,6 +398,32 @@ class VoucherService
             VoucherEntry::where('voucher_id', $voucher->id)->delete();
             $voucher->delete();
         });
+    }
+
+    /**
+     * 唯一冲突是否落在 voucher_no 上（并发取号撞车，可重试）。
+     *
+     * 驱动不同报错文本不同（MySQL 'Duplicate entry ... for key ...voucher_no'，
+     * sqlite 'UNIQUE constraint failed: ledger_vouchers.voucher_no'），
+     * 统一按冲突列名判断，避免把别的唯一键冲突当成取号冲突反复重试。
+     */
+    private function isVoucherNoDuplicate(\Throwable $e): bool
+    {
+        return $this->duplicateHits($e, 'voucher_no');
+    }
+
+    /** 唯一冲突是否落在来源单据三元组上（同一单据被并发生成，属幂等而非错误） */
+    private function isSourceDuplicate(\Throwable $e): bool
+    {
+        return $this->duplicateHits($e, 'source_type')
+            || $this->duplicateHits($e, 'source_id')
+            || $this->duplicateHits($e, 'ledger_vouchers_source_unique');
+    }
+
+    private function duplicateHits(\Throwable $e, string $column): bool
+    {
+        return $e instanceof UniqueConstraintViolationException
+            && str_contains(strtolower($e->getMessage()), strtolower($column));
     }
 
     /** 凭证编号：记-年-月-4位流水，期间内连续不断号 */

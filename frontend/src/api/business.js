@@ -773,12 +773,12 @@ const businessApi = {
 	},
 
 	// ============ 财务管理（B1） ============
-	// finance/voucher 为查询视图：凭证录入/审核统一走 ledger 视角（BUG-10）
+	// 凭证唯一数据源为 Ledger：/finance/voucher 页已直连 ledgerApi.voucher.*，
+	// Business 侧 business/finance-voucher 仅保留后端历史兼容路由，前端不再声明。
 	finance: {
 		// 日记账：现金/银行科目流水（收入红/支出绿/余额逐行重排）
+		// ledger 侧暂无「跨科目现金/银行聚合 + 逐行滚余额」端点，暂仍走 Business 只读视图（同源 ledger）
 		journal: { get: (params) => request.get('business/finance-journal', { params }) },
-		// 凭证查询视图：分组展示（含红冲分组）
-		voucher: { get: (params) => request.get('business/finance-voucher', { params }) },
 		// 月结向导 + 月结查询（B2）：复用 ledger PeriodService
 		monthClose: {
 			periods: { get: (params) => request.get('business/finance-month-close', { params }) },
@@ -789,6 +789,7 @@ const businessApi = {
 		// 对账单（B3）：客户应收 / 供应商应付
 		statement: { get: (params) => request.get('business/finance-statement', { params }) },
 		// 余额查询（B3）：客户 / 品牌 / 辅助单位
+		// ledger 侧暂无按客户/品牌/辅助单位维度聚合的端点，暂仍走 Business 只读视图（同源 ledger）
 		balance: { get: (params) => request.get('business/finance-balance', { params }) },
 		// 科目变化明细（B3）：逐科目流水 + 滚动余额
 		subjectChange: { get: (params) => request.get('business/finance-subject-change', { params }) },

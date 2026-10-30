@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Modules\Business\Services\ExpenseService;
+use Modules\Ledger\Models\Voucher;
+use Modules\Ledger\Support\BusinessVoucherBridge;
 
 class ExpenseController extends Controller
 {
+    use BusinessVoucherBridge;
     use ResponseTrait;
 
     protected ExpenseService $service;
@@ -78,6 +81,9 @@ class ExpenseController extends Controller
         }
 
         $expense = $this->service->approve($expense);
+
+        // QA-05：按 expense_type 借 6601/6602/6603 费用科目，贷 1001 现金（expenses 表无支付方式列）。
+        $this->generateVoucherQuietly(Voucher::SOURCE_EXPENSE, (int) $expense->id);
 
         return $this->success($expense);
     }

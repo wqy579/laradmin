@@ -12,7 +12,7 @@ use Tests\TestCase;
  * T3 认证 Feature 测试
  *
  * 覆盖：登录成功/密码错误/账号禁用、参数校验、JWT 刷新与登出黑名单、
- * 登录限流（5 次/15 分钟，RateLimitMiddleware）、菜单与权限返回结构。
+ * 登录限流（按账号 10 次/15 分钟，RateLimitMiddleware）、菜单与权限返回结构。
  *
  * ⚠️ 认证统一走 loginAs()/withToken()（真实 JWT），不要用 actingAs()。
  * 生产是常驻进程（laravel-s），身份只可能来自请求上的 token；
@@ -308,22 +308,86 @@ class AuthFeatureTest extends TestCase
         $this->assertGreaterThan(0, $response->json('retry_after'));
     }
 
-    public function test_login_rate_limit_is_per_username(): void
+    public function test_login_rate_limit_response_is_structured_json_with_retry_after_header(): void
     {
-        // 用尽 one_user 的配额（10 次）
+        // QA-14：429 必须是结构化 JSON（不是 Symfony 默认的 HTML/纯文本限流页），
+        // 且带上标准 Retry-After 头——不解析业务 JSON 的网关/客户端也要能退避。
         for ($i = 0; $i < 10; $i++) {
             $this->postJson('/admin/auth/login', [
-                'username' => 'rl_user_a',
-                'password' => 'bad',
+                'username' => 'rl_header_user',
+                'password' => 'bad-password',
             ]);
         }
-        $this->postJson('/admin/auth/login', ['username' => 'rl_user_a', 'password' => 'bad'])
-            ->assertStatus(429);
+
+        $response = $this->postJson('/admin/auth/login', [
+            'username' => 'rl_header_user',
+            'password' => 'bad-password',
+        ]);
+
+        $response->assertStatus(429)
+            ->assertJson(['code' => 429, 'message' => '操作频繁，请稍后再试']);
+        $this->assertIsInt($response->json('retry_after'));
+
+        $header = $response->headers->get('Retry-After');
+        $this->assertNotNull($header, '429 缺少 Retry-After 头');
+        $this->assertIsNumeric($header, 'Retry-After 必须是秒数');
+        $this->assertGreaterThanOrEqual(1, (int) $header);
+        // 头与 body 说的是同一个数，否则前端与网关会退避不同时长
+        $this->assertSame($response->json('retry_after'), (int) $header);
+    }
+
+    public function test_successful_login_clears_the_account_rate_limit_bucket(): void
+    {
+        // QA-14：中间件先进控制器就 hit，成功那次也占格。若不归零，
+        // 「错 9 次 + 对 1 次 + 再登录」这条最普通的路径会撞 429，
+        // 用户密码是对的却登不进去。成功必须清空该账号计数。
+        $this->makeAdmin([
+            'username' => 'rl_clear_user',
+            'password' => Hash::make('rightpass123'),
+        ]);
+
+        for ($i = 0; $i < 9; $i++) {
+            $this->postJson('/admin/auth/login', [
+                'username' => 'rl_clear_user',
+                'password' => 'bad-password',
+            ])->assertStatus(401);
+        }
+
+        $this->postJson('/admin/auth/login', [
+            'username' => 'rl_clear_user',
+            'password' => 'rightpass123',
+        ])->assertOk();
+
+        // 清空后仍有整窗配额：这一次密码错，应回到 401 而不是 429
+        $this->postJson('/admin/auth/login', [
+            'username' => 'rl_clear_user',
+            'password' => 'bad-password',
+        ])->assertStatus(401);
+    }
+
+    public function test_login_rate_limit_is_per_username(): void
+    {
+        // 同 IP、两个账号：一个用尽配额（10 次），另一个必须完全不受牵连。
+        // 显式钉死 REMOTE_ADDR，免得以后有人把 IP 加回计数键而这条测试还绿着。
+        $server = ['REMOTE_ADDR' => '10.98.0.1'];
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->call('POST', '/admin/auth/login', [
+                'username' => 'rl_user_a',
+                'password' => 'bad',
+            ], [], [], $server);
+        }
+        $this->call('POST', '/admin/auth/login', [
+            'username' => 'rl_user_a',
+            'password' => 'bad',
+        ], [], [], $server)->assertStatus(429);
 
         // 另一个用户名不受影响（计数键 sha1(login|username)，不含 IP）。
         // 断言 401 而不是 429 就是在验证"未被限流"——密码错返回 401，被限流返回 429。
-        $this->postJson('/admin/auth/login', ['username' => 'rl_user_b', 'password' => 'bad'])
-            ->assertStatus(401);
+        $this->call('POST', '/admin/auth/login', [
+            'username' => 'rl_user_b',
+            'password' => 'bad',
+        ], [], [], $server)->assertStatus(401);
     }
 
     public function test_login_rate_limit_is_not_bypassed_by_ip_rotation(): void

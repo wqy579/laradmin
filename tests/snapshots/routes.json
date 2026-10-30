@@ -9908,6 +9908,18 @@
         ]
     },
     {
+        "method": "GET",
+        "uri": "admin/ledger/periods/boot-status",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\PeriodController@bootStatus",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "POST",
         "uri": "admin/ledger/periods/{period}/carry-forward",
         "name": "admin.",
@@ -10176,6 +10188,18 @@
         "uri": "admin/ledger/vouchers/export",
         "name": "admin.",
         "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/ledger/vouchers/generate-from-business",
+        "name": "admin.",
+        "action": "Modules\\Ledger\\Http\\Controllers\\VoucherController@generateFromBusiness",
         "middleware": [
             "api",
             "stock.snapshot",

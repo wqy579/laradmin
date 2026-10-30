@@ -129,6 +129,11 @@ class ArchitectureTest extends TestCase
         //   （与 BorrowReturn->Order、Cash->Order 同理；验收硬要求「商城单须生成申报单」）
         'Mall->Auth',       // 下单/发送记录操作人回显姓名，belongsTo Auth 的用户表
         //   （与 Ledger->Auth、Cash->Auth 同因）；商城域不维护人员主数据，内核亦无 User 契约
+        'Order->Ledger',    // QA-05：收款/付款/销售出库审核时调 Ledger 的 VoucherGenerateService
+        //   自动生成记账凭证（凭证入口必须唯一，绝不在业务侧自建 ledger_vouchers），
+        //   与 Asset->Ledger 完全同因；Ledger 侧只读业务裸表、不引 Order 模型，依赖方向仍是业务→Ledger
+        'Stock->Ledger',    // QA-05：库存调整单审核时同上，调 VoucherGenerateService 生成
+        //   盘盈/盘亏凭证（借 6711 / 贷 1405 或反向）；Stock 侧不写 ledger_ 表、不引 Ledger 模型
     ];
 
     /**
