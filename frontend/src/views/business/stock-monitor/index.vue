@@ -48,7 +48,7 @@
 							<span class="trend-val">{{ fmt(t.total_quantity) }}</span>
 							<span class="trend-count">{{ t.product_count }} 种</span>
 						</div>
-						<div v-if="!trend.length" class="panel-empty">暂无快照数据</div>
+						<FinEmpty v-if="!trend.length" text="暂无快照数据" />
 					</div>
 				</div>
 			</section>
@@ -78,7 +78,7 @@
 								</td>
 							</tr>
 							<tr v-if="!warehouseChanges.length">
-								<td colspan="4" class="panel-empty">暂无仓库数据</td>
+								<td colspan="4"><FinEmpty text="暂无仓库数据" /></td>
 							</tr>
 						</tbody>
 					</table>
@@ -111,9 +111,7 @@
 						<span :class="diffClass(row.diff_qty)">{{ diffText(row.diff_qty) }}</span>
 					</template>
 				</sTable>
-				<div v-if="!loading && !changes.length" class="panel-empty" style="padding: 30px">
-					暂无变动（今日与上一快照一致）
-				</div>
+				<FinEmpty v-if="!loading && !changes.length" text="暂无变动数据" />
 			</div>
 		</section>
 	</div>
@@ -125,6 +123,7 @@ import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import { formatStock } from '@/utils/formatStock'
 import sTable from '@/components/sTable/index.vue'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const summary = ref({})
 const trend = ref([])
@@ -138,9 +137,9 @@ const changeColumns = [
 	{ prop: 'spec', title: '规格', width: 100 },
 	{ prop: 'barcode', title: '条码', width: 130 },
 	{ prop: 'warehouse_name', title: '仓库', width: 130 },
-	{ prop: 'yesterday_qty', title: '昨日库存', width: 110, slots: { default: 'yesterday_qty' } },
-	{ prop: 'today_qty', title: '今日库存', width: 110, slots: { default: 'today_qty' } },
-	{ prop: 'diff_qty', title: '变动', width: 120, slots: { default: 'diff_qty' } },
+	{ prop: 'yesterday_qty', title: '昨日库存', width: 110, align: 'right', slots: { default: 'yesterday_qty' } },
+	{ prop: 'today_qty', title: '今日库存', width: 110, align: 'right', slots: { default: 'today_qty' } },
+	{ prop: 'diff_qty', title: '变动', width: 120, align: 'right', slots: { default: 'diff_qty' } },
 ]
 
 function fmt(v) {
@@ -212,12 +211,12 @@ onMounted(() => {
 	min-width: 140px;
 	background: var(--el-bg-color);
 	border-radius: 8px;
-	padding: 14px 16px;
+	padding: 16px;
 	border: 1px solid var(--el-border-color-lighter);
 	text-align: center;
 }
 .stat-value {
-	font-size: 20px;
+	font-size: 16px;
 	font-weight: 700;
 	color: var(--el-text-color-primary);
 }
@@ -226,7 +225,7 @@ onMounted(() => {
 	color: var(--el-text-color-secondary);
 	margin-top: 4px;
 }
-.stat-date .stat-value { font-size: 15px; color: var(--el-color-primary); }
+.stat-date .stat-value { font-size: 16px; color: var(--el-color-primary); }
 .stat-total .stat-value { color: #409eff; }
 .stat-qty .stat-value { color: #67c23a; }
 .stat-freeze .stat-value { color: #e6a23c; }
@@ -252,7 +251,7 @@ onMounted(() => {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 10px 14px;
+	padding: 12px 16px;
 	border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .card-title {
@@ -264,8 +263,8 @@ onMounted(() => {
 	gap: 6px;
 }
 .card-tools { display: flex; align-items: center; gap: 6px; }
-.card-hint { font-size: 11px; color: var(--el-text-color-placeholder); }
-.card-body { padding: 10px 14px; }
+.card-hint { font-size: 12px; color: var(--el-text-color-placeholder); }
+.card-body { padding: 12px 16px; }
 
 /* 趋势 */
 .trend-list { display: flex; flex-direction: column; gap: 6px; }
@@ -280,13 +279,13 @@ onMounted(() => {
 	flex: 1;
 	height: 16px;
 	background: var(--el-fill-color-light);
-	border-radius: 3px;
+	border-radius: 4px;
 	overflow: hidden;
 }
 .trend-bar {
 	height: 100%;
 	background: linear-gradient(90deg, #409eff, #67c23a);
-	border-radius: 3px;
+	border-radius: 4px;
 	min-width: 2px;
 	transition: width 0.3s;
 }
@@ -300,12 +299,18 @@ onMounted(() => {
 	font-size: 12px;
 }
 .mini-table th, .mini-table td {
-	padding: 7px 8px;
+	padding: 8px;
 	border-bottom: 1px solid var(--el-border-color-lighter);
 	text-align: left;
 }
 .mini-table th { color: var(--el-text-color-secondary); font-weight: 600; background: var(--el-fill-color-light); }
-.mini-table td { color: var(--el-text-color-regular); }
+.mini-table td { color: var(--el-text-color-regular); font-variant-numeric: tabular-nums; }
+/* 数量/变动列右对齐（2/3/4 列），仓库名列保持左对齐 */
+.mini-table th:nth-child(2), .mini-table th:nth-child(3), .mini-table th:nth-child(4),
+.mini-table td:nth-child(2), .mini-table td:nth-child(3), .mini-table td:nth-child(4) {
+	text-align: right;
+}
+:deep(.vxe-body--column .vxe-cell) { font-variant-numeric: tabular-nums; }
 
 /* 差异 */
 .diff-up { color: #67c23a; font-weight: 600; }

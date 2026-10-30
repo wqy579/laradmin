@@ -35,21 +35,22 @@
 			<el-button style="margin-left:10px" @click="flattenAll">全部盘平</el-button>
 			<div style="margin-left:auto;display:flex;align-items:center;gap:6px">
 				<el-switch v-model="onlyDiff" />
-				<span style="font-size:13px;color:#666">只看差异</span>
+				<span style="font-size:13px;color:#606266">只看差异</span>
 			</div>
-			<el-button style="margin-left:10px;background:#52c41a;color:#fff;border:none" @click="exportCsv">导出盘点表</el-button>
+			<el-button style="margin-left:12px;background:#67C23A;color:#fff;border:none" @click="exportCsv">导出盘点表</el-button>
 		</div>
 
 		<!-- 明细表格 -->
 		<div class="items-wrap" v-loading="loadingItems">
 			<el-table :data="filteredItems" height="380" size="small" :row-class-name="rowClass" border>
+				<template #empty><FinEmpty text="暂无数据" /></template>
 				<el-table-column type="index" label="序号" width="55" align="center" />
 				<el-table-column prop="product_code" label="商品编码" width="110" />
 				<el-table-column prop="product_name" label="商品名称" min-width="180" show-overflow-tooltip />
 				<el-table-column prop="spec" label="规格" width="90" />
 				<el-table-column prop="unit" label="单位" width="60" align="center" />
 				<el-table-column prop="book_qty" label="账面数量" width="90" align="right" />
-				<el-table-column label="实盘数量" width="120" align="center">
+				<el-table-column label="实盘数量" width="120" align="right">
 					<template #default="{ row }">
 						<el-input-number v-model="row.actual_qty" :min="0" :controls="false" size="small" style="width:90px" @change="recalc(row)" />
 					</template>
@@ -96,6 +97,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import businessApi from '@/api/business'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const props = defineProps({
 	visible: Boolean,
@@ -235,13 +237,14 @@ function exportCsv() {
 
 <style scoped>
 .base-form { padding: 8px 16px 0; }
-.toolbar { display: flex; align-items: center; padding: 10px 16px; }
+.toolbar { display: flex; align-items: center; padding: 12px 16px; }
 .items-wrap { padding: 0 16px; }
-.footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 0; border-top: 1px solid #f0f0f0; margin-top: 10px; }
-.summary { font-size: 14px; color: #666; }
-.num-up { color: #52c41a; font-weight: 500; }
-.num-down { color: #f5222d; font-weight: 500; }
-.num-zero { color: #999; }
+.footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 0; border-top: 1px solid #EBEEF5; margin-top: 10px; }
+.summary { font-size: 14px; color: #606266; }
+.num-up { color: #67C23A; font-weight: 500; }
+.num-down { color: #F56C6C; font-weight: 500; }
+.num-zero { color: #909399; }
 :deep(.row-profit) { background: #f6ffed !important; }
 :deep(.row-loss) { background: #fff2f0 !important; }
+:deep(.el-table .cell) { font-variant-numeric: tabular-nums; }
 </style>

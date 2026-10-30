@@ -18,7 +18,7 @@
 			<el-descriptions-item label="调整原因">{{ row.reason || '-' }}</el-descriptions-item>
 		</el-descriptions>
 
-		<el-form ref="formRef" :model="form" :rules="rules" label-width="80px" style="margin-top: 20px">
+		<el-form ref="formRef" :model="form" :rules="rules" label-width="80px" style="margin-top: 16px">
 			<el-form-item label="审核结果" prop="result">
 				<el-radio-group v-model="form.result">
 					<el-radio label="approve">通过</el-radio>
@@ -105,4 +105,5 @@ async function handleApprove() {
 
 <style scoped>
 .el-descriptions { margin-bottom: 16px; }
+:deep(.el-descriptions .el-descriptions__content) { font-variant-numeric: tabular-nums; }
 </style>

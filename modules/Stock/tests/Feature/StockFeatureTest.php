@@ -243,6 +243,41 @@ class StockFeatureTest extends TestCase
         $this->assertSame(10, (int) Stock::where('product_id', $product->id)->sum('quantity'));
     }
 
+    public function test_transfer_execute_writes_stock_history(): void
+    {
+        $this->actingAsAdmin();
+        $product = $this->makeProduct();
+        $from = $this->makeWarehouse();
+        $to = $this->makeWarehouse();
+
+        Stock::create(['product_id' => $product->id, 'warehouse_id' => $from->id, 'quantity' => 10]);
+
+        $transferId = $this->createTransferViaApi($product, $from, $to, 4);
+        \DB::table('transfers')->where('id', $transferId)->update(['status' => 'approved']);
+
+        $this->postJson("/admin/business/transfer/{$transferId}/execute")->assertOk();
+
+        // 调拨必须写库存流水：源仓出库腿 + 目标仓入库腿各一条，账目才与台账/库龄视图一致
+        $history = \DB::table('stocks_history')
+            ->where('product_id', $product->id)
+            ->where('related_id', $transferId)
+            ->where('related_type', 'Transfer')
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(2, $history, '调拨应写两条流水（源仓出库 + 目标仓入库）');
+
+        $this->assertSame('transfer_out', $history[0]->change_type);
+        $this->assertSame(-4, (int) $history[0]->change_qty);
+        $this->assertSame(10, (int) $history[0]->before_qty);
+        $this->assertSame(6, (int) $history[0]->after_qty);
+
+        $this->assertSame('transfer_in', $history[1]->change_type);
+        $this->assertSame(4, (int) $history[1]->change_qty);
+        $this->assertSame(0, (int) $history[1]->before_qty);
+        $this->assertSame(4, (int) $history[1]->after_qty);
+    }
+
     public function test_transfer_execute_prevents_negative_source_stock(): void
     {
         $this->actingAsAdmin();

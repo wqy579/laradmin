@@ -20,6 +20,7 @@
 		</div>
 
 		<el-table :data="rows" v-loading="loading" size="small" border height="420" show-summary :summary-method="summary">
+			<template #empty><FinEmpty text="暂无数据" /></template>
 			<el-table-column prop="date" label="日期" width="110">
 				<template #default="{ row }">{{ (row.date || '').slice(0, 10) }}</template>
 			</el-table-column>
@@ -46,6 +47,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const props = defineProps({ modelValue: Boolean })
 const emit = defineEmits(['update:modelValue'])
@@ -107,7 +109,8 @@ onMounted(loadWarehouses)
 </script>
 
 <style scoped>
-.filters { display: flex; align-items: center; gap: 10px; padding-bottom: 12px; flex-wrap: wrap; }
-.up { color: #52c41a; }
-.down { color: #f5222d; }
+.filters { display: flex; align-items: center; gap: 12px; padding-bottom: 12px; flex-wrap: wrap; }
+.up { color: #67C23A; }
+.down { color: #F56C6C; }
+:deep(.el-table .cell) { font-variant-numeric: tabular-nums; }
 </style>

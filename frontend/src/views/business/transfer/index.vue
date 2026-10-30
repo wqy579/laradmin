@@ -19,8 +19,8 @@ const columns = [
   { field: 'from_warehouse.name', title: '源仓库', width: 120 },
   { field: 'to_warehouse.name', title: '目标仓库', width: 120 },
   { field: 'transfer_date', title: '调拨日期', width: 120 },
-  { field: 'total_qty', title: '总数量', width: 100 },
-  { field: 'total_amount', title: '总金额', width: 120 },
+  { field: 'total_qty', title: '总数量', width: 100, align: 'right' },
+  { field: 'total_amount', title: '总金额', width: 120, align: 'right' },
   { field: 'status', title: '状态', width: 100 },
   { field: 'op', title: '操作', width: 200, fixed: 'right' }
 ]
@@ -121,3 +121,11 @@ onMounted(() => {
     </sTable>
   </div>
 </template>
+
+<style scoped>
+:deep(.vxe-body--column .vxe-cell) { font-variant-numeric: tabular-nums; }
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-header--column .vxe-cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.vxe-body--row) { height: 48px !important; }
+:deep(.vxe-body--row:nth-child(even)) { background-color: #FAFAFA; }
+</style>

@@ -85,6 +85,6 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.text-danger { color: var(--el-color-danger); font-weight: 600; }
-.text-ok { color: var(--el-color-success); font-weight: 600; }
+.text-danger { color: var(--el-color-danger); font-weight: 600; font-variant-numeric: tabular-nums; }
+.text-ok { color: var(--el-color-success); font-weight: 600; font-variant-numeric: tabular-nums; }
 </style>

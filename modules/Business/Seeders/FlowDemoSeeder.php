@@ -61,6 +61,9 @@ class FlowDemoSeeder extends Seeder
         $this->seedStockIn($wh1, $supA, $products, $adminId, $today, $now, $stockService);
         $this->seedStockOut($wh1, $custA, [$p1, $p2], $adminId, $today, $now, $stockService);
         $this->seedStockAdjust($wh1, $p1, $adminId, $today, $now, $stockService);
+        // 调拨（源仓→目标仓，双向一致 + 流水）与盘点（盘盈/盘亏过账）
+        $this->seedTransfer($wh1, $wh2, $p2, 30, $adminId, $today, $now);
+        $this->seedStocktaking($wh1, [$p1, $p2], $adminId, $today, $now, $stockService);
 
         $so1 = $this->seedSalesOrder($custA, $wh1, [$p1, $p3], 10, $adminId, $today, $now, 'approved');
         $so2 = $this->seedSalesOrder($custB, $wh1, [$p2, $p4], 5, $adminId, $yesterday, $now, 'pending');
@@ -225,6 +228,145 @@ class FlowDemoSeeder extends Seeder
         ]);
         // 真实驱动库存：报溢 +5（adjust 正数即增加）
         $stockService->adjust((int) $product->id, $whId, $qty, $cost, $id, 'surplus', '盘点报溢（演示）', 'StockAdjust');
+    }
+
+    // ===== 调拨（跨仓：一增一减净值不变，走真实库存 + 流水） =====
+    private function seedTransfer(int $fromWh, int $toWh, $product, int $qty, int $adminId, string $date, $now): void
+    {
+        $no = 'TF'.str_replace('-', '', $date).'001';
+        if (DB::table('transfers')->where('order_no', $no)->exists()) {
+            return;
+        }
+        $price = (float) $product->cost_price;
+        $id = $this->insertSafe('transfers', [
+            'order_no' => $no,
+            'from_warehouse_id' => $fromWh,
+            'to_warehouse_id' => $toWh,
+            'transfer_date' => $date,
+            'total_amount' => round($qty * $price, 2),
+            'total_qty' => $qty,
+            'status' => 'completed',
+            'created_by' => $adminId,
+            'remark' => '跨仓调拨（演示）',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        $this->insertRow('transfer_items', [
+            'transfer_id' => $id,
+            'product_id' => $product->id,
+            'quantity' => $qty,
+            'price' => $price,
+            'amount' => round($qty * $price, 2),
+            'remark' => null,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        // 真实驱动库存：与 TransferController::execute 同构 —— 源仓减、目标仓增，
+        // 写 transfer_out / transfer_in 流水（stock_in/out 的 change_type 是固定入库/出库，非调拨）
+        $sourceBefore = (int) DB::table('stocks')->where('product_id', $product->id)->where('warehouse_id', $fromWh)->value('quantity');
+        DB::table('stocks')->where('product_id', $product->id)->where('warehouse_id', $fromWh)->decrement('quantity', $qty);
+        $destBefore = (int) DB::table('stocks')->where('product_id', $product->id)->where('warehouse_id', $toWh)->value('quantity');
+        $this->upsertStockRow((int) $product->id, $toWh, $qty);
+        $this->insertRow('stocks_history', [
+            'product_id' => $product->id,
+            'warehouse_id' => $fromWh,
+            'change_type' => 'transfer_out',
+            'change_qty' => -$qty,
+            'before_qty' => $sourceBefore,
+            'after_qty' => $sourceBefore - $qty,
+            'related_id' => $id,
+            'related_type' => 'Transfer',
+            'remark' => '调拨出库 '.$no,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        $this->insertRow('stocks_history', [
+            'product_id' => $product->id,
+            'warehouse_id' => $toWh,
+            'change_type' => 'transfer_in',
+            'change_qty' => $qty,
+            'before_qty' => $destBefore,
+            'after_qty' => $destBefore + $qty,
+            'related_id' => $id,
+            'related_type' => 'Transfer',
+            'remark' => '调拨入库 '.$no,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    // ===== 盘点（盘盈/盘亏过账，走 StockService::adjust 写流水） =====
+    private function seedStocktaking(int $whId, array $products, int $adminId, string $date, $now, StockService $stockService): void
+    {
+        $no = 'PD'.str_replace('-', '', $date).'001';
+        if (DB::table('stock_checks')->where('check_no', $no)->exists()) {
+            return;
+        }
+        $items = [];
+        $profitQty = 0;
+        $lossQty = 0;
+        $profitAmount = 0.0;
+        $lossAmount = 0.0;
+        foreach ($products as $p) {
+            $book = (int) DB::table('stocks')->where('product_id', $p->id)->where('warehouse_id', $whId)->value('quantity');
+            $actual = $book + 3; // 演示：每个商品盘盈 3 件
+            $diff = $actual - $book;
+            $cost = (float) $p->cost_price;
+            $diffAmount = round($diff * $cost, 2);
+            if ($diff > 0) {
+                $profitQty += $diff;
+                $profitAmount += $diffAmount;
+            } else {
+                $lossQty += abs($diff);
+                $lossAmount += abs($diffAmount);
+            }
+            $items[] = [
+                'product_id' => $p->id,
+                'product_code' => $p->code,
+                'product_name' => $p->name,
+                'spec' => $p->spec,
+                'unit' => $p->price_unit_small,
+                'book_qty' => $book,
+                'actual_qty' => $actual,
+                'diff_qty' => $diff,
+                'cost_price' => $cost,
+                'diff_amount' => $diffAmount,
+                'checker' => '超级管理员',
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        $checkId = $this->insertSafe('stock_checks', [
+            'check_no' => $no,
+            'warehouse_id' => $whId,
+            'check_date' => $date,
+            'check_type' => 'full',
+            'status' => 'approved',
+            'total_skus' => count($products),
+            'profit_qty' => $profitQty,
+            'loss_qty' => $lossQty,
+            'profit_amount' => round($profitAmount, 2),
+            'loss_amount' => round($lossAmount, 2),
+            'remark' => '全盘（演示）',
+            'created_by' => $adminId,
+            'creator_name' => '超级管理员',
+            'approved_by' => $adminId,
+            'approver_name' => '超级管理员',
+            'approved_at' => $now,
+            'approval_comment' => '同意',
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+        foreach ($items as $item) {
+            $item['check_id'] = $checkId;
+            $this->insertRow('stock_check_items', $item);
+            // 真实驱动库存：盘盈过账（diff>0 → check_in）
+            $stockService->adjust(
+                (int) $item['product_id'], $whId, $item['diff_qty'],
+                (float) $item['cost_price'], $checkId,
+                'check_in', '库存盘盈-'.$no, 'Stocktaking',
+            );
+        }
     }
 
     // ===== 销售订单 =====
@@ -1180,5 +1322,28 @@ class FlowDemoSeeder extends Seeder
             return;
         }
         DB::table($table)->insert($row);
+    }
+
+    /** 目标仓无库存行则建行（与 TransferController::execute 的入库腿同构），有则返回现有行。 */
+    private function upsertStockRow(int $productId, int $warehouseId, int $qty): void
+    {
+        if (! Schema::hasTable('stocks')) {
+            return;
+        }
+        $row = DB::table('stocks')
+            ->where('product_id', $productId)
+            ->where('warehouse_id', $warehouseId)
+            ->first();
+        if ($row) {
+            DB::table('stocks')->where('id', $row->id)->increment('quantity', $qty);
+        } else {
+            DB::table('stocks')->insert([
+                'product_id' => $productId,
+                'warehouse_id' => $warehouseId,
+                'quantity' => $qty,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 }

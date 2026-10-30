@@ -133,7 +133,7 @@
 
 		<!-- 批量审核 -->
 		<el-dialog v-model="batchVisible" title="批量审核确认" width="480px">
-			<p style="line-height:1.6;color:#666;font-size:14px">
+			<p style="line-height:1.6;color:#606266;font-size:14px">
 				您已选择 <b>{{ selectedPending.length }}</b> 张待审核调整单，确认批量审核通过？
 				通过后将逐一调整库存并生成财务凭证，任一单据失败将整体回滚，操作不可撤销。
 			</p>
@@ -391,16 +391,21 @@ onMounted(() => { fetchWarehouses(); fetchProducts(); fetchData() })
 </script>
 
 <style scoped>
-.stock-adjust-page { display: flex; flex-direction: column; height: 100%; background: #f0f2f5; padding: 16px; box-sizing: border-box; }
-.page-header { height: 56px; background: #fff; border: 1px solid #e8e8e8; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
-.page-title { font-size: 18px; font-weight: bold; color: #333; }
+.stock-adjust-page { display: flex; flex-direction: column; height: 100%; background: #F2F3F5; padding: 16px; box-sizing: border-box; }
+.page-header { height: 56px; background: #fff; border: 1px solid #DCDFE6; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+.page-title { font-size: 16px; font-weight: bold; color: #303133; }
 .header-actions { display: flex; gap: 8px; }
 .filter-bar { margin-top: 12px; background: #fff; border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
-.summary-bar { margin-top: 12px; background: #f0f9eb; border: 1px solid #e1f3d8; border-radius: 4px; padding: 8px 16px; font-size: 13px; color: #333; display: flex; align-items: center; gap: 8px; }
+.summary-bar { margin-top: 12px; background: #f0f9eb; border: 1px solid #EBEEF5; border-radius: 4px; padding: 8px 16px; font-size: 13px; color: #333; display: flex; align-items: center; gap: 8px; }
 .summary-bar .sep { color: #c0c4cc; }
 .summary-bar b { color: #409eff; font-weight: 600; }
 .table-card { margin-top: 12px; flex: 1; background: #fff; border-radius: 4px; padding: 8px; overflow: hidden; display: flex; flex-direction: column; }
-.num-up { color: #52c41a; font-weight: 500; }
-.num-down { color: #f5222d; font-weight: 500; }
-.num-zero { color: #999; }
+.num-up { color: #67C23A; font-weight: 500; }
+.num-down { color: #F56C6C; font-weight: 500; }
+.num-zero { color: #909399; }
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-header--column .vxe-cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.vxe-body--row) { height: 48px !important; }
+:deep(.vxe-body--row:nth-child(even)) { background-color: #FAFAFA; }
+:deep(.vxe-body--column .vxe-cell) { font-variant-numeric: tabular-nums; }
 </style>

@@ -21,6 +21,7 @@
 
 		<h3 style="margin: 20px 0 10px; font-size: 16px; color: #303133">明细列表</h3>
 		<el-table :data="data.items || []" border size="small">
+			<template #empty><FinEmpty text="暂无数据" /></template>
 			<el-table-column type="index" label="序号" width="55" align="center" />
 			<el-table-column prop="product_code" label="商品编码" width="100" />
 			<el-table-column prop="product_name" label="商品名称" min-width="150" show-overflow-tooltip />
@@ -48,6 +49,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const props = defineProps({
 	id: { type: [Number, String], required: true },
@@ -99,7 +101,8 @@ onMounted(fetchData)
 </script>
 
 <style scoped>
-.num-up { color: #52c41a; font-weight: 500; }
-.num-down { color: #f5222d; font-weight: 500; }
-.num-zero { color: #999; }
+.num-up { color: #67C23A; font-weight: 500; }
+.num-down { color: #F56C6C; font-weight: 500; }
+.num-zero { color: #909399; }
+:deep(.el-table .cell) { font-variant-numeric: tabular-nums; }
 </style>

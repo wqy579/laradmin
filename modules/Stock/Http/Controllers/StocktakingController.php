@@ -619,6 +619,7 @@ class StocktakingController extends Controller
             'check_in' => '盘盈入库', 'check_out' => '盘亏出库',
             'adjust_in' => '调整增加', 'adjust_out' => '调整减少',
             'sale_freeze' => '销售冻结', 'sale_unfreeze' => '销售解冻',
+            'transfer_out' => '调拨出库', 'transfer_in' => '调拨入库',
         ];
 
         $running = $opening;

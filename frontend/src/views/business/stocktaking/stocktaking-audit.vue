@@ -32,6 +32,7 @@
 
 			<!-- 差异明细 -->
 			<el-table :data="diffItems" size="small" border height="260" :row-class-name="rowClass">
+				<template #empty><FinEmpty text="暂无数据" /></template>
 				<el-table-column prop="product_name" label="商品名称" min-width="160" show-overflow-tooltip />
 				<el-table-column prop="spec" label="规格" width="90" />
 				<el-table-column prop="unit" label="单位" width="60" align="center" />
@@ -67,6 +68,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import businessApi from '@/api/business'
+import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const props = defineProps({ visible: Boolean, row: Object })
 const emit = defineEmits(['close', 'done'])
@@ -122,23 +124,24 @@ async function reject() {
 </script>
 
 <style scoped>
-.base { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; padding: 8px 0 16px; font-size: 14px; color: #333; }
-.base label { color: #999; }
+.base { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; padding: 8px 0 16px; font-size: 14px; color: #303133; }
+.base label { color: #909399; }
 .cards { display: flex; gap: 16px; padding: 0 0 16px; }
 .card { flex: 1; border-radius: 4px; padding: 12px 16px; }
 .card.profit { background: #f6ffed; border: 1px solid #b7eb8f; }
 .card.loss { background: #fff2f0; border: 1px solid #ffccc7; }
 .card.net { background: #e6f7ff; border: 1px solid #91d5ff; }
 .clabel { font-size: 12px; margin-bottom: 6px; }
-.profit .clabel, .profit .cnum { color: #52c41a; }
-.loss .clabel, .loss .cnum { color: #f5222d; }
-.net .clabel, .net .cnum { color: #1890ff; }
-.cnum { font-size: 24px; font-weight: bold; }
-.cfoot { font-size: 12px; color: #999; margin-top: 6px; }
+.profit .clabel, .profit .cnum { color: #67C23A; }
+.loss .clabel, .loss .cnum { color: #F56C6C; }
+.net .clabel, .net .cnum { color: #409EFF; }
+.cnum { font-size: 24px; font-weight: bold; font-variant-numeric: tabular-nums; }
+.cfoot { font-size: 12px; color: #909399; margin-top: 6px; }
 .opinion { padding-top: 14px; }
-.olabel { font-size: 14px; color: #333; margin-bottom: 8px; }
-.up { color: #52c41a; font-weight: 500; }
-.down { color: #f5222d; font-weight: 500; }
+.olabel { font-size: 14px; color: #303133; margin-bottom: 8px; }
+.up { color: #67C23A; font-weight: 500; }
+.down { color: #F56C6C; font-weight: 500; }
 :deep(.row-profit) { background: #f6ffed !important; }
 :deep(.row-loss) { background: #fff2f0 !important; }
+:deep(.el-table .cell) { font-variant-numeric: tabular-nums; }
 </style>

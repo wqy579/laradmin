@@ -156,12 +156,28 @@ class TransferController extends Controller
                         'message' => "库存不足：源仓库该商品现有 {$available} 件，无法调拨 {$item->quantity} 件",
                     ], 422);
                 }
-                // 减少源仓库库存
+                // 源仓：出库腿（记账，before→after）
+                $sourceBefore = (int) $source->quantity;
                 DB::table('stocks')
                     ->where('product_id', $item->product_id)
                     ->where('warehouse_id', $transfer->from_warehouse_id)
                     ->decrement('quantity', $item->quantity);
-                // 增加目标仓库库存
+                $this->recordTransferHistory(
+                    $item->product_id,
+                    $transfer->from_warehouse_id,
+                    'transfer_out',
+                    -$item->quantity,
+                    $sourceBefore,
+                    $sourceBefore - $item->quantity,
+                    $transfer->id,
+                    '调拨出库 '.$transfer->order_no,
+                );
+
+                // 目标仓：入库腿（记账，before→after；无行则建行）
+                $destBefore = (int) DB::table('stocks')
+                    ->where('product_id', $item->product_id)
+                    ->where('warehouse_id', $transfer->to_warehouse_id)
+                    ->value('quantity');
                 $stock = DB::table('stocks')
                     ->where('product_id', $item->product_id)
                     ->where('warehouse_id', $transfer->to_warehouse_id)
@@ -179,6 +195,19 @@ class TransferController extends Controller
                         'updated_at' => now(),
                     ]);
                 }
+                $this->recordTransferHistory(
+                    $item->product_id,
+                    $transfer->to_warehouse_id,
+                    'transfer_in',
+                    $item->quantity,
+                    $destBefore,
+                    $destBefore + $item->quantity,
+                    $transfer->id,
+                    '调拨入库 '.$transfer->order_no,
+                );
+
+                // 重算商品总库存（对齐 StockService 其它写路径的口径）
+                $this->syncProductStockQty($item->product_id);
             }
             $transfer->update(['status' => 'completed']);
             DB::commit();
@@ -202,5 +231,34 @@ class TransferController extends Controller
         ];
 
         return response()->json(['data' => $stats]);
+    }
+
+    /** 写一条调拨库存变动流水（stocks_history），与 StockService::recordHistory 同构。 */
+    private function recordTransferHistory(int $productId, int $warehouseId, string $changeType, int $changeQty, int $beforeQty, int $afterQty, int $relatedId, string $remark): void
+    {
+        DB::table('stocks_history')->insert([
+            'product_id' => $productId,
+            'warehouse_id' => $warehouseId,
+            'change_type' => $changeType,
+            'change_qty' => $changeQty,
+            'before_qty' => $beforeQty,
+            'after_qty' => $afterQty,
+            'related_id' => $relatedId,
+            'related_type' => 'Transfer',
+            'remark' => $remark,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    /** 重算 products.stock_qty = SUM(quantity - frozen_qty)，对齐 StockService 口径。 */
+    private function syncProductStockQty(int $productId): void
+    {
+        $row = DB::table('stocks')->where('product_id', $productId)
+            ->selectRaw('COALESCE(SUM(quantity - frozen_qty), 0) as available')->first();
+        DB::table('products')->where('id', $productId)->update([
+            'stock_qty' => (int) ($row->available ?? 0),
+            'updated_at' => now(),
+        ]);
     }
 }

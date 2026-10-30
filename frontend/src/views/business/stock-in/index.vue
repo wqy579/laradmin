@@ -35,7 +35,7 @@ const columns = [
 	{ prop: 'product.name', title: '产品名称', width: 150, showOverflowTooltip: true },
 	{ prop: 'product.code', title: '产品编码', width: 100 },
 	{ prop: 'warehouse.name', title: '仓库', width: 100 },
-	{ prop: 'quantity', title: '入库数量', width: 100, align: 'center', slots: { default: 'quantity_default' } },
+	{ prop: 'quantity', title: '入库数量', width: 100, align: 'right', slots: { default: 'quantity_default' } },
 	{ prop: 'cost_price', title: '成本价', width: 100, align: 'right' },
 	{ prop: 'updated_at', title: '入库时间', width: 160 },
 	{ prop: 'action_col', title: '操作', width: 80, align: 'center', fixed: 'right', slots: { default: 'action_default' } },
@@ -62,4 +62,9 @@ onMounted(() => {
 <style scoped>
 .toolbar { margin-bottom: 12px; display: flex; justify-content: flex-end; }
 .text-success { color: var(--el-color-success); font-weight: bold; }
+:deep(.vxe-body--column .vxe-cell) { font-variant-numeric: tabular-nums; }
+:deep(.vxe-header--row) { height: 44px !important; }
+:deep(.vxe-header--column .vxe-cell) { font-size: var(--font-base); font-weight: 600; }
+:deep(.vxe-body--row) { height: 48px !important; }
+:deep(.vxe-body--row:nth-child(even)) { background-color: #FAFAFA; }
 </style>
