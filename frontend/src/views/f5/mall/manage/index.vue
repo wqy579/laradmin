@@ -211,7 +211,7 @@
 					</el-table-column>
 					<el-table-column label="数量" width="80" align="right" prop="quantity" />
 					<el-table-column label="单价" width="100" align="right">
-						<template #default="{ row }">{{ fmtPrice(row.price_small) }}/{{ row.unit_small }}</template>
+						<template #default="{ row }"><span class="mg-unit-price">{{ fmtPrice(row.price_small) }}/{{ row.unit_small }}</span></template>
 					</el-table-column>
 					<el-table-column label="金额" width="110" align="right">
 						<template #default="{ row }"><span class="mg-amount">{{ fmtPrice(row.amount) }}</span></template>
@@ -449,6 +449,7 @@ onMounted(() => {
 .mg-prod-code { font-size: 12px; color: #909399; }
 .mg-prices { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: #606266; font-variant-numeric: tabular-nums; }
 .mg-amount { font-variant-numeric: tabular-nums; font-weight: 600; }
+.mg-unit-price { font-variant-numeric: tabular-nums; }
 .mg-muted { color: #909399; font-size: 12px; }
 .mg-pager { display: flex; justify-content: flex-end; align-items: center; height: 52px; }
 .mg-card-order { margin-top: 0; }

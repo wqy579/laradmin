@@ -23,6 +23,7 @@
 
 		<!-- 模板列表 -->
 		<el-table :data="list" v-loading="loading" border>
+			<template #empty><FinEmpty /></template>
 			<el-table-column label="编码" width="140">
 				<template #default="{ row }"><span class="sms-code">{{ row.code }}</span></template>
 			</el-table-column>
@@ -135,6 +136,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import FinEmpty from '../../../finance/_FinEmpty.vue'
 import mallApi from '@/api/mall'
 
 const query = reactive({ keyword: '', status: null, page: 1, page_size: 10 })

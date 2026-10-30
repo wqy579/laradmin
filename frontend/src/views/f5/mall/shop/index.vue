@@ -273,7 +273,6 @@ onMounted(() => {
 .sp-card-img { height: 160px; background: #f5f7fa; display: flex; align-items: center; justify-content: center; position: relative; }
 .sp-card-img img { max-width: 100%; max-height: 100%; object-fit: cover; }
 .sp-card-img-ph { font-size: 24px; color: #c0c4cc; font-weight: 600; }
-.sp-tag-sold { position: absolute; top: 8px; right: 8px; background: #fef0f0; color: #f56c6c; font-size: 12px; padding: 2px 8px; border-radius: 2px; }
 .sp-card-body { padding: 12px; }
 .sp-card-name { font-size: 14px; color: #303133; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sp-card-spec { font-size: 12px; color: #909399; margin-top: 2px; }
