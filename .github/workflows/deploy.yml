@@ -94,11 +94,15 @@ jobs:
             # 注意 sed 的定界符用 # 避开 location 里的 /；幂等性靠「该 token 已在分组里就跳过」保证。
             # 2026-10-14：ledger 同型事故——/admin/ledger/* GET 被 try_files 兜成 SPA index.html
             # （200 text/html），POST 由 nginx 直接 405，验收误判「后端零实现」。
+            # 2026-10-30：perf / data 同型事故（QA-01 / QA-04）——绩效分析 9 页与基础档案
+            # 5 页共 17 个接口全部返回 200 text/html 的 517B index.html，被报成「后端未部署」。
+            # 两边代码与路由在 main 上早已齐备（perf 路由 a0c4309、data 路由 aa6c2bd），
+            # 缺的只是这两个顶层前缀进白名单。路由可达性检查（见 6.5）也已一并覆盖。
             ensure_nginx_proxy() {
               local cfg="/www/server/panel/vhost/nginx/laravel.qjwykj.com.conf"
               if [ ! -f "$cfg" ]; then echo "nginx 站点配置不存在，跳过白名单校验"; return 0; fi
               local changed=0 token
-              for token in dashboard ledger; do
+              for token in dashboard ledger perf data; do
                 if grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg"; then
                   echo "nginx 代理白名单已含 $token"
                   continue
@@ -277,14 +281,16 @@ jobs:
             #     正确代理 → Laravel 返回 401 application/json（路由存在）；
             #     被 try_files 兜底 → 200 text/html（index.html），即模块前缀漏配。
             #     返回 JSON 即算健康，不关心具体状态码（401=未登录属正常）。
-            # 探测三个前缀：dashboard 是 2026-10 事故的元凶（新顶层前缀漏配），
+            # 探测五个前缀：dashboard 是 2026-10 事故的元凶（新顶层前缀漏配），
             # business 覆盖 office 模块的 mail/notice/messages（messages 于 2026-10-15
             # 从顶层改挂 business/ 以进白名单）；ledger 是总账模块顶层前缀
             # （2026-10-14 漏配导致 /admin/ledger/* 全部被 try_files 兜成 HTML，
             # 验收误判「后端零实现」——content-type 探测就是给这类事故上的保险）。
+            # perf / data 是 QA-01 / QA-04（2026-10-30）漏配的两个顶层前缀：探针与
+            # ensure_nginx_proxy 必须同步覆盖，否则「白名单补了、探针没补」下次照样静默回归。
             # 任一被 try_files 兜成 HTML 即判失败——否则整个模块静默失效而部署标绿。
             route_ok=1
-            for path in dashboard/core-metrics business/notice ledger/subjects; do
+            for path in dashboard/core-metrics business/notice ledger/subjects perf/commission-rules data/company; do
               ok=0 ct=''
               for i in 1 2 3; do
                 ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \
