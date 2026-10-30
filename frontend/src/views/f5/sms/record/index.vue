@@ -24,6 +24,7 @@
 
 		<!-- 发送记录 -->
 		<el-table :data="list" v-loading="loading" border>
+			<template #empty><FinEmpty /></template>
 			<el-table-column label="发送编号" width="170">
 				<template #default="{ row }"><span class="rec-no">{{ row.send_no }}</span></template>
 			</el-table-column>
@@ -63,6 +64,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import FinEmpty from '../../../finance/_FinEmpty.vue'
 import mallApi from '@/api/mall'
 
 const query = reactive({ keyword: '', status: null, range: null, page: 1, page_size: 10 })
