@@ -526,6 +526,9 @@ const onCustomerChange = () => {
 	// 客户变了重新拉一次余额信息（下拉数据已含 balance/credit_limit）
 	// 同时清空车辆默认值——不同客户可能绑定不同配送线路
 	form.vehicle_id = null
+	// 单价按客户取价（特价/等级价），换客户后自动取价的行必须重算，
+	// 否则上一家客户的特价会留在单上（QA-08）
+	reapplyResolvedPrices()
 }
 // 「最近价」开：已填行的单价换成该客户上次成交价（后端按 customer+product 取最近一单）
 // 关：不动已填行（避免把用户手改的价格又冲掉），只影响之后新选的行
@@ -586,6 +589,9 @@ const blankRow = () => ({
 	// 缺陷 #20：行内单价被人工改过。改过之后选商品/重选商品都不再拿目录价覆盖，
 	// 补录历史单（当时的价 ≠ 现在的售价）时改多少就是多少。
 	_priceEdited: false,
+	// 单价来自取价引擎/最近价（非人工）。与手改同样不被目录价覆盖，
+	// 但换客户时可以被重新解析——人工敲的价则永远不动。
+	_priceAuto: false,
 })
 
 /** 把后端/商品列表的商品映射成行内字段（旧系统 applyProduct 的同款取值） */
@@ -605,7 +611,9 @@ const applyProduct = (item, p) => {
 	item.unit_conversion_medium = Number(p.unit_conversion_medium) || 0
 	// 缺陷 #20：这一行的三档单价是用户手敲的（多为补录历史单，当时价 ≠ 现售价），
 	// 选商品只补商品名/规格/单位/库存，绝不动价格——否则敲进去的价会被当前售价冲掉。
-	if (!item._priceEdited) {
+	// _priceAuto（取价引擎/最近价填的价）同享此保护：本函数常在重选同商品时再跑一遍，
+	// 冲掉后行会闪回目录价，取价结果白算一次；换客户要重算走 reapplyResolvedPrices。
+	if (!item._priceEdited && !item._priceAuto) {
 		const sm = Number(p.price_small) || 0
 		const mc = item.unit_conversion_medium
 		const c = item.unit_conversion
@@ -830,10 +838,12 @@ const calcAmount = (item) => {
 
 // 缺陷 #20：三档单价任一档被手敲过就打标记，之后选/换商品不再拿目录价覆盖。
 // 换算联动（改一档带出另两档）属于用户主动操作，同样算手改。
-const markPriceEdited = (item) => { item._priceEdited = true }
+// 人工敲价同时清掉「自动取价」标记：自动价可以被换客户冲掉，人工价永远不动
+const markPriceEdited = (item) => { item._priceEdited = true; item._priceAuto = false }
 /** 一键放弃手改价，按当前商品的目录价重新填充三档单价 */
 const restoreCatalogPrice = (item) => {
 	item._priceEdited = false
+	item._priceAuto = false
 	const p = (item._options || []).find(o => o.id === item.product_id) || null
 	if (!p) { ElMessage.warning('请重新搜索并选择该商品后再还原目录价'); return }
 	applyProduct(item, p)
@@ -907,8 +917,9 @@ const onModeChange = (item) => {
 		item.price_medium = 0
 		item.price_large = 0
 		item.price_source = '特殊'
-		// 单价已被清零，手改标记一并解除，换商品时照常带目录价
+		// 单价已被清零，手改/自动取价标记一并解除，换商品时照常带目录价
 		item._priceEdited = false
+		item._priceAuto = false
 	} else {
 		item.price_source = ''
 	}
@@ -966,14 +977,80 @@ const fillRowWithProduct = (row, p) => {
 	applyProduct(row, p)
 	// 「最近价」开关打开时，用该客户上次成交价覆盖目录价（异步不阻塞填行）。
 	// 缺陷 #20：手改过价的行不覆盖——历史单价是用户明确敲进去的。
-	if (form.use_recent_price && form.customer_id && !row._priceEdited) {
-		applyRecentPrice(row)
+	// _priceAuto 同理：已有自动取价的行再取一次也是同一个结果，纯多发请求。
+	if (form.customer_id && !priceLocked(row)) {
+		if (form.use_recent_price) applyRecentPrice(row)
+		else applyResolvedPrice([row])
 	}
 	row._searchKeyword = ''
 	row.stockError = false
 	row.price_source = CLEAR_PRICE_MODES.includes(row.sale_mode) ? '特殊' : ''
 	calcAmount(row)
 	checkStock(row)
+}
+// 该行是否该由取价引擎定价：已选商品、非赠送/陈列、且单价不是人工敲的。
+// _priceAuto 不在此列——它正是「换客户要重算」的那一批。
+const resolvable = (row) => !!row.product_id
+	&& !CLEAR_PRICE_MODES.includes(row.sale_mode)
+	&& !row._priceEdited
+
+// 单价是否受保护：人工敲过 或 取价引擎/最近价填过，都不许被目录价覆盖
+const priceLocked = (row) => row._priceEdited || row._priceAuto
+
+/**
+ * 取后端价格引擎的应取价（客户特价 > 促销价 > 等级价 > 默认折扣 > 标准售价）覆盖行内单价。
+ * 一次请求覆盖整批行（「全选添加」最多 20 行，逐行发就是 20 次）。
+ * 失败静默——保持目录价，不阻断录单。
+ */
+const applyResolvedPrice = async (rows) => {
+	const targets = rows.filter(resolvable)
+	if (!form.customer_id || !targets.length) return
+	const custId = form.customer_id
+	try {
+		// 故意不传 price：让后端按商品表标准售价取基准（ProductPriceController::calculate）。
+		// 若把行内当前价当基准，换客户二次解析时基准价已经是上一家的规则价，
+		// 无规则命中就原样回显 → 客户 A 的特价会被冻进客户 B 的单里。
+		const res = await businessApi.priceSystem.calculate.post({
+			customer_id: custId,
+			items: targets.map(row => ({ product_id: Number(row.product_id) })),
+		})
+		if (res.code !== 200) return
+		const hits = res.data?.list || []
+		targets.forEach(row => {
+			const pid = Number(row.product_id)
+			// 请求在途期间行可能换了商品、或用户改了客户 → 结果已不适用，丢弃
+			if (!pid || form.customer_id !== custId) return
+			const hit = hits.find(i => Number(i.product_id) === pid)
+			if (!hit) return
+			const ps = Number(hit.price) || 0
+			if (ps <= 0) return
+			row.price_small = ps
+			const mc = Number(row.unit_conversion_medium) || 0
+			const c = Number(row.unit_conversion) || 0
+			if (mc > 0) row.price_medium = Math.round(ps * mc * 100) / 100
+			if (c > 0) row.price_large = Math.round(ps * c * 100) / 100
+			// 命中标准售价说明该客户该商品没有任何规则，标签留空免得每行都挂个「标准售价」
+			row.price_source = hit.source && hit.source !== '标准售价' ? hit.source : ''
+			// 非目录价，不被后续填充冲掉；换客户时按 _priceAuto 重算
+			row._priceAuto = true
+			calcAmount(row)
+		})
+	} catch { /* 取价失败保持目录价 */ }
+}
+
+/**
+ * 换客户后重算已填行的单价（QA-08 验收口径：单价随客户变化）。
+ *
+ * 只动 _priceAuto 的行——取价引擎/最近价填的价本就依附于「当前客户」，客户变了必须重算；
+ * 人工敲过价的行一律不动（缺陷 #20：补录历史单当时价 ≠ 现售价）。
+ */
+const reapplyResolvedPrices = () => {
+	const rows = form.items.filter(row => row._priceAuto && resolvable(row))
+	if (!rows.length) return
+	// 先清标记再解析：结果回来前 applyProduct 若被触发，能正常带回目录价
+	rows.forEach(row => { row._priceAuto = false })
+	if (form.use_recent_price) rows.forEach(row => applyRecentPrice(row))
+	else applyResolvedPrice(rows)
 }
 // 取该客户此商品上次成交价覆盖行内单价（失败静默——保持目录价不阻断录单）
 const applyRecentPrice = async (row) => {
@@ -994,8 +1071,9 @@ const applyRecentPrice = async (row) => {
 		row.price_medium = pm
 		row.price_large = pl
 		row.price_source = '最近价'
-		// 最近成交价也是「非目录价」，同样纳入保护，避免被后续填充冲掉
-		row._priceEdited = true
+		// 最近成交价也是「非目录价」，同样纳入保护，避免被后续填充冲掉；
+		// 但它依附于具体客户，换客户要重算，故记为自动价而非手改（不挂「手改价」标签）
+		row._priceAuto = true
 		calcAmount(row)
 	} catch { /* 网络失败保持目录价 */ }
 }
@@ -1014,13 +1092,13 @@ const duplicateItem = (idx) => {
 		product_id, product_name, spec, sale_mode, price_source, stock, stockDisplay,
 		qty_large, qty_medium, qty_small, price_large, price_medium, price_small,
 		unit_large, unit_medium, unit_small, unit_conversion, unit_conversion_medium,
-		amount, remark, production_date, tax_rate, discount_rate, _options, _priceEdited,
+		amount, remark, production_date, tax_rate, discount_rate, _options, _priceEdited, _priceAuto,
 	} = src
 	Object.assign(copy, {
 		product_id, product_name, spec, sale_mode, price_source, stock, stockDisplay,
 		qty_large, qty_medium, qty_small, price_large, price_medium, price_small,
 		unit_large, unit_medium, unit_small, unit_conversion, unit_conversion_medium,
-		amount, remark, production_date, tax_rate, discount_rate, _options, _priceEdited,
+		amount, remark, production_date, tax_rate, discount_rate, _options, _priceEdited, _priceAuto,
 	})
 	form.items.splice(idx + 1, 0, copy)
 }
@@ -1168,6 +1246,7 @@ const clearProductFromRow = (row, reopen = false) => {
 	row.tax_rate = 0
 	row.discount_rate = 0
 	row._priceEdited = false
+	row._priceAuto = false
 	row._searchKeyword = ''
 	row._options = []
 	row.checkedProducts = []
