@@ -4533,6 +4533,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/profit/export",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\ProfitController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/promotion",
         "name": "admin.",
         "action": "Modules\\Order\\Http\\Controllers\\PromotionController@index",

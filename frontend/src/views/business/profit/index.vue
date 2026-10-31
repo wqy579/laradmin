@@ -3,6 +3,7 @@
 		<div class="toolbar">
 			<el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始" end-placeholder="结束" size="small" style="width:240px" value-format="YYYY-MM-DD" @change="fetchData" />
 			<el-button size="small" type="primary" @click="fetchData">查询(C)</el-button>
+			<el-button size="small" @click="handleExport">导出</el-button>
 		</div>
 		<div class="stat-cards">
 			<div class="stat-card"><div class="stat-label">总收入</div><div class="stat-value text-success">¥{{ Number(stats.total_income || 0).toFixed(2) }}</div></div>
@@ -60,11 +61,41 @@ const balanceLiabilities = ref([])
 const dateRange = ref(null)
 const profit = computed(() => Number(stats.value.total_income || 0) - Number(stats.value.total_expense || 0))
 
+function buildParams() {
+	const params = {}
+	if (dateRange.value?.[0]) params.start_date = dateRange.value[0]
+	if (dateRange.value?.[1]) params.end_date = dateRange.value[1]
+	return params
+}
+
+// 与 history 页同款：后端只回 CSV 文本，文件名前端拼（区间跟随当前查询条件）
+async function handleExport() {
+	try {
+		const params = new URLSearchParams(buildParams())
+		const token = localStorage.getItem('laradmin_token') || localStorage.getItem('token')
+		const res = await fetch(`/admin/business/profit/export?${params}`, {
+			headers: { Authorization: `Bearer ${token}` },
+		})
+		if (!res.ok) throw new Error(res.status)
+		const blob = await res.blob()
+		const url = URL.createObjectURL(blob)
+		const a = document.createElement('a')
+		a.href = url
+		// 未选区间时后端默认当前自然月，文件名同口径
+		const now = new Date()
+		const pad = (n) => String(n).padStart(2, '0')
+		const ym = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}`
+		const monthStart = params.get('start_date') || `${ym(now)}-01`
+		const monthEnd = params.get('end_date') || `${ym(new Date(now.getFullYear(), now.getMonth() + 1, 0))}`
+		a.download = `利润查询_${monthStart}_${monthEnd}.csv`
+		a.click()
+		URL.revokeObjectURL(url)
+	} catch { ElMessage.error('导出失败') }
+}
+
 async function fetchData() {
 	try {
-		const params = {}
-		if (dateRange.value?.[0]) params.start_date = dateRange.value[0]
-		if (dateRange.value?.[1]) params.end_date = dateRange.value[1]
+		const params = buildParams()
 		const res = await businessApi.profit.list.get(params)
 		if (res.code === 200) {
 			stats.value = res.data?.stats || {}

@@ -4,6 +4,7 @@ namespace Modules\Order\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -11,28 +12,78 @@ class ProfitController extends Controller
 {
     use ResponseTrait;
 
-    /** 月度利润：收入(收款) - 支出(付款+费用)，按类别分组 + 资产负债表 */
-    public function index(Request $request)
+    /**
+     * 区间解析：start_date+end_date 同时存在优先；其次 month=last/quarter；否则当前自然月。
+     *
+     * 返回 [$start, $endExclusive]。上界必须是**开区间**：date cast 列在 sqlite 里存成
+     * 'YYYY-MM-DD 00:00:00'，`<= 'YYYY-MM-DD'` 会静默丢掉 end_date 当天那一笔。
+     *
+     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
+     */
+    private function resolveRange(Request $request): array
     {
-        $month = $request->input('month');
-        $start = now()->startOfMonth();
-        $end = now()->endOfMonth();
-        if ($month === 'last') {
-            $start = now()->subMonth()->startOfMonth();
-            $end = now()->subMonth()->endOfMonth();
-        } elseif ($month === 'quarter') {
-            $start = now()->startOfQuarter();
-            $end = now()->endOfQuarter();
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        if ($startDate && $endDate) {
+            $request->validate([
+                'start_date' => 'date',
+                'end_date' => 'date|after_or_equal:start_date',
+            ]);
+
+            $start = CarbonImmutable::parse($startDate)->startOfDay();
+
+            return [$start, CarbonImmutable::parse($endDate)->startOfDay()->addDay()];
         }
 
-        $receiveTotal = (float) DB::table('receives')->where('status', 1)->whereBetween('receive_date', [$start, $end])->sum('amount');
-        $payTotal = (float) DB::table('pays')->where('status', 1)->whereBetween('pay_date', [$start, $end])->sum('amount');
-        $expenseTotal = (float) DB::table('expenses')->where('status', 1)->whereBetween('expense_date', [$start, $end])->sum('amount');
+        $month = $request->input('month');
+        if ($month === 'last') {
+            // subMonthNoOverflow：31 号跑 subMonth 会溢出回本月，month=last 就取不到上个自然月了
+            return [now()->subMonthNoOverflow()->startOfMonth(), now()->subMonthNoOverflow()->startOfMonth()->addMonth()];
+        }
+        if ($month === 'quarter') {
+            return [now()->startOfQuarter(), now()->startOfQuarter()->addMonthsNoOverflow(3)];
+        }
+
+        return [now()->startOfMonth(), now()->startOfMonth()->addMonth()];
+    }
+
+    /** @param string $endExclusive 开区间上界，见 resolveRange */
+    private function summarize(string $table, string $dateColumn, string $start, string $endExclusive): array
+    {
+        $base = DB::table($table)
+            ->where('status', 1)
+            ->where($dateColumn, '>=', $start)
+            ->where($dateColumn, '<', $endExclusive);
+
+        return [
+            'amount' => (float) (clone $base)->sum('amount'),
+            'count' => $base->count(),
+        ];
+    }
+
+    /**
+     * 利润数据（index 与 export 共用）。
+     *
+     * @return array{list: array, stats: array, balance_assets: array, balance_liabilities: array, start_date: string, end_date: string}
+     */
+    private function profitData(Request $request): array
+    {
+        [$start, $endExclusive] = $this->resolveRange($request);
+        $startStr = $start->toDateString();
+        $endExclusiveStr = $endExclusive->toDateString();
+
+        $receive = $this->summarize('receives', 'receive_date', $startStr, $endExclusiveStr);
+        $pay = $this->summarize('pays', 'pay_date', $startStr, $endExclusiveStr);
+        $expense = $this->summarize('expenses', 'expense_date', $startStr, $endExclusiveStr);
+
+        $receiveTotal = $receive['amount'];
+        $payTotal = $pay['amount'];
+        $expenseTotal = $expense['amount'];
 
         $list = [
-            ['category' => '收款收入', 'amount' => $receiveTotal, 'count' => DB::table('receives')->where('status', 1)->whereBetween('receive_date', [$start, $end])->count()],
-            ['category' => '付款支出', 'amount' => $payTotal, 'count' => DB::table('pays')->where('status', 1)->whereBetween('pay_date', [$start, $end])->count()],
-            ['category' => '费用支出', 'amount' => $expenseTotal, 'count' => DB::table('expenses')->where('status', 1)->whereBetween('expense_date', [$start, $end])->count()],
+            ['category' => '收款收入', 'amount' => $receiveTotal, 'count' => $receive['count']],
+            ['category' => '付款支出', 'amount' => $payTotal, 'count' => $pay['count']],
+            ['category' => '费用支出', 'amount' => $expenseTotal, 'count' => $expense['count']],
         ];
 
         // 资产负债表：从库存 + 应收 + 应付 + 现金实时计算
@@ -80,11 +131,44 @@ class ProfitController extends Controller
             'cash' => $cash,
         ];
 
-        return $this->success([
+        return [
             'list' => $list,
             'stats' => $stats,
             'balance_assets' => $assets,
             'balance_liabilities' => $equityAndLiabilities,
+            'start_date' => $startStr,
+            'end_date' => $endExclusive->subDay()->toDateString(),
+        ];
+    }
+
+    /** 利润查询：收入(收款) - 支出(付款+费用)，按类别分组 + 资产负债表 */
+    public function index(Request $request)
+    {
+        return $this->success($this->profitData($request));
+    }
+
+    /** 导出利润表 (CSV格式)，区间与 index 同参数同口径 */
+    public function export(Request $request)
+    {
+        $data = $this->profitData($request);
+
+        $csv = '﻿'; // BOM for Excel UTF-8
+        $csv .= "利润查询\n";
+        $csv .= "查询期间：{$data['start_date']} 至 {$data['end_date']}\n\n";
+        $csv .= "项目,金额,笔数\n";
+
+        foreach ($data['list'] as $row) {
+            $csv .= sprintf("%s,%.2f,%d\n", $row['category'], $row['amount'], $row['count']);
+        }
+
+        $csv .= sprintf(
+            "合计,%.2f,%d\n",
+            $data['stats']['total_income'] - $data['stats']['total_expense'],
+            array_sum(array_column($data['list'], 'count'))
+        );
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
         ]);
     }
 }
