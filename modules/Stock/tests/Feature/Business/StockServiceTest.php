@@ -188,8 +188,9 @@ class StockServiceTest extends TestCase
             Request::create('/', 'GET', ['product_id' => $this->product->id, 'warehouse_id' => $this->warehouse->id])
         );
 
-        $this->assertCount(1, $result['data']->items());
-        $this->assertSame(1, (int) $result['data']->items()[0]->quantity);
+        // 契约（QA-13）：data.list 行数组 + data.total 总数
+        $this->assertCount(1, $result['data']['list']);
+        $this->assertSame(1, (int) $result['data']['list'][0]->quantity);
         $this->assertTrue($result['products']->contains('id', $this->product->id));
         $this->assertCount(2, $result['warehouses']);
     }
@@ -200,8 +201,8 @@ class StockServiceTest extends TestCase
 
         $result = $this->stocks->query(Request::create('/', 'GET', ['per_page' => 20]));
 
-        $this->assertCount(1, $result['data']->items());
-        $this->assertSame(1, $result['data']->total());
+        $this->assertCount(1, $result['data']['list']);
+        $this->assertSame(1, $result['data']['total']);
     }
 
     public function test_statistics_aggregates_quantity_and_low_stock(): void

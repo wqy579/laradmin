@@ -31,6 +31,9 @@ use Modules\Report\Support\ReportFilter;
  *              库存差异代表账实不符，盘多要查账、盘少要赔，都按风险色处理。
  *   商品拆装    组装=子件出库父件入库，拆分=父件出库子件入库（审核时经
  *              StockService 写流水），本表按单据汇总两族。
+ *   库存分析    在金额/占比基础上补三个口径（QA-07）：周转率 = 期间出库 ÷ 现库存
+ *              （现库存 0 无基准显示「-」）；超期天数 = 今天 − 有效期至（未生效期为
+ *              「未设效期」，不入超期口径）；可销天数同 sellable 维度。
  *
  * 日均销量与 C 机库存预警中心同源（stocks_history 出库流水），保证两处「可销天数」一致。
  *
@@ -453,8 +456,16 @@ class StockAnalysisController extends Controller
         }
         $this->applyProductFilters($query, $params);
 
+        // 超期天数 = 今天 − 有效期至（正数即已超期），与 expiry 维度同用跨方言差值；
+        // 未设效期置 NULL，未到期归 0。不用 GREATEST（sqlite 无此函数），CASE 两方言通用。
+        $today = now()->toDateString();
+        $overdueExpr = DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(julianday('{$today}') - julianday(p.expiry_date) AS INTEGER)"
+            : 'DATEDIFF(CURDATE(), p.expiry_date)';
+        $overdueSql = "CASE WHEN p.expiry_date IS NULL THEN NULL WHEN ({$overdueExpr}) > 0 THEN ({$overdueExpr}) ELSE 0 END";
+
         return $query
-            ->groupBy('p.id', 'p.code', 'p.name', 'p.spec', 'p.price_unit_small', 'b.name', 'mc.name', 'p.cost_price', 'p.price_unit')
+            ->groupBy('p.id', 'p.code', 'p.name', 'p.spec', 'p.price_unit_small', 'b.name', 'mc.name', 'p.cost_price', 'p.price_unit', 'p.expiry_date')
             ->selectRaw("
                 p.id as product_id, p.code as product_code, p.name as product_name,
                 p.spec, p.price_unit_small as unit, COALESCE(b.name, '') as brand_name,
@@ -462,7 +473,8 @@ class StockAnalysisController extends Controller
                 COALESCE(SUM(s.quantity), 0) as current_stock,
                 COALESCE(p.cost_price, 0) as cost_price,
                 ROUND(COALESCE(SUM(s.quantity), 0) * COALESCE(p.cost_price, 0), 2) as cost_amount,
-                ROUND(COALESCE(SUM(s.quantity), 0) * COALESCE(p.price_small, p.price_large, 0), 2) as retail_amount
+                ROUND(COALESCE(SUM(s.quantity), 0) * COALESCE(p.price_small, p.price_large, 0), 2) as retail_amount,
+                {$overdueSql} as overdue_days
             ")
             ->when(empty($params['include_zero']), fn ($q) => $q->havingRaw('COALESCE(SUM(s.quantity), 0) > 0'))
             ->orderByDesc('retail_amount');
@@ -606,6 +618,13 @@ class StockAnalysisController extends Controller
             $r->sellable_days = $daily > 0 ? ReportFilter::num($cur / $daily) : null;
             $r->cost_share = $totalCost > 0 ? ReportFilter::num((float) $r->cost_amount / $totalCost * 100) : 0;
             $r->retail_share = $totalRetail > 0 ? ReportFilter::num((float) $r->retail_amount / $totalRetail * 100) : 0;
+
+            // 周转率（次/窗口）= 期间出库 ÷ 现库存；现库存 0 无周转基准，置 null 显示为「-」
+            $r->turnover_rate = $cur > 0 ? ReportFilter::num($out / $cur) : null;
+
+            $overdue = ($r->overdue_days ?? null) === null ? null : (int) $r->overdue_days;
+            $r->overdue_days = $overdue;
+            $r->overdue_level = $overdue === null ? '未设效期' : ($overdue > 0 ? '超期' : '正常');
 
             return $r;
         })->values();
@@ -839,6 +858,13 @@ class StockAnalysisController extends Controller
                     ['prop' => 'out_qty', 'label' => '期间出库', 'width' => 100, 'align' => 'right', 'type' => 'int', 'zero_gray' => true],
                     ['prop' => 'daily_out', 'label' => '日均出库', 'width' => 100, 'align' => 'right', 'type' => 'number', 'zero_gray' => true],
                     ['prop' => 'sellable_days', 'label' => '可销天数', 'width' => 100, 'align' => 'right', 'type' => 'number', 'danger_below' => 7],
+                    ['prop' => 'turnover_rate', 'label' => '周转率(次)', 'width' => 100, 'align' => 'right', 'type' => 'number', 'zero_gray' => true],
+                    ['prop' => 'overdue_days', 'label' => '超期天数', 'width' => 100, 'align' => 'right', 'type' => 'int', 'sign_color' => true, 'zero_gray' => true],
+                    ['prop' => 'overdue_level', 'label' => '效期状态', 'width' => 100, 'align' => 'center', 'type' => 'level', 'tag_map' => [
+                        '超期' => ['label' => '超期', 'color' => 'danger'],
+                        '正常' => ['label' => '正常', 'color' => 'info'],
+                        '未设效期' => ['label' => '未设效期', 'color' => 'info'],
+                    ]],
                 ]);
         }
 

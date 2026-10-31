@@ -135,6 +135,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/stock')->group(function () {
         Route::get('/', [StockController::class, 'index']);
         Route::get('/statistics', [StockController::class, 'statistics']);
+        // 静态段必须排在 /{stock} 之前（同文件其他族的规矩：/export 会被 {stock} 吞掉）
+        Route::get('/export', [StockController::class, 'export']);
         Route::get('/{stock}', [StockController::class, 'show']);
     });
     // 入库单

@@ -95,6 +95,7 @@ class FlowDemoSeeder extends Seeder
 
         $this->seedCustomerReconciliation($custA, $today, $now, $adminId);
         $this->seedPriceList($custA, $p1, $adminId, $today, $now);
+        $this->seedVisits($custA, $custB, $adminId, $now);
 
         $this->command->info('FlowDemoSeeder: 端到端业务流程演示数据已生成。');
     }
@@ -1314,6 +1315,95 @@ class FlowDemoSeeder extends Seeder
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);
+        }
+    }
+
+    /**
+     * 拜访域演示数据：两条线路（东/西）各挂客户，近 7 天按线路排期逐日拜访。
+     *
+     * 目标（QA-09）：业务员行程 / 访店达成率 / 拜访明细三页与 E7 visit 维度
+     * 从 0 条空页变成「按线路+日期」的真实排期数据；visit_logs.route_id 让
+     * scheduleQuery 的「所属线路」列有值。
+     *
+     * 幂等：routes 按 code 判重、visit_logs 按 visit_no 判重，重跑不重样。
+     * employee_id 用 admin 本人（employees 表在演示库为空，行程查询走
+     * auth_user join，COALESCE(e.code, u.username) 兜底出编码）。
+     */
+    private function seedVisits($custA, $custB, int $adminId, $now): void
+    {
+        $routes = [];
+        foreach ([['RT001', '城东线', '城东区'], ['RT002', '城西线', '城西区']] as [$code, $name, $area]) {
+            $existing = DB::table('routes')->where('code', $code)->first();
+            if ($existing) {
+                $routes[$code] = (int) $existing->id;
+
+                continue;
+            }
+            $id = $this->insertSafe('routes', [
+                'code' => $code, 'name' => $name, 'area' => $area,
+                'employee_id' => $adminId, 'sort_order' => $code === 'RT001' ? 1 : 2,
+                'is_active' => 1, 'created_at' => $now, 'updated_at' => $now,
+            ]);
+            if ($id) {
+                $routes[$code] = $id;
+            }
+        }
+
+        // 线路-客户：两条线路都含 A/B 客户（visit_order 决定当日拜访顺序，频次每天 1 次）
+        foreach ($routes as $code => $routeId) {
+            foreach ([[$custA, 1], [$custB, 2]] as [$cust, $order]) {
+                if (! $cust) {
+                    continue;
+                }
+                $exists = DB::table('route_customers')
+                    ->where('route_id', $routeId)->where('customer_id', $cust->id)->exists();
+                if (! $exists) {
+                    $this->insertRow('route_customers', [
+                        'route_id' => $routeId, 'customer_id' => $cust->id,
+                        'visit_order' => $order, 'visit_frequency' => 1,
+                        'created_at' => $now, 'updated_at' => $now,
+                    ]);
+                }
+            }
+        }
+
+        // 近 7 天排期：奇偶日交替走东/西线，每线 A→B 各一访；今天只访了 A（当天未走完）
+        $seq = 1;
+        for ($d = 6; $d >= 0; $d--) {
+            $day = $now->copy()->subDays($d);
+            $routeCode = $d % 2 === 0 ? 'RT001' : 'RT002';
+            $routeId = $routes[$routeCode] ?? null;
+            if (! $routeId) {
+                continue;
+            }
+            $stops = $d === 0 ? [[$custA, 1]] : [[$custA, 1], [$custB, 2]];
+            foreach ($stops as $i => [$cust, $order]) {
+                if (! $cust) {
+                    continue;
+                }
+                $checkin = $day->copy()->setTime(8 + 2 * $order, 30);
+                $checkout = $checkin->copy()->addMinutes(25 + 5 * $seq % 40);
+                $visitNo = 'VL'.$day->format('Ymd').str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
+                $seq++;
+                if (DB::table('visit_logs')->where('visit_no', $visitNo)->exists()) {
+                    continue;
+                }
+                $this->insertRow('visit_logs', [
+                    'visit_no' => $visitNo,
+                    'employee_id' => $adminId,
+                    'customer_id' => $cust->id,
+                    'route_id' => $routeId,
+                    'checkin_time' => $checkin->toDateTimeString(),
+                    'checkin_lat' => $cust->latitude, 'checkin_lng' => $cust->longitude,
+                    'checkin_address' => $cust->address ? mb_substr((string) $cust->address, 0, 200) : $cust->name.'（演示签到）',
+                    'checkout_time' => $checkout->toDateTimeString(),
+                    'visit_duration' => $checkin->diffInMinutes($checkout),
+                    'visit_result' => $order === 1 ? '成交' : '意向跟进',
+                    'status' => 1,
+                    'created_by' => $adminId,
+                    'created_at' => $checkin, 'updated_at' => $checkout,
+                ]);
+            }
         }
     }
 

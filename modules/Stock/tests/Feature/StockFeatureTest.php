@@ -337,4 +337,46 @@ class StockFeatureTest extends TestCase
         $this->assertSame('苹果汁', $rows[0]['product']['name'] ?? null, '库存行应带商品信息');
         $this->assertSame('一号仓', $rows[0]['warehouse']['name'] ?? null, '库存行应带仓库信息');
     }
+
+    /**
+     * QA-13：响应契约与 useTable 取值链对齐 —— data.list / data.total 必须存在，
+     * 且 page_size 参数必须生效（历史只认 per_page，页面每页恒 20）。
+     */
+    public function test_stock_index_honors_page_size_and_exposes_list_total(): void
+    {
+        $this->actingAsAdmin();
+        $product = $this->makeProduct(['name' => '可乐']);
+        $warehouse = $this->makeWarehouse(['name' => '主仓']);
+        foreach ([10, 20, 30] as $qty) {
+            $extra = $this->makeProduct(['name' => '商品'.$qty, 'code' => 'Q'.$qty]);
+            Stock::create(['product_id' => $extra->id, 'warehouse_id' => $warehouse->id, 'quantity' => $qty]);
+        }
+
+        $res = $this->getJson('/admin/business/stock?page=1&page_size=2')->assertOk();
+
+        $this->assertCount(2, $res->json('data.list'), 'page_size=2 应只返回 2 行');
+        $this->assertSame(3, $res->json('data.total'));
+        $this->assertSame(2, $res->json('data.page_size'));
+        $this->assertSame(2, $res->json('data.last_page'));
+        // 行数组别名保留：两个弹窗消费者与历史调用点读 res.data.data
+        $this->assertCount(2, $res->json('data.data'));
+    }
+
+    public function test_stock_export_returns_csv_with_filters(): void
+    {
+        $this->actingAsAdmin();
+        $warehouse = $this->makeWarehouse(['name' => '主仓']);
+        $p1 = $this->makeProduct(['name' => '可乐', 'code' => 'C001']);
+        $p2 = $this->makeProduct(['name' => '雪碧', 'code' => 'S001']);
+        Stock::create(['product_id' => $p1->id, 'warehouse_id' => $warehouse->id, 'quantity' => 5]);
+        Stock::create(['product_id' => $p2->id, 'warehouse_id' => $warehouse->id, 'quantity' => 8]);
+
+        $res = $this->getJson('/admin/business/stock/export?keyword=可乐');
+        $res->assertOk();
+        $this->assertStringContainsString('text/csv', $res->headers->get('content-type'));
+
+        $csv = $res->getContent();
+        $this->assertStringContainsString('可乐', $csv);
+        $this->assertStringNotContainsString('雪碧', $csv, '导出应尊重列表筛选条件');
+    }
 }

@@ -172,6 +172,7 @@ const businessApi = {
 	stock: {
 		list: { get: (params) => request.get('business/stock', { params }) },
 		detail: { get: (id) => request.get(`business/stock/${id}`) },
+		export: (params) => request.get('business/stock/export', { params, responseType: 'blob' }),
 	},
 
 	// 库存监控

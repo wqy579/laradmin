@@ -113,7 +113,10 @@ jobs:
               local cfg="/www/server/panel/vhost/nginx/laravel.qjwykj.com.conf"
               if [ ! -f "$cfg" ]; then echo "nginx 站点配置不存在，跳过白名单校验"; return 0; fi
               local changed=0 token
-              for token in dashboard ledger perf data cash asset/; do
+              # 2026-10-31：QA-03 同型事故——F 外围三个顶层前缀 hr（工资/提成流水）、
+              #     agr（协议管理）、f5（轨迹地图/商城/短信）不在白名单里，9 个页面接口
+              #     全部被兜成 index.html，表象同样是「后端未部署」。统一在此列全。
+              for token in auth business system dashboard ledger perf data cash asset hr agr f5 asset/; do
                 if grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg"; then
                   echo "nginx 代理白名单已含 $token"
                   continue
@@ -303,7 +306,7 @@ jobs:
             # 2026-10-31：补 cash / asset 两个前缀（QA-02 元凶）。这两个前缀此前只被
             # ensure_nginx_proxy 自愈，不在探测名单里，故「自愈没跑成」也不会红。
             route_ok=1
-            for path in dashboard/core-metrics business/notice ledger/subjects perf/commission-rules data/company cash/accounts/options asset/cards; do
+            for path in dashboard/core-metrics business/notice ledger/subjects hr/payrolls agr/agreements f5/sms/templates perf/commission-rules data/company cash/accounts/options asset/cards; do
               ok=0 ct=''
               for i in 1 2 3; do
                 ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \
