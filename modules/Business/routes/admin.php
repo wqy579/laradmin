@@ -48,6 +48,11 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         // 前端 business.js 的 attendance.statistics 声明了它，控制器方法也在，
         // 唯独漏了路由——与其他业务模块（订单/库存/调拨）的 /statistics 口径不一致。
         Route::get('/statistics', [AttendanceController::class, 'statistics']);
+        // 静态路由必须排在 /{attendance} 之前，否则 export 会被当成 id 参数吞掉。
+        // 服务端按 fin:attendance:export 节点拦 403：前端 v-permission 只是隐藏按钮，
+        // 导出属数据外带面，直接打接口也必须无权限即拒。
+        Route::get('/export', [AttendanceController::class, 'export'])
+            ->middleware('auth.check:admin,fin:attendance:export');
         Route::get('/{attendance}', [AttendanceController::class, 'show']);
         Route::post('/', [AttendanceController::class, 'store']);
         Route::put('/{attendance}', [AttendanceController::class, 'update']);

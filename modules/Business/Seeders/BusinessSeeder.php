@@ -512,6 +512,31 @@ class BusinessSeeder extends Seeder
             ]);
         }
 
+        // 拜访 / 考勤列表导出按钮权限点，挂在上面刚建好的 visit.visit / visit.attendance 菜单下。
+        // 写法与 $financeButtons 一致：type=button，统一授权 super_admin。
+        $visitButtons = [
+            ['name' => 'fin:visit:export', 'title' => '导出拜访记录', 'parent' => 'visit.visit', 'sort' => 1],
+            ['name' => 'fin:attendance:export', 'title' => '导出考勤记录', 'parent' => 'visit.attendance', 'sort' => 1],
+        ];
+        foreach ($visitButtons as $btn) {
+            $parentId = Permission::where('name', $btn['parent'])->value('id');
+            $perm = Permission::firstOrCreate(['name' => $btn['name']], [
+                'title' => $btn['title'],
+                'type' => 'button',
+                'parent_id' => $parentId,
+                'path' => $btn['name'],
+                'component' => null,
+                'sort' => $btn['sort'],
+                'status' => 1,
+            ]);
+            if ($superRoleId) {
+                DB::table('auth_role_permission')->updateOrInsert(
+                    ['role_id' => $superRoleId, 'permission_id' => $perm->id],
+                    ['updated_at' => now(), 'created_at' => now()]
+                );
+            }
+        }
+
         // 小程序管理子菜单
         $miniappParentId = Permission::where('name', 'miniapp')->value('id');
         Permission::firstOrCreate(['name' => 'miniapp.setting'], [

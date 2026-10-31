@@ -981,6 +981,19 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/attendance/export",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request",
+            "auth.check:admin,fin:attendance:export"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/attendance/statistics",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\AttendanceController@statistics",
@@ -8021,6 +8034,19 @@
             "stock.snapshot",
             "auth.check:admin",
             "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/visit/logs/export",
+        "name": "admin.",
+        "action": "Modules\\Order\\Http\\Controllers\\VisitLogController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request",
+            "auth.check:admin,fin:visit:export"
         ]
     },
     {

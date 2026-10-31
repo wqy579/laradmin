@@ -364,6 +364,8 @@ const businessApi = {
 			add: { post: (params) => request.post('business/visit/logs', params) },
 			edit: { put: (id, params) => request.put(`business/visit/logs/${id}`, params) },
 			delete: { delete: (id) => request.delete(`business/visit/logs/${id}`) },
+			// CSV 下载走 blob；响应头 content-disposition 带文件名，downloadApiResponse 优先用它
+			export: { get: (params) => request.get('business/visit/logs/export', { params, responseType: 'blob' }) },
 		},
 		achievement: { get: (params) => request.get('business/visit/achievement', { params }) },
 		schedule: { get: (params) => request.get('business/visit/schedule', { params }) },
@@ -429,6 +431,8 @@ const businessApi = {
 		update: { put: (id, params) => request.put(`business/attendance/${id}`, params) },
 		delete: { delete: (id) => request.delete(`business/attendance/${id}`) },
 		statistics: { get: (params) => request.get('business/attendance/statistics', { params }) },
+		// CSV 下载走 blob；响应头 content-disposition 带文件名，downloadApiResponse 优先用它
+		export: { get: (params) => request.get('business/attendance/export', { params, responseType: 'blob' }) },
 	},
 
 	// ============ 配送管理 ============

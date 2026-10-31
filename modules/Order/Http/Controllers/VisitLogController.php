@@ -46,6 +46,74 @@ class VisitLogController extends Controller
         return $this->success($visitLog);
     }
 
+    /**
+     * 拜访记录列表导出
+     *
+     * 筛选条件与 index() 逐一对齐（员工/线路/客户/日期区间/状态），导出结果 = 列表所见。
+     * 日期沿用 index() 的 whereDate('checkin_time')，不引入新的区间语义。
+     */
+    public function export(Request $request)
+    {
+        $query = VisitLog::with(['employee', 'customer', 'route']);
+
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->employee_id);
+        }
+        if ($request->filled('route_id')) {
+            $query->where('route_id', $request->route_id);
+        }
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
+        }
+        if ($request->filled('date_start')) {
+            $query->whereDate('checkin_time', '>=', $request->date_start);
+        }
+        if ($request->filled('date_end')) {
+            $query->whereDate('checkin_time', '<=', $request->date_end);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $rows = $query->orderBy('checkin_time', 'desc')->limit(50000)->get();
+
+        $statusLabels = [1 => '待拜访', 2 => '已拜访'];
+        $headers = ['拜访单号', '员工', '客户', '线路', '签到时间', '签退时间', '时长(分)', '状态', '拜访结果', '签到地址', '备注'];
+
+        $csv = "\u{FEFF}拜访记录\n\n".implode(',', $headers)."\n";
+        foreach ($rows as $r) {
+            $csv .= implode(',', [
+                $this->csvCell($r->visit_no),
+                $this->csvCell($r->employee?->real_name),
+                $this->csvCell($r->customer?->name),
+                $this->csvCell($r->route?->name),
+                $this->csvCell($r->checkin_time),
+                $this->csvCell($r->checkout_time),
+                $this->csvCell($r->visit_duration),
+                $this->csvCell($statusLabels[$r->status] ?? '未知'),
+                $this->csvCell($r->visit_result),
+                $this->csvCell($r->checkin_address),
+                $this->csvCell($r->remark),
+            ])."\n";
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="visit_logs.csv"',
+        ]);
+    }
+
+    /** CSV 单元格：含逗号/引号/换行的加引号转义 */
+    private function csvCell($value): string
+    {
+        $value = (string) ($value ?? '');
+        if (preg_match('/[",\r\n]/', $value)) {
+            $value = '"'.str_replace('"', '""', $value).'"';
+        }
+
+        return $value;
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([

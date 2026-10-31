@@ -213,6 +213,11 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // 拜访管理
     Route::prefix('business/visit')->group(function () {
         Route::get('/logs', [VisitLogController::class, 'index']);
+        // 静态路由必须排在 /logs/{visitLog} 之前，否则 export 会被当成 id 参数吞掉。
+        // 服务端按 fin:visit:export 节点拦 403：前端 v-permission 只是隐藏按钮，
+        // 导出属数据外带面，直接打接口也必须无权限即拒。
+        Route::get('/logs/export', [VisitLogController::class, 'export'])
+            ->middleware('auth.check:admin,fin:visit:export');
         Route::get('/logs/{visitLog}', [VisitLogController::class, 'show']);
         Route::post('/logs', [VisitLogController::class, 'store']);
         Route::put('/logs/{visitLog}', [VisitLogController::class, 'update']);
