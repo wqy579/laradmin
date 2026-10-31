@@ -33,12 +33,8 @@ class AdminPrefixWhitelistTest extends TestCase
         'auth',
         'business',
         'system',
-        // 2026-10-31 实测线上同样被 try_files 兜成 517B HTML，但归属其它机器，
-        // 待各自负责人补白名单（QA-01 的 perf、QA-04 的 data、QA-02 的 cash/asset
-        // 已各自进白名单，不再列在这里——留在例外清单里等于给「把 token 删掉」开绿灯）
-        'agr',
-        'f5',
-        'hr',
+        // 2026-10-31：perf/data（QA-01/04）、cash/asset（QA-02）与 hr/agr/f5（QA-03）
+        // 均已进白名单并挂探针，故全部移出例外清单——留在里面等于给「把 token 删掉」开绿灯。
         // 闭包路由 artisan migrate 的远程触发口，非前端调用；有意不暴露到公网
         'remote',
     ];

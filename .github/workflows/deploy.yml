@@ -116,7 +116,12 @@ jobs:
               # 2026-10-31：QA-03 同型事故——F 外围三个顶层前缀 hr（工资/提成流水）、
               #     agr（协议管理）、f5（轨迹地图/商城/短信）不在白名单里，9 个页面接口
               #     全部被兜成 index.html，表象同样是「后端未部署」。统一在此列全。
-              for token in auth business system dashboard ledger perf data cash asset hr agr f5 asset/; do
+              # 2026-10-31 复核：上一版把 auth/business/system 也插了进来，但 6.5 探针没有
+              #     对应路径，违反「白名单与探针成对」；三者站点 nginx 成文时即已包含、无需
+              #     补插（见 AdminPrefixWhitelistTest::KNOWN_NOT_WHITELISTED），故移出本列表。
+              #     同版还把裸 asset 与 asset/ 并列——裸 asset 会误吞 /admin/assets/*
+              #     （前端构建产物）导致后台整站白屏，已由 shadow 守卫拦下，务必只留 asset/。
+              for token in dashboard ledger perf data cash asset/ hr agr f5; do
                 if grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg"; then
                   echo "nginx 代理白名单已含 $token"
                   continue
