@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Modules\Ledger\Models\Voucher;
+use Modules\Ledger\Support\BusinessVoucherBridge;
 use Modules\Order\Models\Delivery;
 use Modules\Order\Models\DeliveryItem;
 use Modules\Stock\Exceptions\StockRuleException;
@@ -14,6 +16,7 @@ use Modules\Stock\Services\StockService;
 
 class DeliveryController extends Controller
 {
+    use BusinessVoucherBridge;
     use ResponseTrait;
 
     public function __construct(private readonly StockService $stocks) {}
@@ -215,6 +218,11 @@ class DeliveryController extends Controller
             $delivery->status = 1;
             $delivery->save();
             DB::commit();
+
+            // QA-05：出库即确认收入与成本，产出两张凭证（收入：借 1122 / 贷 6001；
+            // 成本：借 5401 / 贷 1405）。必须在 DB::commit() 之后——凭证生成失败
+            // 绝不能把已扣的库存一起回滚，本方法内部吞异常。
+            $this->generateVoucherQuietly(Voucher::SOURCE_DELIVERY, (int) $delivery->id);
 
             return $this->success(null, '发货成功');
         } catch (StockRuleException $e) {

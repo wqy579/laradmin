@@ -12,6 +12,7 @@ use Modules\Cash\Seeders\CashSeeder;
 use Modules\Hr\Seeders\HrSeeder;
 use Modules\Ledger\Seeders\LedgerSeeder;
 use Modules\Performance\Seeders\PerformanceMenuSeeder;
+use Modules\Stock\Seeders\PricePlanDemoSeeder;
 use Modules\System\Seeders\SystemSeeder;
 
 /*
@@ -28,6 +29,10 @@ use Modules\System\Seeders\SystemSeeder;
 |   BusinessSeeder     —— 只写权限菜单，依赖 AuthSeeder 已建好 permissions 表数据
 |   LedgerSeeder       —— 总账菜单/权限节点/预置科目，依赖 AuthSeeder 已建好 permissions
 |   BusinessDataSeeder —— 商品 / 分类 / 仓库等主数据，依赖上面全部
+|   PricePlanDemoSeeder —— 价格方案/客户特价（QA-08），依赖 BusinessDataSeeder 的
+|                        客户与商品；同一条播种逻辑也被数据迁移
+|                        2026_11_06_000002 调用（部署只跑 migrate --force，不跑 seed），
+|                        那里跑不到本条依赖，故客户级数据只在 seed 这条路径上补齐。
 |
 | FlowDemoSeeder（端到端业务流程演示数据：销售→配送→车销→借还→换货→库存→收付款→退货）
 | 不在默认链路里——MigrationSmokeTest 基线要求默认种子不产生任何业务单据和库存行。
@@ -45,6 +50,8 @@ class DatabaseSeeder extends Seeder
             BusinessSeeder::class,
             LedgerSeeder::class,
             BusinessDataSeeder::class,
+            // 依赖 BusinessDataSeeder 的客户/商品，必须排其后
+            PricePlanDemoSeeder::class,
             PerformanceMenuSeeder::class,
             CashSeeder::class,
             HrSeeder::class,

@@ -47,6 +47,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/templates', [VoucherController::class, 'templates']);
         Route::post('/templates', [VoucherController::class, 'saveTemplate']);
         Route::get('/subject-ledger', [VoucherController::class, 'subjectLedger']);
+        // 单张业务单据手动补生成凭证（QA-05）。静态段，必须排在 /{id} 之前
+        Route::post('/generate-from-business', [VoucherController::class, 'generateFromBusiness']);
         Route::post('/', [VoucherController::class, 'store']);
         Route::get('/{id}', [VoucherController::class, 'show']);
         Route::put('/{id}', [VoucherController::class, 'update']);
@@ -60,6 +62,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     // ===== 财务月结 =====
     Route::prefix('ledger/periods')->group(function () {
         Route::get('/', [PeriodController::class, 'index']);
+        Route::get('/boot-status', [PeriodController::class, 'bootStatus']);
         Route::post('/{period}/check', [PeriodController::class, 'check']);
         Route::post('/{period}/carry-forward', [PeriodController::class, 'carryForward']);
         Route::post('/{period}/close', [PeriodController::class, 'close']);

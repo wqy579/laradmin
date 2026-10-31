@@ -7,6 +7,8 @@ use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Ledger\Models\Voucher;
+use Modules\Ledger\Support\BusinessVoucherBridge;
 use Modules\Stock\Exceptions\StockRuleException;
 use Modules\Stock\Models\StockAdjust;
 use Modules\Stock\Models\StockAdjustItem;
@@ -24,6 +26,7 @@ use Modules\Stock\Services\StockService;
  */
 class StockAdjustController extends Controller
 {
+    use BusinessVoucherBridge;
     use ResponseTrait;
 
     public function __construct(private StockService $stockService) {}
@@ -459,6 +462,9 @@ class StockAdjustController extends Controller
             return $this->error('审核失败：'.$e->getMessage().'，请调整调整数量后重试', 422);
         }
 
+        // QA-05：盘亏借 6711 / 贷 1405，盘盈反向（事务外生成，失败不回滚库存联动）。
+        $this->generateVoucherQuietly(Voucher::SOURCE_STOCK_ADJUST, (int) $adjust->id);
+
         return $this->success($adjust->load('items', 'warehouse'), '审核通过，库存与财务凭证已生成');
     }
 
@@ -482,8 +488,11 @@ class StockAdjustController extends Controller
 
         $adjusts = StockAdjust::with('items')->whereIn('id', $validated['ids'])->orderBy('id')->get();
 
+        // 事务外收集：闭包内 append，事务提交后据此逐张生成凭证
+        $approvedIds = [];
+
         try {
-            $result = DB::transaction(function () use ($adjusts, $adminId, $adminName, $comment) {
+            $result = DB::transaction(function () use ($adjusts, $adminId, $adminName, $comment, &$approvedIds) {
                 $approved = 0;
                 $skipped = [];
 
@@ -506,12 +515,19 @@ class StockAdjustController extends Controller
 
                     $this->applyApproval($adjust, $adminId, $adminName, $comment);
                     $approved++;
+                    $approvedIds[] = (int) $adjust->id;
                 }
 
                 return ['approved' => $approved, 'skipped' => $skipped];
             });
         } catch (StockRuleException $e) {
             return $this->error('批量审核失败：'.$e->getMessage().'，已全部回滚', 422);
+        }
+
+        // QA-05：事务提交后逐张生成盘盈/盘亏凭证；单张失败只记日志，
+        // 不回滚已通过的批量审核（可用 ledger:generate-vouchers 补跑）
+        foreach ($approvedIds as $adjustId) {
+            $this->generateVoucherQuietly(Voucher::SOURCE_STOCK_ADJUST, $adjustId);
         }
 
         return $this->success($result, "批量审核完成：成功 {$result['approved']} 张，跳过 ".count($result['skipped']).' 张');

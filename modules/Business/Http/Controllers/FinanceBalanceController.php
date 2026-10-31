@@ -11,6 +11,9 @@ use Modules\Business\Services\FinanceBalanceService;
  * 财务余额查询（B3）—— 客户 / 品牌 / 辅助单位 余额查询视图
  *
  * 只读透出 ledger 分录按维度聚合余额，无写入。
+ *
+ * QA-06：余额唯一数据源为 Ledger；本接口为历史兼容只读视图（客户/品牌/辅助单位维度聚合
+ * ledger 端点暂缺，故 /finance/balance 页仍调用本接口）。
  */
 class FinanceBalanceController extends Controller
 {

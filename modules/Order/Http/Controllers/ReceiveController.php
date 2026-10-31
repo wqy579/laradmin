@@ -8,12 +8,15 @@ use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Modules\Ledger\Models\Voucher;
+use Modules\Ledger\Support\BusinessVoucherBridge;
 use Modules\Order\Models\Customer;
 use Modules\Order\Models\SalesOrder;
 use Modules\Order\Services\ReceiveService;
 
 class ReceiveController extends Controller
 {
+    use BusinessVoucherBridge;
     use ResponseTrait;
 
     protected ReceiveService $service;
@@ -378,6 +381,10 @@ class ReceiveController extends Controller
 
         // 收款审核通过 → 通知出纳。审核事务已提交后才发，通知失败不阻断主流程。
         $this->notifyCashier($receive);
+
+        // QA-05：生成凭证（借 1001 现金 / 1002 银行存款，贷 1122 应收账款-客户）。
+        // 放在审核之后且吞掉异常：凭证生成失败不回滚审核，可用 ledger:generate-vouchers 补跑。
+        $this->generateVoucherQuietly(Voucher::SOURCE_RECEIVE, (int) $receive->id);
 
         return $this->success($receive);
     }

@@ -101,11 +101,27 @@ jobs:
             #     tests/Feature/NginxProxyWhitelistTest.php 会钉住这一点。
             # token 列表按 frontend/src/api/*.js 实际调用的全部顶层前缀给全：
             # 自愈逻辑「已含则跳过」，多列没有副作用，漏列才会出事故。
+            # 2026-10-30：perf / data 同型事故（QA-01 / QA-04）——绩效分析 9 页与基础档案
+            # 5 页共 17 个接口全部返回 200 text/html 的 517B index.html，被报成「后端未部署」。
+            # 两边代码与路由在 main 上早已齐备（perf 路由 a0c4309、data 路由 aa6c2bd），
+            # 缺的只是这两个顶层前缀进白名单。路由可达性检查（见 6.5）也已一并覆盖。
+            # 2026-10-31：QA-02 同型事故第三例——Cash(D1~D8)/Asset(D3~D4) 两模块用顶层前缀
+            # /admin/cash/*、/admin/asset/*，白名单没跟进，11 个页面全部拿到 517B index.html，
+            # 表象被记成「后端未部署」。故新增 cash / asset 两个 token。
+            #
+            # asset 必须写成带边界的 `asset/`，不能写裸 `asset`：分支正则 ^/admin/(a|b) 无词
+            # 边界，裸 asset 会连带命中前端构建产物 /admin/assets/*.js 并 proxy_pass 进
+            # Laravel → 后台整站白屏。带斜杠后只命中 /admin/asset/<子路径>，而路由表里
+            # asset 全部形如 /admin/asset/{cards,depreciations,purchases,sales}，不存在裸
+            # /admin/asset，故一个 token 覆盖全部且不误伤。
+            # 另一层收益：本函数自己的幂等 grep 也依赖这个边界——裸 asset 会被配置里已存在
+            # 的 assets 假命中，判成「白名单已含」而跳过插入，白名单实际根本没生效。
             ensure_nginx_proxy() {
               local cfg="/www/server/panel/vhost/nginx/laravel.qjwykj.com.conf"
               if [ ! -f "$cfg" ]; then echo "nginx 站点配置不存在，跳过白名单校验"; return 0; fi
               local changed=0 token
-              for token in auth business system perf cash ledger data asset dashboard hr agr f5; do
+            route_ok=1
+            for path in auth business system perf cash ledger data asset dashboard hr agr f5 asset/; do
                 if grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg"; then
                   echo "nginx 代理白名单已含 $token"
                   continue
@@ -284,15 +300,21 @@ jobs:
             #     正确代理 → Laravel 返回 401 application/json（路由存在）；
             #     被 try_files 兜底 → 200 text/html（index.html），即模块前缀漏配。
             #     返回 JSON 即算健康，不关心具体状态码（401=未登录属正常）。
-            # 探测三个前缀：dashboard 是 2026-10 事故的元凶（新顶层前缀漏配），
+            # 探测五个前缀：dashboard 是 2026-10 事故的元凶（新顶层前缀漏配），
             # business 覆盖 office 模块的 mail/notice/messages（messages 于 2026-10-15
             # 从顶层改挂 business/ 以进白名单）；ledger 是总账模块顶层前缀
             # （2026-10-14 漏配导致 /admin/ledger/* 全部被 try_files 兜成 HTML，
             # 验收误判「后端零实现」——content-type 探测就是给这类事故上的保险）。
+            # perf / data 是 QA-01 / QA-04（2026-10-30）漏配的两个顶层前缀：探针与
+            # ensure_nginx_proxy 必须同步覆盖，否则「白名单补了、探针没补」下次照样静默回归。
             # 任一被 try_files 兜成 HTML 即判失败——否则整个模块静默失效而部署标绿。
             # 每个顶层前缀都要有一条：hr/agr/f5 是 QA-03 补的（漏配时 9 个页面全空）。
             route_ok=1
-            for path in dashboard/core-metrics business/notice ledger/subjects hr/payrolls agr/agreements f5/sms/templates; do
+            # 2026-10-31：补 cash / asset 两个前缀（QA-02 元凶）。这两个前缀此前只被
+            # ensure_nginx_proxy 自愈，不在探测名单里，故「自愈没跑成」也不会红。
+            route_ok=1
+            route_ok=1
+            for path in dashboard/core-metrics business/notice ledger/subjects hr/payrolls agr/agreements f5/sms/templates perf/commission-rules data/company cash/accounts/options asset/cards; do
               ok=0 ct=''
               for i in 1 2 3; do
                 ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \

@@ -12,6 +12,9 @@ use Modules\Business\Services\FinanceJournalService;
  * 财务日记账（B1）—— 现金/银行日记账查询视图
  *
  * 只读透出 ledger 现金(1001)/银行(1002)科目流水，无写入。
+ *
+ * QA-06：日记账唯一数据源为 Ledger；本接口为历史兼容只读视图（跨科目聚合 + 逐行滚余额
+ * ledger 端点暂缺，故 /finance/journal 页仍调用本接口）。
  */
 class FinanceJournalController extends Controller
 {

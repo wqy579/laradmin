@@ -3,6 +3,7 @@
 namespace Modules\Ledger\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Modules\Ledger\Console\Commands\GenerateVouchers;
 
 /**
  * 总账管理模块（Ledger）服务提供者
@@ -12,11 +13,18 @@ use Illuminate\Support\ServiceProvider;
  *
  * 路由由 bootstrap/app.php 的 glob（modules 下各模块 routes/admin.php）
  * 自动发现并套内核信封（api + stock.snapshot + /admin 前缀 + admin. 命名），
- * 本 Provider 只负责注册迁移与种子目录。
+ * 本 Provider 负责注册迁移/种子目录与模块自带命令行。
  */
 class LedgerServiceProvider extends ServiceProvider
 {
-    public function register(): void {}
+    protected array $commands = [
+        GenerateVouchers::class,
+    ];
+
+    public function register(): void
+    {
+        $this->commands($this->commands);
+    }
 
     public function boot(): void
     {

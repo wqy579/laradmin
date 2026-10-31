@@ -5,10 +5,13 @@ namespace Modules\Order\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
 use Illuminate\Http\Request;
+use Modules\Ledger\Models\Voucher;
+use Modules\Ledger\Support\BusinessVoucherBridge;
 use Modules\Order\Services\PayService;
 
 class PayController extends Controller
 {
+    use BusinessVoucherBridge;
     use ResponseTrait;
 
     protected PayService $service;
@@ -81,6 +84,9 @@ class PayController extends Controller
         }
 
         $pay = $this->service->approve($pay);
+
+        // QA-05：借 2202 应付账款-供应商 / 贷 1001 现金、1002 银行存款。失败不回滚审核。
+        $this->generateVoucherQuietly(Voucher::SOURCE_PAY, (int) $pay->id);
 
         return $this->success($pay);
     }
