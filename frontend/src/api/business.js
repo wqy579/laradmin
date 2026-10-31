@@ -820,11 +820,14 @@ const businessApi = {
 			approve: { post: (id) => request.post(`business/general-expense/${id}/approve`) },
 			delete: { delete: (id) => request.delete(`business/general-expense/${id}`) },
 			statistics: { get: (params) => request.get('business/general-expense/statistics', { params }) },
+			// CSV 下载走 blob；响应头 content-disposition 带文件名，downloadApiResponse 优先用它
+			export: { get: (params) => request.get('business/general-expense/export', { params, responseType: 'blob' }) },
 		},
 		// 其它收入单（B9）：只读自 Order 的 receives（receive_type=2），无写接口
 		otherIncome: {
 			list: { get: (params) => request.get('business/other-income', { params }) },
 			statistics: { get: (params) => request.get('business/other-income/statistics', { params }) },
+			export: { get: (params) => request.get('business/other-income/export', { params, responseType: 'blob' }) },
 		},
 	},
 

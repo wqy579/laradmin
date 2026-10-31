@@ -4,11 +4,16 @@ namespace Modules\Business\Services;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Modules\Business\Models\Expense;
 
 class ExpenseService
 {
+    /** 导出行数上限，防止全表拉爆内存 */
+    public const EXPORT_LIMIT = 50000;
+
     public function create(array $data): Expense
     {
         return DB::transaction(function () use ($data) {
@@ -75,6 +80,25 @@ class ExpenseService
 
     public function list(array $filters = [], int $page = 1, int $pageSize = 20): LengthAwarePaginator
     {
+        return $this->filtered($filters)
+            ->orderByDesc('id')
+            ->paginate($pageSize, ['*'], 'page', $page);
+    }
+
+    /** 导出行：与 list 同一套筛选条件，仅去掉分页换成上限保护 */
+    public function exportRows(array $filters = []): Collection
+    {
+        return $this->filtered($filters)->orderByDesc('id')->limit(self::EXPORT_LIMIT)->get();
+    }
+
+    /**
+     * 列表/导出共用筛选。
+     *
+     * 日期上界必须是**开区间**：expense_date 是 date cast，经 Eloquent 写入 sqlite 存成
+     * 'YYYY-MM-DD 00:00:00'，`<= 'YYYY-MM-DD'` 会静默丢掉 end_date 当天那一笔。
+     */
+    private function filtered(array $filters): Builder
+    {
         $query = Expense::with(['handler', 'department']);
 
         if (! empty($filters['expense_type'])) {
@@ -87,11 +111,10 @@ class ExpenseService
             $query->where('expense_date', '>=', $filters['start_date']);
         }
         if (! empty($filters['end_date'])) {
-            // 开区间上界：date cast 列在 sqlite 存成 'YYYY-MM-DD 00:00:00'，`<=` 会丢掉当天那笔
             $query->where('expense_date', '<', CarbonImmutable::parse($filters['end_date'])->startOfDay()->addDay());
         }
 
-        return $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
+        return $query;
     }
 
     public function statistics(array $filters = []): array

@@ -67,6 +67,30 @@ class OtherIncomeFeatureTest extends TestCase
         $this->assertSame(98.88, (float) $stats['total_amount']);
     }
 
+    public function test_export_returns_bom_csv_following_list_filters(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->createReceive('2026-10-10', 10.00);
+        $this->createReceive('2026-10-15', 88.88);
+        $this->createReceive('2026-10-16', 77.77);
+        $this->createReceive('2026-10-12', 55.55, status: 0);
+
+        $res = $this->get(self::BASE.'/export?status=1&start_date=2026-10-01&end_date=2026-10-15');
+
+        $res->assertOk();
+        $this->assertStringContainsString('text/csv', $res->headers->get('Content-Type'));
+
+        $body = $res->getContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $body);
+        $this->assertStringContainsString('单号,往来单位,金额,收入日期,付款方式,经手人,状态,备注', $body);
+        // end_date 当天那笔必须在；区间外（次日）与状态外（草稿）不得混入
+        $this->assertStringContainsString(',88.88,2026-10-15,', $body);
+        $this->assertStringContainsString(',10.00,2026-10-10,', $body);
+        $this->assertStringNotContainsString('77.77', $body);
+        $this->assertStringNotContainsString('55.55', $body);
+    }
+
     public function test_unauthenticated_is_rejected(): void
     {
         $this->getJson(self::BASE)->assertStatus(401);

@@ -167,6 +167,29 @@ class GeneralExpenseFeatureTest extends TestCase
         $this->assertSame(88.88, (float) $stats['total_amount']);
     }
 
+    public function test_export_returns_bom_csv_following_list_filters(): void
+    {
+        $this->actingAsAdmin();
+
+        $this->createExpense(['expense_type' => '差旅费', 'expense_date' => '2026-10-05', 'amount' => 66.60]);
+        $onEndId = $this->createExpense(['expense_type' => '租金', 'expense_date' => '2026-10-15', 'amount' => 88.88]);
+        $this->postJson(self::BASE."/{$onEndId}/approve")->assertOk();
+        $this->createExpense(['expense_type' => '租金', 'expense_date' => '2026-10-16', 'amount' => 77.77]);
+
+        $res = $this->get(self::BASE.'/export?expense_type='.urlencode('租金').'&start_date=2026-10-01&end_date=2026-10-15');
+
+        $res->assertOk();
+        $this->assertStringContainsString('text/csv', $res->headers->get('Content-Type'));
+
+        $body = $res->getContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $body);
+        $this->assertStringContainsString('单号,费用科目,金额,费用日期,经手人,部门,状态,备注', $body);
+        // end_date 当天那笔必须在；区间外（次日）与类型外（差旅费）不得混入
+        $this->assertStringContainsString(',租金,88.88,2026-10-15,,', $body);
+        $this->assertStringNotContainsString('77.77', $body);
+        $this->assertStringNotContainsString('66.60', $body);
+    }
+
     public function test_unauthenticated_is_rejected(): void
     {
         $this->getJson(self::BASE)->assertStatus(401);
