@@ -2,6 +2,7 @@
 
 namespace Modules\Business\Services;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Modules\Business\Models\Expense;
@@ -86,7 +87,8 @@ class ExpenseService
             $query->where('expense_date', '>=', $filters['start_date']);
         }
         if (! empty($filters['end_date'])) {
-            $query->where('expense_date', '<=', $filters['end_date']);
+            // 开区间上界：date cast 列在 sqlite 存成 'YYYY-MM-DD 00:00:00'，`<=` 会丢掉当天那笔
+            $query->where('expense_date', '<', CarbonImmutable::parse($filters['end_date'])->startOfDay()->addDay());
         }
 
         return $query->orderByDesc('id')->paginate($pageSize, ['*'], 'page', $page);
@@ -100,7 +102,7 @@ class ExpenseService
             $query->where('expense_date', '>=', $filters['start_date']);
         }
         if (! empty($filters['end_date'])) {
-            $query->where('expense_date', '<=', $filters['end_date']);
+            $query->where('expense_date', '<', CarbonImmutable::parse($filters['end_date'])->startOfDay()->addDay());
         }
         if (! empty($filters['expense_type'])) {
             $query->where('expense_type', $filters['expense_type']);

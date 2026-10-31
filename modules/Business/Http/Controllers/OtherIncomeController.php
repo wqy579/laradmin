@@ -4,6 +4,7 @@ namespace Modules\Business\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Traits\ResponseTrait;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Modules\Order\Models\Receive;
 
@@ -26,7 +27,8 @@ class OtherIncomeController extends Controller
             $query->where('receive_date', '>=', $request->start_date);
         }
         if ($request->filled('end_date')) {
-            $query->where('receive_date', '<=', $request->end_date);
+            // 开区间上界：date cast 列在 sqlite 存成 'YYYY-MM-DD 00:00:00'，`<=` 会丢掉当天那笔
+            $query->where('receive_date', '<', CarbonImmutable::parse($request->end_date)->startOfDay()->addDay());
         }
         if ($request->filled('keyword')) {
             $query->where('receive_no', 'like', '%'.$request->keyword.'%');
@@ -45,7 +47,7 @@ class OtherIncomeController extends Controller
             $query->where('receive_date', '>=', $request->start_date);
         }
         if ($request->filled('end_date')) {
-            $query->where('receive_date', '<=', $request->end_date);
+            $query->where('receive_date', '<', CarbonImmutable::parse($request->end_date)->startOfDay()->addDay());
         }
 
         return $this->success([

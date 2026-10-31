@@ -141,6 +141,32 @@ class GeneralExpenseFeatureTest extends TestCase
         $this->assertSame(1, (int) $stats['count']);
     }
 
+    public function test_end_date_day_itself_is_included_in_list_and_statistics(): void
+    {
+        $this->actingAsAdmin();
+
+        // 坑同 ProfitRangeTest：date cast 经 Eloquent 写入 sqlite 是 'YYYY-MM-DD 00:00:00'，
+        // 字符串上界 `<= 'YYYY-MM-DD'` 会静默丢掉 end_date 当天那笔（MySQL DATE 列无此差异，CI 抓不到）
+        $this->createExpense(['expense_date' => '2026-10-10', 'amount' => 10.00]);
+        $onEndId = $this->createExpense(['expense_date' => '2026-10-15', 'amount' => 88.88]);
+        $this->postJson(self::BASE."/{$onEndId}/approve")->assertOk();
+        $afterEndId = $this->createExpense(['expense_date' => '2026-10-16', 'amount' => 77.77]);
+        $this->postJson(self::BASE."/{$afterEndId}/approve")->assertOk();
+
+        $range = $this->getJson(self::BASE.'?start_date=2026-10-01&end_date=2026-10-15')
+            ->assertOk()->json('data');
+        $this->assertSame(2, $range['total']);
+        $dates = array_map(fn ($row) => substr((string) $row['expense_date'], 0, 10), $range['list']);
+        $this->assertContains('2026-10-15', $dates);
+        $this->assertNotContains('2026-10-16', $dates);
+
+        // 统计（只算已审核）：88.88 那笔在 end_date 当天，必须计入；次日已审核那笔不得混入
+        $stats = $this->getJson(self::BASE.'/statistics?start_date=2026-10-01&end_date=2026-10-15')
+            ->assertOk()->json('data');
+        $this->assertSame(1, (int) $stats['count']);
+        $this->assertSame(88.88, (float) $stats['total_amount']);
+    }
+
     public function test_unauthenticated_is_rejected(): void
     {
         $this->getJson(self::BASE)->assertStatus(401);
