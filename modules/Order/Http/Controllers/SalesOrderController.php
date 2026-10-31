@@ -291,6 +291,13 @@ class SalesOrderController extends Controller
         if (! isset($skip['end_date']) && $request->filled('end_date')) {
             $query->whereDate('order_date', '<=', $request->end_date);
         }
+        // 金额区间闭区间：total_amount 是 decimal 列，边界值本身必须命中
+        if (! isset($skip['min_amount']) && $request->filled('min_amount')) {
+            $query->where('total_amount', '>=', (float) $request->min_amount);
+        }
+        if (! isset($skip['max_amount']) && $request->filled('max_amount')) {
+            $query->where('total_amount', '<=', (float) $request->max_amount);
+        }
     }
 
     /**
@@ -363,6 +370,13 @@ class SalesOrderController extends Controller
         }
         if ($request->filled('end_date')) {
             $query->whereDate('order_date', '<=', $request->end_date);
+        }
+        // 金额区间闭区间：total_amount 是 decimal 列，边界值本身必须命中
+        if ($request->filled('min_amount')) {
+            $query->where('total_amount', '>=', (float) $request->min_amount);
+        }
+        if ($request->filled('max_amount')) {
+            $query->where('total_amount', '<=', (float) $request->max_amount);
         }
     }
 

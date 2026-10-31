@@ -702,6 +702,36 @@
       </el-tabs>
     </el-dialog>
 
+    <!-- 金额范围筛选：闭区间，边界值本身命中 -->
+    <el-dialog v-model="dialog.amount" title="按金额范围" width="360px">
+      <el-form label-width="100px" label-position="right">
+        <el-form-item label="金额下限">
+          <el-input-number
+            v-model="amountForm.min_amount"
+            :min="0"
+            :precision="2"
+            :controls="false"
+            placeholder="不限"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="金额上限">
+          <el-input-number
+            v-model="amountForm.max_amount"
+            :min="0"
+            :precision="2"
+            :controls="false"
+            placeholder="不限"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialog.amount = false">取消</el-button>
+        <el-button type="primary" @click="applyAmountRange">确定</el-button>
+      </template>
+    </el-dialog>
+
     <!-- 单据打印预览 -->
     <PrintPreview
       v-model="preview.visible"
@@ -858,6 +888,8 @@ const searchForm = reactive({
   salesman_id: null,
   vehicle_id: null,
   route_id: null,
+  min_amount: null,
+  max_amount: null,
 });
 const data = ref([]);
 const total = ref(0);
@@ -977,11 +1009,28 @@ const toggleQuickFilter = (v) => {
   searchForm.quick_filter = v;
   doSearch();
 };
+const amountForm = reactive({ min_amount: null, max_amount: null });
+const applyAmountRange = async () => {
+  const min = amountForm.min_amount;
+  const max = amountForm.max_amount;
+  if (min != null && max != null && min > max) {
+    ElMessage.warning("金额下限不能大于上限");
+    return;
+  }
+  searchForm.min_amount = min ?? null;
+  searchForm.max_amount = max ?? null;
+  dialog.amount = false;
+  await doSearch();
+};
 const onAdvanced = (cmd) => {
   if (cmd === "range") {
     searchForm.quick_date = "custom";
   } else if (cmd === "amount") {
-    ElMessage.info("金额范围筛选开发中");
+    Object.assign(amountForm, {
+      min_amount: searchForm.min_amount,
+      max_amount: searchForm.max_amount,
+    });
+    dialog.amount = true;
   } else if (cmd === "clear") {
     Object.assign(searchForm, {
       keyword: "",
@@ -994,6 +1043,8 @@ const onAdvanced = (cmd) => {
       salesman_id: null,
       vehicle_id: null,
       route_id: null,
+      min_amount: null,
+      max_amount: null,
     });
     Object.assign(activeFilter, { salesman: null, vehicle: null, route: null });
     dateRange.value = null;
@@ -1460,7 +1511,7 @@ const columns = [
 ];
 
 // ===== 弹窗 =====
-const dialog = reactive({ order: false, detail: false });
+const dialog = reactive({ order: false, detail: false, amount: false });
 const detailData = ref(null);
 const detailTab = ref("info");
 const currentOrder = ref(null);
