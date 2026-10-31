@@ -263,8 +263,9 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::get('business/history', [BusinessHistoryController::class, 'index']);
     Route::get('business/history/summary', [BusinessHistoryController::class, 'summary']);
     Route::get('business/history/export', [BusinessHistoryController::class, 'export']);
-    // 月度利润
+    // 月度利润（export 为静态路由，须先于任何 business/profit/{id} 动态路由）
     Route::get('business/profit', [ProfitController::class, 'index']);
+    Route::get('business/profit/export', [ProfitController::class, 'export']);
     // 往来对账
     Route::get('business/statement', [ReceiveController::class, 'statement']);
     // 订货闭环 T5.1 客户订货核对（订货中心）
