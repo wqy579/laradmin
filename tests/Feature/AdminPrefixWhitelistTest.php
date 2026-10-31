@@ -29,16 +29,9 @@ class AdminPrefixWhitelistTest extends TestCase
      * 线上会被 try_files 兜成 HTML，而 CI 与部署探针全绿。
      */
     private const KNOWN_NOT_WHITELISTED = [
-        // 站点 nginx 配置成文时就已包含、不需要 deploy.yml 补插的老前缀
-        'auth',
-        'business',
-        'system',
-        // 2026-10-31 实测线上同样被 try_files 兜成 517B HTML，但归属其它机器，
-        // 待各自负责人补白名单（QA-01 的 perf、QA-04 的 data、QA-02 的 cash/asset
-        // 已各自进白名单，不再列在这里——留在例外清单里等于给「把 token 删掉」开绿灯）
-        'agr',
-        'f5',
-        'hr',
+        // 2026-10-31：perf/data（QA-01/04）、cash/asset（QA-02）、hr/agr/f5（QA-03）与
+        // auth/system/business 均已进白名单并成对挂探针，故例外清单清空——留在里面等于给
+        // 「把 token 删掉」开绿灯。
         // 闭包路由 artisan migrate 的远程触发口，非前端调用；有意不暴露到公网
         'remote',
     ];

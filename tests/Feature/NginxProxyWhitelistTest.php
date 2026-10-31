@@ -34,13 +34,13 @@ class NginxProxyWhitelistTest extends TestCase
 
     public function test_deploy_whitelist_tokens_cover_every_frontend_prefix(): void
     {
-        $tokens = $this->whitelistTokens();
-        $this->assertNotEmpty($tokens, 'deploy.yml 里找不到 ensure_nginx_proxy 的 token 列表，正则或脚本结构变了');
+        $prefixes = $this->whitelistPrefixes();
+        $this->assertNotEmpty($this->whitelistTokens(), 'deploy.yml 里找不到 ensure_nginx_proxy 的 token 列表，正则或脚本结构变了');
 
         $needed = array_diff($this->frontendPrefixes(), self::PROXY_EXEMPT);
         sort($needed);
 
-        $missing = array_values(array_diff($needed, $tokens));
+        $missing = array_values(array_diff($needed, $prefixes));
         $this->assertSame(
             [],
             $missing,
@@ -51,7 +51,7 @@ class NginxProxyWhitelistTest extends TestCase
 
     public function test_deploy_route_probe_paths_exist_and_are_whitelisted(): void
     {
-        $tokens = $this->whitelistTokens();
+        $prefixes = $this->whitelistPrefixes();
         $probePaths = $this->probePaths();
         $this->assertNotEmpty($probePaths, 'deploy.yml 里找不到 6.5 步探测路径列表');
 
@@ -68,7 +68,7 @@ class NginxProxyWhitelistTest extends TestCase
                 $unknown[] = "admin/{$path}";
             }
             $prefix = explode('/', $path)[0];
-            if (! in_array($prefix, $tokens, true)) {
+            if (! in_array($prefix, $prefixes, true)) {
                 $unwhitelisted[] = "{$path}（前缀 {$prefix} 不在 token 列表）";
             }
         }
@@ -87,6 +87,23 @@ class NginxProxyWhitelistTest extends TestCase
         }
 
         return preg_split('/\s+/', trim($m[1])) ?: [];
+    }
+
+    /**
+     * 同一份 token 列表，剥掉 nginx 边界后缀（`asset/` → `asset`）。
+     *
+     * 前端前缀与探针首段都是不带边界的裸前缀，拿原样 token 做 diff 会误报「asset 没进
+     * 白名单」。带边界的 `asset/` 本身必须保留（裸 asset 会误吞 /admin/assets/*），
+     * 故归一化放在取数这一层，与 AdminPrefixWhitelistTest 同一处理由。
+     *
+     * @return list<string>
+     */
+    private function whitelistPrefixes(): array
+    {
+        return array_values(array_unique(array_map(
+            fn (string $token) => rtrim($token, '/'),
+            $this->whitelistTokens()
+        )));
     }
 
     /** deploy.yml 6.5 步的 `for path in a b c; do` 列表 */

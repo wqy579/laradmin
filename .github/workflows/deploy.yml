@@ -116,7 +116,12 @@ jobs:
               # 2026-10-31：QA-03 同型事故——F 外围三个顶层前缀 hr（工资/提成流水）、
               #     agr（协议管理）、f5（轨迹地图/商城/短信）不在白名单里，9 个页面接口
               #     全部被兜成 index.html，表象同样是「后端未部署」。统一在此列全。
-              for token in auth business system dashboard ledger perf data cash asset hr agr f5 asset/; do
+              # 2026-10-31 复核：裸 asset 会误吞 /admin/assets/*（前端构建产物）导致后台
+              #     整站白屏，已由 shadow 守卫拦下，务必只留带边界的 asset/。
+              #     auth/system/business 一并带边界列出：NginxProxyWhitelistTest 要求前端调用
+              #     的每个顶层前缀都要有 token，AdminPrefixWhitelistTest 又要求每个 token 都挂
+              #     探针，且两者都按原样 token 取数——token 与探针必须同批成对增删。
+              for token in dashboard ledger perf data cash asset/ auth/ system/ business/ hr agr f5; do
                 if grep -qE "location ~ \\^/admin/\\([^)]*${token}" "$cfg"; then
                   echo "nginx 代理白名单已含 $token"
                   continue
@@ -305,8 +310,10 @@ jobs:
             # 任一被 try_files 兜成 HTML 即判失败——否则整个模块静默失效而部署标绿。
             # 2026-10-31：补 cash / asset 两个前缀（QA-02 元凶）。这两个前缀此前只被
             # ensure_nginx_proxy 自愈，不在探测名单里，故「自愈没跑成」也不会红。
+            # 2026-10-31 再补 auth / system：二者进了 token 列表就必须成对挂探针
+            # （AdminPrefixWhitelistTest 守这条），否则漏配时部署仍是绿的。
             route_ok=1
-            for path in dashboard/core-metrics business/notice ledger/subjects hr/payrolls agr/agreements f5/sms/templates perf/commission-rules data/company cash/accounts/options asset/cards; do
+            for path in dashboard/core-metrics business/notice ledger/subjects hr/payrolls agr/agreements f5/sms/templates perf/commission-rules data/company cash/accounts/options asset/cards auth/me system/attachment; do
               ok=0 ct=''
               for i in 1 2 3; do
                 ct=$(curl -s -o /dev/null -w "%{content_type}" --max-time 10 \
