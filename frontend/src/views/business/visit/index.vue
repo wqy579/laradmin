@@ -28,7 +28,7 @@
 			</el-form>
 			<div class="right-panel">
 				<el-button type="primary" @click="handleAdd">新增拜访</el-button>
-				<el-button @click="handleExport">导出</el-button>
+				<el-button v-permission="'fin:visit:export'" :loading="exporting" @click="handleExport">导出</el-button>
 			</div>
 		</div>
 
@@ -139,6 +139,7 @@ import { Plus } from '@element-plus/icons-vue'
 import { useTable } from '@/hooks/useTable'
 import businessApi from '@/api/business'
 import sPageSplit from '@/components/sPageSplit/index.vue'
+import { downloadApiResponse } from '@/utils/download'
 
 const searchForm = ref({
 	employee_id: null,
@@ -202,15 +203,17 @@ const loadOptions = async () => {
 	if (routeRes.code === 200) routes.value = routeRes.data?.list || []
 }
 
-const handleSearch = () => {
+const filterParams = () => {
 	const params = { ...searchForm.value }
 	if (searchForm.value.date_range) {
 		params.date_start = searchForm.value.date_range[0]
 		params.date_end = searchForm.value.date_range[1]
 	}
 	delete params.date_range
-	refresh(params)
+	return params
 }
+
+const handleSearch = () => refresh(filterParams())
 
 const handleReset = () => {
 	searchForm.value = { employee_id: null, route_id: null, date_range: [], status: null }
@@ -255,8 +258,19 @@ const handleDelete = async (row) => {
 	}
 }
 
-const handleExport = () => {
-	ElMessage.info('导出功能开发中...')
+const today = () => new Date().toISOString().slice(0, 10)
+const exporting = ref(false)
+const handleExport = async () => {
+	exporting.value = true
+	try {
+		const res = await businessApi.visit.log.export.get(filterParams())
+		downloadApiResponse(res, `拜访记录_${today()}.csv`)
+		ElMessage.success('导出成功')
+	} catch (e) {
+		if (e?.message) ElMessage.error(e.message || '导出失败')
+	} finally {
+		exporting.value = false
+	}
 }
 
 onMounted(() => {
