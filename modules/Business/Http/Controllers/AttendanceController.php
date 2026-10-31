@@ -20,11 +20,11 @@ class AttendanceController extends Controller
         }
 
         if ($request->filled('start_date')) {
-            $query->where('date', '>=', $request->start_date);
+            $query->whereDate('date', '>=', $request->start_date);
         }
 
         if ($request->filled('end_date')) {
-            $query->where('date', '<=', $request->end_date);
+            $query->whereDate('date', '<=', $request->end_date);
         }
 
         $query->orderBy('date', 'desc');
@@ -38,6 +38,66 @@ class AttendanceController extends Controller
         $attendance->load('employee');
 
         return $this->success($attendance);
+    }
+
+    /**
+     * 考勤列表导出
+     *
+     * 筛选条件与 index() 逐一对齐（员工/日期区间），导出结果 = 列表所见。
+     * date 列有 'date' cast，落库带 00:00:00，sqlite 下裸字符串比较会把上界当天
+     * 判成 '2026-10-15 00:00:00' > '2026-10-15' 而丢当天——故两侧统一 whereDate。
+     */
+    public function export(Request $request)
+    {
+        $query = Attendance::with(['employee']);
+
+        if ($request->filled('employee_id')) {
+            $query->where('employee_id', $request->employee_id);
+        }
+
+        if ($request->filled('start_date')) {
+            $query->whereDate('date', '>=', $request->start_date);
+        }
+
+        if ($request->filled('end_date')) {
+            $query->whereDate('date', '<=', $request->end_date);
+        }
+
+        $rows = $query->orderBy('date', 'desc')->limit(50000)->get();
+
+        $statusLabels = [0 => '未知', 1 => '正常', 2 => '迟到', 3 => '缺勤'];
+
+        $csv = '﻿';
+        $csv .= "考勤记录\n\n";
+        $csv .= "员工编码,员工姓名,日期,上班时间,下班时间,状态,拜访数,备注\n";
+        foreach ($rows as $r) {
+            $csv .= implode(',', [
+                $this->csvCell($r->employee?->code),
+                $this->csvCell($r->employee?->name),
+                $this->csvCell($r->date?->toDateString()),
+                $this->csvCell($r->clock_in),
+                $this->csvCell($r->clock_out),
+                $this->csvCell($statusLabels[$r->status] ?? '未知'),
+                $this->csvCell($r->visit_count),
+                $this->csvCell($r->remark),
+            ])."\n";
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="attendance.csv"',
+        ]);
+    }
+
+    /** CSV 单元格：含逗号/引号/换行的加引号转义 */
+    private function csvCell($value): string
+    {
+        $value = (string) ($value ?? '');
+        if (preg_match('/[",\r\n]/', $value)) {
+            $value = '"'.str_replace('"', '""', $value).'"';
+        }
+
+        return $value;
     }
 
     public function store(Request $request)

@@ -3,7 +3,7 @@
 		<div class="toolbar">
 			<div class="right-panel">
 				<el-button type="primary" @click="handleAdd">新增考勤</el-button>
-				<el-button @click="handleExport">导出</el-button>
+				<el-button v-permission="'fin:attendance:export'" :loading="exporting" @click="handleExport">导出</el-button>
 			</div>
 		</div>
 
@@ -54,6 +54,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTable } from '@/hooks/useTable'
 import businessApi from '@/api/business'
 import sPageSplit from '@/components/sPageSplit/index.vue'
+import { downloadApiResponse } from '@/utils/download'
 
 const searchForm = ref({
 	employee_id: null,
@@ -100,8 +101,19 @@ const handleDelete = async (row) => {
 	}
 }
 
-const handleExport = () => {
-	ElMessage.info('导出功能开发中...')
+const today = () => new Date().toISOString().slice(0, 10)
+const exporting = ref(false)
+const handleExport = async () => {
+	exporting.value = true
+	try {
+		const res = await businessApi.attendance.export.get(searchForm.value)
+		downloadApiResponse(res, `考勤记录_${today()}.csv`)
+		ElMessage.success('导出成功')
+	} catch (e) {
+		if (e?.message) ElMessage.error(e.message || '导出失败')
+	} finally {
+		exporting.value = false
+	}
 }
 
 onMounted(() => {
