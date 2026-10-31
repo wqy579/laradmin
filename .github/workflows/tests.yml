@@ -37,8 +37,9 @@ permissions:
 # 原因（annotations 接口 404）。本仓库 8 次历史运行全部如此，tests.yml 从未真正执行过。
 # 对照：deploy.yml 没有这个键，每次都正常跑完。API 报错位置为
 #   Line: 35, Col: 1: Unexpected value 'timeout-minutes'
-# 各 job 已各自设有更紧的 timeout-minutes（3 / 10 / 15 / 15），总时长已被限制在
-# 4 个 job 并行下的最大值 15 分钟，不需要顶层兜底。
+# 各 job 已各自设有更紧的 timeout-minutes（3 / 10 / 25 / 20 / 15），总时长已被限制在
+# 并行 job 的最大值 25 分钟（PHPUnit 套件实测已需 ~15 分钟，97a71d4 两次在 15 分钟
+# 处被 job 超时取消，故放宽到 25），不需要顶层兜底。
 
 # 同一分支的旧运行直接取消，避免排队空跑。deploy.yml 也是 main 触发的，用独立的
 # group 名，互不等待。
@@ -232,7 +233,7 @@ jobs:
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
