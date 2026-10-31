@@ -2925,6 +2925,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/general-expense/export",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@export",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/general-expense/statistics",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\GeneralExpenseController@statistics",
@@ -3864,6 +3876,18 @@
         "uri": "admin/business/other-income",
         "name": "admin.",
         "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/business/other-income/export",
+        "name": "admin.",
+        "action": "Modules\\Business\\Http\\Controllers\\OtherIncomeController@export",
         "middleware": [
             "api",
             "stock.snapshot",

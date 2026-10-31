@@ -86,6 +86,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/general-expense')->group(function () {
         Route::get('/', [GeneralExpenseController::class, 'index']);
         Route::get('/statistics', [GeneralExpenseController::class, 'statistics']);
+        Route::get('/export', [GeneralExpenseController::class, 'export']);
         Route::get('/{id}', [GeneralExpenseController::class, 'show'])->whereNumber('id');
         Route::post('/', [GeneralExpenseController::class, 'store']);
         Route::put('/{id}', [GeneralExpenseController::class, 'update'])->whereNumber('id');
@@ -97,6 +98,7 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/other-income')->group(function () {
         Route::get('/', [OtherIncomeController::class, 'index']);
         Route::get('/statistics', [OtherIncomeController::class, 'statistics']);
+        Route::get('/export', [OtherIncomeController::class, 'export']);
     });
     // 财务：批量调价
     Route::prefix('business/price-batch')->group(function () {

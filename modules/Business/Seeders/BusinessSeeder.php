@@ -417,8 +417,10 @@ class BusinessSeeder extends Seeder
             ['name' => 'fin:general-expense:view', 'title' => '查看一般费用单', 'parent' => 'finance.general-expense', 'sort' => 1],
             ['name' => 'fin:general-expense:edit', 'title' => '编辑一般费用单', 'parent' => 'finance.general-expense', 'sort' => 2],
             ['name' => 'fin:general-expense:approve', 'title' => '审核一般费用单', 'parent' => 'finance.general-expense', 'sort' => 3],
+            ['name' => 'fin:general-expense:export', 'title' => '导出一般费用单', 'parent' => 'finance.general-expense', 'sort' => 4],
             // 其它收入单（B9，只读）
             ['name' => 'fin:other-income:view', 'title' => '查看其它收入单', 'parent' => 'finance.other-income', 'sort' => 1],
+            ['name' => 'fin:other-income:export', 'title' => '导出其它收入单', 'parent' => 'finance.other-income', 'sort' => 2],
         ];
 
         $superRoleId = DB::table('auth_role')->where('code', 'super_admin')->value('id');

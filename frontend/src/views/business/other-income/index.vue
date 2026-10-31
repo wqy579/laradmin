@@ -37,7 +37,10 @@
 		<!-- 工具条：数据来自收款单（其它收款），本域只读 -->
 		<div class="oi-toolbar fin-toolbar">
 			<span class="toolbar-title">其它收入单</span>
-			<span class="toolbar-tip">数据来自收款模块（其它收款），财务域只读</span>
+			<div class="toolbar-actions">
+				<span class="toolbar-tip">数据来自收款模块（其它收款），财务域只读</span>
+				<el-button v-permission="'fin:other-income:export'" :loading="exporting" @click="handleExport">导出</el-button>
+			</div>
 		</div>
 
 		<!-- 表格区 -->
@@ -97,12 +100,15 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
+import { downloadApiResponse } from '@/utils/download'
 import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const fmtMoney = (v) =>
 	Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtDate = (v) => (v ? String(v).slice(0, 10) : '-')
+const today = () => new Date().toISOString().slice(0, 10)
 
 const loading = ref(false)
 const page = ref(1)
@@ -112,16 +118,22 @@ const total = ref(0)
 
 const search = reactive({ keyword: '', status: null, daterange: [] })
 
+// 列表与导出共用同一套筛选条件
+const filterParams = () => {
+	const params = {}
+	if (search.keyword) params.keyword = search.keyword
+	if (search.status !== null && search.status !== '') params.status = search.status
+	if (search.daterange?.length === 2) {
+		params.start_date = search.daterange[0]
+		params.end_date = search.daterange[1]
+	}
+	return params
+}
+
 const refresh = async () => {
 	loading.value = true
 	try {
-		const params = { page: page.value, page_size: pageSize }
-		if (search.keyword) params.keyword = search.keyword
-		if (search.status !== null && search.status !== '') params.status = search.status
-		if (search.daterange?.length === 2) {
-			params.start_date = search.daterange[0]
-			params.end_date = search.daterange[1]
-		}
+		const params = { page: page.value, page_size: pageSize, ...filterParams() }
 		const res = await businessApi.finance.otherIncome.list.get(params)
 		const data = res?.data ?? {}
 		rows.value = data.list || []
@@ -156,6 +168,21 @@ const summaryMethod = ({ columns }) => {
 		if (col.property === 'amount') return fmtMoney(sum)
 		return ''
 	})
+}
+
+/* ---------- 导出 CSV（与列表同一套筛选） ---------- */
+const exporting = ref(false)
+const handleExport = async () => {
+	exporting.value = true
+	try {
+		const res = await businessApi.finance.otherIncome.export.get(filterParams())
+		downloadApiResponse(res, `其它收入单_${today()}.csv`)
+		ElMessage.success('导出成功')
+	} catch (e) {
+		if (e?.message) ElMessage.error(e.message || '导出失败')
+	} finally {
+		exporting.value = false
+	}
 }
 
 onMounted(refresh)
@@ -194,6 +221,11 @@ onMounted(refresh)
 	font-size: var(--font-h3);
 	font-weight: 600;
 	color: var(--text-primary);
+}
+.toolbar-actions {
+	display: flex;
+	align-items: center;
+	gap: 12px;
 }
 .toolbar-tip {
 	font-size: var(--font-aux);

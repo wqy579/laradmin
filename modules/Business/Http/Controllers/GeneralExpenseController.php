@@ -124,4 +124,50 @@ class GeneralExpenseController extends Controller
 
         return $this->success($this->service->statistics($filters));
     }
+
+    /** 导出 CSV（与列表同一套筛选条件，上限保护见 ExpenseService::EXPORT_LIMIT） */
+    public function export(Request $request)
+    {
+        $filters = array_filter([
+            'expense_type' => $request->input('expense_type'),
+            'status' => $request->input('status'),
+            'start_date' => $request->input('start_date'),
+            'end_date' => $request->input('end_date'),
+        ], fn ($v) => $v !== null && $v !== '');
+
+        $rows = $this->service->exportRows($filters);
+
+        $csv = '﻿'; // BOM：Excel 正确识别 UTF-8
+        $csv .= "一般费用单\n\n";
+        $csv .= "单号,费用科目,金额,费用日期,经手人,部门,状态,备注\n";
+
+        foreach ($rows as $row) {
+            $csv .= sprintf(
+                "%s,%s,%.2f,%s,%s,%s,%s,%s\n",
+                $this->csvCell($row->expense_no),
+                $this->csvCell($row->expense_type),
+                (float) $row->amount,
+                $this->csvCell($row->expense_date?->format('Y-m-d') ?? ''),
+                $this->csvCell($row->handler?->name ?? ''),
+                $this->csvCell($row->department?->name ?? ''),
+                $row->status == 1 ? '已审核' : '草稿',
+                $this->csvCell($row->remark ?? ''),
+            );
+        }
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="general-expense.csv"',
+        ]);
+    }
+
+    private function csvCell($value): string
+    {
+        $value = (string) ($value ?? '');
+        if (preg_match('/[",\r\n]/', $value)) {
+            $value = '"'.str_replace('"', '""', $value).'"';
+        }
+
+        return $value;
+    }
 }

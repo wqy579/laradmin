@@ -31,7 +31,10 @@
 		<!-- 工具条 -->
 		<div class="ge-toolbar fin-toolbar">
 			<span class="toolbar-title">一般费用单</span>
-			<el-button type="primary" v-permission="'fin:general-expense:edit'" @click="openCreate">+ 新增一般费用</el-button>
+			<div class="toolbar-actions">
+				<el-button v-permission="'fin:general-expense:export'" :loading="exporting" @click="handleExport">导出</el-button>
+				<el-button type="primary" v-permission="'fin:general-expense:edit'" @click="openCreate">+ 新增一般费用</el-button>
+			</div>
 		</div>
 
 		<!-- 表格区 -->
@@ -136,6 +139,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import businessApi from '@/api/business'
 import authApi from '@/api/auth'
+import { downloadApiResponse } from '@/utils/download'
 import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const EXPENSE_TYPES = ['办公用品', '差旅费', '交通费', '招待费', '水电费', '租金', '工资', '其他']
@@ -156,16 +160,22 @@ const departments = ref([])
 
 const search = reactive({ expense_type: '', status: null, daterange: [] })
 
+// 列表与导出共用同一套筛选条件（导出再加日期区间上限另论——后端限 5 万行）
+const filterParams = () => {
+	const params = {}
+	if (search.expense_type) params.expense_type = search.expense_type
+	if (search.status !== null && search.status !== '') params.status = search.status
+	if (search.daterange?.length === 2) {
+		params.start_date = search.daterange[0]
+		params.end_date = search.daterange[1]
+	}
+	return params
+}
+
 const refresh = async () => {
 	loading.value = true
 	try {
-		const params = { page: page.value, page_size: pageSize }
-		if (search.expense_type) params.expense_type = search.expense_type
-		if (search.status !== null && search.status !== '') params.status = search.status
-		if (search.daterange?.length === 2) {
-			params.start_date = search.daterange[0]
-			params.end_date = search.daterange[1]
-		}
+		const params = { page: page.value, page_size: pageSize, ...filterParams() }
 		const res = await businessApi.finance.generalExpense.list.get(params)
 		const data = res?.data ?? {}
 		rows.value = data.list || []
@@ -293,6 +303,21 @@ const handleDelete = async (row) => {
 	}
 }
 
+/* ---------- 导出 CSV（与列表同一套筛选） ---------- */
+const exporting = ref(false)
+const handleExport = async () => {
+	exporting.value = true
+	try {
+		const res = await businessApi.finance.generalExpense.export.get(filterParams())
+		downloadApiResponse(res, `一般费用单_${today()}.csv`)
+		ElMessage.success('导出成功')
+	} catch (e) {
+		if (e?.message) ElMessage.error(e.message || '导出失败')
+	} finally {
+		exporting.value = false
+	}
+}
+
 onMounted(() => {
 	refresh()
 	businessApi.employee.list.get({ is_active: 1, page_size: 9999 }).then((r) => {
@@ -337,6 +362,10 @@ onMounted(() => {
 	font-size: var(--font-h3);
 	font-weight: 600;
 	color: var(--text-primary);
+}
+.toolbar-actions {
+	display: flex;
+	align-items: center;
 }
 .ge-content {
 	flex: 1;
