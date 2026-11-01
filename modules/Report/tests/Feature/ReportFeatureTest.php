@@ -384,7 +384,8 @@ class ReportFeatureTest extends TestCase
 
         $promotionId = DB::table('promotions')->insertGetId([
             'promotion_no' => 'CX202610010001', 'name' => '国庆特惠', 'type' => 'discount',
-            'start_time' => '2026-10-01 00:00:00', 'end_time' => '2026-10-31 23:59:59',
+            'start_time' => now()->subMonth()->toDateTimeString(),
+            'end_time' => now()->addMonth()->toDateTimeString(),
             'customer_scope' => 'all', 'priority' => 1, 'status' => 'active',
         ]);
         DB::table('promotion_orders')->insert([
@@ -452,7 +453,8 @@ class ReportFeatureTest extends TestCase
         // 造促销 + 促销明细，覆盖 4 个排行/价格维度
         $promotionId = DB::table('promotions')->insertGetId([
             'promotion_no' => 'JG202610010001', 'name' => '季末特卖', 'type' => 'special_price',
-            'start_time' => '2026-10-01 00:00:00', 'end_time' => '2026-10-31 23:59:59',
+            'start_time' => now()->subMonth()->toDateTimeString(),
+            'end_time' => now()->addMonth()->toDateTimeString(),
             'customer_scope' => 'all', 'priority' => 1, 'status' => 'active',
         ]);
         DB::table('promotion_items')->insert([
