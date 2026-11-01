@@ -504,10 +504,12 @@ class ReportFeatureTest extends TestCase
         DB::table('product_level_prices')->insert([
             'product_id' => $this->ids['product'], 'level_id' => $levelId, 'price' => 9,
         ]);
-        // 进行中的特价促销，特价 8
+        // 进行中的特价促销，特价 8。控制器按 now() 判定促销是否生效（PriceRankController:300），
+        // 窗口写死绝对日期会在日历翻页后自动失效，特价被等级价顶掉。
         $promotionId = DB::table('promotions')->insertGetId([
             'promotion_no' => 'TJ202610010001', 'name' => '国庆特价', 'type' => 'special_price',
-            'start_time' => '2026-10-01 00:00:00', 'end_time' => '2026-10-31 23:59:59',
+            'start_time' => now()->subMonth()->toDateTimeString(),
+            'end_time' => now()->addMonth()->toDateTimeString(),
             'customer_scope' => 'all', 'priority' => 1, 'status' => 'active',
         ]);
         DB::table('promotion_items')->insert([
