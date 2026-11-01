@@ -16,6 +16,45 @@ use Tests\TestCase;
  */
 class MigrationSmokeTest extends TestCase
 {
+    /**
+     * 曾经只在迁移里注册、被 AuthSeeder 的 Permission::truncate() 抹掉的权限节点。
+     *
+     * 出处是 modules/{Order,Stock,Mall,Archive}/database/migrations 下的
+     * register_*_menu 系列——它们跑在 migrate 阶段，而 db:seed 会清空整张
+     * auth_permission，于是「先 migrate 再 seed」的库比「只 migrate」的库少了这批
+     * 菜单与按钮（表现为菜单在页面上莫名消失，且每次重跑 seed 都复现）。
+     * 现在由 modules/<Module>/Seeders/*MenuSeeder 在 AuthSeeder 之后补种，
+     * 这里断言种回来了：seed 后的 name 集合必须 ⊇ 这批 name。
+     *
+     * 不含 inventory.purchase：迁移给它的 component business/purchase-order/index
+     * 既无对应 .vue 也无任何前端/后端路由，是早于本次改动就存在的死节点，
+     * 刻意不补种（见 StockMenuSeeder::run 的注释），故不纳入本断言。
+     */
+    private const MIGRATION_REGISTERED_PERMISSIONS = [
+        // 订货中心（Order）
+        'order-center',
+        'order.check', 'order.visit-reminder', 'order.order-adjust', 'order.order-transfer',
+        'order.purchase-return', 'order.transfer', 'order.promotion',
+        // 库存 / 价格 / 品牌（Stock）
+        'inventory.stocktaking', 'inventory.stock-adjust', 'inventory.purchase-application',
+        'inventory.assembly', 'inventory.disassembly',
+        'price.level', 'price.product', 'price.batch', 'price.plan', 'price.special',
+        'data.brand',
+        // 分销增值（Mall）
+        'f5-center', 'f5.map', 'f5.mall.shop', 'f5.mall.manage', 'f5.sms.template', 'f5.sms.record',
+        // 档案中心（Archive）：菜单
+        'data.company', 'data.division', 'data.opening', 'data.help', 'data.download',
+    ];
+
+    /** 档案中心的按钮动作；迁移同款「点号名 + 冒号别名」双写 */
+    private const MIGRATION_REGISTERED_BUTTON_ACTIONS = [
+        'data.company.view', 'data.company.create', 'data.company.edit', 'data.company.delete', 'data.company.export',
+        'data.division.view', 'data.division.create', 'data.division.edit', 'data.division.delete', 'data.division.export',
+        'data.opening.view', 'data.opening.edit', 'data.opening.import', 'data.opening.lock', 'data.opening.unlock',
+        'data.help.view', 'data.help.create', 'data.help.edit', 'data.help.delete',
+        'data.download.view', 'data.download.create', 'data.download.edit', 'data.download.delete', 'data.download.download',
+    ];
+
     public function test_full_migrate_and_seed_from_scratch_on_sqlite(): void
     {
         // 只在 SQLite 上跑，不是省事的限定，而是隔离约束：
@@ -88,11 +127,23 @@ class MigrationSmokeTest extends TestCase
             'admin 用户未绑定 super_admin 角色'
         );
 
-        $this->assertGreaterThan(
-            0,
-            DB::table('auth_permission')->where('type', 'menu')->where('status', 1)->count(),
-            '没有可用的菜单权限'
+        // 原先这里只断言「菜单数 > 0」，正好放过本用例要拦的那类回归：
+        // AuthSeeder truncate 掉整张 auth_permission 后，只在迁移里注册的菜单
+        // 没人补种，库里仍有几百条别的菜单，count 依旧 > 0。改成集合包含断言。
+        $seededNames = DB::table('auth_permission')->pluck('name')->all();
+        $expected = self::MIGRATION_REGISTERED_PERMISSIONS;
+        foreach (self::MIGRATION_REGISTERED_BUTTON_ACTIONS as $action) {
+            $expected[] = $action;
+            $expected[] = str_replace('.', ':', $action);
+        }
+        $missing = array_values(array_diff($expected, $seededNames));
+        $this->assertSame(
+            [],
+            $missing,
+            'db:seed 后丢失了迁移期注册的权限节点：'.implode(', ', $missing)
         );
+        // 原断言 assertGreaterThan(0, 菜单数) 是这条包含断言的弱化子集，删掉：
+        // 上面 78 个节点在库里，菜单数必然 > 0。
 
         $this->assertSame(2, (int) DB::table('warehouses')->count(), '种子仓库数应为 2');
         $this->assertSame(5, (int) DB::table('products')->count(), '种子商品数应为 5');

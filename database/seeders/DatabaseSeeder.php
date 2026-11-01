@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Agreement\Seeders\AgreementSeeder;
+use Modules\Archive\Seeders\ArchiveMenuSeeder;
 use Modules\Asset\Seeders\AssetSeeder;
 use Modules\Auth\Seeders\AuthSeeder;
 use Modules\Business\Seeders\BusinessDataSeeder;
@@ -11,8 +12,11 @@ use Modules\Business\Seeders\BusinessSeeder;
 use Modules\Cash\Seeders\CashSeeder;
 use Modules\Hr\Seeders\HrSeeder;
 use Modules\Ledger\Seeders\LedgerSeeder;
+use Modules\Mall\Seeders\MallMenuSeeder;
+use Modules\Order\Seeders\OrderMenuSeeder;
 use Modules\Performance\Seeders\PerformanceMenuSeeder;
 use Modules\Stock\Seeders\PricePlanDemoSeeder;
+use Modules\Stock\Seeders\StockMenuSeeder;
 use Modules\System\Seeders\SystemSeeder;
 
 /*
@@ -27,6 +31,12 @@ use Modules\System\Seeders\SystemSeeder;
 |   SystemSeeder       —— 配置、字典（其余模块的种子都不依赖它，放最前只为稳定）
 |   AuthSeeder         —— 用户 / 角色 / 权限
 |   BusinessSeeder     —— 只写权限菜单，依赖 AuthSeeder 已建好 permissions 表数据
+|   OrderMenuSeeder / StockMenuSeeder / MallMenuSeeder / ArchiveMenuSeeder
+|                      —— 把原先只在迁移里注册的菜单（订货中心、库存/价格、
+|                        分销增值、档案中心）在 AuthSeeder truncate 之后重建，
+|                        否则 db:seed 会把这些菜单连同按钮权限一起抹掉。
+|                        四者的子菜单挂在 order/inventory/price/data 分组下，
+|                        这些分组由 BusinessSeeder 建，故必须排它之后。
 |   LedgerSeeder       —— 总账菜单/权限节点/预置科目，依赖 AuthSeeder 已建好 permissions
 |   BusinessDataSeeder —— 商品 / 分类 / 仓库等主数据，依赖上面全部
 |   PricePlanDemoSeeder —— 价格方案/客户特价（QA-08），依赖 BusinessDataSeeder 的
@@ -48,6 +58,12 @@ class DatabaseSeeder extends Seeder
             SystemSeeder::class,
             AuthSeeder::class,
             BusinessSeeder::class,
+            // 迁移期注册菜单的补种：必须紧跟 BusinessSeeder（order/inventory/
+            // price/data 分组在那儿建），且在 AuthSeeder 之后（它 truncate）。
+            OrderMenuSeeder::class,
+            StockMenuSeeder::class,
+            MallMenuSeeder::class,
+            ArchiveMenuSeeder::class,
             LedgerSeeder::class,
             BusinessDataSeeder::class,
             // 依赖 BusinessDataSeeder 的客户/商品，必须排其后
