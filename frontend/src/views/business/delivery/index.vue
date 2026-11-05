@@ -12,6 +12,7 @@
       :page-sizes="pagination.pageSizes"
       pagination-layout="total, sizes, prev, pager, next, jumper"
       row-key="id"
+      @selectionChange="selectedRows = $event"
       height="100%"
       border
       stripe
@@ -21,6 +22,13 @@
     >
       <template #btnAdd>
         <el-button type="primary" @click="handleAdd">新建发货单</el-button>
+        <template v-if="selectedRows.length">
+          <el-button type="success" @click="batchReceive(false)">批量收款</el-button>
+          <el-button type="warning" @click="batchReceive(true)">批量挂账收款</el-button>
+          <el-button @click="batchSchedule">择日配送</el-button>
+          <el-button type="danger" @click="batchCancelDispatch">撤销配送</el-button>
+          <span class="batch-count">已选 {{ selectedRows.length }} 单</span>
+        </template>
       </template>
       <template #column_no="{ row }">
         <a class="no-link" @click="handleDetail(row)">{{ row.delivery_no }}</a>
@@ -152,6 +160,7 @@
 
 <script setup>
 import { ref, reactive } from "vue";
+import { useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { PrinterOutlined } from "@ant-design/icons-vue";
 import sTable from "@/components/sTable/index.vue";
@@ -177,6 +186,7 @@ const detailData = ref(null);
 
 // 后端只返回关联对象（customer/warehouse/driver/vehicle），无扁平字段，列用点路径取值
 const columns = ref([
+  { type: "checkbox", width: 48, fixed: "left" },
   {
     field: "delivery_no",
     title: "发货单号",
@@ -205,6 +215,51 @@ const columns = ref([
     slots: { default: "operation_default" },
   },
 ]);
+
+const router = useRouter();
+const selectedRows = ref([]);
+
+// 批量收款 / 批量挂账收款：携带选中发货单号跳转已有收款单三栏核销页，复用其核销逻辑
+function batchReceive(onCredit) {
+  if (!selectedRows.value.length) return;
+  const ids = selectedRows.value.map((r) => r.id).join(",");
+  router.push({
+    path: "/business/receive",
+    query: { delivery_ids: ids, mode: onCredit ? "credit" : "receive" },
+  });
+}
+
+// 择日配送：填写期望配送日期后写回发货单
+async function batchSchedule() {
+  if (!selectedRows.value.length) return;
+  try {
+    const { value } = await ElMessageBox.prompt(
+      "请输入期望配送日期（YYYY-MM-DD）", "择日配送", { inputPattern: /^\d{4}-\d{2}-\d{2}$/, inputErrorMessage: "格式应为 YYYY-MM-DD" }
+    );
+    await Promise.all(
+      selectedRows.value.map((r) => businessApi.delivery.edit.put(r.id, { delivery_date: value }))
+    );
+    ElMessage.success("已更新 " + selectedRows.value.length + " 张发货单配送日期");
+    fetchData();
+  } catch { /* 用户取消 */ }
+}
+
+// 撤销配送：已配送单据回退为待发货并刷新
+async function batchCancelDispatch() {
+  if (!selectedRows.value.length) return;
+  try {
+    await ElMessageBox.confirm(
+      `确认撤销 ${selectedRows.value.length} 张发货单的配送、回退为待发货？`, "提示", { type: "warning" }
+    );
+    await Promise.all(
+      selectedRows.value
+        .filter((r) => Number(r.status) >= 1)
+        .map((r) => businessApi.delivery.edit.put(r.id, { status: 0 }))
+    );
+    ElMessage.success("已撤销配送");
+    fetchData();
+  } catch { /* 用户取消 */ }
+}
 
 async function fetchData() {
   loading.value = true;
@@ -303,6 +358,7 @@ fetchData();
 .delivery-list {
   height: 100%;
 }
+.batch-count { margin-left: 8px; font-size: 13px; color: #909399; }
 .no-link {
   color: #409eff;
   cursor: pointer;
