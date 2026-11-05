@@ -22,6 +22,7 @@
 				<el-button type="primary" @click="load">查询</el-button>
 				<el-button @click="reset">重置</el-button>
 				<el-button @click="handleExport">导出</el-button>
+				<el-button type="success" @click="goEntry">财务单据录入</el-button>
 			</div>
 			<sTable :columns="columns" :data="list" :loading="loading" :pagination="{ total, page, pageSize: filters.page_size }" @page-change="onPageChange" height="100%" stripe>
 				<template #voucher_no="{ row }"><a class="link" @click="openDetail(row)">{{ row.voucher_no }}</a></template>
@@ -62,11 +63,13 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ledgerApi from '@/api/ledger'
 import sTable from '@/components/sTable/index.vue'
 import VoucherDetail from '../components/VoucherDetail.vue'
 
+const router = useRouter()
 const list = ref([])
 const total = ref(0)
 const loading = ref(false)
@@ -94,6 +97,7 @@ const statusType = (s) => ({ draft: 'info', submitted: 'warning', audited: 'succ
 const onDateChange = (val) => { filters.start_date = val?.[0] || ''; filters.end_date = val?.[1] || '' }
 const onPageChange = (p) => { filters.page = p; load() }
 const openDetail = (row) => detailRef.value?.open(row.id)
+const goEntry = () => router.push('/ledger/voucher')
 
 const load = async () => {
 	loading.value = true
