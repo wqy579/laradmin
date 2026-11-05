@@ -11,7 +11,8 @@
       <div class="pv-toolbar">
         <div class="pv-title">{{ title }}</div>
         <div class="pv-actions">
-          <el-button @click="settingsVisible = true">打印设置</el-button>
+          <el-button @click="openSettings('print')">打印设置</el-button>
+          <el-button @click="openSettings('paper')">纸张设置</el-button>
           <el-button type="primary" @click="handlePrint">打印</el-button>
           <el-button @click="visibleProxy = false">关闭</el-button>
         </div>
@@ -20,7 +21,7 @@
 
     <div class="pv-body" v-loading="loading">
       <!-- 缩放走 transform：transform 不改变布局占位，故用外层 .pv-scale
-			     按缩放比例设定宽高，保证滚动条尺寸跟随缩放同步变化 -->
+		     按缩放比例设定宽高，保证滚动条尺寸跟随缩放同步变化 -->
       <div
         v-show="!loading"
         class="pv-scale"
@@ -29,7 +30,7 @@
         <iframe
           ref="frame"
           class="pv-frame"
-          :srcdoc="docHtml"
+          :srcdoc="displayHtml"
           :style="frameStyle"
         />
       </div>
@@ -48,40 +49,24 @@
             >{{ z }}%</el-button
           >
         </el-button-group>
+        <span class="pv-paper">{{ paperLabel(settings) }}</span>
       </div>
     </template>
   </el-dialog>
 
-  <el-dialog
+  <PrintSettingsDialog
     v-model="settingsVisible"
-    title="打印设置"
-    width="420px"
-    append-to-body
-  >
-    <el-form label-width="90px" size="default">
-      <el-form-item label="公司名">
-        <el-input
-          v-model="settings.companyName"
-          placeholder="留空使用系统默认"
-        />
-      </el-form-item>
-      <el-form-item label="纸张">
-        <el-input value="A4 纵向（210×297mm）" disabled />
-      </el-form-item>
-      <el-form-item label="边距">
-        <el-input value="上下 20mm / 左右 15mm" disabled />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="settingsVisible = false">关闭</el-button>
-      <el-button type="primary" @click="saveSettings">保存</el-button>
-    </template>
-  </el-dialog>
+    :mode="settingsMode"
+    @saved="onSettingsSaved"
+  />
 </template>
 
 <script setup>
 import { ref, computed, watch } from "vue";
 import { printDocHtml } from "@/utils/printTemplates";
+import { applyPrintSettings } from "./applyPrintSettings";
+import { loadPrintSettings, marginsOf, paperLabel, paperSizeOf } from "./printSettings";
+import PrintSettingsDialog from "./PrintSettingsDialog.vue";
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -103,45 +88,57 @@ const visibleProxy = computed({
 const ZOOMS = [50, 75, 100, 125];
 const zoom = ref(75);
 const settingsVisible = ref(false);
+const settingsMode = ref("print");
 
-// ===== 打印设置持久化 =====
-const SETTINGS_KEY = "print_settings";
-function loadSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    return { companyName: "", ...(raw ? JSON.parse(raw) : {}) };
-  } catch {
-    return { companyName: "" };
-  }
+// ===== 打印设置 / 纸张设置（localStorage 持久化，全站共用一份）=====
+const settings = ref(loadPrintSettings());
+
+function openSettings(mode) {
+  settingsMode.value = mode;
+  settings.value = loadPrintSettings();
+  settingsVisible.value = true;
 }
-const settings = ref(loadSettings());
-function saveSettings() {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings.value));
+
+function onSettingsSaved(saved) {
+  settings.value = saved;
   settingsVisible.value = false;
   // 公司名改了就立刻刷新预览，不用重新打开弹窗
-  if (props.rebuild) props.rebuild(settings.value.companyName);
+  if (props.rebuild) props.rebuild(saved.companyName, saved);
 }
 
+/** 纸张/份数/模板设置作用到文档后的实际 HTML */
+const displayHtml = computed(() => {
+  const html = applyPrintSettings(props.docHtml, settings.value);
+  // 屏幕不解析 @page，把打印边距改成正文内边距，预览才和打出来一致
+  const m = marginsOf(settings.value);
+  const { w } = paperSizeOf(settings.value);
+  const screen = `<style>html,body{margin:0 auto;padding:${m.t}mm ${m.r}mm ${m.b}mm ${m.l}mm;width:${w}mm;box-sizing:border-box}</style>`;
+  return html.replace("</head>", screen + "</head>");
+});
+
 // ===== 缩放 =====
-// 纸张原始尺寸 794px × 1123px（A4 210×297mm @96dpi）
-const PAGE_W = 794;
-const PAGE_H = 1123;
+// 纸张尺寸随设置变化，预览按 mm 排版后换算成 96dpi 像素做缩放占位
+const MM_TO_PX = 96 / 25.4;
+const pagePx = computed(() => {
+  const { w, h } = paperSizeOf(settings.value);
+  return { w: Math.round(w * MM_TO_PX), h: Math.round(h * MM_TO_PX) };
+});
 const ratio = computed(() => zoom.value / 100);
 // iframe 本体始终是纸张原始尺寸，缩放只作用于 transform
 const frameStyle = computed(() => ({
-  width: `${PAGE_W}px`,
-  height: `${PAGE_H}px`,
+  width: `${pagePx.value.w}px`,
+  height: `${pagePx.value.h}px`,
   transform: `scale(${ratio.value})`,
   transformOrigin: "top left",
 }));
 // 外层占位按缩放后尺寸设定，滚动条才跟得上
 const scaleBox = computed(() => ({
-  width: `${Math.round(PAGE_W * ratio.value)}px`,
-  height: `${Math.round(PAGE_H * ratio.value)}px`,
+  width: `${Math.round(pagePx.value.w * ratio.value)}px`,
+  height: `${Math.round(pagePx.value.h * ratio.value)}px`,
 }));
 
 function handlePrint() {
-  printDocHtml(props.docHtml);
+  printDocHtml(displayHtml.value);
 }
 function handleClose() {
   settingsVisible.value = false;
@@ -176,13 +173,14 @@ watch(
 .pv-actions .el-button {
   height: 32px;
 }
-.pv-actions .el-button:nth-child(1) {
+.pv-actions .el-button:nth-child(1),
+.pv-actions .el-button:nth-child(2) {
   width: 90px;
 }
-.pv-actions .el-button:nth-child(2) {
+.pv-actions .el-button:nth-child(3) {
   width: 80px;
 }
-.pv-actions .el-button:nth-child(3) {
+.pv-actions .el-button:nth-child(4) {
   width: 60px;
 }
 .pv-body {
@@ -212,5 +210,9 @@ watch(
 .pv-zoom-label {
   font-size: 13px;
   color: #606266;
+}
+.pv-paper {
+  font-size: 12px;
+  color: #909399;
 }
 </style>

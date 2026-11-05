@@ -9,15 +9,11 @@ import {
   buildReceiveDocHtml,
 } from "@/utils/printTemplates";
 
-const SETTINGS_KEY = "print_settings";
+import { loadPrintSettings } from "./printSettings";
 
+/** 打印设置（与打印预览弹窗、报表工具栏共用同一份 localStorage） */
 function loadSettings() {
-  try {
-    const raw = localStorage.getItem(SETTINGS_KEY);
-    return { companyName: "", ...(raw ? JSON.parse(raw) : {}) };
-  } catch {
-    return { companyName: "" };
-  }
+  return loadPrintSettings();
 }
 
 /** 打印人：取当前登录用户名，缺失时回退 admin */
