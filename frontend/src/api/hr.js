@@ -16,6 +16,16 @@ const hrApi = {
 		delete: { delete: (id) => request.delete(`hr/payrolls/${id}`) },
 		pay: { post: (id, data) => request.post(`hr/payrolls/${id}/pay`, data) },
 		export: (params) => request.get('hr/payrolls/export', { params, responseType: 'blob' }),
+		// 工资报表：按 部门 × 期间 汇总（页内 Tab，不另开页面）
+		report: { get: (params) => request.get('hr/payrolls/report', { params }) },
+		reportExport: (params) => request.get('hr/payrolls/report/export', { params, responseType: 'blob' }),
+		// 导入走 multipart，onProgress 由 sImport 传进来显示进度条
+		importFile: (data, onProgress) =>
+			request.post('hr/payrolls/import', data, {
+				headers: { 'Content-Type': 'multipart/form-data' },
+				onUploadProgress: onProgress,
+			}),
+		template: () => request.get('hr/payrolls/template', { responseType: 'blob' }),
 	},
 	// 提成流水（只读，来自发放时对 perf 提成单的快照）
 	commissionFlow: {

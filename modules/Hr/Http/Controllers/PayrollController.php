@@ -104,7 +104,12 @@ class PayrollController extends Controller
 
         $data = $request->validate([
             'base_amount' => ['sometimes', 'numeric', 'min:0'],
+            'seniority_amount' => ['sometimes', 'numeric', 'min:0'],
             'performance_amount' => ['sometimes', 'numeric', 'min:0'],
+            'overtime_amount' => ['sometimes', 'numeric', 'min:0'],
+            // 调整工资是一次性补发/扣减，允许负数
+            'adjustment_amount' => ['sometimes', 'numeric'],
+            'reimbursement_amount' => ['sometimes', 'numeric', 'min:0'],
             'deduction_amount' => ['sometimes', 'numeric', 'min:0'],
             'remark' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);
@@ -159,8 +164,12 @@ class PayrollController extends Controller
             $rows[] = [
                 $p->payroll_no, $p->period, $p->employee_name, $p->department_name ?? '',
                 number_format((float) $p->base_amount, 2, '.', ''),
+                number_format((float) $p->seniority_amount, 2, '.', ''),
                 number_format((float) $p->commission_amount, 2, '.', ''),
                 number_format((float) $p->performance_amount, 2, '.', ''),
+                number_format((float) $p->overtime_amount, 2, '.', ''),
+                number_format((float) $p->adjustment_amount, 2, '.', ''),
+                number_format((float) $p->reimbursement_amount, 2, '.', ''),
                 number_format((float) $p->deduction_amount, 2, '.', ''),
                 number_format((float) $p->net_amount, 2, '.', ''),
                 Payroll::statusLabel($p->status),
@@ -168,10 +177,69 @@ class PayrollController extends Controller
             ];
         }
 
-        $headers = ['工资单号', '期间', '业务员', '部门', '基本工资', '提成', '绩效', '扣项', '应发净额', '状态', '付款单号', '发放日期'];
+        $headers = ['工资单号', '期间', '业务员', '部门', '基本工资', '工龄工资', '销售提成', '绩效工资', '加班工资', '调整工资', '报销金额', '扣项', '应发合计', '状态', '付款单号', '发放日期'];
         $csv = ReportFilter::csv('工资表', $headers, $rows);
 
         return ReportFilter::csvResponse($csv, 'payrolls_'.date('Ymd').'.csv');
+    }
+
+    /** 工资报表：按 部门 × 期间 汇总（页内「工资报表」Tab 数据源，与列表同筛选口径） */
+    public function report(Request $request): JsonResponse
+    {
+        return $this->success($this->service->report($this->filters($request)));
+    }
+
+    /** 工资报表导出（与报表 Tab 同口径） */
+    public function reportExport(Request $request)
+    {
+        $report = $this->service->report($this->filters($request));
+        $columns = Payroll::AMOUNT_FIELDS;
+
+        $rows = [];
+        foreach ($report['list'] as $r) {
+            $rows[] = array_merge(
+                [$r['department_name'], $r['period'], $r['count']],
+                array_map(fn ($f) => number_format((float) $r[$f], 2, '.', ''), $columns)
+            );
+        }
+
+        $headers = array_merge(
+            ['部门', '期间', '人数'],
+            array_map([Payroll::class, 'amountLabel'], $columns)
+        );
+        $csv = ReportFilter::csv('工资报表', $headers, $rows);
+
+        return ReportFilter::csvResponse($csv, 'payroll_report_'.date('Ymd').'.csv');
+    }
+
+    /** Excel 导入工资项（POST /hr/payrolls/import） */
+    public function import(Request $request)
+    {
+        $data = $request->validate([
+            'period' => ['required', 'regex:/^\d{4}-\d{2}$/'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls'],
+        ], [
+            'period.required' => '请选择导入期间',
+            'period.regex' => '期间格式应为 YYYY-MM',
+            'file.required' => '请上传文件',
+            'file.mimes' => '文件格式不正确，仅支持 xlsx/xls',
+        ]);
+
+        $result = $this->service->import($data['period'], $request->file('file'));
+
+        return $this->success($result, "导入完成，成功 {$result['success_count']} 条，失败 {$result['error_count']} 条");
+    }
+
+    /** 下载导入模板（GET /hr/payrolls/template） */
+    public function downloadTemplate()
+    {
+        $filename = $this->service->downloadTemplate();
+        $filePath = $this->service->templatePath($filename);
+        if (! file_exists($filePath)) {
+            return $this->error('模板生成失败，请重试', 500);
+        }
+
+        return response()->download($filePath, $filename);
     }
 
     private function filters(Request $request): array
@@ -181,6 +249,7 @@ class PayrollController extends Controller
             'period_start' => $request->input('period_start'),
             'period_end' => $request->input('period_end'),
             'employee_id' => $request->input('employee_id'),
+            'department_id' => $request->input('department_id'),
             'status' => $request->input('status'),
             'keyword' => $request->input('keyword'),
         ], fn ($v) => $v !== null && $v !== '');
@@ -196,8 +265,12 @@ class PayrollController extends Controller
             'employee_name' => $p->employee_name,
             'department_name' => $p->department_name,
             'base_amount' => (float) $p->base_amount,
+            'seniority_amount' => (float) $p->seniority_amount,
             'commission_amount' => (float) $p->commission_amount,
             'performance_amount' => (float) $p->performance_amount,
+            'overtime_amount' => (float) $p->overtime_amount,
+            'adjustment_amount' => (float) $p->adjustment_amount,
+            'reimbursement_amount' => (float) $p->reimbursement_amount,
             'deduction_amount' => (float) $p->deduction_amount,
             'net_amount' => (float) $p->net_amount,
             'status' => $p->status,

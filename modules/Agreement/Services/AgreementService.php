@@ -50,6 +50,8 @@ class AgreementService
             ->when(! empty($filters['customer_id']), fn ($q) => $q->where('customer_id', $filters['customer_id']))
             ->when(! empty($filters['type']), fn ($q) => $q->where('type', $filters['type']))
             ->when(! empty($filters['status']), fn ($q) => $q->where('status', $filters['status']))
+            ->when(! empty($filters['audit_status']), fn ($q) => $q->where('audit_status', $filters['audit_status']))
+            ->when(! empty($filters['check_status']), fn ($q) => $q->where('check_status', $filters['check_status']))
             ->when(! empty($filters['start_from']), fn ($q) => $q->whereDate('end_date', '>=', $filters['start_from']))
             ->when(! empty($filters['start_to']), fn ($q) => $q->whereDate('start_date', '<=', $filters['start_to']));
     }
@@ -62,7 +64,8 @@ class AgreementService
             .'COALESCE(SUM(redeemed_amount),0) AS redeemed_amount,'
             ."COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END),0) AS active_count,"
             ."COALESCE(SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END),0) AS expired_count,"
-            ."COALESCE(SUM(CASE WHEN status = 'terminated' THEN 1 ELSE 0 END),0) AS terminated_count"
+            ."COALESCE(SUM(CASE WHEN status = 'terminated' THEN 1 ELSE 0 END),0) AS terminated_count,"
+            ."COALESCE(SUM(CASE WHEN audit_status = 'pending' THEN 1 ELSE 0 END),0) AS pending_audit_count"
         )->first();
 
         $amount = round((float) $agg->amount, 2);
@@ -75,6 +78,7 @@ class AgreementService
             'active_count' => (int) $agg->active_count,
             'expired_count' => (int) $agg->expired_count,
             'terminated_count' => (int) $agg->terminated_count,
+            'pending_audit_count' => (int) $agg->pending_audit_count,
         ];
     }
 
@@ -111,6 +115,11 @@ class AgreementService
             $agreement->agreement_no = $this->generateNo();
             $agreement->status = Agreement::STATUS_ACTIVE;
             $agreement->redeemed_amount = 0;
+            // 新建走完整审核流程；不显式赋值的话内存模型取不到库默认值，返回体里会是 null
+            $agreement->total_times ??= 0;
+            $agreement->used_times = 0;
+            $agreement->check_status = Agreement::CHECK_PENDING;
+            $agreement->audit_status = Agreement::AUDIT_PENDING;
             $agreement->maker_name = $makerName;
 
             // 建档日已过开始日不算异常（补录场景）；过到期日直接落 expired
@@ -138,6 +147,10 @@ class AgreementService
             throw new \DomainException('协议额不能小于已兑现额');
         }
 
+        if (array_key_exists('total_times', $data) && (int) $data['total_times'] < (int) $agreement->used_times) {
+            throw new \DomainException('协议次数不能小于已返次数');
+        }
+
         $agreement->fill($this->onlyFields($data));
         // 生效中且新到期日已过 → 直接刷成已到期
         if ($agreement->status === Agreement::STATUS_ACTIVE
@@ -162,7 +175,7 @@ class AgreementService
         return $agreement;
     }
 
-    /** 登记兑现（增量累计，不得超过协议额；终止/到期协议禁止兑现） */
+    /** 登记兑现（增量累计，不得超过协议额与协议次数；终止协议禁止兑现） */
     public function redeem(Agreement $agreement, float $delta): Agreement
     {
         if ($agreement->status === Agreement::STATUS_TERMINATED) {
@@ -177,7 +190,48 @@ class AgreementService
             throw new \DomainException('兑现额累计超过协议额');
         }
 
+        // 协议次数为 0 表示不按次数管控（存量协议全是这种），不做次数拦截
+        if ($agreement->total_times > 0 && $agreement->used_times >= $agreement->total_times) {
+            throw new \DomainException('协议返利次数已用完');
+        }
+
         $agreement->redeemed_amount = $newRedeemed;
+        $agreement->used_times = (int) $agreement->used_times + 1;
+        $agreement->save();
+
+        return $agreement;
+    }
+
+    /**
+     * 复核（检查状态 + 审核结论一次提交）。
+     *
+     * 审核是留痕动作而非兑现前置闸：存量在册协议补审期间仍须能正常兑现，
+     * 否则「未审核」会把一批已生效协议集体锁死。
+     */
+    public function audit(Agreement $agreement, array $data, ?string $auditorName): Agreement
+    {
+        if ($agreement->status === Agreement::STATUS_TERMINATED) {
+            throw new \DomainException('已终止协议不能再审核');
+        }
+
+        $result = $data['result'] ?? Agreement::AUDIT_APPROVED;
+        if (! array_key_exists($result, Agreement::AUDIT_LABELS)) {
+            throw new \DomainException('审核结论不合法');
+        }
+
+        $agreement->audit_status = $result;
+        $agreement->audit_remark = $data['remark'] ?? null;
+        $agreement->auditor_name = $auditorName;
+        $agreement->audited_at = now();
+
+        if (array_key_exists('check_status', $data) && $data['check_status'] !== null) {
+            $check = $data['check_status'];
+            if (! array_key_exists($check, Agreement::CHECK_LABELS)) {
+                throw new \DomainException('检查状态不合法');
+            }
+            $agreement->check_status = $check;
+        }
+
         $agreement->save();
 
         return $agreement;
@@ -199,6 +253,15 @@ class AgreementService
             'redeemed_amount' => (float) $a->redeemed_amount,
             'pending_amount' => round((float) $a->amount - (float) $a->redeemed_amount, 2),
             'redemption_rate' => $a->redemptionRate(),
+            'total_times' => (int) $a->total_times,
+            'used_times' => (int) $a->used_times,
+            'remaining_times' => $a->remaining_times,
+            'check_status' => $a->check_status,
+            'check_label' => Agreement::checkLabel($a->check_status),
+            'check_tag_type' => Agreement::checkTagType($a->check_status),
+            'audit_status' => $a->audit_status,
+            'audit_label' => Agreement::auditLabel($a->audit_status),
+            'audit_tag_type' => Agreement::auditTagType($a->audit_status),
             'status' => $a->status,
             'status_label' => Agreement::statusLabel($a->status),
             'status_tag_type' => Agreement::statusTagType($a->status),
@@ -207,6 +270,9 @@ class AgreementService
         if ($full) {
             $row['terminated_date'] = $a->terminated_date?->toDateString();
             $row['maker_name'] = $a->maker_name;
+            $row['auditor_name'] = $a->auditor_name;
+            $row['audited_at'] = $a->audited_at?->toDateTimeString();
+            $row['audit_remark'] = $a->audit_remark;
             $row['remark'] = $a->remark;
         }
 
@@ -215,10 +281,17 @@ class AgreementService
 
     private function onlyFields(array $data): array
     {
-        return array_intersect_key($data, array_flip([
+        $fields = array_intersect_key($data, array_flip([
             'title', 'customer_id', 'customer_name', 'type',
-            'start_date', 'end_date', 'amount', 'remark',
+            'start_date', 'end_date', 'amount', 'total_times', 'remark',
         ]));
+
+        // 表单清空协议次数会传 null，列是 NOT NULL，统一按 0（不限次数）落库
+        if (array_key_exists('total_times', $fields)) {
+            $fields['total_times'] = (int) $fields['total_times'];
+        }
+
+        return $fields;
     }
 
     private function assertDateRange(string $start, string $end): void

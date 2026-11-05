@@ -16,7 +16,11 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::get('/options', [PayrollController::class, 'options']);
         Route::get('/', [PayrollController::class, 'index']);
         Route::get('/export', [PayrollController::class, 'export']);
+        Route::get('/report', [PayrollController::class, 'report']);
+        Route::get('/report/export', [PayrollController::class, 'reportExport']);
+        Route::get('/template', [PayrollController::class, 'downloadTemplate']);
         Route::post('/generate', [PayrollController::class, 'generate']);
+        Route::post('/import', [PayrollController::class, 'import']);
         Route::get('/{id}', [PayrollController::class, 'show'])->whereNumber('id');
         Route::put('/{id}', [PayrollController::class, 'update'])->whereNumber('id');
         Route::delete('/{id}', [PayrollController::class, 'destroy'])->whereNumber('id');

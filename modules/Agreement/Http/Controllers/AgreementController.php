@@ -74,7 +74,7 @@ class AgreementController extends Controller
         $data = $this->validatePayload($request);
 
         try {
-            $agreement = $this->service->create($data, $request->user()->real_name ?? $request->user()->username ?? null);
+            $agreement = $this->service->create($data, $this->uname());
         } catch (\DomainException $e) {
             return $this->error($e->getMessage(), 422);
         }
@@ -126,6 +126,25 @@ class AgreementController extends Controller
         return $this->success($this->service->transform($agreement, true), '兑现已登记');
     }
 
+    /** 审核（同时落检查状态与审核结论） */
+    public function audit(Request $request, int $id): JsonResponse
+    {
+        $agreement = Agreement::query()->findOrFail($id);
+        $data = $request->validate([
+            'result' => ['required', 'in:pending,approved,rejected'],
+            'check_status' => ['sometimes', 'nullable', 'in:pending,checked'],
+            'remark' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
+
+        try {
+            $agreement = $this->service->audit($agreement, $data, $this->uname());
+        } catch (\DomainException $e) {
+            return $this->error($e->getMessage(), 422);
+        }
+
+        return $this->success($this->service->transform($agreement, true), '审核结果已记录');
+    }
+
     public function destroy(int $id): JsonResponse
     {
         $agreement = Agreement::query()->findOrFail($id);
@@ -151,14 +170,30 @@ class AgreementController extends Controller
                 number_format((float) $a->amount, 2, '.', ''),
                 number_format((float) $a->redeemed_amount, 2, '.', ''),
                 $a->redemptionRate().'%',
+                number_format((float) $a->amount - (float) $a->redeemed_amount, 2, '.', ''),
+                (int) $a->total_times, (int) $a->used_times, $a->remaining_times,
+                Agreement::checkLabel($a->check_status),
+                Agreement::auditLabel($a->audit_status),
+                $a->auditor_name,
                 Agreement::statusLabel($a->status),
             ];
         }
 
-        $headers = ['协议编号', '协议名称', '客户', '类型', '生效日期', '到期日期', '协议额', '已兑现额', '兑现率', '状态'];
+        $headers = ['协议编号', '协议名称', '客户', '类型', '生效日期', '到期日期', '协议额', '已兑现额', '兑现率', '剩余金额', '协议次数', '已返次数', '剩余次数', '检查状态', '审核状态', '审核人', '状态'];
         $csv = ReportFilter::csv('协议档案', $headers, $rows);
 
         return ReportFilter::csvResponse($csv, 'agreements_'.date('Ymd').'.csv');
+    }
+
+    /** 当前登录管理员（auth.check:admin 中间件挂在 auth('admin') 上，不是 $request->user()） */
+    private function uname(): ?string
+    {
+        $user = auth('admin')->user();
+        if (! $user) {
+            return null;
+        }
+
+        return $user->real_name ?: ($user->username ?? null);
     }
 
     private function filters(Request $request): array
@@ -168,6 +203,8 @@ class AgreementController extends Controller
             'customer_id' => $request->input('customer_id'),
             'type' => $request->input('type'),
             'status' => $request->input('status'),
+            'audit_status' => $request->input('audit_status'),
+            'check_status' => $request->input('check_status'),
             'start_from' => $request->input('start_from'),
             'start_to' => $request->input('start_to'),
             'page' => $request->input('page'),
@@ -187,6 +224,8 @@ class AgreementController extends Controller
             'start_date' => [$required, 'date'],
             'end_date' => [$required, 'date', 'after_or_equal:start_date'],
             'amount' => [$required, 'numeric', 'min:0'],
+            // 协议次数选填：不填即 0（不按次数管控），存量调用方与既有测试不受影响
+            'total_times' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:9999'],
             'remark' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);
     }

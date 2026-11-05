@@ -12,10 +12,10 @@ use Tests\TestCase;
 /**
  * F4 验收：应发净额公式 + 工资条明细可展开。
  *
- *  net_amount = 基本工资 + 提成 + 绩效 − 扣项（PayrollService::calcNet 单一出口）
+ *  net_amount = 基本 + 工龄 + 提成 + 绩效 + 加班 + 调整 + 报销 − 扣项（PayrollService::calcNet 单一出口）
  *  - 提成列取自 perf 提成单「实发 actual_amount」求和，且只取 audited/paid
  *  - pending 未审核、rejected 已驳回的提成单不得进工资
- *  - 提成为 perf 快照，不可手改；基本/绩效/扣项可改并重算净额
+ *  - 提成为 perf 快照，不可手改；其余工资项目可改并重算净额（QA2-C01 扩到 7 项）
  *  - 工资条（抽屉）必须返回公式明细 + 当期提成单明细 + 付款信息
  *  - 合计行与空库：出 0 不出 null/NaN
  */
@@ -168,7 +168,11 @@ class PayrollCalcTest extends TestCase
 
         $formula = $resp->json('data.formula');
         $this->assertSame(
-            ['base_amount', 'commission_amount', 'performance_amount', 'deduction_amount', 'net_amount'],
+            [
+                'base_amount', 'seniority_amount', 'commission_amount', 'performance_amount',
+                'overtime_amount', 'adjustment_amount', 'reimbursement_amount',
+                'deduction_amount', 'net_amount',
+            ],
             array_keys($formula)
         );
         $this->assertSame(5000.0, (float) $formula['base_amount']);
@@ -179,7 +183,10 @@ class PayrollCalcTest extends TestCase
         // 展开明细的加总必须与净额自洽
         $this->assertSame(
             (float) $formula['net_amount'],
-            round((float) $formula['base_amount'] + (float) $formula['commission_amount'] + (float) $formula['performance_amount'] - (float) $formula['deduction_amount'], 2)
+            round((float) $formula['base_amount'] + (float) $formula['seniority_amount']
+                + (float) $formula['commission_amount'] + (float) $formula['performance_amount']
+                + (float) $formula['overtime_amount'] + (float) $formula['adjustment_amount']
+                + (float) $formula['reimbursement_amount'] - (float) $formula['deduction_amount'], 2)
         );
 
         $orders = $resp->json('data.commission_orders');
@@ -196,7 +203,7 @@ class PayrollCalcTest extends TestCase
         $resp = $this->getJson('/admin/hr/payrolls');
         $resp->assertOk()->assertJsonPath('data.total', 0);
         $this->assertSame(
-            ['count', 'base_amount', 'commission_amount', 'performance_amount', 'deduction_amount', 'net_amount'],
+            array_merge(['count'], Payroll::AMOUNT_FIELDS),
             array_keys($resp->json('data.stat'))
         );
         foreach ($resp->json('data.stat') as $k => $v) {

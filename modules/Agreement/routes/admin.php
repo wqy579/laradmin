@@ -21,5 +21,6 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
         Route::delete('/{id}', [AgreementController::class, 'destroy'])->whereNumber('id');
         Route::post('/{id}/terminate', [AgreementController::class, 'terminate'])->whereNumber('id');
         Route::post('/{id}/redeem', [AgreementController::class, 'redeem'])->whereNumber('id');
+        Route::post('/{id}/audit', [AgreementController::class, 'audit'])->whereNumber('id');
     });
 });
