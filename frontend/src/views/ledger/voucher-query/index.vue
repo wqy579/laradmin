@@ -28,12 +28,27 @@
 				<template #total_debit="{ row }"><span class="amt">{{ fmt(row.total_debit) }}</span></template>
 				<template #total_credit="{ row }"><span class="amt">{{ fmt(row.total_credit) }}</span></template>
 				<template #attachment="{ row }">
-					<a v-if="row.attachments_count > 0" class="link" @click="openDetail(row)">📎 {{ row.attachments_count }} 张</a>
+					<div v-if="photoUrls(row).length" class="vq-photos">
+						<el-image
+							v-for="(u, i) in photoUrls(row).slice(0, 3)"
+							:key="i"
+							class="vq-photo"
+							fit="cover"
+							:src="u"
+							:preview-src-list="photoUrls(row)"
+							:initial-index="i"
+							preview-teleported
+							hide-on-click-modal
+						/>
+						<a v-if="row.attachments_count > 3" class="link vq-photo-more" @click="openDetail(row)">+{{ row.attachments_count - 3 }}</a>
+					</div>
+					<a v-else-if="row.attachments_count > 0" class="link" @click="openDetail(row)">📎 {{ row.attachments_count }} 张</a>
 					<span v-else>—</span>
 				</template>
 				<template #red_ops="{ row }">
-					<el-button v-if="row.status !== 'reversed' && !row.is_red" link type="danger" size="small" @click.stop="redCancel(row)">红冲撤单</el-button>
-					<el-button v-if="row.status === 'audited' && !row.is_red" link type="warning" size="small" @click.stop="redAmend(row)">红冲改单</el-button>
+					<el-button v-if="canRed(row)" link type="danger" size="small" @click.stop="redCancel(row)">红冲撤单</el-button>
+					<el-button v-if="canRed(row)" link type="warning" size="small" @click.stop="redAmend(row)">红冲改单</el-button>
+					<el-button link type="info" size="small" @click.stop="openDetail(row)">打印/预览</el-button>
 				</template>
 			</sTable>
 		</el-card>
@@ -82,21 +97,25 @@ const load = async () => {
 	catch { ElMessage.error('加载失败') } finally { loading.value = false }
 }
 const reset = () => { Object.assign(filters, { voucher_no: '', status: '', start_date: '', end_date: '', subject_id: '', maker_name: '', auditor_name: '', min_amount: '', max_amount: '', page: 1 }); dateRange.value = []; load() }
-// 红冲撤单：整单作废（复用现有 reverse 接口）
+// 红冲前提与后端一致：仅已审核且未被红冲的凭证
+const canRed = (row) => row.status === 'audited' && !row.is_red
+// 单据照片列只展示图片附件；pdf 等走「📎 N 张」入口在详情里查看
+const photoUrls = (row) => (row.attachments || []).filter((a) => /\.(jpe?g|png|gif|webp|bmp)$/i.test(a.url || '')).map((a) => a.url)
+// 红冲撤单：生成红冲单 + 原单整单作废（mode=cancel）
 const redCancel = async (row) => {
 	try {
-		await ElMessageBox.confirm(`确认对凭证 ${row.voucher_no} 红冲撤单（整单作废）？`, '提示', { type: 'warning' })
-		await ledgerApi.voucher.reverse.post(row.id)
+		await ElMessageBox.confirm(`确认对凭证 ${row.voucher_no} 红冲撤单？将生成红冲单，且原凭证整单作废。`, '提示', { type: 'warning' })
+		await ledgerApi.voucher.redReverse.post(row.id, { mode: 'cancel' })
 		ElMessage.success('红冲撤单成功'); load()
-	} catch { /* 用户取消或失败 */ }
+	} catch (e) { if (e !== 'cancel') ElMessage.error(e?.message || '红冲撤单失败') }
 }
-// 红冲改单：红冲后生成借贷对调的更正凭证（复用现有 redReverse 接口）
+// 红冲改单：生成红冲单 + 更正草稿，草稿到记账凭证页修改后重新提交（mode=modify）
 const redAmend = async (row) => {
 	try {
-		await ElMessageBox.confirm(`确认对凭证 ${row.voucher_no} 红冲改单（生成更正单）？`, '提示', { type: 'warning' })
-		await ledgerApi.voucher.redReverse.post(row.id)
-		ElMessage.success('红冲改单成功'); load()
-	} catch { /* 用户取消或失败 */ }
+		await ElMessageBox.confirm(`确认对凭证 ${row.voucher_no} 红冲改单？将生成红冲单和一张更正草稿，请在「记账凭证」中修改草稿后重新提交。`, '提示', { type: 'warning' })
+		const res = await ledgerApi.voucher.redReverse.post(row.id, { mode: 'modify' })
+		ElMessage.success(`红冲改单成功，已生成更正草稿 ${res.data?.correction?.voucher_no || ''}`); load()
+	} catch (e) { if (e !== 'cancel') ElMessage.error(e?.message || '红冲改单失败') }
 }
 const handleExport = async () => {
 	try { const blob = await ledgerApi.voucher.export(filters); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'ledger_vouchers.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000) }
@@ -113,6 +132,9 @@ onMounted(() => { load(); loadSubjects() })
 .card { margin: 16px 20px; }
 .filter { display: flex; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; }
 .link { color: #409eff; cursor: pointer; }
+.vq-photos { display: flex; align-items: center; gap: 4px; justify-content: center; }
+.vq-photo { width: 26px; height: 26px; border-radius: 3px; border: 1px solid var(--border-lighter, #e4e7ed); cursor: zoom-in; }
+.vq-photo-more { font-size: 12px; }
 .amt { color: #303133; font-weight: 500; text-align: right; display: inline-block; width: 100%; font-variant-numeric: tabular-nums; font-family: var(--font-numeric); }
 /* DS：表头 44px 13px/600、明细行 41px、分页 52px（vxe-grid / sTable 页面级覆盖） */
 :deep(.vxe-header--row) { height: 44px !important; }

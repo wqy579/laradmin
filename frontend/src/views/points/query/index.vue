@@ -35,73 +35,123 @@
 			<el-button size="small" @click="onReset">重置</el-button>
 			<div style="flex: 1" />
 			<el-button v-if="can('export')" size="small" :loading="exporting" @click="handleExport">导出</el-button>
-			<el-button type="success" size="small" @click="goExchange">积分兑换</el-button>
+			<el-button v-if="canExchange" type="success" size="small" @click="goExchange">积分兑换</el-button>
 		</div>
 
-		<!-- 汇总：会员 / 期初 / 发放 / 核销 / 期末 / 实时余额 -->
-		<div class="pts-table">
-			<el-table
-				v-loading="loading"
-				:data="data"
-				row-key="member_id"
-				stripe
-				border
-				height="100%"
-				show-summary
-				:summary-method="summaries"
-				class="fin-table--dense"
-				@row-dblclick="openFlows"
-			>
-				<el-table-column prop="member_no" label="会员编号" width="150" align="center">
-					<template #default="{ row }"><span class="tabular">{{ row.member_no || '—' }}</span></template>
-				</el-table-column>
-				<el-table-column prop="member_name" label="会员名称" min-width="180" show-overflow-tooltip>
-					<template #default="{ row }">
-						<span class="link" @click="openFlows(row)">{{ row.member_name || '—' }}</span>
-					</template>
-				</el-table-column>
-				<el-table-column prop="points_open" label="昨日积分" width="120" align="right" header-align="right">
-					<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_open) }}</span></template>
-				</el-table-column>
-				<el-table-column prop="points_grant" label="积分变动" width="120" align="right" header-align="right">
-					<template #default="{ row }">
-						<span class="tabular pts-num--up">{{ signed(row.points_grant) }}</span>
-					</template>
-				</el-table-column>
-				<el-table-column prop="points_verify" label="兑换积分" width="120" align="right" header-align="right">
-					<template #default="{ row }">
-						<span class="tabular pts-num--down">{{ row.points_verify ? `-${fmtInt(row.points_verify)}` : '0' }}</span>
-					</template>
-				</el-table-column>
-				<el-table-column prop="points_close" label="今日积分" width="120" align="right" header-align="right">
-					<template #default="{ row }"><span class="tabular pts-num--total">{{ fmtInt(row.points_close) }}</span></template>
-				</el-table-column>
-				<el-table-column prop="points_current" label="实时余额" width="120" align="right" header-align="right">
-					<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_current) }}</span></template>
-				</el-table-column>
-				<el-table-column label="操作" width="80" align="center" fixed="right">
-					<template #default="{ row }">
-						<el-button link type="primary" size="small" @click.stop="openFlows(row)">流水</el-button>
-					</template>
-				</el-table-column>
-				<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
-			</el-table>
-			<div class="pts-hint">提示：昨日积分 + 积分变动 − 兑换积分 = 今日积分（按日滚动台账），双击行或点击会员名可查看该会员的积分流水</div>
-		</div>
+		<el-tabs v-model="activeTab" class="pts-tabs" @tab-change="onTabChange">
+			<!-- 期间汇总：会员 / 期初 / 发放 / 核销 / 期末 / 实时余额 -->
+			<el-tab-pane label="期间汇总" name="summary">
+				<div class="pts-table">
+					<el-table
+						v-loading="loading"
+						:data="data"
+						row-key="member_id"
+						stripe
+						border
+						height="100%"
+						show-summary
+						:summary-method="summaries"
+						class="fin-table--dense"
+						@row-dblclick="openFlows"
+					>
+						<el-table-column prop="member_no" label="会员编号" width="150" align="center">
+							<template #default="{ row }"><span class="tabular">{{ row.member_no || '—' }}</span></template>
+						</el-table-column>
+						<el-table-column prop="member_name" label="会员名称" min-width="180" show-overflow-tooltip>
+							<template #default="{ row }">
+								<span class="link" @click="openFlows(row)">{{ row.member_name || '—' }}</span>
+							</template>
+						</el-table-column>
+						<el-table-column prop="points_open" label="期初积分" width="120" align="right" header-align="right">
+							<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_open) }}</span></template>
+						</el-table-column>
+						<el-table-column prop="points_grant" label="本期发放" width="120" align="right" header-align="right">
+							<template #default="{ row }">
+								<span class="tabular pts-num--up">{{ signed(row.points_grant) }}</span>
+							</template>
+						</el-table-column>
+						<el-table-column prop="points_verify" label="本期核销" width="120" align="right" header-align="right">
+							<template #default="{ row }">
+								<span class="tabular pts-num--down">{{ row.points_verify ? `-${fmtInt(row.points_verify)}` : '0' }}</span>
+							</template>
+						</el-table-column>
+						<el-table-column prop="points_close" label="期末积分" width="120" align="right" header-align="right">
+							<template #default="{ row }"><span class="tabular pts-num--total">{{ fmtInt(row.points_close) }}</span></template>
+						</el-table-column>
+						<el-table-column prop="points_current" label="实时余额" width="120" align="right" header-align="right">
+							<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_current) }}</span></template>
+						</el-table-column>
+						<el-table-column label="操作" width="80" align="center" fixed="right">
+							<template #default="{ row }">
+								<el-button link type="primary" size="small" @click.stop="openFlows(row)">流水</el-button>
+							</template>
+						</el-table-column>
+						<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
+					</el-table>
+					<div class="pts-hint">提示：期初 + 本期发放 − 本期核销 = 期末，双击行或点击会员名可查看该会员的积分流水</div>
+				</div>
 
-		<!-- 分页 -->
-		<div class="pts-pager fin-pager">
-			<el-pagination
-				background
-				layout="total, prev, pager, next, jumper, sizes"
-				:total="total"
-				:page-size="paginationProps.pageSize"
-				:current-page="paginationProps.currentPage"
-				:page-sizes="[10, 20, 30, 50]"
-				@current-change="handlePageChange"
-				@size-change="handlePageSizeChange"
-			/>
-		</div>
+				<!-- 分页 -->
+				<div class="pts-pager fin-pager">
+					<el-pagination
+						background
+						layout="total, prev, pager, next, jumper, sizes"
+						:total="total"
+						:page-size="paginationProps.pageSize"
+						:current-page="paginationProps.currentPage"
+						:page-sizes="[10, 20, 30, 50]"
+						@current-change="handlePageChange"
+						@size-change="handlePageSizeChange"
+					/>
+				</div>
+			</el-tab-pane>
+
+			<!-- 按日台账：会员 × 自然日 滚动（昨日 / 变动 / 兑换 / 今日） -->
+			<el-tab-pane label="按日台账" name="daily">
+				<div class="pts-table">
+					<el-table v-loading="dailyLoading" :data="dailyRows" stripe border height="100%" class="fin-table--dense">
+						<el-table-column prop="stat_date" label="日期" width="120" align="center">
+							<template #default="{ row }"><span class="tabular">{{ row.stat_date }}</span></template>
+						</el-table-column>
+						<el-table-column prop="member_no" label="会员编号" width="150" align="center">
+							<template #default="{ row }"><span class="tabular">{{ row.member_no || '—' }}</span></template>
+						</el-table-column>
+						<el-table-column prop="member_name" label="会员名称" min-width="160" show-overflow-tooltip />
+						<el-table-column prop="points_yday" label="昨日积分" width="120" align="right" header-align="right">
+							<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_yday) }}</span></template>
+						</el-table-column>
+						<el-table-column prop="points_change" label="积分变动" width="120" align="right" header-align="right">
+							<template #default="{ row }">
+								<span class="tabular pts-num--up">{{ signed(row.points_change) }}</span>
+							</template>
+						</el-table-column>
+						<el-table-column prop="points_exchange" label="兑换积分" width="120" align="right" header-align="right">
+							<template #default="{ row }">
+								<span class="tabular pts-num--down">{{ row.points_exchange ? `-${fmtInt(row.points_exchange)}` : '0' }}</span>
+							</template>
+						</el-table-column>
+						<el-table-column prop="points_today" label="今日积分" width="120" align="right" header-align="right">
+							<template #default="{ row }"><span class="tabular pts-num--total">{{ fmtInt(row.points_today) }}</span></template>
+						</el-table-column>
+						<template #empty><FinEmpty text="当前筛选条件下暂无积分变动" /></template>
+					</el-table>
+					<div class="pts-hint">提示：昨日积分 + 积分变动 − 兑换积分 = 今日积分，按「会员 × 自然日」一行滚动</div>
+				</div>
+
+				<div class="pts-pager fin-pager">
+					<el-pagination
+						background
+						layout="total, prev, pager, next, jumper, sizes"
+						:total="dailyTotal"
+						:page-size="dailyPageSize"
+						:current-page="dailyPage"
+						:page-sizes="[10, 20, 30, 50]"
+						@current-change="onDailyPageChange"
+						@size-change="onDailySizeChange"
+					/>
+				</div>
+			</el-tab-pane>
+		</el-tabs>
 
 		<!-- 积分流水 -->
 		<el-drawer v-model="flowsVisible" :title="flowsTitle" size="720px" destroy-on-close @open="loadFlows">
@@ -155,16 +205,63 @@ import { useRoute, useRouter } from 'vue-router'
 import { saveBlob } from '@/utils/fileDownload'
 import { useTable } from '@/hooks/useTable'
 import { usePermission } from '@/composables/usePermission'
+import request from '@/utils/request'
 import businessApi from '@/api/business'
 import cashApi from '@/api/cash'
 import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const route = useRoute()
 const router = useRouter()
-// 积分兑换入口：跳转积分域已有的使用/兑换页
-const goExchange = () => router.push('/points/use')
 const { has: hasPerm } = usePermission()
 const can = (verb) => hasPerm(`cash.integral.query.${verb}`)
+// 积分兑换入口：菜单 member.exchange（/business/point-exchange）已存在，直接跳转复用
+const canExchange = hasPerm('member.exchange')
+const goExchange = () => router.push('/business/point-exchange')
+
+// 按日台账（后端 Member 域 member-consume-log/daily-ledger）
+const activeTab = ref('summary')
+const dailyRows = ref([])
+const dailyTotal = ref(0)
+const dailyPage = ref(1)
+const dailyPageSize = ref(20)
+const dailyLoading = ref(false)
+const loadDaily = async () => {
+	dailyLoading.value = true
+	try {
+		const res = await request.get('business/member-consume-log/daily-ledger', {
+			params: {
+				member_id: search.member_id || '',
+				start_date: search.start_date || '',
+				end_date: search.end_date || '',
+				page: dailyPage.value,
+				page_size: dailyPageSize.value,
+			},
+		})
+		dailyRows.value = res.data?.list || []
+		dailyTotal.value = res.data?.total || 0
+	} catch {
+		dailyRows.value = []
+		dailyTotal.value = 0
+	} finally {
+		dailyLoading.value = false
+	}
+}
+const refreshActive = () => {
+	if (activeTab.value === 'daily') {
+		dailyPage.value = 1
+		loadDaily()
+	}
+}
+const onTabChange = () => refreshActive()
+const onDailyPageChange = (p) => {
+	dailyPage.value = p
+	loadDaily()
+}
+const onDailySizeChange = (s) => {
+	dailyPageSize.value = s
+	dailyPage.value = 1
+	loadDaily()
+}
 
 const fmtInt = (v) => (Number.isFinite(Number(v)) ? Number(v).toLocaleString('zh-CN') : '—')
 const signed = (v) => {
@@ -198,15 +295,18 @@ const onDateChange = (val) => {
 	search.start_date = val?.[0] || ''
 	search.end_date = val?.[1] || ''
 	doSearch()
+	refreshActive()
 }
 const onClearMember = () => {
 	current.value = {}
 	doSearch()
+	refreshActive()
 }
 const onReset = () => {
 	dateRange.value = []
 	current.value = {}
 	resetSearch()
+	refreshActive()
 }
 
 // 合计行：只对当前页的积分数值列求和

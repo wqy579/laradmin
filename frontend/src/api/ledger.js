@@ -36,7 +36,8 @@ const ledgerApi = {
 		batchReverse: { post: (params) => request.post('ledger/vouchers/batch-reverse', params) },
 		reverseAudit: { post: (id) => request.post(`ledger/vouchers/${id}/reverse-audit`) },
 		reverse: { post: (id) => request.post(`ledger/vouchers/${id}/reverse`) },
-		redReverse: { post: (id) => request.post(`ledger/vouchers/${id}/red-reverse`) },
+		// mode：缺省仅冲销；cancel=红冲撤单（原单作废）；modify=红冲改单（生成更正草稿）
+		redReverse: { post: (id, params) => request.post(`ledger/vouchers/${id}/red-reverse`, params || {}) },
 		subjectLedger: { get: (params) => request.get('ledger/vouchers/subject-ledger', { params }) },
 		// 业务单据手动补生成凭证（QA-05）：params = { bill_type, bill_id }
 		generateFromBusiness: { post: (params) => request.post('ledger/vouchers/generate-from-business', params) },

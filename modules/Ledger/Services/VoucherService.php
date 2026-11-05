@@ -299,16 +299,27 @@ class VoucherService
         });
     }
 
+    /** 红冲模式：仅冲销（现状默认）/ 冲销+更正草稿 / 冲销+原单作废 */
+    public const RED_MODE_REVERSAL = 'reversal';
+
+    public const RED_MODE_MODIFY = 'modify';
+
+    public const RED_MODE_CANCEL = 'cancel';
+
     /**
      * 红冲（红字冲销）：仅已审核凭证可红冲，生成一张借贷对调的新凭证。
      *
      * - 新凭证：借贷金额对调，摘要前缀「(红冲){原凭证号}」，红冲单本身 status=audited；
      * - 原凭证：status 不变，is_red 置真（列表据此显示「已红冲」Tag）；
-     * - 期间已月结则禁止红冲（与增删改/审核/反审核/作废同一拦截口径）。
+     * - 期间已月结则禁止红冲（与增删改/审核/反审核/作废同一拦截口径）；
+     * - mode=modify（红冲改单）：额外复制原分录生成一张「(更正)」草稿，改完正常提交；
+     * - mode=cancel（红冲撤单）：原单整单作废（status=reversed）。
+     *
+     * 改单模式返回 [红冲单, 更正草稿]，其余模式返回 [红冲单, null]。
      */
-    public function redReverse(int $id, int $operatorId, string $operatorName): Voucher
+    public function redReverse(int $id, int $operatorId, string $operatorName, string $mode = self::RED_MODE_REVERSAL): array
     {
-        return DB::transaction(function () use ($id, $operatorId, $operatorName) {
+        return DB::transaction(function () use ($id, $operatorId, $operatorName, $mode) {
             $voucher = Voucher::with('entries')->findOrFail($id);
 
             if ($voucher->status !== Voucher::STATUS_AUDITED) {
@@ -365,7 +376,50 @@ class VoucherService
             $voucher->is_red = true;
             $voucher->save();
 
-            return $newVoucher->fresh('entries');
+            // 红冲撤单：整单作废。与「红冲」的区别只在原单终态——
+            // 红冲原单仍是已审核（账面靠红冲单抵销），撤单原单直接进已作废。
+            if ($mode === self::RED_MODE_CANCEL) {
+                $voucher->status = Voucher::STATUS_REVERSED;
+                $voucher->save();
+            }
+
+            // 红冲改单：复制原分录做一张更正草稿，业务改完按正常流程提交/审核。
+            // 更正单不挂 red_of_id——它不是冲销凭证，挂上会被「含红冲」筛选吞掉。
+            $correction = null;
+            if ($mode === self::RED_MODE_MODIFY) {
+                $correctionEntries = $voucher->entries->map(fn ($e) => [
+                    'subject_id' => $e->subject_id,
+                    'subject_code' => $e->subject_code,
+                    'subject_name' => $e->subject_name,
+                    'aux_type' => $e->aux_type,
+                    'aux_id' => $e->aux_id,
+                    'aux_name' => $e->aux_name,
+                    'brand_id' => $e->brand_id,
+                    'brand_name' => $e->brand_name,
+                    'summary' => $e->summary,
+                    'debit_amount' => round((float) $e->debit_amount, 2),
+                    'credit_amount' => round((float) $e->credit_amount, 2),
+                ])->all();
+
+                $correction = new Voucher;
+                $correction->voucher_no = $this->nextVoucherNo($voucher->period);
+                $correction->voucher_date = $voucher->voucher_date;
+                $correction->period = $voucher->period;
+                $correction->attachments_count = (int) $voucher->attachments_count;
+                $correction->attachments = $voucher->attachments ?? [];
+                $correction->total_debit = round(array_sum(array_column($correctionEntries, 'debit_amount')), 2);
+                $correction->total_credit = round(array_sum(array_column($correctionEntries, 'credit_amount')), 2);
+                $correction->status = Voucher::STATUS_DRAFT;
+                $correction->maker_id = $operatorId;
+                $correction->maker_name = $operatorName;
+                $correction->remark = '更正 '.$voucher->voucher_no.'（原单已红冲）';
+                $correction->is_red = false;
+                $correction->auto_audit = false;
+                $correction->save();
+                $this->saveEntries($correction, $correctionEntries);
+            }
+
+            return [$newVoucher->fresh('entries'), $correction ? $correction->fresh('entries') : null];
         });
     }
 
