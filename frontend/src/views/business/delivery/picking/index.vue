@@ -18,6 +18,7 @@
 			</div>
 			<div class="right-panel">
 				<el-button type="primary" @click="handleAdd">新增配货单</el-button>
+				<ReportToolbar :title="PRINT_TITLE" :columns="printColumns" :rows="data" @xls="exportXls" />
 			</div>
 		</div>
 
@@ -50,6 +51,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useTable } from '@/hooks/useTable'
 import businessApi from '@/api/business'
+import ReportToolbar from '@/components/ReportToolbar.vue'
+import { exportReportXls } from '@/components/print-preview/reportPrintDoc'
 import PickingDialog from './components/picking-dialog.vue'
 import PickingDetail from './components/picking-detail.vue'
 
@@ -74,10 +77,19 @@ const columns = [
 	{ prop: 'action_col', title: '操作', width: 170, align: 'center', fixed: 'right', slots: { default: 'action_default' } },
 ]
 
+const PRINT_TITLE = '备货单/配货单'
+const STATUS_MAP = { pending: '待配货', picked: '已配货', cancelled: '已取消' }
+// 打印/导出只要数据列：剔除操作列，状态走 tag_map 出中文（打印文档不渲染 el-tag）
+const PRINT_TYPES = { total_skus: 'int', total_qty: 'int', total_amount: 'money', status: 'tag' }
+const printColumns = columns
+	.filter((c) => c.prop !== 'action_col')
+	.map((c) => ({ prop: c.prop, label: c.title, type: PRINT_TYPES[c.prop], tag_map: c.prop === 'status' ? STATUS_MAP : undefined }))
+const exportXls = () => exportReportXls({ title: PRINT_TITLE, columns: printColumns, rows: data.value })
+
 const dialog = reactive({ add: false, detail: false })
 const currentRow = ref(null)
 
-const statusLabel = (s) => ({ pending: '待配货', picked: '已配货', cancelled: '已取消' }[s] || s)
+const statusLabel = (s) => STATUS_MAP[s] || s
 const statusType = (s) => ({ pending: 'warning', picked: 'success', cancelled: 'info' }[s] || 'info')
 const fmt = (n) => Number(n || 0).toFixed(2)
 
