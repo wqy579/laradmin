@@ -106,6 +106,18 @@
     },
     {
         "method": "POST",
+        "uri": "admin/agr/agreements/{id}/audit",
+        "name": "admin.",
+        "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@audit",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
         "uri": "admin/agr/agreements/{id}/redeem",
         "name": "admin.",
         "action": "Modules\\Agreement\\Http\\Controllers\\AgreementController@redeem",
@@ -9838,10 +9850,58 @@
         ]
     },
     {
+        "method": "POST",
+        "uri": "admin/hr/payrolls/import",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@import",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
         "method": "GET",
         "uri": "admin/hr/payrolls/options",
         "name": "admin.",
         "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/payrolls/report",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@report",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/payrolls/report/export",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@reportExport",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/hr/payrolls/template",
+        "name": "admin.",
+        "action": "Modules\\Hr\\Http\\Controllers\\PayrollController@downloadTemplate",
         "middleware": [
             "api",
             "stock.snapshot",

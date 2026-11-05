@@ -2,11 +2,15 @@
 
 namespace Modules\Hr\Services;
 
+use App\Exports\GenericExport;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 use Modules\Business\Models\Employee;
+use Modules\Hr\Imports\PayrollImport;
 use Modules\Hr\Models\CommissionFlow;
 use Modules\Hr\Models\Payroll;
 use Modules\Order\Models\Pay;
@@ -31,10 +35,22 @@ class PayrollService
 
     public function __construct(private PayService $payService) {}
 
-    /** 应发净额（唯一的公式出口，前端展开明细与列表合计共用） */
-    public static function calcNet(float $base, float $commission, float $performance, float $deduction): float
-    {
-        return round($base + $commission + $performance - $deduction, 2);
+    /**
+     * 应发净额（唯一的公式出口，前端展开明细与列表合计共用）。
+     *
+     * 后 4 项为 QA2-C01 新增工资项目，给默认值以保持既有四参调用方（含测试）不变。
+     */
+    public static function calcNet(
+        float $base,
+        float $commission,
+        float $performance,
+        float $deduction,
+        float $seniority = 0.0,
+        float $overtime = 0.0,
+        float $adjustment = 0.0,
+        float $reimbursement = 0.0
+    ): float {
+        return round($base + $seniority + $commission + $performance + $overtime + $adjustment + $reimbursement - $deduction, 2);
     }
 
     /**
@@ -110,27 +126,31 @@ class PayrollService
             ->get(['employee_id', 'employee_name', 'department_id', 'department_name', 'actual_amount']);
     }
 
-    /** 编辑草稿工资单：绩效/扣项/基本可调，提成为 perf 快照不可手改 */
+    /** 编辑草稿工资单：除提成为 perf 快照不可手改外，各工资项目均可调 */
     public function updateDraft(Payroll $payroll, array $data): Payroll
     {
         if ($payroll->isPaid()) {
             throw new \DomainException('已发放工资单不能修改');
         }
 
-        $base = round((float) ($data['base_amount'] ?? $payroll->base_amount), 2);
-        $performance = round((float) ($data['performance_amount'] ?? $payroll->performance_amount), 2);
-        $deduction = round((float) ($data['deduction_amount'] ?? $payroll->deduction_amount), 2);
-        if ($deduction < 0) {
-            throw new \DomainException('扣项不能为负数');
+        // 负数在控制器按边界校验拦下（调整工资除外），这里只做取整与重算
+        $items = [];
+        foreach (array_keys(Payroll::ITEM_LABELS) as $field) {
+            $items[$field] = round((float) ($data[$field] ?? $payroll->$field), 2);
         }
 
-        $payroll->fill([
-            'base_amount' => $base,
-            'performance_amount' => $performance,
-            'deduction_amount' => $deduction,
-            'net_amount' => self::calcNet($base, (float) $payroll->commission_amount, $performance, $deduction),
-            'remark' => $data['remark'] ?? $payroll->remark,
-        ]);
+        $payroll->fill($items);
+        $payroll->net_amount = self::calcNet(
+            $items['base_amount'],
+            (float) $payroll->commission_amount,
+            $items['performance_amount'],
+            $items['deduction_amount'],
+            $items['seniority_amount'],
+            $items['overtime_amount'],
+            $items['adjustment_amount'],
+            $items['reimbursement_amount']
+        );
+        $payroll->remark = $data['remark'] ?? $payroll->remark;
         $payroll->save();
 
         return $payroll;
@@ -252,6 +272,7 @@ class PayrollService
             ->when(! empty($filters['period_start']), fn ($q) => $q->where('period', '>=', $filters['period_start']))
             ->when(! empty($filters['period_end']), fn ($q) => $q->where('period', '<=', $filters['period_end']))
             ->when(! empty($filters['employee_id']), fn ($q) => $q->where('employee_id', $filters['employee_id']))
+            ->when(! empty($filters['department_id']), fn ($q) => $q->where('department_id', $filters['department_id']))
             ->when(! empty($filters['status']), fn ($q) => $q->where('status', $filters['status']))
             ->when(! empty($filters['keyword']), function ($q) use ($filters) {
                 $kw = $filters['keyword'];
@@ -272,22 +293,59 @@ class PayrollService
     /** 列表页合计行：与筛选口径一致（空库出 0，不出 null/NaN） */
     public function stat(array $filters): array
     {
-        $agg = $this->listQuery($filters)->selectRaw(
-            'COUNT(*) AS cnt,'
-            .'COALESCE(SUM(base_amount),0) AS base_amount,'
-            .'COALESCE(SUM(commission_amount),0) AS commission_amount,'
-            .'COALESCE(SUM(performance_amount),0) AS performance_amount,'
-            .'COALESCE(SUM(deduction_amount),0) AS deduction_amount,'
-            .'COALESCE(SUM(net_amount),0) AS net_amount'
-        )->first();
+        return array_merge(
+            ['count' => $this->listQuery($filters)->count()],
+            $this->aggregate($this->listQuery($filters))
+        );
+    }
+
+    /** 一组工资项的求和（列表合计与工资报表共用，避免两处口径漂移） */
+    private function aggregate(Builder $query): array
+    {
+        $columns = Payroll::AMOUNT_FIELDS;
+        $select = implode(',', array_map(
+            fn ($c) => "COALESCE(SUM({$c}),0) AS {$c}",
+            $columns
+        ));
+        $agg = $query->selectRaw($select)->first();
+
+        $out = [];
+        foreach ($columns as $c) {
+            $out[$c] = round((float) $agg->$c, 2);
+        }
+
+        return $out;
+    }
+
+    /**
+     * 工资报表：按 部门 × 期间 汇总（工资报表 Tab 的数据源）。
+     *
+     * period_start/period_end 给区间，不给就全量；分组维度固定为部门+期间，
+     * 前端按需要再透视成「部门为行、月份为列」或「月份为行」。
+     */
+    public function report(array $filters): array
+    {
+        $columns = Payroll::AMOUNT_FIELDS;
+        $select = 'department_name, period, COUNT(*) AS cnt,'
+            .implode(',', array_map(fn ($c) => "COALESCE(SUM({$c}),0) AS {$c}", $columns));
+
+        $rows = $this->listQuery($filters)
+            ->selectRaw($select)
+            ->groupBy('department_name', 'period')
+            ->orderBy('period')
+            ->orderBy('department_name')
+            ->get();
 
         return [
-            'count' => (int) $agg->cnt,
-            'base_amount' => round((float) $agg->base_amount, 2),
-            'commission_amount' => round((float) $agg->commission_amount, 2),
-            'performance_amount' => round((float) $agg->performance_amount, 2),
-            'deduction_amount' => round((float) $agg->deduction_amount, 2),
-            'net_amount' => round((float) $agg->net_amount, 2),
+            'list' => $rows->map(function ($r) use ($columns) {
+                return [
+                    'department_name' => $r->department_name ?: '未分配部门',
+                    'period' => $r->period,
+                    'count' => (int) $r->cnt,
+                    ...array_combine($columns, array_map(fn ($c) => round((float) $r->$c, 2), $columns)),
+                ];
+            })->values()->all(),
+            'total' => $this->stat($filters),
         ];
     }
 
@@ -306,8 +364,12 @@ class PayrollService
             'payroll' => $payroll,
             'formula' => [
                 'base_amount' => (float) $payroll->base_amount,
+                'seniority_amount' => (float) $payroll->seniority_amount,
                 'commission_amount' => (float) $payroll->commission_amount,
                 'performance_amount' => (float) $payroll->performance_amount,
+                'overtime_amount' => (float) $payroll->overtime_amount,
+                'adjustment_amount' => (float) $payroll->adjustment_amount,
+                'reimbursement_amount' => (float) $payroll->reimbursement_amount,
                 'deduction_amount' => (float) $payroll->deduction_amount,
                 'net_amount' => (float) $payroll->net_amount,
             ],
@@ -316,6 +378,55 @@ class PayrollService
                 ? Pay::query()->find($payroll->pay_id, ['id', 'pay_no', 'amount', 'pay_date', 'payment_method', 'status'])
                 : null,
         ];
+    }
+
+    /**
+     * 导入工资项（Excel）。返回 success_count / error_count / errors / unmatched。
+     *
+     * 部分成功：坏行只记原因、不牵连好行（与开账导入同一套语义）。
+     * 只覆盖手工录入项，提成列不在模板里——它是 perf 的只读快照。
+     */
+    public function import(string $period, UploadedFile $file): array
+    {
+        $import = new PayrollImport($period);
+        Excel::import($import, $file->getRealPath());
+
+        return [
+            'period' => $period,
+            'success_count' => $import->getSuccessCount(),
+            'error_count' => $import->getErrorCount(),
+            'errors' => $import->getErrors(),
+            'unmatched' => $import->getUnmatched(),
+        ];
+    }
+
+    /** 导入模板表头（列序即 PayrollImport 的取值下标，改一处必须改另一处） */
+    public static function importTemplateHead(): array
+    {
+        return array_merge(
+            ['工号', '姓名'],
+            array_values(Payroll::ITEM_LABELS),
+            ['备注']
+        );
+    }
+
+    /** 生成导入模板文件，返回文件名（放在 public 磁盘 exports/ 下） */
+    public function downloadTemplate(): string
+    {
+        $head = self::importTemplateHead();
+        $filename = 'payroll_import_template_'.date('YmdHis').'.xlsx';
+        $dir = storage_path('app/exports');
+        if (! is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+        Excel::store(new GenericExport([$head]), 'exports/'.$filename, 'public');
+
+        return $filename;
+    }
+
+    public function templatePath(string $filename): string
+    {
+        return storage_path('app/public/exports/'.$filename);
     }
 
     private function generateNo(): string

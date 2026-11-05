@@ -16,6 +16,7 @@ const agrApi = {
 		delete: { delete: (id) => request.delete(`agr/agreements/${id}`) },
 		terminate: { post: (id, data) => request.post(`agr/agreements/${id}/terminate`, data) },
 		redeem: { post: (id, data) => request.post(`agr/agreements/${id}/redeem`, data) },
+		audit: { post: (id, data) => request.post(`agr/agreements/${id}/audit`, data) },
 		export: (params) => request.get('agr/agreements/export', { params, responseType: 'blob' }),
 	},
 	stats: {

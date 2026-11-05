@@ -206,6 +206,130 @@ class AgreementLifecycleTest extends TestCase
         $this->assertNotNull(Agreement::find($used->id));
     }
 
+    // ---------- QA2-F04：返利次数 + 审核 ----------
+
+    public function test_remaining_times_is_total_minus_used(): void
+    {
+        $agreement = $this->make('active', now()->subDays(5), now()->addDays(30), 10000, 0, 'display');
+        $agreement->forceFill(['total_times' => 3, 'used_times' => 1])->save();
+
+        $this->assertSame(2, $agreement->fresh()->remaining_times);
+
+        $row = $this->getJson('/admin/agr/agreements')->assertOk()->json('data.list.0');
+        $this->assertSame(3, $row['total_times']);
+        $this->assertSame(1, $row['used_times']);
+        $this->assertSame(2, $row['remaining_times']);
+    }
+
+    public function test_zero_total_times_is_not_rate_limited(): void
+    {
+        $agreement = $this->make('active', now()->subDays(5), now()->addDays(30), 10000, 0, 'display');
+
+        // 存量协议 total_times=0 → 不按次数管控，兑现只受金额约束
+        $this->postJson("/admin/agr/agreements/{$agreement->id}/redeem", ['amount' => 1000])
+            ->assertOk()->assertJsonPath('data.used_times', 1);
+        $this->assertSame(0, $agreement->fresh()->remaining_times);
+    }
+
+    public function test_redeem_counts_a_time_and_blocks_when_exhausted(): void
+    {
+        $agreement = $this->make('active', now()->subDays(5), now()->addDays(30), 10000, 0, 'display');
+        $agreement->forceFill(['total_times' => 2])->save();
+
+        $this->postJson("/admin/agr/agreements/{$agreement->id}/redeem", ['amount' => 100])
+            ->assertOk()->assertJsonPath('data.used_times', 1)->assertJsonPath('data.remaining_times', 1);
+        $this->postJson("/admin/agr/agreements/{$agreement->id}/redeem", ['amount' => 100])
+            ->assertOk()->assertJsonPath('data.remaining_times', 0);
+
+        $this->postJson("/admin/agr/agreements/{$agreement->id}/redeem", ['amount' => 100])
+            ->assertStatus(422)->assertJsonPath('message', '协议返利次数已用完');
+    }
+
+    public function test_total_times_cannot_shrink_below_used(): void
+    {
+        $agreement = $this->make('active', now()->subDays(5), now()->addDays(30), 10000, 0, 'display');
+        $agreement->forceFill(['total_times' => 5, 'used_times' => 3])->save();
+
+        $this->putJson("/admin/agr/agreements/{$agreement->id}", ['total_times' => 2])->assertStatus(422);
+        $this->putJson("/admin/agr/agreements/{$agreement->id}", ['total_times' => 4])
+            ->assertOk()->assertJsonPath('data.remaining_times', 1);
+    }
+
+    public function test_new_agreement_defaults_to_pending_audit_and_accepts_times(): void
+    {
+        $resp = $this->postJson('/admin/agr/agreements', $this->payload(['total_times' => 6]))
+            ->assertOk()
+            ->assertJsonPath('data.total_times', 6)
+            ->assertJsonPath('data.used_times', 0)
+            ->assertJsonPath('data.audit_status', 'pending')
+            ->assertJsonPath('data.audit_label', '待审核')
+            ->assertJsonPath('data.check_status', 'pending')
+            ->assertJsonPath('data.check_label', '待检查');
+
+        $this->assertSame(6, $resp->json('data.remaining_times'));
+    }
+
+    public function test_audit_records_result_auditor_and_check_status(): void
+    {
+        $agreement = $this->make('active', now()->subDays(5), now()->addDays(30));
+
+        $resp = $this->postJson("/admin/agr/agreements/{$agreement->id}/audit", [
+            'result' => 'approved',
+            'check_status' => 'checked',
+            'remark' => '条款齐全',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.audit_status', 'approved')
+            ->assertJsonPath('data.audit_label', '已审核')
+            ->assertJsonPath('data.audit_tag_type', 'success')
+            ->assertJsonPath('data.check_status', 'checked')
+            ->assertJsonPath('data.check_label', '已检查')
+            ->assertJsonPath('data.auditor_name', '协议专员')
+            ->assertJsonPath('data.audit_remark', '条款齐全');
+
+        $this->assertNotNull($resp->json('data.audited_at'));
+    }
+
+    public function test_audit_can_reject_and_still_allows_redemption(): void
+    {
+        $agreement = $this->make('active', now()->subDays(5), now()->addDays(30), 10000, 0);
+
+        $this->postJson("/admin/agr/agreements/{$agreement->id}/audit", ['result' => 'rejected', 'remark' => '金额待核'])
+            ->assertOk()->assertJsonPath('data.audit_tag_type', 'danger');
+
+        // 审核是留痕而非兑现前置闸：驳回后已生效协议仍可兑现
+        $this->postJson("/admin/agr/agreements/{$agreement->id}/redeem", ['amount' => 500])->assertOk();
+    }
+
+    public function test_audit_validates_payload_and_blocks_terminated(): void
+    {
+        $agreement = $this->make('active', now()->subDays(5), now()->addDays(30));
+        $this->postJson("/admin/agr/agreements/{$agreement->id}/audit", [])->assertStatus(422);
+        $this->postJson("/admin/agr/agreements/{$agreement->id}/audit", ['result' => 'nope'])->assertStatus(422);
+
+        $terminated = $this->make('terminated', now()->subDays(5), now()->addDays(30));
+        $this->postJson("/admin/agr/agreements/{$terminated->id}/audit", ['result' => 'approved'])->assertStatus(422);
+    }
+
+    public function test_list_filters_by_audit_and_check_status(): void
+    {
+        $approved = $this->make('active', now()->subDays(5), now()->addDays(30));
+        $pending = $this->make('active', now()->subDays(5), now()->addDays(30));
+        $this->postJson("/admin/agr/agreements/{$approved->id}/audit", ['result' => 'approved'])->assertOk();
+
+        $this->getJson('/admin/agr/agreements?audit_status=approved')
+            ->assertOk()->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.list.0.id', $approved->id);
+        $this->getJson('/admin/agr/agreements?audit_status=pending')
+            ->assertOk()->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.list.0.id', $pending->id);
+        $this->getJson('/admin/agr/agreements?check_status=checked')
+            ->assertOk()->assertJsonPath('data.total', 0);
+
+        // 汇总条统计待审核数
+        $this->assertSame(1, $this->getJson('/admin/agr/agreements')->json('data.stat.pending_audit_count'));
+    }
+
     // ---------- helpers ----------
 
     private function payload(array $overrides = []): array
