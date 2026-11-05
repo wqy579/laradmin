@@ -210,6 +210,9 @@
         <el-button type="primary" size="default" @click="handleAdd"
           >新增订单</el-button
         >
+        <el-button type="success" size="default" @click="openChainStore"
+          >连锁超市订单</el-button
+        >
       </div>
 
       <!-- ④ 订单类型标签 -->
@@ -541,6 +544,11 @@
                     >查看经营历程</el-dropdown-item
                   >
                   <el-dropdown-item
+                    v-if="['配送中', '已收款'].includes(row.status)"
+                    command="cancelDispatch"
+                    >撤销配送</el-dropdown-item
+                  >
+                  <el-dropdown-item
                     v-if="row.status === 'pending'"
                     command="delete"
                     divided
@@ -553,6 +561,32 @@
         </template>
       </sTable>
     </div>
+
+    <!-- 连锁超市订单录入 -->
+    <el-dialog v-model="chainVisible" title="连锁超市订单录入" width="720px" destroy-on-close>
+      <el-form label-width="90px" size="default">
+        <el-form-item label="连锁客户">
+          <el-select v-model="chainForm.customer_id" filterable placeholder="选择连锁超市客户" style="width: 100%">
+            <el-option v-for="c in customers" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="商品明细">
+          <div v-for="(r, i) in chainForm.rows" :key="i" style="display: flex; gap: 8px; margin-bottom: 8px">
+            <el-input v-model="r.product_name" placeholder="商品名称/编码" style="flex: 1" />
+            <el-input-number v-model="r.qty" :min="1" controls-position="right" style="width: 120px" />
+            <el-button type="danger" link @click="removeChainRow(i)">移除</el-button>
+          </div>
+          <el-button link type="primary" @click="addChainRow">+ 添加一行</el-button>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="chainForm.remark" type="textarea" :rows="2" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="chainVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitChainStore">生成订单</el-button>
+      </template>
+    </el-dialog>
 
     <!-- ⑦ 客户 hover 卡片 -->
     <div
@@ -1289,6 +1323,46 @@ const onRowCommand = (row, cmd) => {
     handleDetail(row);
     detailTab.value = "history";
   } else if (cmd === "delete") handleDelete(row);
+  else if (cmd === "cancelDispatch") handleCancelDispatch(row);
+};
+
+// 撤销配送：已配送/已收款订单回退为待配送，联动刷新
+const handleCancelDispatch = async (row) => {
+  try {
+    await ElMessageBox.confirm("确认撤销该订单的配送、回退为待配送？", "提示", { type: "warning" });
+    await businessApi.salesOrder.batchUpdate.post({ ids: [row.id], status: "待配送" });
+    ElMessage.success("已撤销配送");
+    fetchData();
+  } catch { /* 用户取消 */ }
+};
+
+// 连锁超市订单：独立录入弹窗（连锁门店批量下单）
+const chainVisible = ref(false);
+const chainForm = reactive({ customer_id: null, remark: "", rows: [] });
+const openChainStore = () => {
+  chainForm.customer_id = null;
+  chainForm.remark = "";
+  chainForm.rows = [{ product_name: "", qty: 1 }];
+  chainVisible.value = true;
+};
+const addChainRow = () => chainForm.rows.push({ product_name: "", qty: 1 });
+const removeChainRow = (i) => chainForm.rows.splice(i, 1);
+const submitChainStore = async () => {
+  if (!chainForm.customer_id) { ElMessage.warning("请选择连锁超市客户"); return; }
+  const items = chainForm.rows.filter((r) => r.product_name).map((r) => ({ name: r.product_name, qty: r.qty }));
+  if (!items.length) { ElMessage.warning("请至少填写一个商品"); return; }
+  try {
+    await businessApi.salesOrder.add.post({
+      customer_id: chainForm.customer_id,
+      order_type: "chain",
+      source: "chain_store",
+      remark: chainForm.remark,
+      items,
+    });
+    ElMessage.success("连锁超市订单已生成");
+    chainVisible.value = false;
+    fetchData();
+  } catch (e) { ElMessage.error("提交失败：" + (e?.message || "请检查填写内容")); }
 };
 
 const handlePrint = (row) => printOrder(row);

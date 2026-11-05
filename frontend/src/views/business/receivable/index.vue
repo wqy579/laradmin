@@ -9,6 +9,7 @@
 			</el-radio-group>
 			<el-checkbox v-model="includeRedFlush" @change="fetchData">包含红冲</el-checkbox>
 			<el-button size="small" type="primary" @click="fetchData">查询(C)</el-button>
+			<el-button size="small" type="success" @click="goReceive">新增收款单</el-button>
 		</div>
 		<div class="summary-bar">
 			<span>应收：<b class="text-blue">¥{{ totalReceivable }}</b></span>
@@ -33,9 +34,13 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import sTable from '@/components/sTable/index.vue'
+
+const router = useRouter()
+const goReceive = () => router.push('/business/receive')
 
 const data = ref([])
 const loading = ref(false)
