@@ -105,6 +105,9 @@
 						<span class="amt" :class="{ 'times-exhausted': row.total_times > 0 && row.remaining_times === 0 }">{{ row.total_times > 0 ? row.remaining_times : '-' }}</span>
 					</template>
 				</el-table-column>
+				<el-table-column prop="remark" label="用户备注" min-width="160" show-overflow-tooltip>
+					<template #default="{ row }">{{ row.remark || '-' }}</template>
+				</el-table-column>
 				<el-table-column label="检查状态" width="92" align="center">
 					<template #default="{ row }">
 						<el-tag :type="row.check_tag_type || 'info'" size="small" effect="light">{{ row.check_label }}</el-tag>
