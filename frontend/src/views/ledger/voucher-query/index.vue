@@ -27,6 +27,14 @@
 				<template #status="{ row }"><el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag></template>
 				<template #total_debit="{ row }"><span class="amt">{{ fmt(row.total_debit) }}</span></template>
 				<template #total_credit="{ row }"><span class="amt">{{ fmt(row.total_credit) }}</span></template>
+				<template #attachment="{ row }">
+					<a v-if="row.attachments_count > 0" class="link" @click="openDetail(row)">📎 {{ row.attachments_count }} 张</a>
+					<span v-else>—</span>
+				</template>
+				<template #red_ops="{ row }">
+					<el-button v-if="row.status !== 'reversed' && !row.is_red" link type="danger" size="small" @click.stop="redCancel(row)">红冲撤单</el-button>
+					<el-button v-if="row.status === 'audited' && !row.is_red" link type="warning" size="small" @click.stop="redAmend(row)">红冲改单</el-button>
+				</template>
 			</sTable>
 		</el-card>
 		<VoucherDetail ref="detailRef" />
@@ -35,7 +43,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import ledgerApi from '@/api/ledger'
 import sTable from '@/components/sTable/index.vue'
 import VoucherDetail from '../components/VoucherDetail.vue'
@@ -58,6 +66,8 @@ const columns = [
 	{ field: 'maker_name', title: '制单人', width: 100 },
 	{ field: 'auditor_name', title: '审核人', width: 100 },
 	{ field: 'status', title: '状态', width: 100, align: 'center', slots: { default: 'status' } },
+	{ field: 'attachments_count', title: '单据照片', width: 100, align: 'center', slots: { default: 'attachment' } },
+	{ field: 'red_ops', title: '红冲操作', width: 170, align: 'center', slots: { default: 'red_ops' } },
 ]
 const fmt = (v) => Number(v || 0).toFixed(2)
 const statusLabel = (s) => ({ draft: '草稿', submitted: '待审核', audited: '已审核', reversed: '已作废' }[s] || s)
@@ -72,6 +82,22 @@ const load = async () => {
 	catch { ElMessage.error('加载失败') } finally { loading.value = false }
 }
 const reset = () => { Object.assign(filters, { voucher_no: '', status: '', start_date: '', end_date: '', subject_id: '', maker_name: '', auditor_name: '', min_amount: '', max_amount: '', page: 1 }); dateRange.value = []; load() }
+// 红冲撤单：整单作废（复用现有 reverse 接口）
+const redCancel = async (row) => {
+	try {
+		await ElMessageBox.confirm(`确认对凭证 ${row.voucher_no} 红冲撤单（整单作废）？`, '提示', { type: 'warning' })
+		await ledgerApi.voucher.reverse.post(row.id)
+		ElMessage.success('红冲撤单成功'); load()
+	} catch { /* 用户取消或失败 */ }
+}
+// 红冲改单：红冲后生成借贷对调的更正凭证（复用现有 redReverse 接口）
+const redAmend = async (row) => {
+	try {
+		await ElMessageBox.confirm(`确认对凭证 ${row.voucher_no} 红冲改单（生成更正单）？`, '提示', { type: 'warning' })
+		await ledgerApi.voucher.redReverse.post(row.id)
+		ElMessage.success('红冲改单成功'); load()
+	} catch { /* 用户取消或失败 */ }
+}
 const handleExport = async () => {
 	try { const blob = await ledgerApi.voucher.export(filters); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'ledger_vouchers.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000) }
 	catch { ElMessage.error('导出失败') }

@@ -35,6 +35,7 @@
 			<el-button size="small" @click="onReset">重置</el-button>
 			<div style="flex: 1" />
 			<el-button v-if="can('export')" size="small" :loading="exporting" @click="handleExport">导出</el-button>
+			<el-button type="success" size="small" @click="goExchange">积分兑换</el-button>
 		</div>
 
 		<!-- 汇总：会员 / 期初 / 发放 / 核销 / 期末 / 实时余额 -->
@@ -59,20 +60,20 @@
 						<span class="link" @click="openFlows(row)">{{ row.member_name || '—' }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="points_open" label="期初积分" width="120" align="right" header-align="right">
+				<el-table-column prop="points_open" label="昨日积分" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular">{{ fmtInt(row.points_open) }}</span></template>
 				</el-table-column>
-				<el-table-column prop="points_grant" label="本期发放" width="120" align="right" header-align="right">
+				<el-table-column prop="points_grant" label="积分变动" width="120" align="right" header-align="right">
 					<template #default="{ row }">
 						<span class="tabular pts-num--up">{{ signed(row.points_grant) }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="points_verify" label="本期核销" width="120" align="right" header-align="right">
+				<el-table-column prop="points_verify" label="兑换积分" width="120" align="right" header-align="right">
 					<template #default="{ row }">
 						<span class="tabular pts-num--down">{{ row.points_verify ? `-${fmtInt(row.points_verify)}` : '0' }}</span>
 					</template>
 				</el-table-column>
-				<el-table-column prop="points_close" label="期末积分" width="120" align="right" header-align="right">
+				<el-table-column prop="points_close" label="今日积分" width="120" align="right" header-align="right">
 					<template #default="{ row }"><span class="tabular pts-num--total">{{ fmtInt(row.points_close) }}</span></template>
 				</el-table-column>
 				<el-table-column prop="points_current" label="实时余额" width="120" align="right" header-align="right">
@@ -85,7 +86,7 @@
 				</el-table-column>
 				<template #empty><FinEmpty text="当前筛选条件下暂无数据" /></template>
 			</el-table>
-			<div class="pts-hint">提示：期初 + 本期发放 − 本期核销 = 期末，双击行或点击会员名可查看该会员的积分流水</div>
+			<div class="pts-hint">提示：昨日积分 + 积分变动 − 兑换积分 = 今日积分（按日滚动台账），双击行或点击会员名可查看该会员的积分流水</div>
 		</div>
 
 		<!-- 分页 -->
@@ -150,7 +151,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { saveBlob } from '@/utils/fileDownload'
 import { useTable } from '@/hooks/useTable'
 import { usePermission } from '@/composables/usePermission'
@@ -159,6 +160,9 @@ import cashApi from '@/api/cash'
 import FinEmpty from '../../finance/_FinEmpty.vue'
 
 const route = useRoute()
+const router = useRouter()
+// 积分兑换入口：跳转积分域已有的使用/兑换页
+const goExchange = () => router.push('/points/use')
 const { has: hasPerm } = usePermission()
 const can = (verb) => hasPerm(`cash.integral.query.${verb}`)
 
