@@ -356,8 +356,14 @@
 
 			<span class="rp-spacer"></span>
 			<slot name="actions" />
-			<el-button size="small" :loading="exporting" @click="$emit('export')">导出 Excel</el-button>
-			<el-button size="small" @click="$emit('print')">打印</el-button>
+			<!-- 传了 print-title 即接入公共工具栏（预览/打印/XLS·PDF·JPG/打印·纸张设置），
+			     没传的报表页维持原来的两个零散按钮，行为不变 -->
+			<ReportToolbar v-if="printTitle" :title="printTitle" :columns="columns" :rows="rows"
+				:exporting="exporting" @xls="$emit('export')" />
+			<template v-else>
+				<el-button size="small" :loading="exporting" @click="$emit('export')">导出 Excel</el-button>
+				<el-button size="small" @click="$emit('print')">打印</el-button>
+			</template>
 			<el-button size="small" circle title="刷新" @click="$emit('refresh')">
 				<el-icon><Refresh /></el-icon>
 			</el-button>
@@ -370,6 +376,7 @@ import { ref, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import businessApi from '@/api/business'
+import ReportToolbar from '@/components/ReportToolbar.vue'
 
 const props = defineProps({
 	/** 筛选条件对象（双向绑定，页面侧用 reactive 传入即可） */
@@ -380,6 +387,11 @@ const props = defineProps({
 	report: { type: String, default: 'sales' },
 	loading: { type: Boolean, default: false },
 	exporting: { type: Boolean, default: false },
+	/** 传入即接入公共报表工具栏（值为打印/导出标题），不传沿用页面自己的导出打印按钮 */
+	printTitle: { type: String, default: '' },
+	/** 当前表格列与数据：工具栏的预览/打印/PDF/JPG 都基于它们 */
+	columns: { type: Array, default: () => [] },
+	rows: { type: Array, default: () => [] },
 })
 const emit = defineEmits(['search', 'refresh', 'export', 'print', 'reset'])
 

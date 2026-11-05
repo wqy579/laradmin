@@ -9,7 +9,9 @@
 			@search="onSearch"
 			@refresh="fetchData"
 			@export="onExport"
-			@print="onPrint"
+			:print-title="printTitle"
+			:columns="columns"
+			:rows="list"
 		/>
 
 		<el-tabs v-model="activeTab" class="rp-tabs" @tab-change="onTabChange">
@@ -43,12 +45,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import ReportFilterBar from '../components/ReportFilterBar.vue'
 import ReportTable from '../components/ReportTable.vue'
-import { saveBlob, printTable } from '@/utils/fileDownload'
+import { saveBlob } from '@/utils/fileDownload'
 
 const TABS = [
 	{ value: 'product_detail', label: '商品明细' },
@@ -135,6 +137,14 @@ function onPageSizeChange(s) {
 	page.value = 1
 	fetchData()
 }
+
+/** 报表标题统一取「报表名 - 当前 tab」，导出文件名与打印抬头共用 */
+function currentLabel() {
+	return TABS.find((t) => t.value === activeTab.value)?.label || ''
+}
+
+const printTitle = computed(() => `库存报表 - ${currentLabel()}`)
+
 async function onExport() {
 	exporting.value = true
 	try {
@@ -145,10 +155,6 @@ async function onExport() {
 	} finally {
 		exporting.value = false
 	}
-}
-function onPrint() {
-	if (!columns.value.length) return ElMessage.warning('当前没有可打印的数据')
-	printTable(columns.value, list.value, `库存报表 - ${TABS.find((t) => t.value === activeTab.value)?.label || ''}`)
 }
 
 onMounted(fetchData)

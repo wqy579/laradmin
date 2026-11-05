@@ -16,12 +16,18 @@
 					最多只能选择 {{ maxFields }} 个字段
 				</div>
 			</div>
+			<div v-if="localExport" class="s-export-section">
+				<div class="s-export-section__header"><span>导出格式</span></div>
+				<el-radio-group v-model="format">
+					<el-radio v-for="f in FORMATS" :key="f.value" :value="f.value">{{ f.label }}</el-radio>
+				</el-radio-group>
+			</div>
 		</div>
 
 		<template #footer>
 			<el-button @click="close">取消</el-button>
 			<el-button type="primary" :loading="exporting" :disabled="disabled || !hasValidFields" @click="handleExport">
-				{{ exporting ? '提交中...' : exportText }}
+				{{ submitText }}
 			</el-button>
 		</template>
 	</el-dialog>
@@ -30,8 +36,15 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { exportReportJpg, exportReportPdf, exportReportXls } from '@/components/print-preview/reportPrintDoc'
 
 defineOptions({ inheritAttrs: false })
+
+const FORMATS = [
+	{ value: 'xls', label: 'XLS（Excel）' },
+	{ value: 'pdf', label: 'PDF' },
+	{ value: 'jpg', label: 'JPG（图片）' },
+]
 
 const props = defineProps({
 	title: { type: String, default: '数据导出' },
@@ -43,6 +56,14 @@ const props = defineProps({
 	exportText: { type: String, default: '提交导出' },
 	disabled: { type: Boolean, default: false },
 	maxFields: { type: Number, default: 0 },
+	/**
+	 * 本地导出（XLS/PDF/JPG）三件套：三者都传才启用「导出格式」选择。
+	 * 不传则保持原有行为——勾选字段后提交后端异步导出任务，
+	 * 已有的用户/分析等页面调用不受影响。
+	 */
+	docTitle: { type: String, default: '' },
+	columns: { type: Array, default: () => [] },
+	rows: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['success', 'error', 'closed'])
@@ -52,6 +73,15 @@ const selectedFields = ref([])
 const exporting = ref(false)
 const selectAll = ref(false)
 const isIndeterminate = ref(false)
+const format = ref('xls')
+
+/** 传齐 docTitle/columns/rows 才走本地导出，否则维持后端异步任务 */
+const localExport = computed(() => !!props.docTitle && props.columns.length > 0)
+
+const submitText = computed(() => {
+	if (exporting.value) return localExport.value ? '导出中...' : '提交中...'
+	return localExport.value ? '立即导出' : props.exportText
+})
 
 const requiredFields = computed(() => {
 	return props.exportFields.filter((f) => f.required).map((f) => f.value)
@@ -106,6 +136,46 @@ function handleSelectAll(checked) {
 	}
 }
 
+/** 勾选的字段决定导出哪几列；没提供字段勾选时全列 */
+const pickedColumns = computed(() => {
+	if (!props.exportFields.length) return props.columns
+	const set = new Set(selectedFields.value)
+	const picked = props.columns.filter((c) => set.has(c.prop))
+	return picked.length ? picked : props.columns
+})
+
+function docOptions() {
+	return {
+		title: props.docTitle || props.title,
+		columns: props.columns,
+		rows: props.rows,
+		picked: pickedColumns.value,
+	}
+}
+
+async function handleLocalExport() {
+	if (!props.rows.length) {
+		ElMessage.warning('当前没有可导出的数据')
+		return
+	}
+	exporting.value = true
+	try {
+		const options = docOptions()
+		if (format.value === 'pdf') await exportReportPdf(options)
+		else if (format.value === 'jpg') await exportReportJpg(options)
+		else exportReportXls(options)
+		ElMessage.success('导出完成')
+		emit('success', { format: format.value })
+		close()
+	} catch (error) {
+		console.error('导出失败:', error)
+		ElMessage.error(error.message || '导出失败')
+		emit('error', error)
+	} finally {
+		exporting.value = false
+	}
+}
+
 async function handleExport() {
 	if (props.exportFields.length > 0 && selectedFields.value.length === 0) {
 		ElMessage.warning('请至少选择一个导出字段')
@@ -116,6 +186,8 @@ async function handleExport() {
 		ElMessage.warning(`最多只能选择 ${props.maxFields} 个字段`)
 		return
 	}
+
+	if (localExport.value) return handleLocalExport()
 
 	exporting.value = true
 

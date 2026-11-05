@@ -9,7 +9,9 @@
 			@search="onSearch"
 			@refresh="fetchData"
 			@export="onExport"
-			@print="onPrint"
+			:print-title="printTitle"
+			:columns="columns"
+			:rows="list"
 		/>
 
 		<el-tabs v-model="activeTab" class="rp-tabs" @tab-change="onTabChange">
@@ -36,13 +38,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import businessApi from '@/api/business'
 import ReportFilterBar from '../components/ReportFilterBar.vue'
 import ReportTable from '../components/ReportTable.vue'
 import GenericDrillDrawer from '../components/GenericDrillDrawer.vue'
-import { saveBlob, printTable } from '@/utils/fileDownload'
+import { saveBlob } from '@/utils/fileDownload'
 
 /** 8 个 tab 与后端 DIMENSIONS 一一对应，顺序即设计方案里的 tab 顺序 */
 const TABS = [
@@ -174,6 +176,8 @@ function drillPayload(row) {
 	return null
 }
 
+const printTitle = computed(() => `采购费用 - ${currentLabel()}`)
+
 async function onExport() {
 	exporting.value = true
 	try {
@@ -184,10 +188,6 @@ async function onExport() {
 	} finally {
 		exporting.value = false
 	}
-}
-function onPrint() {
-	if (!columns.value.length) return ElMessage.warning('当前没有可打印的数据')
-	printTable(columns.value, list.value, `采购费用 - ${currentLabel()}`)
 }
 
 onMounted(fetchData)
