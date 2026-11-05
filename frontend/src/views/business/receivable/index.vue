@@ -18,7 +18,7 @@
 			<span class="sep">|</span>
 			<span>待收：<b class="text-red">¥{{ totalPending }}</b></span>
 		</div>
-		<sTable ref="tableRef" tableName="finance_receivable" :data="data" :loading="loading" height="100%" stripe>
+		<sTable ref="tableRef" tableName="finance_receivable" :columns="columns" :data="data" :loading="loading" :total="data.length" :page-size="data.length || 1" height="100%" stripe>
 			<template #receivable="{ row }">
 				<span :class="row.receivable > 0 ? 'text-danger' : 'text-success'">¥{{ Number(row.receivable).toFixed(2) }}</span>
 			</template>
