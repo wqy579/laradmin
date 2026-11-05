@@ -18,13 +18,17 @@
 				<el-input v-model="filters.auditor_name" placeholder="审核人" style="width:120px" clearable />
 				<el-input v-model="filters.min_amount" placeholder="最小金额" style="width:100px" clearable />
 				<el-input v-model="filters.max_amount" placeholder="最大金额" style="width:100px" clearable />
+				<el-checkbox v-model="filters.include_red" @change="load">含红冲</el-checkbox>
 				<el-button type="primary" @click="load">查询</el-button>
 				<el-button @click="reset">重置</el-button>
 				<el-button @click="handleExport">导出</el-button>
 			</div>
 			<sTable :columns="columns" :data="list" :loading="loading" :pagination="{ total, page, pageSize: filters.page_size }" @page-change="onPageChange" height="100%" stripe>
 				<template #voucher_no="{ row }"><a class="link" @click="openDetail(row)">{{ row.voucher_no }}</a></template>
-				<template #status="{ row }"><el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag></template>
+				<template #status="{ row }">
+					<el-tag :type="statusType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+					<el-tag v-if="row.is_red" type="danger" effect="light" size="small">已红冲</el-tag>
+				</template>
 				<template #total_debit="{ row }"><span class="amt">{{ fmt(row.total_debit) }}</span></template>
 				<template #total_credit="{ row }"><span class="amt">{{ fmt(row.total_credit) }}</span></template>
 				<template #attachment="{ row }">
@@ -69,7 +73,7 @@ const loading = ref(false)
 const dateRange = ref([])
 const detailRef = ref(null)
 const subjectOptions = ref([])
-const filters = reactive({ voucher_no: '', status: '', start_date: '', end_date: '', subject_id: '', maker_name: '', auditor_name: '', min_amount: '', max_amount: '', page: 1, page_size: 20 })
+const filters = reactive({ voucher_no: '', status: '', start_date: '', end_date: '', subject_id: '', maker_name: '', auditor_name: '', min_amount: '', max_amount: '', page: 1, page_size: 20, include_red: false })
 
 const columns = [
 	{ field: 'voucher_no', title: '凭证字号', width: 170, slots: { default: 'voucher_no' } },
@@ -80,9 +84,9 @@ const columns = [
 	{ field: 'total_credit', title: '贷方合计', width: 130, align: 'right', slots: { default: 'total_credit' } },
 	{ field: 'maker_name', title: '制单人', width: 100 },
 	{ field: 'auditor_name', title: '审核人', width: 100 },
-	{ field: 'status', title: '状态', width: 100, align: 'center', slots: { default: 'status' } },
+	{ field: 'status', title: '状态', width: 150, align: 'center', slots: { default: 'status' } },
 	{ field: 'attachments_count', title: '单据照片', width: 100, align: 'center', slots: { default: 'attachment' } },
-	{ field: 'red_ops', title: '红冲操作', width: 170, align: 'center', slots: { default: 'red_ops' } },
+	{ field: 'red_ops', title: '红冲操作', width: 210, align: 'center', slots: { default: 'red_ops' } },
 ]
 const fmt = (v) => Number(v || 0).toFixed(2)
 const statusLabel = (s) => ({ draft: '草稿', submitted: '待审核', audited: '已审核', reversed: '已作废' }[s] || s)
@@ -96,7 +100,7 @@ const load = async () => {
 	try { const res = await ledgerApi.voucher.list.get(filters); list.value = res.data?.list || []; total.value = res.data?.total || 0 }
 	catch { ElMessage.error('加载失败') } finally { loading.value = false }
 }
-const reset = () => { Object.assign(filters, { voucher_no: '', status: '', start_date: '', end_date: '', subject_id: '', maker_name: '', auditor_name: '', min_amount: '', max_amount: '', page: 1 }); dateRange.value = []; load() }
+const reset = () => { Object.assign(filters, { voucher_no: '', status: '', start_date: '', end_date: '', subject_id: '', maker_name: '', auditor_name: '', min_amount: '', max_amount: '', page: 1, include_red: false }); dateRange.value = []; load() }
 // 红冲前提与后端一致：仅已审核且未被红冲的凭证
 const canRed = (row) => row.status === 'audited' && !row.is_red
 // 单据照片列只展示图片附件；pdf 等走「📎 N 张」入口在详情里查看

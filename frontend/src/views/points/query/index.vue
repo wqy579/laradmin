@@ -14,7 +14,7 @@
 				placeholder="会员名称/编号"
 				size="small"
 				style="width: 220px"
-				@change="doSearch"
+				@change="onQuery"
 				@clear="onClearMember"
 			>
 				<el-option v-for="m in filterMembers" :key="m.id" :label="`${m.name}（${m.member_no || '—'}）`" :value="m.id" />
@@ -31,7 +31,7 @@
 				style="width: 260px"
 				@change="onDateChange"
 			/>
-			<el-button type="primary" size="small" @click="doSearch">查询</el-button>
+			<el-button type="primary" size="small" @click="onQuery">查询</el-button>
 			<el-button size="small" @click="onReset">重置</el-button>
 			<div style="flex: 1" />
 			<el-button v-if="can('export')" size="small" :loading="exporting" @click="handleExport">导出</el-button>
@@ -215,7 +215,7 @@ const router = useRouter()
 const { has: hasPerm } = usePermission()
 const can = (verb) => hasPerm(`cash.integral.query.${verb}`)
 // 积分兑换入口：菜单 member.exchange（/business/point-exchange）已存在，直接跳转复用
-const canExchange = hasPerm('member.exchange')
+const canExchange = computed(() => hasPerm('member.exchange'))
 const goExchange = () => router.push('/business/point-exchange')
 
 // 按日台账（后端 Member 域 member-consume-log/daily-ledger）
@@ -291,6 +291,10 @@ const searchMembers = async (kw) => {
 	}
 }
 
+const onQuery = () => {
+	doSearch()
+	refreshActive()
+}
 const onDateChange = (val) => {
 	search.start_date = val?.[0] || ''
 	search.end_date = val?.[1] || ''
@@ -421,6 +425,25 @@ watch(
 
 <style scoped>
 .pts-query {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+.pts-tabs {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+.pts-tabs :deep(.el-tabs__header) {
+	margin: 0 20px;
+}
+.pts-tabs :deep(.el-tabs__content) {
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+}
+.pts-tabs :deep(.el-tab-pane) {
 	height: 100%;
 	display: flex;
 	flex-direction: column;

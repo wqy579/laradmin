@@ -3226,6 +3226,18 @@
     },
     {
         "method": "GET",
+        "uri": "admin/business/member-consume-log/daily-ledger",
+        "name": "admin.",
+        "action": "Modules\\Member\\Http\\Controllers\\MemberConsumeLogController@dailyLedger",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/business/member-consume-log/statistics",
         "name": "admin.",
         "action": "Modules\\Member\\Http\\Controllers\\MemberConsumeLogController@statistics",
