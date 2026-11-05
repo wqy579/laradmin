@@ -27,6 +27,7 @@
           <el-button type="warning" @click="batchReceive(true)">批量挂账收款</el-button>
           <el-button @click="batchSchedule">择日配送</el-button>
           <el-button type="danger" @click="batchCancelDispatch">撤销配送</el-button>
+          <el-button type="info" @click="batchReceiveAndScrap">收款并报废退货</el-button>
           <span class="batch-count">已选 {{ selectedRows.length }} 单</span>
         </template>
       </template>
@@ -259,6 +260,51 @@ async function batchCancelDispatch() {
     ElMessage.success("已撤销配送");
     fetchData();
   } catch { /* 用户取消 */ }
+}
+
+// 收款并报废退货：按选中发货单生成销售退货（报废）记录，再跳转收款核销页。
+// 单张失败只提示不中断，保证收款跳转始终可达。
+async function batchReceiveAndScrap() {
+  if (!selectedRows.value.length) return;
+  try {
+    await ElMessageBox.confirm(
+      `将按选中 ${selectedRows.value.length} 张发货单生成报废退货记录并跳转收款？`, "提示", { type: "warning" }
+    );
+  } catch {
+    return;
+  }
+  let done = 0;
+  for (const row of selectedRows.value) {
+    try {
+      const res = await businessApi.delivery.detail.get(row.id);
+      const d = res?.data;
+      if (!d?.order_id || !d?.warehouse_id) throw new Error("no order");
+      const items = (d.items || [])
+        .map((it) => ({
+          product_id: it.product_id,
+          return_qty: Math.trunc(Number(it.quantity)),
+          return_price: Number(it.unit_price) || 0,
+        }))
+        .filter((it) => it.product_id && it.return_qty >= 1);
+      if (!items.length) throw new Error("no items");
+      await businessApi.salesReturn.create.post({
+        order_id: d.order_id,
+        warehouse_id: d.warehouse_id,
+        return_date:
+          String(d.delivery_date || "").slice(0, 10) ||
+          new Date().toISOString().slice(0, 10),
+        return_type: "damage",
+        remark: "发货收款并报废退货",
+        items,
+      });
+      done++;
+    } catch {
+      ElMessage.warning(`发货单 ${row.delivery_no || row.id} 报废退货失败，已跳过`);
+    }
+  }
+  if (done) ElMessage.success(`已生成 ${done} 张报废退货单`);
+  const ids = selectedRows.value.map((r) => r.id).join(",");
+  router.push({ path: "/business/receive", query: { delivery_ids: ids, mode: "scrap" } });
 }
 
 async function fetchData() {
