@@ -101,6 +101,8 @@ Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
     Route::prefix('business/member-consume-log')->group(function () {
         Route::get('/', [MemberConsumeLogController::class, 'index']);
         Route::get('/statistics', [MemberConsumeLogController::class, 'statistics']);
+        // 积分日台账（QA2 D-01）：静态段必须排在 /{id} 之前
+        Route::get('/daily-ledger', [MemberConsumeLogController::class, 'dailyLedger']);
         Route::get('/{id}', [MemberConsumeLogController::class, 'show']);
     });
 });

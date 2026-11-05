@@ -171,19 +171,40 @@ class VoucherController extends Controller
         }
     }
 
-    /** 红冲：生成一张借贷对调的红冲凭证，原凭证标注已红冲 */
-    public function redReverse(int $id)
+    /**
+     * 红冲：生成一张借贷对调的红冲凭证，原凭证标注已红冲。
+     *
+     * mode=reversal（缺省，兼容旧调用）仅冲销；mode=cancel 红冲撤单，原单整单作废；
+     * mode=modify 红冲改单，额外复制原分录生成更正草稿交给前端编辑。
+     */
+    public function redReverse(Request $request, int $id)
     {
-        $user = request()->input('auth_user');
+        $mode = (string) $request->input('mode', VoucherService::RED_MODE_REVERSAL);
+        if (! in_array($mode, [VoucherService::RED_MODE_REVERSAL, VoucherService::RED_MODE_MODIFY, VoucherService::RED_MODE_CANCEL], true)) {
+            return $this->error('红冲方式不合法', 422);
+        }
+
+        $user = $request->input('auth_user');
 
         try {
-            $voucher = $this->service->redReverse(
+            [$voucher, $correction] = $this->service->redReverse(
                 $id,
                 $user?->id ?? 0,
-                $user?->real_name ?? $user?->username ?? '系统'
+                $user?->real_name ?? $user?->username ?? '系统',
+                $mode
             );
 
-            return $this->success(['voucher' => $this->service->detail($voucher->id)], '红冲成功');
+            $data = ['voucher' => $this->service->detail($voucher->id)];
+            if ($correction) {
+                $data['correction'] = $this->service->detail($correction->id);
+            }
+            $msg = match ($mode) {
+                VoucherService::RED_MODE_MODIFY => '红冲改单成功，请在更正草稿上修改后重新提交',
+                VoucherService::RED_MODE_CANCEL => '红冲撤单成功，原凭证已作废',
+                default => '红冲成功',
+            };
+
+            return $this->success($data, $msg);
         } catch (\DomainException $e) {
             return $this->error($e->getMessage(), 422);
         } catch (\Throwable $e) {

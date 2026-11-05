@@ -203,9 +203,92 @@ class LedgerFeatureTest extends TestCase
 
         // 红冲后新凭证继承附件
         $svc->auditOne($voucher->id, 1, '审核员');
-        $red = $svc->redReverse($voucher->id, 1, '测试员');
+        [$red] = $svc->redReverse($voucher->id, 1, '测试员');
         $this->assertCount(1, $red->attachments);
         $this->assertEquals('对账单.png', $red->attachments[0]['name']);
+    }
+
+    /**
+     * 红冲撤单 / 红冲改单：与仅冲销的「红冲」区分开。
+     *
+     * 撤单 = 冲销 + 原单进已作废；改单 = 冲销 + 复制一张更正草稿（不挂 red_of_id）。
+     */
+    public function test_red_reverse_cancel_and_modify_modes(): void
+    {
+        $this->seedSubjects();
+        $cash = Subject::where('code', '1001')->first();
+        $ar = Subject::where('code', '1122')->first();
+        $svc = app(VoucherService::class);
+
+        $cancel = $svc->create([
+            'voucher_date' => now()->format('Y-m-d'),
+            'entries' => [
+                ['subject_id' => $cash->id, 'summary' => '收款', 'debit_amount' => 300, 'credit_amount' => 0],
+                ['subject_id' => $ar->id, 'summary' => '冲应收', 'debit_amount' => 0, 'credit_amount' => 300],
+            ],
+        ], 1, '测试员');
+        $svc->auditOne($cancel->id, 1, '审核员');
+        [$redCancel, $correctionOfCancel] = $svc->redReverse(
+            $cancel->id, 1, '测试员', VoucherService::RED_MODE_CANCEL
+        );
+        $this->assertNull($correctionOfCancel);
+        $this->assertEquals(Voucher::STATUS_REVERSED, $cancel->fresh()->status);
+        $this->assertTrue($cancel->fresh()->is_red);
+        $this->assertEquals(Voucher::STATUS_AUDITED, $redCancel->status);
+
+        $modify = $svc->create([
+            'voucher_date' => now()->format('Y-m-d'),
+            'entries' => [
+                ['subject_id' => $cash->id, 'summary' => '收款', 'debit_amount' => 500, 'credit_amount' => 0],
+                ['subject_id' => $ar->id, 'summary' => '冲应收', 'debit_amount' => 0, 'credit_amount' => 500],
+            ],
+        ], 1, '测试员');
+        $svc->auditOne($modify->id, 1, '审核员');
+        [$redModify, $correction] = $svc->redReverse(
+            $modify->id, 1, '测试员', VoucherService::RED_MODE_MODIFY
+        );
+        // 改单只冲销原单，原单仍是已审核（更正单负责后续入账）
+        $this->assertEquals(Voucher::STATUS_AUDITED, $modify->fresh()->status);
+        $this->assertTrue($modify->fresh()->is_red);
+        // 更正草稿：同分录同金额、状态草稿、不挂 red_of_id、与红冲单不同号
+        $this->assertNotNull($correction);
+        $this->assertEquals(Voucher::STATUS_DRAFT, $correction->status);
+        $this->assertNull($correction->red_of_id);
+        $this->assertNotEquals($redModify->voucher_no, $correction->voucher_no);
+        $this->assertEquals(500.0, (float) $correction->total_debit);
+        $this->assertEquals(500.0, (float) $correction->total_credit);
+        $this->assertCount(2, $correction->entries);
+        // 更正草稿可继续编辑（草稿态），改完能正常提交审核
+        $edited = $svc->update($correction->id, [
+            'entries' => [
+                ['subject_id' => $cash->id, 'summary' => '收款（更正）', 'debit_amount' => 450, 'credit_amount' => 0],
+                ['subject_id' => $ar->id, 'summary' => '冲应收（更正）', 'debit_amount' => 0, 'credit_amount' => 450],
+            ],
+        ]);
+        $this->assertEquals(450.0, (float) $edited->total_debit);
+    }
+
+    /** 缺省 mode 行为不变：仅冲销，原单保持已审核、不生成更正单 */
+    public function test_red_reverse_default_mode_unchanged(): void
+    {
+        $this->seedSubjects();
+        $cash = Subject::where('code', '1001')->first();
+        $ar = Subject::where('code', '1122')->first();
+        $svc = app(VoucherService::class);
+
+        $voucher = $svc->create([
+            'voucher_date' => now()->format('Y-m-d'),
+            'entries' => [
+                ['subject_id' => $cash->id, 'summary' => '收款', 'debit_amount' => 200, 'credit_amount' => 0],
+                ['subject_id' => $ar->id, 'summary' => '冲应收', 'debit_amount' => 0, 'credit_amount' => 200],
+            ],
+        ], 1, '测试员');
+        $svc->auditOne($voucher->id, 1, '审核员');
+        [$red, $correction] = $svc->redReverse($voucher->id, 1, '测试员');
+        $this->assertNull($correction);
+        $this->assertEquals(Voucher::STATUS_AUDITED, $voucher->fresh()->status);
+        $this->assertTrue($voucher->fresh()->is_red);
+        $this->assertEquals($voucher->id, $red->red_of_id);
     }
 
     public function test_amount_chinese_conversion(): void
