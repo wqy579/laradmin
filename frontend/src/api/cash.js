@@ -12,6 +12,14 @@ const cashApi = {
 		flows: { get: (id, params) => request.get(`cash/accounts/${id}/flows`, { params }) },
 		export: (id, params) => request.get(`cash/accounts/${id}/export`, { params, responseType: 'blob' }),
 	},
+	// 存取款转账单
+	deposit: {
+		options: { get: (params) => request.get('cash/deposits/options', { params }) },
+		genNo: { get: () => request.get('cash/deposits/gen-no') },
+		list: { get: (params) => request.get('cash/deposits', { params }) },
+		add: { post: (data) => request.post('cash/deposits', data) },
+		remove: { delete: (id) => request.delete(`cash/deposits/${id}`) },
+	},
 	// 刷卡收款记录
 	card: {
 		options: { get: (params) => request.get('cash/card-txns/options', { params }) },
