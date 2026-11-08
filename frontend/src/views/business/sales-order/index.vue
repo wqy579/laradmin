@@ -549,6 +549,11 @@
                     >撤销配送</el-dropdown-item
                   >
                   <el-dropdown-item
+                    v-if="['draft', 'pending'].includes(row.status)"
+                    command="voidOrder"
+                    >作废</el-dropdown-item
+                  >
+                  <el-dropdown-item
                     v-if="row.status === 'pending'"
                     command="delete"
                     divided
@@ -790,6 +795,7 @@ import { Search, ArrowDown } from "@element-plus/icons-vue";
 import { PrinterOutlined } from "@ant-design/icons-vue";
 import { useRouter } from "vue-router";
 import businessApi from "@/api/business";
+import orderApi from "@/api/order";
 import SalesOrderDialog from "../components/sales-order-dialog.vue";
 import PrintPreview from "@/components/print-preview/index.vue";
 import { useDocumentPrint } from "@/components/print-preview/useDocumentPrint";
@@ -1324,6 +1330,37 @@ const onRowCommand = (row, cmd) => {
     detailTab.value = "history";
   } else if (cmd === "delete") handleDelete(row);
   else if (cmd === "cancelDispatch") handleCancelDispatch(row);
+  else if (cmd === "voidOrder") handleVoidOrder(row);
+};
+
+// 整单作废：走订货调整单体系发起 type=void 申请，审核通过后订单才清零并留痕；
+// 此处仅发起申请，不直接作废订单（后端 OrderAdjustController@store）。
+const handleVoidOrder = async (row) => {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      `确认对订单 ${row.order_no} 发起整单作废？申请需审核，通过前订单不受影响。`,
+      "作废确认",
+      {
+        inputType: "textarea",
+        inputPlaceholder: "作废原因（选填）",
+        type: "warning",
+        inputValidator: (v) =>
+          !v || v.length <= 500 ? true : "作废原因不能超过 500 字",
+      }
+    );
+    const res = await orderApi.adjust.create({
+      order_id: row.id,
+      type: "void",
+      reason: value ? String(value).trim() : null,
+    });
+    if (res.code === 200) {
+      ElMessage.success("已发起整单作废申请，待审核");
+      doRefresh();
+    } else ElMessage.error(res.message || "操作失败");
+  } catch {
+    // 用户取消，或接口失败（如 422「仅待处理的订单可发起调整」）——
+    // 后端文案已由请求拦截器统一弹出，此处不重复提示。
+  }
 };
 
 // 撤销配送：已配送/已收款订单回退为待配送，联动刷新
