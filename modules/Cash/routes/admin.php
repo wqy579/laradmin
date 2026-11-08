@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\Cash\Http\Controllers\CashAccountController;
 use Modules\Cash\Http\Controllers\CashCardController;
 use Modules\Cash\Http\Controllers\CashDashboardController;
+use Modules\Cash\Http\Controllers\CashDepositController;
 use Modules\Cash\Http\Controllers\CashHandoverController;
 use Modules\Cash\Http\Controllers\CashIntegralGrantController;
 use Modules\Cash\Http\Controllers\CashIntegralLedgerController;
@@ -18,6 +19,15 @@ use Modules\Cash\Http\Controllers\CashIntegralVerifyController;
  * 静态段须声明在 /{id} 之前，避免被路由参数吞掉。
  */
 Route::middleware(['auth.check:admin', 'log.request'])->group(function () {
+    // ===== 存取款转账单（P0-8）=====
+    Route::prefix('cash/deposits')->group(function () {
+        Route::get('/options', [CashDepositController::class, 'options']);
+        Route::get('/gen-no', [CashDepositController::class, 'genNo']);
+        Route::get('/', [CashDepositController::class, 'index']);
+        Route::post('/', [CashDepositController::class, 'store']);
+        Route::delete('/{id}', [CashDepositController::class, 'destroy'])->whereNumber('id');
+    });
+
     // ===== 现金账户收支查询（D-29）=====
     Route::prefix('cash/accounts')->group(function () {
         Route::get('/options', [CashAccountController::class, 'options']);

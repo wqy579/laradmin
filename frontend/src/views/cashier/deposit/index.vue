@@ -197,10 +197,16 @@ import {
 	ACC_LABEL, CUS_LABEL, SUP_LABEL, EMP_LABEL, DEPT_LABEL,
 	DOC_STATUS, STATUS_LABEL, fmtMoney, fmtDay,
 } from '../shared'
-import { listAccounts, accountBalance, listDeposits, addDeposit, genDocNo } from '../../../mock/cashier'
+import cashApi from '@/api/cash'
 import { saveBlob, printTable } from '../../../utils/fileDownload'
 
-const accounts = listAccounts()
+const accounts = ref([])
+const rows = ref([])
+/* 账户实时余额（由 options 接口的 balance 字段提供） */
+function accountBalance(id) {
+	const a = accounts.value.find((x) => x.id === id)
+	return a ? Number(a.balance) || 0 : 0
+}
 const customers = CUSTOMERS
 const suppliers = SUPPLIERS
 const employees = SALESMEN
@@ -272,7 +278,7 @@ const rules = {
 
 /* 列表数据（按筛选过滤 + 按余额列展示当前账户余额） */
 const filtered = computed(() => {
-	let list = [...listDeposits()]
+	let list = [...rows.value.map((r) => ({ ...r, depositType: r.depositType || r.type, account: r.account_id ?? r.account, status: r.status || 'confirmed' }))]
 	if (search.counterpart) list = list.filter((r) => r.counterpart === search.counterpart)
 	if (search.account) list = list.filter((r) => r.account === search.account)
 	if (search.status) list = list.filter((r) => r.status === search.status)
@@ -307,13 +313,28 @@ function empName(id) {
 	return EMP_LABEL[id] || String(id)
 }
 
-function refresh() {
+async function refresh() {
 	loading.value = true
-	// TODO(api): 替换为 /api/cashier/deposit 列表接口
-	setTimeout(() => {
+	try {
+		const params = { page: page.value, page_size: pageSize.value }
+		if (search.account) params.account_id = search.account
+		if (search.status) params.status = search.status
+		if (dateRange.value && dateRange.value.length === 2) {
+			params.start_date = dateRange.value[0]
+			params.end_date = dateRange.value[1]
+		}
+		const [listRes, optRes] = await Promise.all([
+			cashApi.deposit.list.get(params),
+			cashApi.deposit.options.get(),
+		])
+		rows.value = (listRes?.list || listRes?.data?.list || [])
+		total.value = Number(listRes?.total ?? listRes?.data?.total ?? rows.value.length) || 0
+		accounts.value = optRes?.list || optRes?.data?.list || []
+	} catch (e) {
+		ElMessage.error(e?.message || '存取款单加载失败')
+	} finally {
 		loading.value = false
-		total.value = filtered.value.length
-	}, 200)
+	}
 }
 
 function resetSearch() {
@@ -334,8 +355,10 @@ function onSizeChange(s) {
 }
 
 function openDialog() {
-	// TODO(api): 单据号后端生成，前缀 CQ
-	curNo.value = genDocNo('CQ')
+	// 单据号由后端生成（前缀 CQ）
+	cashApi.deposit.genNo.get().then((res) => {
+		curNo.value = res?.no || res?.data?.no || ''
+	}).catch(() => { curNo.value = '' })
 	Object.assign(form, {
 		depositType: 'deposit',
 		date: new Date().toISOString().slice(0, 10),
@@ -364,33 +387,29 @@ function save() {
 			return
 		}
 		const payload = {
-			no: curNo.value,
-			date: form.date,
-			depositType: form.depositType,
-			counterpart: form.counterpart,
-			account: form.account,
-			to_account: form.to_account,
-			to_account_name: form.to_account ? ACC_LABEL[form.to_account] : '',
+			doc_no: curNo.value,
+			biz_date: form.date,
+			type: form.depositType,
+			counterpart: form.counterpart != null ? String(form.counterpart) : null,
+			account_id: form.account,
+			to_account_id: form.to_account || null,
 			amount: form.amount,
-			fee: form.fee,
-			handler: form.handler,
-			department: form.department,
-			remark: form.remark,
-			memo: form.memo,
+			fee: form.fee || 0,
+			handler: form.handler != null ? String(form.handler) : null,
+			department: form.department != null ? String(form.department) : null,
+			remark: form.remark || null,
+			memo: form.memo || null,
 		}
 		saving.value = true
-		// TODO(api): 替换为 POST /api/cashier/deposit 保存接口
-		setTimeout(() => {
-			const res = addDeposit(payload)
+		cashApi.deposit.add.post(payload).then(() => {
 			saving.value = false
-			if (!res.ok) {
-				ElMessage.error(res.error)
-				return
-			}
 			dialogVisible.value = false
 			ElMessage.success(`存取款单 ${curNo.value} 已保存`)
 			refresh()
-		}, 300)
+		}).catch((e) => {
+			saving.value = false
+			ElMessage.error(e?.message || '保存失败')
+		})
 	})
 }
 
@@ -404,10 +423,13 @@ function isToday(date) {
 
 function removeDoc(row) {
 	ElMessageBox.confirm(`确定删除单据 ${row.no}？仅限当日未审核单可删。`, '删除确认', { type: 'warning' })
+		.then(() => cashApi.deposit.remove.delete(row.id))
 		.then(() => {
-			// TODO(api): 替换为 DELETE /api/cashier/deposit/:no 接口
 			ElMessage.success(`已删除 ${row.no}`)
 			refresh()
+		})
+		.catch((e) => {
+			if (e && e.message) ElMessage.error(e.message)
 		})
 		.catch(() => {})
 }

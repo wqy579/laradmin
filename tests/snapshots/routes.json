@@ -8327,6 +8327,66 @@
     },
     {
         "method": "GET",
+        "uri": "admin/cash/deposits",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDepositController@index",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "POST",
+        "uri": "admin/cash/deposits",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDepositController@store",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/deposits/gen-no",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDepositController@genNo",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
+        "uri": "admin/cash/deposits/options",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDepositController@options",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "DELETE",
+        "uri": "admin/cash/deposits/{id}",
+        "name": "admin.",
+        "action": "Modules\\Cash\\Http\\Controllers\\CashDepositController@destroy",
+        "middleware": [
+            "api",
+            "stock.snapshot",
+            "auth.check:admin",
+            "log.request"
+        ]
+    },
+    {
+        "method": "GET",
         "uri": "admin/cash/handover",
         "name": "admin.",
         "action": "Modules\\Cash\\Http\\Controllers\\CashHandoverController@index",
